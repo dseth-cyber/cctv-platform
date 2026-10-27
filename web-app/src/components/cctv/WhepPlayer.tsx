@@ -391,10 +391,13 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       {/* Floating PTZ D-Pad Overlay (when toggled) */}
       {showPtzPad && (
         <div className="absolute top-12 right-2 bg-slate-900/90 backdrop-blur-md border border-slate-700 p-2 rounded-xl shadow-2xl z-30 flex flex-col items-center gap-1">
-          <div className="text-[10px] font-semibold text-slate-300 flex items-center gap-1 mb-1">
+          <div className="text-[10px] font-semibold text-slate-300 flex items-center gap-1 mb-0.5">
             <Compass className="w-3 h-3 text-cyan-400" />
-            <span>Digital PTZ</span>
+            <span>Digital Zoom / Pan</span>
           </div>
+          <span className="text-[9px] text-slate-400 mb-1.5 text-center leading-tight">
+            (Browser-side only • HW PTZ requires physical PTZ camera)
+          </span>
 
           {/* Directional Pad */}
           <div className="grid grid-cols-3 gap-1 w-24 h-24">
@@ -535,7 +538,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
                 ? 'bg-cyan-600/80 text-white'
                 : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'
             }`}
-            title="Digital PTZ Controls"
+            title="Digital Zoom / Pan Controls (Browser-side CSS)"
           >
             <Compass className="w-4 h-4" />
           </button>
