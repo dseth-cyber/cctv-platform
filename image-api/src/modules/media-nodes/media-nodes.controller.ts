@@ -82,13 +82,21 @@ export async function getBenchmarkHandler(request: FastifyRequest, reply: Fastif
     subKbps?: string;
     viewers?: string;
     retentionDays?: string;
+    codec?: 'h264' | 'h265';
+    raidType?: 'raid0' | 'raid5' | 'raid6' | 'raid10';
+    raidOverhead?: string;
+    headroom?: string;
   };
 
   const channelCount = query.channels ? parseInt(query.channels, 10) : 100;
-  const mainBitrateKbps = query.mainKbps ? parseInt(query.mainKbps, 10) : 2048;
-  const subBitrateKbps = query.subKbps ? parseInt(query.subKbps, 10) : 512;
+  const mainBitrateKbps = query.mainKbps ? parseInt(query.mainKbps, 10) : undefined;
+  const subBitrateKbps = query.subKbps ? parseInt(query.subKbps, 10) : undefined;
   const concurrentViewers = query.viewers ? parseInt(query.viewers, 10) : 5;
   const retentionDays = query.retentionDays ? parseInt(query.retentionDays, 10) : 7;
+  const codec = query.codec === 'h265' ? 'h265' : 'h264';
+  const raidType = query.raidType;
+  const raidOverheadPercent = query.raidOverhead ? parseFloat(query.raidOverhead) : undefined;
+  const freeSpaceHeadroomPercent = query.headroom ? parseFloat(query.headroom) : 20;
 
   const benchmark = MediaNodesService.calculateBenchmark({
     channelCount,
@@ -96,6 +104,10 @@ export async function getBenchmarkHandler(request: FastifyRequest, reply: Fastif
     subBitrateKbps,
     concurrentViewers,
     retentionDays,
+    codec,
+    raidType,
+    raidOverheadPercent,
+    freeSpaceHeadroomPercent,
   });
 
   return reply.status(200).send(benchmark);

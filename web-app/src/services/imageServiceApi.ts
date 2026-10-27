@@ -665,6 +665,10 @@ export function createImageServiceApi(api: any) {
       subKbps?: number;
       viewers?: number;
       retentionDays?: number;
+      codec?: 'h264' | 'h265';
+      raidType?: 'raid0' | 'raid5' | 'raid6' | 'raid10';
+      raidOverhead?: number;
+      headroom?: number;
     }) => api.get(`${BASE}/media-nodes/benchmark`, { params }).then((r: any) => r.data),
     getWfhIceConfig: () =>
       api.get(`${BASE}/media-nodes/wfh-ice-config`).then((r: any) => r.data),

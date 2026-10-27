@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
@@ -30,10 +31,14 @@ export interface NodeHeartbeatMetrics {
 
 export interface BenchmarkParams {
   channelCount: number;
-  mainBitrateKbps?: number; // default 2048 (2 Mbps)
+  mainBitrateKbps?: number; // default 2048 (2 Mbps for H.264) or 1200 (1.2 Mbps for H.265)
   subBitrateKbps?: number;  // default 512 (512 Kbps)
   concurrentViewers?: number; // default 5 viewers per active stream
   retentionDays?: number; // default 7 days
+  codec?: 'h264' | 'h265';
+  raidType?: 'raid0' | 'raid5' | 'raid6' | 'raid10';
+  raidOverheadPercent?: number; // e.g. 20% for RAID 5, 25% for RAID 6, 50% for RAID 10
+  freeSpaceHeadroomPercent?: number; // default 20% headroom
 }
 
 export class MediaNodesService {
@@ -275,8 +280,10 @@ export class MediaNodesService {
    */
   static calculateBenchmark(params: BenchmarkParams) {
     const channels = Math.max(1, params.channelCount);
-    const mainKbps = params.mainBitrateKbps ?? 2048; // 2 Mbps
-    const subKbps = params.subBitrateKbps ?? 512;    // 512 Kbps
+    const codec = params.codec ?? 'h264';
+    const defaultMain = codec === 'h265' ? 1200 : 2048;
+    const mainKbps = params.mainBitrateKbps ?? defaultMain;
+    const subKbps = params.subBitrateKbps ?? (codec === 'h265' ? 384 : 512);
     const viewers = params.concurrentViewers ?? 5;   // viewers per active channel
     const retentionDays = params.retentionDays ?? 7;
 
@@ -296,25 +303,39 @@ export class MediaNodesService {
     const totalStorageGbPerDay = channels * gbPerChannelPerDay;
     const totalStorageTbPerDay = totalStorageGbPerDay / 1000;
 
-    const retentionTotalTb = totalStorageTbPerDay * retentionDays;
+    const netRetentionTotalTb = totalStorageTbPerDay * retentionDays;
+
+    // 20% free-space headroom & RAID overhead
+    const freeSpaceHeadroomPercent = params.freeSpaceHeadroomPercent ?? 20;
+    const usableStorageWithHeadroomTb = netRetentionTotalTb / (1 - freeSpaceHeadroomPercent / 100);
+
+    const raidType = params.raidType ?? 'raid5';
+    const defaultRaidOverhead = raidType === 'raid6' ? 25 : raidType === 'raid10' ? 50 : raidType === 'raid0' ? 0 : 20;
+    const raidOverheadPercent = params.raidOverheadPercent ?? defaultRaidOverhead;
+    const rawDiskRequiredTb = usableStorageWithHeadroomTb * (1 + raidOverheadPercent / 100);
 
     // Recommended hardware nodes
     // Each media node comfortably handles ~100-150 channels @ 2Mbps remux
     const recommendedNodes = Math.max(1, Math.ceil(channels / 120));
 
-    // NIC requirement
+    // Global and Per-Node NIC requirement
     const requiredNicSpeed = ingressGbps > 1.5 ? '10 Gbps SFP+' : ingressGbps > 0.8 ? '2.5 Gbps / Dual 1Gbps LACP' : '1 Gbps';
+    const perNodeIngressMbps = ingressMbps / recommendedNodes;
+    const perNodeNicSpeed = perNodeIngressMbps > 1500 ? '10 Gbps SFP+' : perNodeIngressMbps > 750 ? '2.5 Gbps / Dual 1Gbps LACP' : '1 Gbps';
 
     // Disk Write Throughput
     const diskWriteMBps = (ingressMbps / 8) * 1.05; // 5% container overhead
 
     return {
       channelCount: channels,
+      codec,
       tier: channels <= 10 ? 'Tier 1 (Small / Retail)' : channels <= 50 ? 'Tier 2 (Building / Branch)' : channels <= 200 ? 'Tier 3 (Factory / Plant)' : channels <= 500 ? 'Tier 4 (Multi-Site Enterprise)' : 'Tier 5 (Campus / Mega Site)',
       ingress: {
         bitrateMbps: Math.round(ingressMbps * 10) / 10,
         bitrateGbps: Math.round(ingressGbps * 100) / 100,
         requiredNicSpeed,
+        perNodeIngressMbps: Math.round(perNodeIngressMbps * 10) / 10,
+        perNodeNicSpeed,
       },
       egress: {
         activeViewingChannels,
@@ -326,25 +347,40 @@ export class MediaNodesService {
         gbPerChannelPerDay: Math.round(gbPerChannelPerDay * 10) / 10,
         storageTbPerDay: Math.round(totalStorageTbPerDay * 100) / 100,
         retentionDays,
-        retentionTotalTb: Math.round(retentionTotalTb * 10) / 10,
+        netRetentionTotalTb: Math.round(netRetentionTotalTb * 10) / 10,
+        retentionTotalTb: Math.round(netRetentionTotalTb * 10) / 10,
+        freeSpaceHeadroomPercent,
+        usableStorageWithHeadroomTb: Math.round(usableStorageWithHeadroomTb * 10) / 10,
+        raidType,
+        raidOverheadPercent,
+        rawDiskRequiredTb: Math.round(rawDiskRequiredTb * 10) / 10,
         diskWriteMBps: Math.round(diskWriteMBps * 10) / 10,
       },
       infrastructure: {
         recommendedMediaNodes: recommendedNodes,
+        perNodeChannels: Math.ceil(channels / recommendedNodes),
+        perNodeNicSpeed,
         recommendedRamPerNodeGB: channels <= 50 ? 4 : channels <= 200 ? 8 : 16,
         recommendedCpuCoresPerNode: channels <= 50 ? 2 : channels <= 200 ? 4 : 8,
-        storageStrategy: 'Direct fMP4 Remux on NVMe/SSD buffer + SeaweedFS/NAS archive',
+        storageStrategy: `Direct fMP4 Remux on NVMe buffer + NAS archive (${raidType.toUpperCase()} with ${freeSpaceHeadroomPercent}% headroom)`,
       },
     };
   }
 
   /**
-   * WFH & Remote Access ICE / STUN / TURN Configurations.
+   * WFH & Remote Access ICE / STUN / TURN Configurations with time-limited HMAC credentials.
    */
   static getWfhIceConfiguration() {
+    const turnSecret = process.env.TURN_SECRET || 'cctv-secure-turn-key-prod-default';
+    const expiryTimestamp = Math.floor(Date.now() / 1000) + 86400; // 24 hours validity
+    const turnUsername = `${expiryTimestamp}:cctv_wfh_operator`;
+    const turnCredential = crypto.createHmac('sha1', turnSecret).update(turnUsername).digest('base64');
+
     return {
       mode: 'WebRTC Direct / TURN Relay for WFH',
-      notice: 'Cloudflare / HTTP Tunnels cannot proxy raw UDP WebRTC streams directly without TURN relay. Use approved enterprise VPN or configured STUN/TURN servers.',
+      notice: 'Cloudflare / HTTP Tunnels cannot proxy raw UDP WebRTC streams directly without TURN relay. Use approved enterprise VPN or time-limited STUN/TURN credentials.',
+      expiryTimestamp,
+      expiresInHours: 24,
       stunServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
@@ -352,13 +388,13 @@ export class MediaNodesService {
       turnServers: [
         {
           urls: 'turn:turn.cctv-local.lc.co.th:3478?transport=udp',
-          username: 'cctv_wfh_operator',
-          credential: 'change-in-prod-turn-secret',
+          username: turnUsername,
+          credential: turnCredential,
         },
         {
           urls: 'turn:turn.cctv-local.lc.co.th:3478?transport=tcp',
-          username: 'cctv_wfh_operator',
-          credential: 'change-in-prod-turn-secret',
+          username: turnUsername,
+          credential: turnCredential,
         },
       ],
       vpnRecommendations: [

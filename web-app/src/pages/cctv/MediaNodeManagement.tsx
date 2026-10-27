@@ -66,6 +66,9 @@ export const MediaNodeManagement: React.FC = () => {
   const [mainBitrateKbps, setMainBitrateKbps] = useState<number>(2048);
   const [concurrentViewers, setConcurrentViewers] = useState<number>(5);
   const [retentionDays, setRetentionDays] = useState<number>(7);
+  const [codec, setCodec] = useState<'h264' | 'h265'>('h264');
+  const [raidType, setRaidType] = useState<'raid0' | 'raid5' | 'raid6' | 'raid10'>('raid5');
+  const [headroomPercent, setHeadroomPercent] = useState<number>(20);
 
   // Modals state
   const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
@@ -107,13 +110,16 @@ export const MediaNodeManagement: React.FC = () => {
 
   // Fetch benchmark calculations
   const { data: benchmarkData } = useQuery({
-    queryKey: ['media-nodes-benchmark', channelsCount, mainBitrateKbps, concurrentViewers, retentionDays],
+    queryKey: ['media-nodes-benchmark', channelsCount, mainBitrateKbps, concurrentViewers, retentionDays, codec, raidType, headroomPercent],
     queryFn: () =>
       imageServiceApi.getCapacityBenchmark({
         channels: channelsCount,
         mainKbps: mainBitrateKbps,
         viewers: concurrentViewers,
         retentionDays,
+        codec,
+        raidType,
+        headroom: headroomPercent,
       }),
   });
 
@@ -541,6 +547,46 @@ export const MediaNodeManagement: React.FC = () => {
                 ))}
               </div>
 
+              {/* Codec & Architecture Options */}
+              <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-semibold">Video Codec:</span>
+                  <div className="inline-flex rounded-lg border border-slate-700 p-0.5 bg-slate-900">
+                    <button
+                      onClick={() => { setCodec('h264'); setMainBitrateKbps(2048); }}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition ${codec === 'h264' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'}`}
+                    >
+                      H.264 (2.0 Mbps)
+                    </button>
+                    <button
+                      onClick={() => { setCodec('h265'); setMainBitrateKbps(1200); }}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition ${codec === 'h265' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'}`}
+                    >
+                      H.265 (1.2 Mbps)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-semibold">Storage Architecture:</span>
+                  <select
+                    value={raidType}
+                    onChange={(e: any) => setRaidType(e.target.value)}
+                    className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="raid5">RAID-5 (+20% parity)</option>
+                    <option value="raid6">RAID-6 (+25% dual parity)</option>
+                    <option value="raid10">RAID-10 (+50% mirror)</option>
+                    <option value="raid0">JBOD / RAID-0 (No overhead)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 text-slate-300">
+                  <span className="text-slate-400 font-semibold">Free-Space Headroom:</span>
+                  <span className="font-mono font-bold text-amber-400">20% buffer</span>
+                </div>
+              </div>
+
               {/* Slider Inputs Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5 pt-2">
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
@@ -566,9 +612,9 @@ export const MediaNodeManagement: React.FC = () => {
                   </div>
                   <input
                     type="range"
-                    min={1024}
+                    min={512}
                     max={8192}
-                    step={512}
+                    step={256}
                     value={mainBitrateKbps}
                     onChange={(e) => setMainBitrateKbps(Number(e.target.value))}
                     className="w-full accent-cyan-400 cursor-pointer"
@@ -626,9 +672,13 @@ export const MediaNodeManagement: React.FC = () => {
                         <span className="text-slate-400">Egress ขาออกผู้ดูรวม:</span>
                         <span className="font-mono font-bold text-white">{benchmarkData.egress.bitrateMbps} Mbps ({benchmarkData.egress.bitrateGbps} Gbps)</span>
                       </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-slate-400">ความเร็วการ์ดแลน (NIC):</span>
+                      <div className="flex justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">การ์ดแลนคลัสเตอร์ (NIC รวม):</span>
                         <span className="font-semibold text-emerald-400">{benchmarkData.ingress.requiredNicSpeed}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-400">การ์ดแลนต่อโหนด (Per-Node NIC):</span>
+                        <span className="font-semibold text-cyan-300">{benchmarkData.ingress.perNodeNicSpeed || '1 Gbps'}</span>
                       </div>
                     </div>
                   </div>
@@ -637,16 +687,20 @@ export const MediaNodeManagement: React.FC = () => {
                   <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/20 space-y-3">
                     <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
                       <HardDrive size={16} />
-                      <span>พื้นที่บันทึกวิดีโอ (Storage)</span>
+                      <span>พื้นที่จัดเก็บ ({retentionDays} วัน • {codec.toUpperCase()})</span>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">พื้นที่ต่อวัน (Daily):</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.storage.storageTbPerDay} TB / วัน</span>
+                        <span className="text-slate-400">พื้นที่สุทธิ (Net Video):</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.storage.netRetentionTotalTb || benchmarkData.storage.retentionTotalTb} TB</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">ความจุรวม ({retentionDays} วัน):</span>
-                        <span className="font-mono font-bold text-amber-400 text-sm">{benchmarkData.storage.retentionTotalTb} TB</span>
+                        <span className="text-slate-400">รวม Buffer ว่าง 20% (Usable):</span>
+                        <span className="font-mono font-bold text-amber-300">{benchmarkData.storage.usableStorageWithHeadroomTb || benchmarkData.storage.retentionTotalTb} TB</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">ฮาร์ดดิสก์จริงรวม ({raidType.toUpperCase()}):</span>
+                        <span className="font-mono font-bold text-amber-400 text-sm">{benchmarkData.storage.rawDiskRequiredTb || benchmarkData.storage.retentionTotalTb} TB</span>
                       </div>
                       <div className="flex justify-between py-1">
                         <span className="text-slate-400">อัตราเขียนดิสก์ (IO Throughput):</span>
@@ -664,15 +718,19 @@ export const MediaNodeManagement: React.FC = () => {
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-900">
                         <span className="text-slate-400">จำนวน Media Nodes:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedMediaNodes} เครื่อง</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedMediaNodes} เครื่อง ({benchmarkData.infrastructure.perNodeChannels || 100} ช่อง/เครื่อง)</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
                         <span className="text-slate-400">RAM ขั้นต่ำต่อโหนด:</span>
                         <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedRamPerNodeGB} GB</span>
                       </div>
-                      <div className="flex justify-between py-1">
+                      <div className="flex justify-between py-1 border-b border-slate-900">
                         <span className="text-slate-400">CPU Cores ต่อโหนด:</span>
                         <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedCpuCoresPerNode} Cores</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-400">Storage Strategy:</span>
+                        <span className="text-[11px] text-slate-300 font-mono truncate">{benchmarkData.infrastructure.storageStrategy}</span>
                       </div>
                     </div>
                   </div>
