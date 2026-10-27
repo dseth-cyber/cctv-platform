@@ -129,7 +129,8 @@ export default function LiveGrid() {
   // Assign camera to current slot with preferred profile
   const assignCameraToSlot = useCallback(
     async (cam: any, slotIdx: number, preferredProfile?: 'main' | 'sub') => {
-      const profileToUse = preferredProfile || (slotCount >= 9 ? 'sub' : 'main');
+      // Sub-stream policy: for grid walls (4+ cameras), default to sub-stream (H.264) to conserve bandwidth & client decoding CPU
+      const profileToUse = preferredProfile || (slotCount >= 4 ? 'sub' : 'main');
 
       try {
         const streamData = await imageServiceApi.getCameraStream(cam.id, {

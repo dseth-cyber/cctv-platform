@@ -475,19 +475,32 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       )}
 
       {status === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-sm z-20 text-rose-400 p-4 text-center">
-          <AlertCircle className="w-8 h-8 mb-2" />
-          <p className="text-xs font-semibold text-slate-200">Unable to play stream</p>
-          <p className="text-[11px] text-slate-400 mt-1 max-w-[260px]">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm z-20 text-rose-400 p-4 text-center">
+          <AlertCircle className="w-7 h-7 mb-1.5" />
+          <p className="text-xs font-semibold text-slate-200">Unable to play WebRTC stream</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 max-w-[280px]">
             {errorMessage || 'Camera offline or RTSP unavailable'}
           </p>
-          <button
-            onClick={startStream}
-            className="mt-3 flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-md border border-slate-700 transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
-          </button>
+          <div className="flex items-center gap-2 mt-2.5">
+            <button
+              onClick={startStream}
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-md border border-slate-700 transition"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Retry</span>
+            </button>
+            {hasSubStream && onToggleProfile && (
+              <button
+                onClick={() => onToggleProfile(streamProfile === 'main' ? 'sub' : 'main')}
+                className="flex items-center gap-1 px-2.5 py-1 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 text-xs rounded-md border border-cyan-700 transition font-medium"
+              >
+                <span>Switch to {streamProfile === 'main' ? 'Sub-stream (H.264)' : 'Main Stream'}</span>
+              </button>
+            )}
+          </div>
+          <p className="text-[9px] text-slate-400 mt-2 max-w-[260px] leading-tight font-mono">
+            * Codec recommendation: H.264 (or H.265 HW-accel) • Audio: Opus / G.711 PCMA/PCMU
+          </p>
         </div>
       )}
 
