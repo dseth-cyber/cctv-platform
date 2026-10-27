@@ -19,4 +19,10 @@ describe('MediaMTX Configuration Validator', () => {
     // MediaMTX v1.21+ requires hlsSegmentCount to be at least 7 for lowLatency
     expect(parsed.hlsSegmentCount).toBeGreaterThanOrEqual(7);
   });
+
+  it('should target image-api:3001 in authHTTPAddress matching docker-compose service [AUDIT-CRIT-02]', () => {
+    const content = fs.readFileSync(configPath, 'utf8');
+    const parsed = YAML.parse(content);
+    expect(parsed.authHTTPAddress).toBe('http://image-api:3001/api/v1/media/auth');
+  });
 });

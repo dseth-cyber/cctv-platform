@@ -7,7 +7,7 @@ logDestinations: [stdout]
 
 # ── Authentication & Media Access Control ───────────────────────
 authMethod: http
-authHTTPAddress: http://api:3000/api/v1/media/auth
+authHTTPAddress: http://image-api:3001/api/v1/media/auth
 
 
 # ── API Management (Internal / Localhost) ──────────────────────
