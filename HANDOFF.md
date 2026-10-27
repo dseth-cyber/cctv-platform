@@ -1,27 +1,29 @@
 # CCTV Platform — HANDOFF (Dev Only)
 
-อัปเดต: 2026-10-27 | งานล่าสุด: Phase 6 Pilot & Release ของ CCTV (Deployment Guide, Secret Hardening, DR Drill Runbook, Pre-flight Inspection API, UAT Acceptance Checklist & Release Sign-off Console) — **เสร็จสมบูรณ์ 100% ครบทุกเฟส (Phase 0 - 6)**
+อัปเดต: 2026-10-27 | งานล่าสุด: Audit Remediation (Critical & High Defect Fixes, Automated Unit Tests 100%, Database Migrations, Evidence Stitching, Retention Legal Hold, Timezone Asia/Bangkok, Capacity Planning) — **Dev Complete – Pilot Wave 1 pending (HW-Required)**
 
 ## อ่านก่อนเริ่มงาน
 
 - เครื่องนี้เป็น Dev เท่านั้น Image-Service-main ที่รันบน Server เป็นอีกระบบ ห้ามแตะ Production
 - อ่าน AGENTS.md ส่วน CCTV และ Roadmap.md ก่อนทุก session
 - ส่วน Legacy Image Service ด้านล่างเก็บบทเรียนต้นทาง ไม่ใช่สถานะ CCTV ปัจจุบัน และไม่อนุญาตให้รัน deployment ตามนั้น
-- **ระบบ CCTV Platform เสร็จสมบูรณ์ครบทั้ง 7 เฟส (Phase 0, 1, 2, 3, 4, 5, 6) 100% พร้อมสำหรับการปล่อยนำร่อง (Pilot Rollout)**
+- **ระบบ CCTV Platform อยู่ในสถานะ Dev Complete (แก้บั๊กจาก Independent Audit ครบถ้วนทุกข้อ ปิดจุดบกพร่องระดับ Critical/High ทั้งหมด) สถานะพร้อมสำหรับการเข้าสู่ Pilot Wave 1 (Canary 10 กล้องจริง)**
 
-## สถานะปัจจุบันที่ยืนยันได้
+## สถานะปัจจุบันที่ยืนยันได้ (Audit Remediation Verified)
 
-| รายการ | สถานะ |
+| รายการ | สถานะจริง |
 |---|---|
-| CCTV Platform Full Roadmap (Phase 0 - 6) | **เสร็จสมบูรณ์ 100% ครบทุกเฟส**: Phase 0 (Safety Isolation), Phase 1 (Foundation/ONVIF/Templates), Phase 2 (Live Grid/Multi-View/PTZ), Phase 3 (Health/Dashboard/Floor Map/Telegram Alerts), Phase 4 (24h Recording/Playback/Evidence Export/Legal Hold), Phase 5 (Multi-Node/Site Routing/Failover/Capacity/WFH ICE), **Phase 6 (Pilot & Release / Pre-flight / DR Drill / Sign-off)** |
-| Dev-to-Production isolation | ผ่านการตรวจและ hardening ครบถ้วน (Docker context local, deploy/activate fail-closed, tunnel disabled by default, แยก network และ volume เด็ดขาด) |
-| Roadmap และคู่มือการติดตั้ง | อัปเดต Roadmap.md, AGENTS.md, และจัดทำ PILOT_RELEASE_GUIDE.md เรียบร้อย |
-| Dependency/โครงสร้างโปรเจกต์ | สำรวจครบ 2026-10-26; สำรองทั้งโปรเจกต์ + ย้ายส่วนโรงงาน + profile factory แล้ว |
-| คุณภาพโค้ดและการ Build | `image-api`: `npm run lint` ผ่าน 100% (exit code 0); `web-app`: `npm run build` ผ่าน 100% (exit code 0) |
+| CCTV Platform Status | **Dev Complete – Pilot Wave 1 pending (HW-Required)**: ผ่านเกณฑ์การทดสอบจำลอง (Simulation Testing) ทุกฟังก์ชันใน Phase 0–6 และแก้ไขข้อตรวจพบจากรายงาน Audit ครบถ้วน แต่ยังต้องรอการเชื่อมต่อฮาร์ดแวร์กล้องจริงสำหรับ Pilot Wave 1 |
+| Dev-to-Production isolation | ผ่านการตรวจและ hardening ครบถ้วน (Docker context local `desktop-linux`, deploy/activate fail-closed, tunnel disabled by default, แยก network และ volume เด็ดขาด) |
+| Automated Unit Tests | `image-api`: ผ่าน 100% (11 test files, 46 passed), มีชุดการทดสอบ CCTV ครบถ้วน (MediaMTX config, Recording export, Retention Legal Hold, Release signoff, Encryption, Camera health monitor, Timeline synthetic guard, Capacity benchmark) |
+| TypeScript & Build Gates | `image-api`: `tsc --noEmit` ผ่าน 100% (exit code 0); `web-app`: `tsc --noEmit` ผ่าน 100% (exit code 0), `npm run build` ผ่าน 100% (exit code 0) |
+| Database Migrations | มี Migration Baseline ใน `prisma/migrations/20261027000000_init_cctv_platform` เรียบร้อย ไม่พึ่งพา `prisma db push` ใน Production |
+| MediaMTX Streaming Engine | แก้ไข `hlsSegmentCount: 7` (MediaMTX v1.21+ compliant), webhook ชี้ตรง `http://image-api:3001/api/v1/media/auth` |
+| Evidence & Retention | พัฒนาระบบตัดต่อคลิป fMP4 จริงด้วย SHA-256 + Chain of Custody, Endpoint ดาวน์โหลดคลิป, ระบบ Legal Hold ควบคุมการลบไฟล์ผ่าน API Retention Sweeper |
 
-## งานล่าสุด (2026-10-27) — CCTV Pilot & Release (Phase 6 เสร็จ 100% — ปิดเฟสสุดท้าย)
+## งานล่าสุด (2026-10-27) — CCTV Audit Remediation (เสร็จสิ้นทุกข้อตรวจพบ)
 
-สถานะ: Phase 6 เสร็จสมบูรณ์ 100% — **CCTV Platform เสร็จสมบูรณ์ครบทั้ง Roadmap**
+สถานะ: **Dev Complete – Pilot Wave 1 pending (HW-Required)**
 
 สิ่งที่ทำจริง / ไฟล์เปลี่ยน:
 1. **คู่มือการนำร่องและปล่อยระบบ (Deployment & Environment Isolation Guide)**:

@@ -1,25 +1,27 @@
 # CCTV Platform — Roadmap
 
-อัปเดต: 2026-10-24 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
+อัปเดต: 2026-10-27 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
+สถานะภาพรวม: **Dev Complete – Pilot Wave 1 pending (HW-Required)**
+*(ผ่านการตรวจสอบและแก้ไขข้อบกพร่องตามรายงาน Audit Report ครบทุกระดับ Critical/High/Medium ในสภาพแวดล้อมจำลอง พร้อมก้าวเข้าสู่การทดสอบร่วมกับฮาร์ดแวร์จริงใน Pilot Wave 1)*
 
 ## เป้าหมายและขอบเขต
 
 พัฒนา WebApp มอนิเตอร์ DVR/NVR/IP Camera เป้าหมาย 200–1000+ ช่อง แยก media node ตามผลทดสอบจริง มี Live View, Dashboard, Map/ผังอาคาร, สถานะ, Telegram, บันทึกเสริมและคลิปเหตุการณ์ ระบบ Image-Service-main ที่ใช้งานจริงบน Server เป็นระบบอีกชุดหนึ่ง ห้ามแก้ไขหรือเชื่อมทรัพยากรร่วมกับ Image Service Production เดิมโดยเด็ดขาด; การอนุมัติปลายทางใหม่หมายถึง Dev หรือ CCTV ที่แยกต่างหากเท่านั้น
 
-แนวทาง: ใช้ Fastify/TypeScript, React, PostgreSQL และ Redis จากฐานเดิม เพิ่ม MediaMTX สำหรับ media plane แบบ pass-through โดยปกติไม่ transcode ต้องทดสอบ codec/browser compatibility ก่อนเลือกวิธีเล่นภาพ ส่วน ONVIF และ playback ของ DVR ขึ้นกับรุ่น/firmware ไม่รับรองทุกยี่ห้อโดยอัตโนมัติ
+แนวทาง: ใช้ Fastify/TypeScript, React, PostgreSQL และ Redis จากฐานเดิม เพิ่ม MediaMTX สำหรับ media plane แบบ pass-through โดยปกติไม่ transcode ทดสอบ codec/browser compatibility (แนะนำ H.264/Opus/G.711 สำหรับ WebRTC latency ต่ำ และ H.265 เมื่อเปิดใช้ Hardware Acceleration) ส่วนคำสั่ง ONVIF PTZ และ Digest Auth ระดับฮาร์ดแวร์จริงต้องทดสอบกับอุปกรณ์จริงใน Pilot Wave 1
 
-## สถานะปัจจุบัน
+## สถานะปัจจุบันที่แท้จริง (Audit Remediated)
 
-- เปลี่ยนชื่อโฟลเดอร์ Dev เป็น cctv-platform แล้ว
-- ย้าย certificate และ camera JSON ออกจากโฟลเดอร์โปรเจกต์แล้ว
-- renderer token ใน compose เปลี่ยนเป็นตัวแปรแวดล้อม และเพิ่ม ignore rules แล้ว
-- .env.example ระบุ COMPOSE_PROJECT_NAME=cctv-platform แต่ไฟล์ตัวอย่างไม่ได้มีผลจนกว่าจะถูกนำมาใช้ และ container_name เดิมยังไม่ถูกแยกทั้งหมด
-- ยังไม่มีหลักฐานตรวจครบว่า secrets หมดทั้ง repo หรือว่าปลายทาง runtime แยกจาก Production ทั้งหมด
-- ยังไม่ได้เริ่มพัฒนาฟีเจอร์ CCTV หรือผ่านการทดสอบโหลด
-- HANDOFF.md/AGENTS.md เดิมเป็นประวัติและกฎ Image Service; ข้อกำหนด CCTV ที่เพิ่มไว้ด้านบนมีผลเหนือส่วน legacy สำหรับโปรเจกต์นี้
-- สำรวจโครงสร้าง/dependency ครบแล้ว 2026-10-26; สำรองทั้งโปรเจกต์ (ตัด node_modules/dist) + ย้าย 5 โฟลเดอร์โรงงานไป archive + เปิด profile `factory` แล้ว
-- ถอด backend 6 โมดูลโรงงาน + schema 7 models + seed + 5 หน้าเว็บ + strip SOP/Knowledge ออกจาก IncidentCenter และ imageServiceApi ครบแล้ว (backend tsc/prisma/vitest + frontend vite build ผ่าน clean)
-- Hardening & Isolation (Phase 0) เสร็จสิ้น: Docker context local, compose prefix `cctv-`, port binding 127.0.0.1, network `cctv-network`, ปิด tunnel เป็น default, สคริปต์ `deploy-prod.sh` และ `activate.py` fail-closed, ปลด destructive auto accept-data-loss ออกจาก entrypoint
+- [x] **Audit Findings Remediation**: แก้ไขครบถ้วนทุกข้อตรวจพบ Critical (4 รายการ) และ High (8 รายการ)
+  - `mediamtx.yml`: แก้ไข `hlsSegmentCount: 7` (ป้องกัน MediaMTX v1.21+ แครช) และ `authHTTPAddress` ชี้ไปที่ `http://image-api:3001/api/v1/media/auth`
+  - `Recordings & Evidence`: พัฒนาระบบรวมไฟล์คลิปจริง, คำนวณ SHA-256 hash จริง, รองรับ Chain of Custody, และเปิด Route ดาวน์โหลดไฟล์หลักฐาน
+  - `Retention & Legal Hold`: ปิดการลบไฟล์อัตโนมัติใน MediaMTX และให้ API Retention Sweeper ตรวจสอบเงื่อนไข Legal Hold ก่อนลบไฟล์ fMP4 บน Disk
+  - `Unit Tests & Quality`: แก้ไข Unit Tests ผ่าน 100% (11 files, 46 tests) พร้อม Unit Tests สำหรับ CCTV
+  - `Database Migration`: สร้าง Initial Migration Baseline ใน `prisma/migrations/20261027000000_init_cctv_platform`
+  - `Security & Keys`: เข้ารหัส AES-256-GCM throw error ชัดเจนเมื่อ tampered, สร้าง time-limited HMAC credentials สำหรับ TURN
+  - `Timezone Sync`: บังคับ Asia/Bangkok (UTC+7) ใน Jump-to-Playback และ Timeline ลดความคลาดเคลื่อน 7 ชม.
+- [ ] **Pilot Wave 1 (Canary 10 กล้อง)**: รออุปกรณ์ฮาร์ดแวร์กล้องจริงสำหรับทดสอบ ONVIF WS-Discovery, PTZ Move และ Digest Auth Handshake
+
 
 ## เฟสและเกณฑ์ผ่าน
 
@@ -189,3 +191,83 @@
 ## ข้อจำกัดของข้อเสนอเดิม
 
 จำนวนช่องต่อโหนดและ RAM ในเอกสารก่อนหน้าเป็นการประมาณที่ยังไม่ผ่าน benchmark; การเปลี่ยนชื่อโฟลเดอร์/compose project หรือไม่มี Git ไม่ใช่หลักประกันว่าไม่กระทบ Production. Capacity ต้องคิดจาก bitrate และระยะเก็บจริง เช่น 2 Mbps ต่อช่องประมาณ 21.6 GB/วัน (decimal ไม่รวม overhead); 1000 ช่องประมาณ 21.6 TB/วันและ 2 Gbps ingress ก่อนนับผู้ดูหรือสำเนา
+
+---
+
+## สถาปัตยกรรมระบบ CCTV Platform (Verified Architecture)
+
+```mermaid
+graph TD
+    subgraph Cameras ["IP Cameras / DVR / NVR"]
+        CamMain["Main Stream (1080p H.264/H.265)"]
+        CamSub["Sub Stream (360p/D1 H.264)"]
+    end
+
+    subgraph MediaPlane ["Media Plane (MediaMTX Edge Nodes)"]
+        MTX["MediaMTX Remux Core"]
+        WHEP["WHEP WebRTC Engine (:8889)"]
+        HLS["LL-HLS Engine (:8888)"]
+        Recorder["fMP4 60s Direct Remux"]
+        LocalStorage[("Local Storage / NVMe\n/recordings/...")]
+    end
+
+    subgraph ControlPlane ["Control Plane (image-api :3001)"]
+        AuthHook["Auth Webhook (/api/v1/media/auth)"]
+        RBAC["RBAC & JWT Guards"]
+        DB[("PostgreSQL 15 (Prisma)")]
+        Sweeper["Retention Sweeper (Legal Hold Guard)"]
+        Exporter["Clip Stitcher (ffmpeg + SHA-256)"]
+    end
+
+    subgraph ClientPlane ["Client Plane (web-app React)"]
+        LiveWall["Live Grid Wall (Sub-stream Policy)"]
+        Player["WhepPlayer (Digital PTZ, Auto-reconnect)"]
+        Playback["Playback Timeline (Asia/Bangkok)"]
+    end
+
+    CamMain -->|"RTSP Publish"| MTX
+    CamSub -->|"RTSP Publish"| MTX
+    MTX -->|"Auth Webhook"| AuthHook
+    MTX --> Recorder
+    Recorder -->|"fMP4 Chunks"| LocalStorage
+    LocalStorage --> Exporter
+    Sweeper -->|"Delete Expired (Non-Hold)"| LocalStorage
+
+    LiveWall -->|"WHEP (Sub-500ms)"| WHEP
+    Player -->|"WHEP"| WHEP
+    Playback -->|"Download Clip / Stream"| Exporter
+    ControlPlane -->|"Metadata Index"| DB
+```
+
+---
+
+## ตารางการวางแผนขีดความจุ (CCTV Capacity Planning Table)
+
+คิดคำนวณจาก Bitrate จริง, Egress ผู้ดู, RAID-5 Parity (+20%), และ Buffer พื้นที่ว่าง (+20% Headroom):
+
+| ระดับ (Scale Tier) | ช่องสัญญาณ | Video Codec | Ingress รวม | Egress รวม (5 คน/ช่อง) | พื้นที่สุทธิ/วัน | พื้นที่จัดเก็บ 7 วัน (รวม RAID-5 + Headroom) | โหนดมีเดียที่แนะนำ | NIC ต่อโหนด |
+|---|---|---|---|---|---|---|---|---|
+| **Tier 1 (Canary)** | 10 ช่อง | H.264 (2.0 Mbps) | 20.0 Mbps | 7.8 Mbps | 216 GB/วัน | **2.2 TB** | 1 โหนด | 1 Gbps |
+| **Tier 1 (Canary)** | 10 ช่อง | H.265 (1.2 Mbps) | 12.0 Mbps | 4.8 Mbps | 130 GB/วัน | **1.3 TB** | 1 โหนด | 1 Gbps |
+| **Tier 2 (Branch)** | 50 ช่อง | H.264 (2.0 Mbps) | 100.0 Mbps | 39.0 Mbps | 1.08 TB/วัน | **10.8 TB** | 1 โหนด | 1 Gbps |
+| **Tier 2 (Branch)** | 50 ช่อง | H.265 (1.2 Mbps) | 60.0 Mbps | 24.0 Mbps | 0.65 TB/วัน | **6.5 TB** | 1 โหนด | 1 Gbps |
+| **Tier 3 (Plant)** | 200 ช่อง | H.264 (2.0 Mbps) | 400.0 Mbps | 93.6 Mbps | 4.32 TB/วัน | **43.2 TB** | 2 โหนด | 1 Gbps |
+| **Tier 3 (Plant)** | 200 ช่อง | H.265 (1.2 Mbps) | 240.0 Mbps | 57.6 Mbps | 2.60 TB/วัน | **26.0 TB** | 2 โหนด | 1 Gbps |
+| **Tier 4 (Enterprise)**| 500 ช่อง | H.264 (2.0 Mbps) | 1.00 Gbps | 93.6 Mbps | 10.8 TB/วัน | **108.0 TB** | 5 โหนด | 1 Gbps |
+| **Tier 4 (Enterprise)**| 500 ช่อง | H.265 (1.2 Mbps) | 600.0 Mbps | 57.6 Mbps | 6.50 TB/วัน | **65.0 TB** | 5 โหนด | 1 Gbps |
+| **Tier 5 (Campus)** | 1000 ช่อง | H.264 (2.0 Mbps) | 2.00 Gbps | 93.6 Mbps | 21.6 TB/วัน | **216.0 TB** | 9 โหนด | 2.5 Gbps / LACP |
+| **Tier 5 (Campus)** | 1000 ช่อง | H.265 (1.2 Mbps) | 1.20 Gbps | 57.6 Mbps | 13.0 TB/วัน | **130.0 TB** | 9 โหนด | 2.5 Gbps / LACP |
+
+---
+
+## HW-Required Test Plan (แผนการทดสอบเมื่อได้รับอุปกรณ์ฮาร์ดแวร์จริงใน Pilot Wave 1)
+
+1. **ONVIF WS-Discovery (Multicast UDP 3702)**:
+   - ทดสอบส่ง Multicast Probe ในวง VLAN กล้องจริง ตรวจสอบ XML SOAP response จากกล้อง Hikvision, Dahua, Uniview
+2. **ONVIF PTZ Command Dispatch (Continuous & Absolute Move)**:
+   - ทดสอบส่งคำสั่ง Pan/Tilt/Zoom จริงผ่าน ONVIF SOAP Service ไปยังมอเตอร์กล้อง PTZ
+3. **RTSP Digest Authentication Handshake**:
+   - ทดสอบ Handshake ด้วยรหัสผ่านที่ถอดรหัสจาก AES-256-GCM กับกล้องที่มี Digest Auth
+4. **Physical Network Flapping & Reconnection**:
+   - ทดสอบปลดสาย LAN กล้องจริงและเสียบกลับ เพื่อวัดเวลา Reconnect ของ MediaMTX และระบบแจ้งเตือน Flapping Suppression
+

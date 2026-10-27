@@ -141,7 +141,7 @@ docker compose exec -T postgres psql -U postgres -c "DROP DATABASE cctv_db_dr_te
 
 ```bash
 # ส่งคำสั่งอพยพกล้องจากโหนด node-01 ไปยังโหนดสำรอง node-02
-curl -s -X POST http://127.0.0.1:3000/api/v1/media-nodes/node-01/failover \
+curl -s -X POST http://127.0.0.1:3001/api/v1/media-nodes/node-01/failover \
   -H "Authorization: Bearer <ADMIN_JWT_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"targetNodeId": "node-02"}'
@@ -157,7 +157,7 @@ curl -s -X POST http://127.0.0.1:3000/api/v1/media-nodes/node-01/failover \
 [Wave 1: Canary Pilot (10 กล้อง)]
    ├── ตรวจสอบค่าความหน่วง WebRTC WHEP (< 500ms)
    ├── ยืนยันการบันทึก fMP4 24 ชั่วโมงไม่มีช่องว่าง (Data Gaps = 0)
-   └── ทดสอบการแจ้งเตือน Telegram Bot เมื่อสาย LAN หลุด (< 5 วินาที)
+   └── ทดสอบการแจ้งเตือน Telegram Bot เมื่อสาย LAN หลุด (1-5 นาที ตามเกณฑ์ Health Monitor & Flapping Suppression)
           │ (ผ่านเกณฑ์ 100%)
           ▼
 [Wave 2: Multi-Zone Expansion (25 - 50 กล้อง)]
