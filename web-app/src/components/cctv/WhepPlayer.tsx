@@ -27,6 +27,7 @@ interface WhepPlayerProps {
   className?: string;
   streamProfile?: 'main' | 'sub';
   hasSubStream?: boolean;
+  iceServers?: RTCIceServer[];
   onToggleProfile?: (nextProfile: 'main' | 'sub') => void;
   onSnapshot?: (dataUrl: string) => void;
 }
@@ -39,6 +40,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   className = '',
   streamProfile = 'main',
   hasSubStream = false,
+  iceServers,
   onToggleProfile,
   onSnapshot,
 }) => {
@@ -46,6 +48,8 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const resourceUrlRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<any>(null);
 
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -82,6 +86,11 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
     setStatus('connecting');
     setErrorMessage('');
 
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     // Cleanup existing
     if (pcRef.current) {
       pcRef.current.close();
@@ -89,8 +98,9 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
     }
 
     try {
+      const resolvedIceServers: RTCIceServer[] = iceServers || (window as any).__CCTV_ICE_SERVERS__ || [];
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: resolvedIceServers,
       });
       pcRef.current = pc;
 
@@ -99,15 +109,26 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
         if (videoRef.current && event.streams[0]) {
           videoRef.current.srcObject = event.streams[0];
           setStatus('connected');
+          reconnectAttemptsRef.current = 0;
         }
       };
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === 'connected') {
           setStatus('connected');
-        } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-          setStatus('error');
-          setErrorMessage('Stream connection lost');
+          reconnectAttemptsRef.current = 0;
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          if (reconnectAttemptsRef.current < 5) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 8000);
+            reconnectAttemptsRef.current += 1;
+            setStatus('connecting');
+            reconnectTimeoutRef.current = setTimeout(() => {
+              startStream();
+            }, delay);
+          } else {
+            setStatus('error');
+            setErrorMessage('Stream connection lost (reconnection failed)');
+          }
         }
       };
 
