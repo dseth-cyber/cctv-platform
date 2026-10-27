@@ -4,6 +4,16 @@ import * as authService from './auth.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { UnauthorizedError } from '../../lib/errors.js';
 
+vi.mock('../../lib/redis.js', () => ({
+  getRedisClient: vi.fn().mockReturnValue({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    del: vi.fn().mockResolvedValue(1),
+  }),
+}));
+
 const mockPrisma = {
   user: {
     findUnique: vi.fn(),
@@ -15,6 +25,15 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  systemConfig: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  auditLog: {
+    create: vi.fn().mockResolvedValue({}),
+  },
+  alert: {
+    create: vi.fn().mockResolvedValue({}),
+  },
 };
 
 vi.mocked(getPrisma).mockReturnValue(mockPrisma as unknown as ReturnType<typeof getPrisma>);
@@ -22,6 +41,7 @@ vi.mocked(getPrisma).mockReturnValue(mockPrisma as unknown as ReturnType<typeof 
 describe('AuthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.systemConfig.findMany.mockResolvedValue([]);
   });
 
   describe('login', () => {
