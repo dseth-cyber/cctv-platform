@@ -93,8 +93,9 @@ export class RecordingsService {
       orderBy: { startTime: 'asc' },
     });
 
-    // If zero recordings exist for this camera in dev, auto-seed realistic test timeline data
-    if (recordings.length === 0) {
+    // Do not inject fake timeline recordings implicitly (AUDIT-MED-04).
+    // Only auto-seed if explicitly enabled in developer environment via SEED_SYNTHETIC_RECORDINGS=true.
+    if (recordings.length === 0 && process.env.SEED_SYNTHETIC_RECORDINGS === 'true') {
       await this.seedDevRecordings(cameraId, targetDateStr);
       recordings = await prisma.cameraRecording.findMany({
         where: {
@@ -449,8 +450,9 @@ export class RecordingsService {
 
     // Helper to generate a batch of 60s segments
     const makeSegments = (startHour: number, startMin: number, countMinutes: number, withIncident = false) => {
+      const baseMs = new Date(`${dateBase}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00.000Z`).getTime();
       for (let m = 0; m < countMinutes; m++) {
-        const segStart = new Date(`${dateBase}T${String(startHour).padStart(2, '0')}:${String(startMin + m).padStart(2, '0')}:00.000Z`);
+        const segStart = new Date(baseMs + m * 60 * 1000);
         const segEnd = new Date(segStart.getTime() + 60 * 1000);
         const hasInc = withIncident && m >= Math.floor(countMinutes / 2) && m <= Math.floor(countMinutes / 2) + 2;
 
