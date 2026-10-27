@@ -21,8 +21,8 @@ metricsAddress: 0.0.0.0:9998
 # ── RTSP Server ────────────────────────────────────────────────
 rtsp: yes
 rtspAddress: 0.0.0.0:8554
-protocols: [tcp]
-encryption: "no"
+rtspTransports: [tcp]
+rtspEncryption: "no"
 
 # ── WebRTC Server (WHEP / WHIP) ────────────────────────────────
 webrtc: yes
@@ -33,7 +33,7 @@ webrtcAllowOrigins: ["*"]
 # ── HLS Server (Low-Latency Fallback) ──────────────────────────
 hls: yes
 hlsAddress: 0.0.0.0:8888
-hlsSegmentCount: 3
+hlsSegmentCount: 7
 hlsSegmentDuration: 1s
 hlsPartDuration: 200ms
 hlsAllowOrigins: ["*"]
