@@ -1,0 +1,88 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [{ "title": "← Back to Overview", "url": "/d/image-service-dashboard", "type": "link" }],
+  "panels": [
+    {
+      "id": 1, "title": "Storage Used per Provider", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_storage_used_bytes", "legendFormat": "{{provider}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth" }, "unit": "bytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 2, "title": "Storage Capacity vs Used", "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        { "expr": "image_service_storage_used_bytes", "legendFormat": "{{provider}} Used", "refId": "A" },
+        { "expr": "image_service_storage_total_bytes", "legendFormat": "{{provider}} Total", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "thresholds": { "mode": "absolute", "steps": [{"color":"cyan","value":null}] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 3, "title": "Objects per Provider", "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_storage_objects_total", "legendFormat": "{{provider}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{"color":"purple","value":null}] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 10, "title": "Storage Latency Comparison", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_storage_latency_ms", "legendFormat": "{{provider}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth" }, "unit": "ms" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 11, "title": "File Size by Type", "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_files_bytes", "legendFormat": "{{file_type}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 12, "title": "Files Count by Type", "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_files_total", "legendFormat": "{{file_type}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 20, "title": "Disk Usage %", "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 16 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{ "expr": "image_service_system_disk_usage_percent", "legendFormat": "Disk %", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":75},{"color":"red","value":90}] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdMarkers": true }
+    },
+    {
+      "id": 21, "title": "System Disk Trend", "type": "timeseries",
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 16 },
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        { "expr": "image_service_system_disk_bytes{type=\"used\"}", "legendFormat": "Used", "refId": "A" },
+        { "expr": "image_service_system_disk_bytes{type=\"total\"}", "legendFormat": "Total", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 15 }, "unit": "bytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["image-service", "storage"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Storage & Providers Deep Dive",
+  "uid": "storage-deep-dive",
+  "version": 1
+}

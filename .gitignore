@@ -1,0 +1,39 @@
+.env
+
+# Production DB backups (created by deploy-prod.sh)
+backups/
+
+# Dependencies & Build Outputs
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+__pycache__/
+**/__pycache__/
+*.pyc
+.claude/worktrees/
+
+# Contains real SeaweedFS S3 credentials — was tracked with the live production secret
+# in plaintext until 2026-08-10 (see HANDOFF.md). Kept on disk (needed for the container
+# mount) but no longer committed; see seaweedfs/s3.json.example for the template.
+seaweedfs/s3.json
+
+# TLS certs & private keys — never commit real certs (see id-manager-pro.crt incident)
+*.crt
+*.key
+*.pem
+ssl/
+
+# Camera credential fixtures (contain SMB passwords) — keep out of the repo
+camera.json
+cameras.json
+camera-*.json
+
+# Real env files for every service
+.env
+**/.env
+!.env.example
+
+# Audit and simulation directory
+.audit-sim/
+

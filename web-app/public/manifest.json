@@ -1,0 +1,16 @@
+{
+  "name": "Image Service",
+  "short_name": "Image Service",
+  "description": "Image capture, processing, and quality monitoring",
+  "start_url": "/image-service/overview",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#081021",
+  "theme_color": "#081021",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

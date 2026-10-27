@@ -1,0 +1,167 @@
+ทำเสร็จแล้ว (9 หัวข้อ):
+
+Interpreting Camera Health Metrics
+Job Status & Type Chart Modes
+Storage Provider Setup Guide (4 ส่วน: Overview/Local/MinIO/SeaweedFS/Caveats)
+Intelligent Data Lifecycle & Storage Governance (P26)
+ภาพรวม (Overview Dashboard)
+ค้นหาภาพ (Search)
+จัดการกล้อง (Cameras)
+ศูนย์จัดการ Incident (Incident Center)
+การจัดการแจ้งเตือน (Alert Management)
+เหลืออีก (Tier 1 ที่ยังไม่ได้ทำ):
+
+รายงาน/วิเคราะห์กล้อง (Camera Analytics / Reports)
+Tier 2 (ตั้งค่า/ดูแลเป็นระยะ) — ยังไม่ได้ทำทั้งหมด:
+
+เทมเพลตกล้อง (Camera Templates)
+โปรไฟล์จัดเก็บ (Storage Profiles)
+นโยบายการจัดเก็บ (Retention Policy)
+บันทึกการตรวจสอบ (Audit Log)
+สำรองข้อมูล (Backup)
+ข้อมูลหลัก (Masterdata)
+สถานะสุขภาพระบบ (Health)
+Tier 3 (เทคนิค/แอดมินระบบ) — ยังไม่ได้ทำทั้งหมด:
+
+Dead Letter Queue
+Log การประมวลผลดิบ (Processing Logs)
+Storage Dashboard (nav.storage)
+ผู้ใช้งาน (Users)
+ตั้งค่าระบบ (System Config)
+ฟิลด์บังคับ (Required Fields)
+API Keys
+Telegram Bot
+ตั้งค่าทั่วไป (Settings)
+Roadmap
+รวมเหลืออีกประมาณ 17 หัวข้อ จะให้ทำต่อเป็น "รายงาน/วิเคราะห์กล้อง" เลยไหมครับ (ตามลำดับที่วางไว้)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+แนวคิดหลัก (สำคัญมาก)
+ระบบเราอยู่ใน Docker container — เวลาตั้ง Storage Provider ต้อง "ต่อท่อ" จาก disk จริง → เข้า container ก่อน แล้วค่อยชี้ path ในหน้าเว็บ
+
+
+Disk จริง (8TB/NAS/USB)
+   → mount เข้า VM (Proxmox/Ubuntu)
+      → mount เข้า Docker container (docker-compose volume)
+         → ตั้ง Provider ในหน้าเว็บ ชี้ path ใน container
+ความสัมพันธ์ Provider vs Profile:
+
+หน้าที่
+ผู้ให้บริการจัดเก็บ (Provider)	ที่เก็บจริง — disk/NAS/S3 อยู่ที่ไหน
+โปรไฟล์จัดเก็บ (Profile)	กฎ — ไฟล์แบบไหนเก็บที่ provider ไหน (เช่น raw → SSD, thumbnail → NAS)
+กรณีที่ 1: เสียบ SSD 8TB เพิ่มใน Proxmox ⭐ (แนะนำสุด)
+ขั้นที่ 1 — Proxmox: เพิ่ม disk เข้า VM
+
+
+# ใน Proxmox host: หา disk ใหม่
+lsblk                          # เจอ /dev/sdb (8TB)
+# เพิ่ม disk เข้า VM ผ่าน Proxmox UI:
+#   VM → Hardware → Add → Hard Disk → เลือก 8TB
+ขั้นที่ 2 — ใน VM (Ubuntu): format + mount
+
+
+sudo mkfs.ext4 /dev/sdb        # format (disk ใหม่)
+sudo mkdir -p /mnt/storage-8tb
+sudo mount /dev/sdb /mnt/storage-8tb
+# ให้ mount ถาวร (ไม่หายเมื่อ reboot):
+echo '/dev/sdb /mnt/storage-8tb ext4 defaults 0 2' | sudo tee -a /etc/fstab
+ขั้นที่ 3 — docker-compose.yml: ต่อ disk เข้า container
+
+
+# ใน image-processing-worker + image-api → volumes:
+  - /mnt/storage-8tb:/data/images-8tb
+แล้ว docker compose up -d
+
+ขั้นที่ 4 — หน้าเว็บ "ผู้ให้บริการจัดเก็บ":
+
+ฟิลด์	ค่า
+ชื่อ	SSD 8TB
+ประเภท	Local File System
+Root Directory	/data/images-8tb ← path ใน container
+ความจุสูงสุด	เว้นว่าง (อ่านอัตโนมัติ 8TB)
+ตั้งเป็นค่าเริ่มต้น	✅ ติ๊ก
+เสร็จ! รูปใหม่จะเก็บลง SSD 8TB อัตโนมัติ
+
+กรณีที่ 2: เก็บบน NAS
+มี 2 วิธี — เลือกตามที่ NAS รองรับ:
+
+วิธี A — SMB (ง่ายสุดสำหรับ NAS ทั่วไป)
+
+
+# docker-compose ไม่ต้องแก้ — worker เขียนผ่าน mount ที่ตั้งใน provider
+หน้าเว็บ → ประเภท SMB Share:
+
+ฟิลด์	ค่า
+ชื่อ	NAS Synology
+ประเภท	SMB Share
+Host/Path	//192.168.60.x/images
+Username / Password	บัญชี NAS
+ความจุสูงสุด	ใส่เอง เช่น 8000 (GB)
+วิธี B — NFS (ถ้า NAS เปิด NFS export) → ประเภท NFS Export + mount path
+
+แนะนำ: mount NAS ที่ระดับ VM แล้วใช้เป็น Local File System จะเสถียรกว่า:
+
+
+sudo mount -t cifs //192.168.60.x/images /mnt/nas -o username=xxx,password=xxx
+แล้วต่อ /mnt/nas:/data/nas ใน docker-compose → ตั้ง provider Local ชี้ /data/nas
+
+กรณีที่ 3: External USB — รองรับครับ
+USB ก็คือ disk อันหนึ่ง ทำเหมือนกรณีที่ 1:
+
+
+# ใน VM: เสียบ USB (ต้อง passthrough USB เข้า VM ก่อนใน Proxmox)
+lsblk                          # เจอ /dev/sdc (USB)
+sudo mkdir -p /mnt/usb-storage
+sudo mount /dev/sdc1 /mnt/usb-storage
+docker-compose: - /mnt/usb-storage:/data/usb → provider Local ชี้ /data/usb
+
+⚠️ ข้อควรระวัง USB:
+
+ต้อง USB passthrough เข้า VM ก่อน (Proxmox → VM → Add USB Device)
+USB ช้ากว่า SSD ภายใน — เหมาะเก็บ backup/archive ไม่เหมาะ hot data
+ถ้าถอด USB ระบบจะเขียนไฟล์ไม่ได้ → ไม่แนะนำเป็น default provider
+ตัวเลือก Provider ทั้งหมด
+ประเภท	ใช้เมื่อไหร่	ต้อง mount?
+Local File System	disk ในเครื่อง/VM (SSD/USB/NAS ที่ mount แล้ว) ⭐	ใช่ (docker volume)
+S3 Compatible	MinIO / AWS S3 / cloud	ไม่ (ใช้ endpoint)
+SeaweedFS	distributed storage (มีในระบบแล้ว)	ไม่
+SMB Share	NAS Windows/Synology โดยตรง	ไม่ (ใส่ credentials)
+NFS Export	NAS/server ที่เปิด NFS	ไม่ (ใส่ mount path)
+แนะนำ Setup ที่ดีสำหรับคุณ
+
+กรณีของคุณ (SSD 500GB + เพิ่ม 8TB):
+┌─────────────────────────────────────┐
+│ Provider 1: SSD 8TB (Local)         │ ← default, เก็บรูปทั้งหมด
+│ Provider 2: NAS (SMB) — optional     │ ← backup/archive
+└─────────────────────────────────────┘
+
+Storage Profile (ถ้าต้องการแยก):
+  raw (ต้นฉบับใหญ่) → NAS
+  processed + thumbnail → SSD 8TB (เร็ว)
+สรุปขั้นตอนกรณีที่ 1 (ที่คุณจะทำจริง):
+
+Proxmox: Add disk 8TB → VM
+VM: mkfs + mount + /etc/fstab
+docker-compose: เพิ่ม volume /mnt/storage-8tb:/data/images-8tb
+หน้าเว็บ: สร้าง Provider "Local" ชี้ /data/images-8tb + ตั้งเป็น default
+ต้องการให้ผมช่วยแก้ docker-compose.yml เตรียม volume รอไว้เลยไหมครับ? หรือมีคำถามขั้นไหนเพิ่มเติม

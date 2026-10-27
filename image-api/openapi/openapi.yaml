@@ -1,0 +1,1049 @@
+openapi: 3.0.3
+info:
+  title: Image Service API
+  description: Enterprise image management API for Smart Factory Platform
+  version: 1.0.0
+  contact:
+    name: Platform Engineering
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+  - url: https://api.image-service.example.com
+    description: Production
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        lastLogin:
+          type: string
+          format: date-time
+
+    Role:
+      type: string
+      enum: [admin, operator, viewer, system]
+
+    Camera:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        ipAddress:
+          type: string
+          format: ip-address
+        smbSharePath:
+          type: string
+        status:
+          $ref: '#/components/schemas/CameraStatus'
+        pollIntervalSeconds:
+          type: integer
+        captureMode:
+          type: string
+          enum: [on_demand, periodic, continuous]
+        retentionPolicyId:
+          type: string
+          format: uuid
+        enabled:
+          type: boolean
+        lastPolledAt:
+          type: string
+          format: date-time
+        lastImageAt:
+          type: string
+          format: date-time
+        totalImagesCount:
+          type: integer
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateCameraRequest:
+      type: object
+      required: [name, ipAddress, smbSharePath, smbUsername, smbPasswordEncrypted, retentionPolicyId]
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        description:
+          type: string
+        ipAddress:
+          type: string
+          format: ip-address
+        smbSharePath:
+          type: string
+        smbDomain:
+          type: string
+        smbUsername:
+          type: string
+        smbPasswordEncrypted:
+          type: string
+        smbSubdirectoryPattern:
+          type: string
+        pollIntervalSeconds:
+          type: integer
+          default: 30
+        timezone:
+          type: string
+          default: UTC
+        captureMode:
+          type: string
+          default: periodic
+        retentionPolicyId:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+
+    UpdateCameraRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        ipAddress:
+          type: string
+        smbSharePath:
+          type: string
+        smbDomain:
+          type: string
+        smbUsername:
+          type: string
+        smbPasswordEncrypted:
+          type: string
+        smbSubdirectoryPattern:
+          type: string
+        pollIntervalSeconds:
+          type: integer
+        timezone:
+          type: string
+        captureMode:
+          type: string
+        retentionPolicyId:
+          type: string
+        enabled:
+          type: boolean
+        metadata:
+          type: object
+
+    CameraStatus:
+      type: string
+      enum: [active, inactive, error, maintenance]
+
+    Image:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cameraId:
+          type: string
+          format: uuid
+        originalFilename:
+          type: string
+        fileSizeBytes:
+          type: integer
+        checksumSha256:
+          type: string
+        checksumMd5:
+          type: string
+        status:
+          $ref: '#/components/schemas/ImageStatus'
+        widthPx:
+          type: integer
+        heightPx:
+          type: integer
+        bitDepth:
+          type: integer
+        colorSpace:
+          type: string
+        compressionType:
+          type: string
+        compressionRatio:
+          type: number
+        capturedAt:
+          type: string
+          format: date-time
+        ingestedAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+        retentionUntil:
+          type: string
+          format: date-time
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageFile'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageTag'
+
+    ImageSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cameraId:
+          type: string
+          format: uuid
+        cameraName:
+          type: string
+        originalFilename:
+          type: string
+        fileSizeBytes:
+          type: integer
+        status:
+          $ref: '#/components/schemas/ImageStatus'
+        widthPx:
+          type: integer
+        heightPx:
+          type: integer
+        capturedAt:
+          type: string
+          format: date-time
+        thumbnailUrl:
+          type: string
+
+    ImageStatus:
+      type: string
+      enum: [pending, queued, processing, completed, failed, deleted, archived]
+
+    ImageFile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fileType:
+          $ref: '#/components/schemas/FileType'
+        fileSizeBytes:
+          type: integer
+        mimeType:
+          type: string
+        storageClass:
+          $ref: '#/components/schemas/StorageClass'
+        url:
+          type: string
+
+    FileType:
+      type: string
+      enum: [raw, processed, thumbnail, metadata_json]
+
+    StorageClass:
+      type: string
+      enum: [hot, warm, cold]
+
+    ImageTag:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    ImageSearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    RetentionPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        rawRetentionDays:
+          type: integer
+        processedRetentionDays:
+          type: integer
+        thumbnailRetentionDays:
+          type: integer
+        archiveRawDays:
+          type: integer
+          nullable: true
+        archiveEnabled:
+          type: boolean
+        coldStorageClass:
+          $ref: '#/components/schemas/StorageClass'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateRetentionPolicyRequest:
+      type: object
+      required: [name, rawRetentionDays, processedRetentionDays, thumbnailRetentionDays]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        rawRetentionDays:
+          type: integer
+          minimum: 1
+        processedRetentionDays:
+          type: integer
+          minimum: 1
+        thumbnailRetentionDays:
+          type: integer
+          minimum: 1
+        archiveRawDays:
+          type: integer
+        archiveEnabled:
+          type: boolean
+        coldStorageClass:
+          $ref: '#/components/schemas/StorageClass'
+
+    UpdateRetentionPolicyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        rawRetentionDays:
+          type: integer
+        processedRetentionDays:
+          type: integer
+        thumbnailRetentionDays:
+          type: integer
+        archiveRawDays:
+          type: integer
+        archiveEnabled:
+          type: boolean
+        coldStorageClass:
+          $ref: '#/components/schemas/StorageClass'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        version:
+          type: string
+        uptime:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [ok, down]
+            minio:
+              type: string
+              enum: [ok, down]
+
+    StorageSummary:
+      type: object
+      properties:
+        totalFiles:
+          type: integer
+        totalBytes:
+          type: integer
+        byFileType:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              files:
+                type: integer
+              bytes:
+                type: integer
+        byCamera:
+          type: array
+          items:
+            type: object
+            properties:
+              cameraId:
+                type: string
+              cameraName:
+                type: string
+              files:
+                type: integer
+              bytes:
+                type: integer
+        snapshotDate:
+          type: string
+          format: date
+
+    StorageGrowth:
+      type: object
+      properties:
+        period:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              imagesAdded:
+                type: integer
+              bytesAdded:
+                type: integer
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Invalid or expired refresh token
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout and revoke refresh token
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logged out successfully
+
+  /api/v1/cameras:
+    get:
+      tags: [Cameras]
+      summary: List all cameras
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/CameraStatus'
+        - in: query
+          name: enabled
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Camera list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Camera'
+    post:
+      tags: [Cameras]
+      summary: Register a new camera
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCameraRequest'
+      responses:
+        '201':
+          description: Camera created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+
+  /api/v1/cameras/{id}:
+    get:
+      tags: [Cameras]
+      summary: Get camera details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Camera details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+    patch:
+      tags: [Cameras]
+      summary: Update camera configuration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCameraRequest'
+      responses:
+        '200':
+          description: Camera updated
+    delete:
+      tags: [Cameras]
+      summary: Deactivate camera
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Camera deactivated
+
+  /api/v1/images:
+    get:
+      tags: [Images]
+      summary: Search images with filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: cameraId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/ImageStatus'
+        - in: query
+          name: from
+          description: Start of captured date range
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          description: End of captured date range
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: q
+          description: Full-text search query
+          schema:
+            type: string
+        - in: query
+          name: tagKey
+          schema:
+            type: string
+        - in: query
+          name: tagValue
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+            default: capturedAt
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageSearchResponse'
+
+  /api/v1/images/{id}:
+    get:
+      tags: [Images]
+      summary: Get image details with files and tags
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+    delete:
+      tags: [Images]
+      summary: Soft-delete an image
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Image deleted
+
+  /api/v1/images/{id}/metadata:
+    patch:
+      tags: [Images]
+      summary: Update image TIFF metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Metadata updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+
+  /api/v1/images/{id}/tags:
+    post:
+      tags: [Images]
+      summary: Add or update tags on an image
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                defect_class: scratch
+                quality_score: "0.97"
+      responses:
+        '200':
+          description: Tags updated
+
+  /api/v1/images/{id}/tags/{key}:
+    delete:
+      tags: [Images]
+      summary: Remove a tag from an image
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tag removed
+
+  /api/v1/images/{id}/files/{fileType}:
+    get:
+      tags: [Images]
+      summary: Get download URL for a specific file type
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: fileType
+          required: true
+          schema:
+            $ref: '#/components/schemas/FileType'
+      responses:
+        '200':
+          description: File download URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  mimeType:
+                    type: string
+                  fileSizeBytes:
+                    type: integer
+
+  /api/v1/retention-policies:
+    get:
+      tags: [Retention]
+      summary: List retention policies
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Policy list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RetentionPolicy'
+    post:
+      tags: [Retention]
+      summary: Create retention policy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRetentionPolicyRequest'
+      responses:
+        '201':
+          description: Policy created
+
+  /api/v1/retention-policies/{id}:
+    get:
+      tags: [Retention]
+      summary: Get retention policy details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Policy details
+    patch:
+      tags: [Retention]
+      summary: Update retention policy
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRetentionPolicyRequest'
+      responses:
+        '200':
+          description: Policy updated
+    delete:
+      tags: [Retention]
+      summary: Delete retention policy
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Policy deleted
+
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Basic health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness check (includes DB check)
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service not ready
+
+  /api/v1/health/live:
+    get:
+      tags: [Health]
+      summary: Liveness check
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/storage/summary:
+    get:
+      tags: [Storage]
+      summary: Get storage usage summary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Storage summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageSummary'
+
+  /api/v1/storage/cameras/{cameraId}:
+    get:
+      tags: [Storage]
+      summary: Get storage usage per camera
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: cameraId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Camera storage breakdown
+
+  /api/v1/storage/growth:
+    get:
+      tags: [Storage]
+      summary: Get storage growth trend
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: days
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Growth trend data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageGrowth'

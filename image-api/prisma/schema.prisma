@@ -1,0 +1,1060 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  operator
+  viewer
+  system
+
+  @@map("role")
+}
+
+enum ImageStatus {
+  pending
+  queued
+  processing
+  completed
+  failed
+  deleted
+  archived
+
+  @@map("image_status")
+}
+
+enum ProviderType {
+  s3
+  local
+  smb
+  nfs
+  seaweedfs
+
+  @@map("provider_type")
+}
+
+enum FileType {
+  raw
+  processed
+  thumbnail
+  metadata_json
+  ai
+  ocr
+  face_blur
+  custom
+
+  @@map("file_type")
+}
+
+enum StorageClass {
+  hot
+  warm
+  cold
+
+  @@map("storage_class")
+}
+
+enum CameraStatus {
+  active
+  inactive
+  error
+  maintenance
+
+  @@map("camera_status")
+}
+
+enum CameraEventType {
+  online
+  offline
+  error
+  recovering
+  reconfigured
+  maintenance_start
+  maintenance_end
+  image_deleted
+  // Reachable, but the camera itself stopped producing — see checkCameraImageFlow().
+  no_new_images
+  images_resumed
+
+  @@map("camera_event_type")
+}
+
+// ── CCTV Foundation Enums (Phase 1) ───────────────────────────
+enum DeviceType {
+  dvr
+  nvr
+  ip_camera
+  other
+
+  @@map("device_type")
+}
+
+// Operational Status: system-derived reachability state (P35 Phase A).
+// Kept separate from CameraStatus ("Business Status", human-controlled) so the
+// two never conflict — analytics/automation read this one, workflows/permissions
+// still read CameraStatus exactly as before.
+enum CameraOperationalStatus {
+  unknown
+  online
+  offline
+  recovering
+
+  @@map("camera_operational_status")
+}
+
+// P26 — Intelligent Data Lifecycle & Storage Governance
+enum CleanupMode {
+  retention_only
+  retention_watermark
+  circular
+  read_only
+  manual
+
+  @@map("cleanup_mode")
+}
+
+enum BackpressureStrategy {
+  stop_polling
+  continue_polling
+
+  @@map("backpressure_strategy")
+}
+
+enum StoragePressureState {
+  normal
+  warning
+  pressure
+  critical
+  emergency
+
+  @@map("storage_pressure_state")
+}
+
+enum CleanupTrigger {
+  auto
+  manual
+  emergency
+
+  @@map("cleanup_trigger")
+}
+
+enum CleanupRunStatus {
+  running
+  completed
+  failed
+
+  @@map("cleanup_run_status")
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+  emergency
+
+  @@map("alert_severity")
+}
+
+enum AlertType {
+  storage_warning
+  processing_failure
+  camera_offline
+  camera_no_new_images
+  rate_limit_exceeded
+  retention_violation
+  disk_space
+  ingest_lag
+  checksum_mismatch
+  incident_escalation
+  storage_cleanup
+  auth_anomaly
+
+  @@map("alert_type")
+}
+
+model CustomRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(64)
+  nameTh      String?  @map("name_th") @db.VarChar(256)
+  nameEn      String?  @map("name_en") @db.VarChar(256)
+  nameCn      String?  @map("name_cn") @db.VarChar(256)
+  nameMm      String?  @map("name_mm") @db.VarChar(256)
+  nameJp      String?  @map("name_jp") @db.VarChar(256)
+  description String?  @db.Text
+  permissions Json     @default("[]")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("custom_roles")
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  username          String    @unique @db.VarChar(128)
+  email             String    @unique @db.VarChar(256)
+  password          String    @db.Text
+  role              String    @default("viewer") @db.VarChar(64)
+  customPermissions Json      @default("[]") @map("custom_permissions")
+  hiddenMenuItems   Json      @default("[]") @map("hidden_menu_items")
+  // Per-user UI preferences (table column order/visibility, filter panel state,
+  // etc.) keyed by page — follows the user across devices. Shape: { [pageId]: {...} }
+  uiPreferences     Json      @default("{}") @map("ui_preferences")
+  enabled           Boolean   @default(true)
+  lastLogin         DateTime? @map("last_login")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  sessions      UserSession[]
+
+  roleRelation CustomRole? @relation(fields: [role], references: [code])
+
+  @@map("users")
+}
+
+model UserSession {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  username        String    @db.VarChar(128)
+  loginAt         DateTime  @default(now()) @map("login_at")
+  logoutAt        DateTime? @map("logout_at")
+  lastActiveAt    DateTime  @default(now()) @map("last_active_at")
+  durationSeconds Int?      @map("duration_seconds")
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  userAgent       String?   @map("user_agent") @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, loginAt(sort: Desc)])
+  @@map("user_sessions")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique @db.Text
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model RetentionPolicy {
+  id                     String       @id @default(uuid()) @db.Uuid
+  name                   String       @db.VarChar(128)
+  description            String?      @db.Text
+  rawRetentionDays       Int          @map("raw_retention_days")
+  processedRetentionDays Int          @map("processed_retention_days")
+  thumbnailRetentionDays Int          @map("thumbnail_retention_days")
+  archiveRawDays         Int?         @map("archive_raw_days")
+  archiveEnabled         Boolean      @default(false) @map("archive_enabled")
+  coldStorageClass       StorageClass @default(cold) @map("cold_storage_class")
+  // P26: cleanup behavior only — capacity % thresholds live on StorageProvider, not here,
+  // since disk capacity belongs to the provider while retention/cleanup behavior is per-camera.
+  cleanupMode            CleanupMode  @default(retention_only) @map("cleanup_mode")
+  deleteOrder            Json         @default("[\"thumbnail\", \"processed\", \"raw\"]") @map("delete_order")
+  allowEmergencyCleanup  Boolean      @default(false) @map("allow_emergency_cleanup")
+  isDefault              Boolean      @default(false) @map("is_default")
+  createdAt              DateTime     @default(now()) @map("created_at")
+  updatedAt              DateTime     @updatedAt @map("updated_at")
+
+  cameras Camera[]
+  cameraTemplates CameraTemplate[]
+
+  @@map("retention_policies")
+}
+
+model StorageProvider {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String       @unique @db.VarChar(128)
+  type          ProviderType
+  config        Json
+  isDefault     Boolean      @default(false) @map("is_default")
+  isActive      Boolean      @default(true) @map("is_active")
+  capacityBytes BigInt?      @map("capacity_bytes")
+  priority      Int          @default(0)
+  description   String?      @db.Text
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  // P26 — Storage Pressure thresholds (% used). Hysteresis: cleanup starts at
+  // pressureStartPercent, keeps running until usage drops to pressureStopPercent.
+  pressureWarningPercent   Float                @default(75) @map("pressure_warning_percent")
+  pressureStartPercent     Float                @default(90) @map("pressure_start_percent")
+  pressureStopPercent      Float                @default(80) @map("pressure_stop_percent")
+  pressureCriticalPercent  Float                @default(95) @map("pressure_critical_percent")
+  pressureEmergencyPercent Float                @default(98) @map("pressure_emergency_percent")
+  backpressureStrategy     BackpressureStrategy @default(continue_polling) @map("backpressure_strategy")
+  // Last debounced state, cached here so the UI/API has a value even if Redis is cold.
+  // The pressure-monitor cron is the source of truth during runtime (via Redis).
+  currentPressureState     StoragePressureState @default(normal) @map("current_pressure_state")
+  currentPressureSince     DateTime?            @map("current_pressure_since")
+
+  imageFiles  ImageFile[]
+  profiles    StorageProfile[]
+  metrics     StorageProviderMetric[]
+  sourceJobs  MigrationJob[]          @relation("MigrationSource")
+  targetJobs  MigrationJob[]          @relation("MigrationTarget")
+  cleanupRuns CleanupRun[]
+
+  @@map("storage_providers")
+}
+
+model StorageProfile {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique @db.VarChar(64)
+  nameTh       String    @map("name_th") @db.VarChar(256)
+  nameEn       String    @map("name_en") @db.VarChar(256)
+  nameCn       String    @map("name_cn") @db.VarChar(256)
+  nameMm       String    @map("name_mm") @db.VarChar(256)
+  nameJp       String    @map("name_jp") @db.VarChar(256)
+  description  String?   @db.Text
+  providerId   String    @map("provider_id") @db.Uuid
+  routingRules Json      @default("[]") @map("routing_rules")
+  sortOrder    Int       @default(0) @map("sort_order")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  provider   StorageProvider @relation(fields: [providerId], references: [id])
+  imageFiles ImageFile[]
+
+  @@map("storage_profiles")
+}
+
+model StorageProviderMetric {
+  id           String   @id @default(uuid()) @db.Uuid
+  providerId   String   @map("provider_id") @db.Uuid
+  status       String   @default("unknown") @db.VarChar(32)
+  latencyMs    Int      @default(0) @map("latency_ms")
+  objectCount  BigInt   @default(0) @map("object_count")
+  usedBytes    BigInt   @default(0) @map("used_bytes")
+  totalBytes   BigInt   @default(0) @map("total_bytes")
+  freeBytes    BigInt   @default(0) @map("free_bytes")
+  errorMessage String?  @map("error_message") @db.Text
+  collectedAt  DateTime @default(now()) @map("collected_at")
+
+  provider StorageProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, collectedAt(sort: Desc)])
+  @@map("storage_provider_metrics")
+}
+
+// P26 — one row per Cleanup Planner/Executor invocation (auto, manual, or emergency).
+// Doubles as the audit trail and the source of KPI data (duration, recovered space,
+// emergency count, etc) — kept separate from CameraEvent/AuditLog since this is a
+// different domain (storage lifecycle, not camera health or generic user actions).
+model CleanupRun {
+  id                  String           @id @default(uuid()) @db.Uuid
+  storageProviderId   String           @map("storage_provider_id") @db.Uuid
+  trigger             CleanupTrigger   @default(auto)
+  status              CleanupRunStatus @default(running)
+  dryRun              Boolean          @default(false) @map("dry_run")
+  filesScanned        Int              @default(0) @map("files_scanned")
+  filesDeleted        Int              @default(0) @map("files_deleted")
+  bytesFreed          BigInt           @default(0) @map("bytes_freed")
+  deleteOrderSnapshot Json?            @map("delete_order_snapshot")
+  triggeredBy         String?          @map("triggered_by") @db.VarChar(128)
+  errorMessage        String?          @map("error_message") @db.Text
+  startedAt           DateTime         @default(now()) @map("started_at")
+  completedAt         DateTime?        @map("completed_at")
+
+  storageProvider StorageProvider @relation(fields: [storageProviderId], references: [id])
+
+  @@index([storageProviderId, startedAt(sort: Desc)])
+  @@map("cleanup_runs")
+}
+
+enum MigrationStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+
+  @@map("migration_status")
+}
+
+model MigrationJob {
+  id            String          @id @default(uuid()) @db.Uuid
+  sourceId      String          @map("source_id") @db.Uuid
+  targetId      String          @map("target_id") @db.Uuid
+  status        MigrationStatus @default(pending)
+  fileType      String?         @map("file_type") @db.VarChar(32)
+  totalFiles    Int             @default(0) @map("total_files")
+  migratedFiles Int             @default(0) @map("migrated_files")
+  totalBytes    BigInt          @default(0) @map("total_bytes")
+  migratedBytes BigInt          @default(0) @map("migrated_bytes")
+  errorMessage  String?         @map("error_message") @db.Text
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  sourceProvider StorageProvider @relation("MigrationSource", fields: [sourceId], references: [id])
+  targetProvider StorageProvider @relation("MigrationTarget", fields: [targetId], references: [id])
+
+  @@index([status])
+  @@index([sourceId])
+  @@index([targetId])
+  @@map("migration_jobs")
+}
+
+model CameraTemplate {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String   @db.VarChar(128)
+  description         String?  @db.Text
+  acceptedExtensions  String[] @map("accepted_extensions")
+  convertToPng        Boolean  @default(true) @map("convert_to_png")
+  keepSmaller         Boolean  @default(true) @map("keep_smaller")
+  generateThumbnail   Boolean  @default(true) @map("generate_thumbnail")
+  thumbnailSize       Int      @default(512) @map("thumbnail_size")
+  compressionQuality  Int      @default(85) @map("compression_quality")
+  pollIntervalSeconds Int      @default(30) @map("poll_interval_seconds")
+  captureMode         String   @default("periodic") @map("capture_mode") @db.VarChar(32)
+  retentionPolicyId   String?  @map("retention_policy_id") @db.Uuid
+  isDefault           Boolean  @default(false) @map("is_default")
+  sortOrder           Int      @default(0) @map("sort_order")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  cameras             Camera[]
+  retentionPolicy     RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id])
+
+  @@map("camera_templates")
+}
+
+// ── CCTV Foundation Models (Phase 1) ──────────────────────────
+
+model Site {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(128)
+  code        String?  @unique @db.VarChar(64)
+  description String?  @db.Text
+  address     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  zones      Zone[]
+  devices    Device[]
+  cameras    Camera[]
+  mediaNodes MediaNode[]
+
+  @@map("sites")
+}
+
+model Zone {
+  id                String   @id @default(uuid()) @db.Uuid
+  siteId            String   @map("site_id") @db.Uuid
+  name              String   @db.VarChar(128)
+  code              String?  @db.VarChar(64)
+  floor             Int?     @default(1)
+  floorPlanImageUrl String?  @map("floor_plan_image_url") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  cameras Camera[]
+
+  @@unique([siteId, name])
+  @@map("zones")
+}
+
+model MediaNode {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String    @unique @db.VarChar(128)
+  apiBaseUrl          String    @map("api_base_url") @db.VarChar(256)
+  rtspBaseUrl         String    @map("rtsp_base_url") @db.VarChar(256)
+  webrtcBaseUrl       String    @map("webrtc_base_url") @db.VarChar(256)
+  hlsBaseUrl          String    @map("hls_base_url") @db.VarChar(256)
+  siteId              String?   @map("site_id") @db.Uuid
+  region              String?   @default("default") @db.VarChar(64)
+  isDefault           Boolean   @default(false) @map("is_default")
+  status              String    @default("online") @db.VarChar(32) // online, degraded, offline, draining
+  capacityChannels    Int       @default(100) @map("capacity_channels")
+  currentLoadChannels Int       @default(0) @map("current_load_channels")
+  cpuPercent          Float?    @default(0) @map("cpu_percent")
+  ramPercent          Float?    @default(0) @map("ram_percent")
+  diskPercent         Float?    @default(0) @map("disk_percent")
+  networkIngressMbps  Float?    @default(0) @map("network_ingress_mbps")
+  networkEgressMbps   Float?    @default(0) @map("network_egress_mbps")
+  lastHeartbeatAt     DateTime? @map("last_heartbeat_at")
+  iceServers          Json      @default("[]") @map("ice_servers")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  site                Site?     @relation(fields: [siteId], references: [id])
+  cameras             Camera[]
+
+  @@map("media_nodes")
+}
+
+model StreamProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(64)
+  codec       String   @default("h264") @db.VarChar(32)
+  resolution  String?  @db.VarChar(32)
+  fps         Int?     @default(25)
+  bitrateKbps Int?     @map("bitrate_kbps")
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("stream_profiles")
+}
+
+model Device {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              String     @db.VarChar(128)
+  description       String?    @db.Text
+  deviceType        DeviceType @default(dvr) @map("device_type")
+  brand             String?    @db.VarChar(64)
+  model             String?    @db.VarChar(64)
+  serialNumber      String?    @map("serial_number") @db.VarChar(128)
+  ipAddress         String     @map("ip_address") @db.VarChar(45)
+  rtspPort          Int        @default(554) @map("rtsp_port")
+  httpPort          Int?       @default(80) @map("http_port")
+  onvifPort         Int?       @map("onvif_port")
+  username          String?    @db.VarChar(128)
+  passwordEncrypted String?    @map("password_encrypted") @db.Text
+  totalChannels     Int        @default(1) @map("total_channels")
+  status            String     @default("active") @db.VarChar(32)
+  enabled           Boolean    @default(true)
+  siteId            String?    @map("site_id") @db.Uuid
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  site    Site?    @relation(fields: [siteId], references: [id])
+  cameras Camera[]
+
+  @@map("devices")
+}
+
+model Camera {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  name                   String                  @db.VarChar(128)
+  description            String?                 @db.Text
+  ipAddress              String?                 @map("ip_address") @db.VarChar(45)
+  smbSharePath           String?                 @map("smb_share_path") @db.Text
+  smbDomain              String?                 @db.VarChar(128)
+  smbUsername            String?                 @map("smb_username") @db.VarChar(256)
+  smbPasswordEncrypted   String?                 @map("smb_password_encrypted") @db.Text
+  smbSubdirectoryPattern String?                 @map("smb_subdirectory_pattern") @db.VarChar(256)
+  status                 CameraStatus            @default(inactive)
+  pollIntervalSeconds    Int                     @default(30) @map("poll_interval_seconds")
+  timezone               String?                 @default("UTC") @db.VarChar(64)
+  metadata               Json                    @default("{}")
+  captureMode            String                  @default("periodic") @map("capture_mode") @db.VarChar(32)
+  cameraTypeCode         String?                 @map("camera_type_code") @db.VarChar(64)
+  viewpointCode          String?                 @map("viewpoint_code") @db.VarChar(64)
+  retentionPolicyId      String?                 @map("retention_policy_id") @db.Uuid
+  templateId             String?                 @map("template_id") @db.Uuid
+  acceptedExtensions     String[]                @default([]) @map("accepted_extensions")
+  convertToPng           Boolean?                @map("convert_to_png")
+  keepSmaller            Boolean?                @map("keep_smaller")
+  generateThumbnail      Boolean?                @map("generate_thumbnail")
+  thumbnailSize          Int?                    @map("thumbnail_size")
+  compressionQuality     Int?                    @map("compression_quality")
+  enabled                Boolean                 @default(true)
+  lastPolledAt           DateTime?               @map("last_polled_at")
+
+  // CCTV Foundation fields (Phase 1)
+  deviceId               String?                 @map("device_id") @db.Uuid
+  channelNumber          Int?                    @map("channel_number")
+  rtspUrl                String?                 @map("rtsp_url") @db.Text
+  rtspUrlSub             String?                 @map("rtsp_url_sub") @db.Text
+  streamProfile          String?                 @default("main") @map("stream_profile") @db.VarChar(32)
+  mediaNodeId            String?                 @map("media_node_id") @db.Uuid
+  streamPath             String?                 @unique @map("stream_path") @db.VarChar(128)
+  siteId                 String?                 @map("site_id") @db.Uuid
+  zoneId                 String?                 @map("zone_id") @db.Uuid
+  latitude               Float?                  @map("latitude")
+  longitude              Float?                  @map("longitude")
+  onvifProfileToken      String?                 @map("onvif_profile_token") @db.VarChar(128)
+  streamState            String                  @default("idle") @map("stream_state") @db.VarChar(32)
+
+  sourceOldestFileAt     DateTime?               @map("source_oldest_file_at")
+  sourceFileCount        Int?                    @map("source_file_count")
+  lastImageAt            DateTime?               @map("last_image_at")
+  totalImagesCount       BigInt                  @default(0) @map("total_images_count")
+  operationalStatus      CameraOperationalStatus @default(unknown) @map("operational_status")
+  operationalSince       DateTime?               @map("operational_since")
+  slaTargetPercent       Float?                  @map("sla_target_percent")
+  createdBy              String?                 @map("created_by") @db.VarChar(128)
+  deletedAt              DateTime?               @map("deleted_at")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+
+  retentionPolicy  RetentionPolicy?      @relation(fields: [retentionPolicyId], references: [id])
+  template         CameraTemplate?       @relation(fields: [templateId], references: [id])
+  device           Device?               @relation(fields: [deviceId], references: [id])
+  site             Site?                 @relation(fields: [siteId], references: [id])
+  zone             Zone?                 @relation(fields: [zoneId], references: [id])
+  mediaNode        MediaNode?            @relation(fields: [mediaNodeId], references: [id])
+  images           Image[]
+  cameraEvents     CameraEvent[]
+  storageSnapshots StorageSnapshot[]
+  dailySummaries   CameraDailySummary[]
+  incidents        CameraIncident[]
+  recordings       CameraRecording[]
+  recordingClips   RecordingClip[]
+
+  @@map("cameras")
+}
+
+
+model Image {
+  id               String      @id @default(uuid()) @db.Uuid
+  cameraId         String?     @map("camera_id") @db.Uuid
+  originalFilename String      @map("original_filename") @db.VarChar(512)
+  fileSizeBytes    BigInt      @map("file_size_bytes")
+  checksumSha256   String?     @map("checksum_sha256") @db.Char(64)
+  checksumMd5      String?     @map("checksum_md5") @db.Char(32)
+  status           ImageStatus @default(pending)
+  widthPx          Int?        @map("width_px")
+  heightPx         Int?        @map("height_px")
+  bitDepth         Int?        @map("bit_depth")
+  colorSpace       String?     @map("color_space") @db.VarChar(32)
+  compressionType  String?     @map("compression_type") @db.VarChar(64)
+  compressionRatio Decimal?    @map("compression_ratio") @db.Decimal(5, 2)
+  tiffMetadata     Json?       @default("{}") @map("tiff_metadata")
+  capturedAt       DateTime    @map("captured_at")
+  ingestedAt       DateTime    @default(now()) @map("ingested_at")
+  processedAt      DateTime?   @map("processed_at")
+  deletedAt        DateTime?   @map("deleted_at")
+  retentionUntil   DateTime?   @map("retention_until")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  // P26 — Image Locking: a Business Decision (who/why/until-when), not something the
+  // Cleanup Planner ever sets itself — the Planner only ever reads `locked` as a filter.
+  locked       Boolean   @default(false)
+  lockedBy     String?   @map("locked_by") @db.VarChar(128)
+  // Snapshot of the locker's role code at lock time — role can change later, so we
+  // record it here to decide who is allowed to unlock (a junior role must not be
+  // able to unlock what a more senior role locked).
+  lockedByRole String?   @map("locked_by_role") @db.VarChar(64)
+  lockedAt     DateTime? @map("locked_at")
+  lockReason   String?   @map("lock_reason") @db.Text
+  lockExpireAt DateTime? @map("lock_expire_at")
+
+  camera         Camera?         @relation(fields: [cameraId], references: [id], onDelete: SetNull)
+  imageFiles     ImageFile[]
+  imageTags      ImageTag[]
+  processingJobs ProcessingJob[]
+
+  @@index([cameraId, capturedAt(sort: Desc)])
+  @@index([deletedAt, capturedAt(sort: Desc)])
+  @@index([deletedAt, cameraId, capturedAt(sort: Desc)])
+  @@index([deletedAt, status, capturedAt(sort: Desc)])
+  @@index([status])
+  @@index([checksumMd5])
+  @@index([retentionUntil])
+  @@index([locked])
+  @@map("images")
+}
+
+model ImageFile {
+  id                String       @id @default(uuid()) @db.Uuid
+  imageId           String       @map("image_id") @db.Uuid
+  fileType          FileType     @map("file_type")
+  bucket            String       @db.VarChar(128)
+  objectKey         String       @db.Text
+  storageClass      StorageClass @default(hot) @map("storage_class")
+  fileSizeBytes     BigInt       @map("file_size_bytes")
+  checksumSha256    String?      @map("checksum_sha256") @db.Char(64)
+  mimeType          String?      @map("mime_type") @db.VarChar(128)
+  storageProviderId String?      @map("storage_provider_id") @db.Uuid
+  storageProfileId  String?      @map("storage_profile_id") @db.Uuid
+  processorName     String?      @map("processor_name") @db.VarChar(64)
+  processorParams   Json?        @map("processor_params")
+  parentFileId      String?      @map("parent_file_id") @db.Uuid
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  image           Image            @relation(fields: [imageId], references: [id])
+  storageProvider StorageProvider? @relation(fields: [storageProviderId], references: [id])
+  storageProfile  StorageProfile?  @relation(fields: [storageProfileId], references: [id])
+  parentFile      ImageFile?       @relation("FileVersions", fields: [parentFileId], references: [id])
+  childFiles      ImageFile[]      @relation("FileVersions")
+
+  @@unique([imageId, fileType])
+  @@map("image_files")
+}
+
+model ImageTag {
+  id        BigInt   @id @default(autoincrement())
+  imageId   String   @map("image_id") @db.Uuid
+  key       String   @db.VarChar(128)
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  image Image @relation(fields: [imageId], references: [id])
+
+  @@unique([imageId, key])
+  @@index([key, value])
+  @@map("image_tags")
+}
+
+model ProcessingJob {
+  id           String    @id @default(uuid()) @db.Uuid
+  imageId      String?   @map("image_id") @db.Uuid
+  jobType      String    @map("job_type") @db.VarChar(32)
+  workerId     String?   @map("worker_id") @db.VarChar(128)
+  status       String    @default("queued") @db.VarChar(32)
+  priority     Int       @default(0)
+  queueName    String    @default("default") @map("queue_name") @db.VarChar(64)
+  payload      Json?
+  result       Json?
+  errorMessage String?   @map("error_message") @db.Text
+  errorDetails Json?     @map("error_details")
+  retryCount   Int       @default(0) @map("retry_count")
+  maxRetries   Int       @default(3) @map("max_retries")
+  queuedAt     DateTime  @default(now()) @map("queued_at")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  image Image? @relation(fields: [imageId], references: [id])
+
+  @@index([imageId])
+  @@index([status, queuedAt(sort: Desc)])
+  @@map("processing_jobs")
+}
+
+model CameraEvent {
+  id             BigInt          @id @default(autoincrement())
+  cameraId       String          @map("camera_id") @db.Uuid
+  eventType      CameraEventType @map("event_type")
+  message        String          @db.Text
+  metadata       Json?           @default("{}")
+  downtimeReason String?         @map("downtime_reason") @db.VarChar(64)
+  source         String?         @db.VarChar(32)
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  camera   Camera          @relation(fields: [cameraId], references: [id])
+  incident CameraIncident?
+
+  @@index([cameraId, createdAt(sort: Desc)])
+  @@map("camera_events")
+}
+
+model CameraDailySummary {
+  id                  String   @id @default(uuid()) @db.Uuid
+  cameraId            String   @map("camera_id") @db.Uuid
+  date                DateTime @db.Date
+  uptimeSeconds       Int      @default(0) @map("uptime_seconds")
+  downtimeSeconds     Int      @default(0) @map("downtime_seconds")
+  maintenanceSeconds  Int      @default(0) @map("maintenance_seconds")
+  offlineCount        Int      @default(0) @map("offline_count")
+  onlineCount         Int      @default(0) @map("online_count")
+  imagesCaptured      Int      @default(0) @map("images_captured")
+  estimatedLostImages Int      @default(0) @map("estimated_lost_images")
+  avgResponseSeconds  Float    @default(0) @map("avg_response_seconds")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  camera Camera @relation(fields: [cameraId], references: [id])
+
+  @@unique([cameraId, date])
+  @@map("camera_daily_summaries")
+}
+
+model StorageSnapshot {
+  id           BigInt       @id @default(autoincrement())
+  cameraId     String?      @map("camera_id") @db.Uuid
+  snapshotDate DateTime     @map("snapshot_date") @db.Date
+  fileType     FileType     @map("file_type")
+  storageClass StorageClass @default(hot) @map("storage_class")
+  totalFiles   BigInt       @default(0) @map("total_files")
+  totalBytes   BigInt       @default(0) @map("total_bytes")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  camera Camera? @relation(fields: [cameraId], references: [id])
+
+  @@unique([cameraId, snapshotDate, fileType, storageClass])
+  @@map("storage_snapshots")
+}
+
+model Alert {
+  id             String        @id @default(uuid()) @db.Uuid
+  alertType      AlertType     @map("alert_type")
+  severity       AlertSeverity @default(warning)
+  source         String?       @db.VarChar(256)
+  title          String        @db.VarChar(256)
+  message        String        @db.Text
+  details        Json?         @default("{}")
+  acknowledgedAt DateTime?     @map("acknowledged_at")
+  acknowledgedBy String?       @map("acknowledged_by") @db.VarChar(128)
+  resolvedAt     DateTime?     @map("resolved_at")
+  resolvedBy     String?       @map("resolved_by") @db.VarChar(128)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([severity, createdAt(sort: Desc)])
+  @@map("alerts")
+}
+
+model AlertRule {
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String    @db.VarChar(128)
+  alertType            AlertType @map("alert_type")
+  description          String?   @db.Text
+  enabled              Boolean   @default(true)
+  condition            Json
+  cooldownMinutes      Int       @default(60) @map("cooldown_minutes")
+  notificationChannels Json      @default("[]") @map("notification_channels")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@map("alert_rules")
+}
+
+model SystemSetting {
+  key       String   @id @db.VarChar(128)
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+enum TelegramUserStatus {
+  pending
+  approved
+  rejected
+
+  @@map("telegram_user_status")
+}
+
+/// People allowed to talk to the bot in a private chat. The group chat itself is always
+/// allowed (it is the configured alert destination); this list only gates 1:1 DMs, where
+/// there is no group membership to lean on and anyone who finds the bot's @username can
+/// message it. Approval is granted from the group by a Telegram group admin.
+model TelegramUser {
+  id          String             @id @default(uuid()) @db.Uuid
+  telegramId  String             @unique @map("telegram_id") @db.VarChar(32)
+  firstName   String?            @map("first_name") @db.VarChar(128)
+  username    String?            @db.VarChar(128)
+  status      TelegramUserStatus @default(pending)
+  requestedAt DateTime           @default(now()) @map("requested_at")
+  decidedAt   DateTime?          @map("decided_at")
+  /// Who approved/rejected — a Telegram display name for in-chat decisions, or a
+  /// web username when an operator adds/removes someone from the settings page.
+  decidedBy   String?            @map("decided_by") @db.VarChar(128)
+  lastSeenAt  DateTime?          @map("last_seen_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("telegram_users")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(128)
+  tokenHash   String    @unique @map("token_hash") @db.Text
+  tokenPrefix String    @map("token_prefix") @db.VarChar(16)
+  permissions Json      @default("[]")
+  enabled     Boolean   @default(true)
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  createdBy   String?   @map("created_by") @db.VarChar(128)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([tokenHash])
+  @@map("api_keys")
+}
+
+model Masterdata {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String   @db.VarChar(64)
+  code        String   @db.VarChar(64)
+  nameTh      String?  @map("name_th") @db.VarChar(256)
+  nameEn      String?  @map("name_en") @db.VarChar(256)
+  nameCn      String?  @map("name_cn") @db.VarChar(256)
+  nameMm      String?  @map("name_mm") @db.VarChar(256)
+  nameJp      String?  @map("name_jp") @db.VarChar(256)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([type, code])
+  @@index([type, sortOrder])
+  @@map("masterdata")
+}
+
+model SystemConfig {
+  key         String   @id @db.VarChar(128)
+  value       String   @db.Text
+  description String?  @db.Text
+  valueType   String   @default("string") @map("value_type") @db.VarChar(32)
+  category    String?  @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String   @db.VarChar(64)
+  entity      String   @db.VarChar(64)
+  entityId    String?  @map("entity_id") @db.VarChar(128)
+  description String?  @db.Text
+  metadata    Json?    @default("{}")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], map: "fk_audit_log_user")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action, entity])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+model BackupRecord {
+  id           String    @id @default(uuid()) @db.Uuid
+  type         String    @db.VarChar(32)
+  status       String    @default("pending") @db.VarChar(32)
+  filePath     String?   @map("file_path") @db.Text
+  fileSize     BigInt?   @map("file_size")
+  checksum     String?   @db.Char(64)
+  startedAt    DateTime  @default(now()) @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  errorMessage String?   @map("error_message") @db.Text
+  metadata     Json?     @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([type, status])
+  @@index([startedAt(sort: Desc)])
+  @@map("backup_records")
+}
+
+model CameraIncident {
+  id               String    @id @default(uuid()) @db.Uuid
+  incidentNumber   String    @unique @map("incident_number") @db.VarChar(32)
+  cameraId         String    @map("camera_id") @db.Uuid
+  eventId          BigInt?   @unique @map("event_id")
+  fromStatus       String    @map("from_status") @db.VarChar(32)
+  toStatus         String    @map("to_status") @db.VarChar(32)
+  reason           String    @db.VarChar(64)
+  rootCause        String?   @map("root_cause") @db.VarChar(64)
+  description      String?   @db.Text
+  resolution       String?   @db.Text
+  correctiveAction String?   @map("corrective_action") @db.Text
+  preventiveAction String?   @map("preventive_action") @db.Text
+  estimatedFinish  DateTime? @map("estimated_finish")
+  actualFinish     DateTime? @map("actual_finish")
+  lostImages       Int       @default(0) @map("lost_images")
+  priority         String    @default("medium") @db.VarChar(16)
+  impact           String    @default("none") @db.VarChar(32)
+  assignedTo       String?   @map("assigned_to") @db.VarChar(128)
+  workflowStage    String    @default("unassigned") @map("workflow_stage") @db.VarChar(20)
+  acknowledgedAt   DateTime? @map("acknowledged_at")
+  acknowledgedBy   String?   @map("acknowledged_by") @db.VarChar(128)
+  problemDesc      String?   @map("problem_desc") @db.Text
+  resolutionDesc   String?   @map("resolution_desc") @db.Text
+  attachments      Json      @default("[]")
+  observers        Json      @default("[]")
+  workOrderNumber  String?   @map("work_order_number") @db.VarChar(64)
+  workOrderStatus  String?   @map("work_order_status") @db.VarChar(32)
+  status           String    @default("open") @db.VarChar(16)
+  openedBy         String?   @map("opened_by") @db.VarChar(128)
+  closedBy         String?   @map("closed_by") @db.VarChar(128)
+  openedAt         DateTime  @default(now()) @map("opened_at")
+  closedAt         DateTime? @map("closed_at")
+  detectionSource     String?  @map("detection_source") @db.VarChar(32)
+  rootCauseConfidence String?  @map("root_cause_confidence") @db.VarChar(16)
+  autoResolved        Boolean  @default(false) @map("auto_resolved")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  camera         Camera          @relation(fields: [cameraId], references: [id])
+  event          CameraEvent?    @relation(fields: [eventId], references: [id])
+  recordingClips RecordingClip[]
+
+  @@map("camera_incidents")
+}
+
+// ── CCTV Recording & Playback Models (Phase 4) ─────────────────
+
+model CameraRecording {
+  id              String    @id @default(uuid()) @db.Uuid
+  cameraId        String    @map("camera_id") @db.Uuid
+  streamPath      String    @map("stream_path") @db.VarChar(128)
+  startTime       DateTime  @map("start_time")
+  endTime         DateTime  @map("end_time")
+  durationSeconds Float     @default(0) @map("duration_seconds")
+  filePath        String    @map("file_path") @db.Text
+  fileSizeBytes   BigInt    @default(0) @map("file_size_bytes")
+  format          String    @default("fmp4") @db.VarChar(16)
+  hasIncident     Boolean   @default(false) @map("has_incident")
+  incidentCount   Int       @default(0) @map("incident_count")
+  legalHold       Boolean   @default(false) @map("legal_hold")
+  isArchived      Boolean   @default(false) @map("is_archived")
+  retentionUntil  DateTime? @map("retention_until")
+  storageType     String    @default("local") @map("storage_type") @db.VarChar(32)
+  storageNode     String?   @map("storage_node") @db.VarChar(64)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  camera          Camera    @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([cameraId, startTime(sort: Desc)])
+  @@index([cameraId, endTime(sort: Desc)])
+  @@index([legalHold])
+  @@map("camera_recordings")
+}
+
+model RecordingClip {
+  id                String          @id @default(uuid()) @db.Uuid
+  cameraId          String          @map("camera_id") @db.Uuid
+  incidentId        String?         @map("incident_id") @db.Uuid
+  title             String          @db.VarChar(256)
+  description       String?         @db.Text
+  startTime         DateTime        @map("start_time")
+  endTime           DateTime        @map("end_time")
+  durationSeconds   Float           @map("duration_seconds")
+  filePath          String?         @map("file_path") @db.Text
+  fileSizeBytes     BigInt?         @map("file_size_bytes")
+  format            String          @default("mp4") @db.VarChar(16)
+  status            String          @default("ready") @db.VarChar(32) // pending, processing, ready, failed
+  hasPreBuffer      Boolean         @default(true) @map("has_pre_buffer")
+  preBufferSeconds  Int             @default(30) @map("pre_buffer_seconds")
+  postBufferSeconds Int             @default(60) @map("post_buffer_seconds")
+  legalHold         Boolean         @default(false) @map("legal_hold")
+  downloadUrl       String?         @map("download_url") @db.Text
+  exportedBy        String?         @map("exported_by") @db.VarChar(128)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  camera            Camera          @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  incident          CameraIncident? @relation(fields: [incidentId], references: [id])
+
+  @@index([cameraId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("recording_clips")
+}

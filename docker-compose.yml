@@ -1,0 +1,552 @@
+services:
+  # ── Infrastructure ──────────────────────────────────────────────
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: cctv-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-image_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-image_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-image_db}
+    ports:
+      # Localhost-only — nothing outside the docker network needs direct DB access;
+      # app containers reach it via the internal "postgres" hostname regardless.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-image_user} -d ${POSTGRES_DB:-image_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cctv-redis
+    command: redis-server --appendonly yes
+    ports:
+      # Localhost-only — Redis reached via internal "redis" hostname
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: cctv-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      # Localhost-only — inactive storage provider (SeaweedFS is default)
+      - "127.0.0.1:9500:9000"
+      - "127.0.0.1:9501:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: cctv-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin} &&
+      mc mb local/${MINIO_BUCKET:-image-service} --ignore-existing
+      "
+    networks:
+      - cctv-network
+
+  # ── Media Plane (MediaMTX — RTSP/WebRTC/HLS) ────────────────────
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest-ffmpeg
+    container_name: cctv-mediamtx
+    ports:
+      # Localhost bindings for dev stream preview and control
+      - "127.0.0.1:8554:8554"
+      - "127.0.0.1:8888:8888"
+      - "127.0.0.1:8889:8889"
+      - "127.0.0.1:8189:8189/udp"
+      - "127.0.0.1:9997:9997"
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - ./mediamtx/recordings:/recordings
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── SeaweedFS (S3-compatible distributed storage) ───────────────
+
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: cctv-seaweedfs-master
+    command: master -ip=seaweedfs-master -ip.bind=0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9333/dir/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: cctv-seaweedfs-volume
+    command: volume -mserver=seaweedfs-master:9333 -ip.bind=0.0.0.0 -port=8080 -max=300
+    volumes:
+      - seaweedfs-data:/data
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: cctv-seaweedfs-filer
+    command: filer -master=seaweedfs-master:9333 -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    volumes:
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    ports:
+      # Localhost-only — S3 API backend
+      - "127.0.0.1:8333:8333"
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  seaweedfs-init:
+    image: minio/mc:latest
+    container_name: cctv-seaweedfs-init
+    depends_on:
+      seaweedfs-filer:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set seaweed http://seaweedfs-filer:8333 ${SEAWEEDFS_ACCESS_KEY:-seaweedadmin} ${SEAWEEDFS_SECRET_KEY:-seaweedadmin} &&
+      mc mb seaweed/${SEAWEEDFS_BUCKET:-image-service} --ignore-existing
+      "
+    networks:
+      - cctv-network
+
+  # ── SMB Server (simulated camera SMB share) ────────────────────
+
+  smb-server:
+    profiles: ["factory"]
+    image: dperson/samba:latest
+    container_name: cctv-smb-server
+    environment:
+      - SHARE=images;/share;yes;no;no;camera
+      - USER=camera;smbpass
+      - WORKGROUP=WORKGROUP
+      - GLOBAL=ntlm auth = yes
+    ports:
+      - "127.0.0.1:9445:445"
+    volumes:
+      - ./mock_smb_shares:/share
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  tiff-generator:
+    profiles: ["factory"]
+    image: python:3.12-slim
+    container_name: cctv-tiff-generator
+    depends_on:
+      - smb-server
+    volumes:
+      - ./mock_smb_shares:/share
+      - ./image-processing-worker/scripts:/scripts:ro
+    entrypoint: >
+      /bin/sh -c "
+      pip install Pillow --quiet &&
+      python /scripts/generate_test_tiff.py --output-dir /share
+      "
+    networks:
+      - cctv-network
+
+  # ── Image API ──────────────────────────────────────────────────
+
+  image-api-migrate:
+    image: cctv-api:latest
+    build:
+      context: ./image-api
+      dockerfile: Dockerfile
+    container_name: cctv-api-migrate
+    entrypoint: ["/app/docker-entrypoint.sh", "migrate"]
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-image_user}:${POSTGRES_PASSWORD:-image_pass}@postgres:5432/${POSTGRES_DB:-image_db}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key-32chars!!}
+      SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
+      LOG_LEVEL: info
+      ALLOW_DATA_LOSS: ${ALLOW_DATA_LOSS:-false}
+      RUN_SEED: ${RUN_SEED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      LINE_ACCESS_TOKEN: ${LINE_ACCESS_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cctv-network
+
+  image-api:
+    image: cctv-api:latest
+    build:
+      context: ./image-api
+      dockerfile: Dockerfile
+    container_name: cctv-api
+    ports:
+      # Localhost-only — the web app reaches this via nginx's internal proxy to the
+      # "image-api" hostname (see web-app/nginx.conf), never the published host port.
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - local-storage-data:/data/images
+      - incident-attachments-data:/app/incident-attachments
+      - backup-data:/app/backups
+      - ./host-storage:/mnt/host-storage
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-image_user}:${POSTGRES_PASSWORD:-image_pass}@postgres:5432/${POSTGRES_DB:-image_db}?connection_limit=50&pool_timeout=30
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-image-service}
+      MINIO_USE_SSL: "false"
+      LOCAL_STORAGE_PATH: /data/images
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key-32chars!!}
+      SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
+      LOG_LEVEL: info
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      LINE_ACCESS_TOKEN: ${LINE_ACCESS_TOKEN:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+    depends_on:
+      image-api-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Image Sync Worker (SMB scanner + BullMQ producer) ──────────
+
+  image-sync-worker:
+    profiles: ["factory"]
+    build:
+      context: ./image-sync-worker
+      dockerfile: Dockerfile
+    container_name: cctv-sync-worker
+    environment:
+      NODE_OPTIONS: --openssl-legacy-provider
+      NODE_ENV: production
+      LOG_LEVEL: info
+      API_BASE_URL: http://image-api:3001
+      SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      POLL_INTERVAL_MS: 15000
+      POLL_CONCURRENCY: 5
+      CHECKSUM_ALGORITHM: md5
+      PROCESSED_TTL_DAYS: 7
+      RETRY_MAX_RETRIES: 3
+      RETRY_INITIAL_DELAY_MS: 1000
+      RETRY_MAX_DELAY_MS: 30000
+      HEALTH_PORT: 9100
+    depends_on:
+      redis:
+        condition: service_started
+      image-api:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Kafka (Event Streaming for ERP Integration) ─────────────────
+
+  zookeeper:
+    profiles: ["factory"]
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: cctv-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  kafka:
+    profiles: ["factory"]
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: cctv-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
+    ports:
+      - "127.0.0.1:9093:9093"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Consumer Stubs (ERP Integration) ────────────────────────────
+
+  historian-consumer:
+    profiles: ["factory"]
+    image: python:3.12-slim
+    container_name: cctv-historian-consumer
+    volumes:
+      - ./consumer-stubs:/stubs:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: sh -c "pip install aiokafka --quiet && python /stubs/historian_consumer.py"
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  production-consumer:
+    profiles: ["factory"]
+    image: python:3.12-slim
+    container_name: cctv-production-consumer
+    volumes:
+      - ./consumer-stubs:/stubs:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: sh -c "pip install aiokafka --quiet && python /stubs/production_consumer.py"
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Image Processing Worker (TIFF→PNG converter + MinIO) ───────
+
+  image-processing-worker:
+    profiles: ["factory"]
+    build:
+      context: ./image-processing-worker
+      dockerfile: Dockerfile
+    container_name: cctv-processing-worker
+    volumes:
+      - ./mock_smb_shares:/mnt/smb/image-smb-server/images
+      - local-storage-data:/data/images
+      - ./host-storage:/mnt/host-storage
+    environment:
+      WORKER_ID: processing-1
+      LOG_LEVEL: INFO
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      API_BASE_URL: http://image-api:3001
+      API_SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-image-service}
+      MINIO_USE_SSL: "false"
+      SMB_MOUNT_PATH: /mnt/smb
+      PROCESSING_CONCURRENCY: 4
+      PNG_COMPRESSION_LEVEL: 6
+      THUMBNAIL_SIZE: 512
+      TIFF_RESOLUTION_DPI: 300
+      MAX_RETRIES: 3
+      RETRY_DELAY_SECONDS: 5
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_IMAGE_PROCESSED: image.processed
+      KAFKA_CLIENT_ID: image-processing-worker
+      HEALTH_PORT: 9200
+    depends_on:
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      image-api:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Web App (React Frontend) ────────────────────────────────────
+
+  web-app:
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile
+    container_name: cctv-web-app
+    ports:
+      # Localhost-only in Dev to avoid exposing ports to the entire LAN
+      - "127.0.0.1:${WEB_HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${WEB_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - image-api
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Observability (Prometheus + Grafana + Loki) ─────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cctv-prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cctv-grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-image-renderer
+      GF_RENDERING_SERVER_URL: http://grafana-renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_RENDERING_RENDERER_TOKEN: ${GF_RENDERER_TOKEN:-changeme-renderer-token}
+    depends_on:
+      - prometheus
+      - loki
+      - grafana-renderer
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  grafana-renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: cctv-grafana-renderer
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      ENABLE_METRICS: "true"
+      AUTH_TOKEN: ${GF_RENDERER_TOKEN:-changeme-renderer-token}
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: cctv-loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - cctv-network
+
+  # ── Cloudflare Tunnel (Disabled by default in Dev) ──────────────
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    container_name: cctv-cloudflared
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - web-app
+    networks:
+      - cctv-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  local-storage-data:
+  seaweedfs-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  incident-attachments-data:
+  backup-data:
+
+networks:
+  cctv-network:
+    driver: bridge
