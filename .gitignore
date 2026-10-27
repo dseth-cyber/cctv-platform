@@ -37,3 +37,7 @@ camera-*.json
 # Audit and simulation directory
 .audit-sim/
 
+# Video recordings & clips storage (exclude source code modules)
+/recordings/
+/image-api/recordings/
+

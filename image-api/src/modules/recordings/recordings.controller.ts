@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fs from 'node:fs';
 import { RecordingsService } from './recordings.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -116,6 +117,24 @@ export async function getPlaybackStreamHandler(request: FastifyRequest, reply: F
   });
 }
 
+export async function downloadClipHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { filename } = request.params as { filename: string };
+  try {
+    const clipInfo = RecordingsService.getClipFilePath(filename);
+    if (!clipInfo.exists) {
+      return reply.status(404).send({ message: 'Clip file not found' });
+    }
+    const stat = fs.statSync(clipInfo.fullPath);
+    reply.header('Content-Type', 'video/mp4');
+    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(clipInfo.filename)}"`);
+    reply.header('Content-Length', stat.size);
+    const stream = fs.createReadStream(clipInfo.fullPath);
+    return reply.send(stream);
+  } catch (err: any) {
+    return reply.status(400).send({ message: err?.message || 'Invalid filename' });
+  }
+}
+
 export async function recordingsRoutes(app: FastifyInstance) {
   app.get(
     '/timeline',
@@ -129,13 +148,18 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.post(
     '/clips',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
     exportClipHandler,
   );
   app.get(
     '/clips',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     getClipsHandler,
+  );
+  app.get(
+    '/clips/download/:filename',
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    downloadClipHandler,
   );
   app.patch(
     '/segments/:id/legal-hold',
