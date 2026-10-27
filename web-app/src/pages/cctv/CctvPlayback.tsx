@@ -36,6 +36,8 @@ import {
   Database,
   RefreshCw,
 } from 'lucide-react';
+import { SecurityWatermark } from '@/components/cctv/SecurityWatermark';
+
 
 interface ContinuousBlock {
   startTime: string;
@@ -454,6 +456,9 @@ export const CctvPlayback: React.FC = () => {
       <div className="flex-1 p-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto">
         {/* Video Player Box & Status Viewport */}
         <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl aspect-video max-h-[540px] flex items-center justify-center group">
+          {/* Dynamic Anti-Screen-Capture Watermark Overlay [ENH-04] */}
+          <SecurityWatermark />
+
           {/* Video Placeholder / Canvas simulation */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-950/80 to-slate-950 flex items-center justify-center">
             {currentStatus.isRecorded ? (

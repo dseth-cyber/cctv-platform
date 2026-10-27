@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { SecurityWatermark } from './SecurityWatermark';
+
 
 interface WhepPlayerProps {
   streamUrl: string; // e.g. /mediamtx/webrtc/streamPath/whep or full URL
@@ -332,6 +334,9 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           className="w-full h-full object-contain bg-black pointer-events-none"
         />
       </div>
+
+      {/* Dynamic Anti-Screen-Capture Watermark Overlay [ENH-04] */}
+      <SecurityWatermark />
 
       {/* Top Overlay Badge */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
