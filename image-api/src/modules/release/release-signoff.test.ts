@@ -58,4 +58,17 @@ describe('Release Sign-off Persistence & Audit Log [AUDIT-HIGH-04 & AUDIT-HIGH-0
     expect(auditArg.description).toBeDefined(); // Not details
     expect(auditArg.metadata).toBeDefined();
   });
+
+  it('should list signoffs ordered by signedAt desc', async () => {
+    const mockFindMany = vi.fn().mockResolvedValue([
+      { id: '1', signedBy: 'Auditor A', signedAt: new Date() },
+    ]);
+    vi.mocked(getPrisma).mockReturnValue({
+      signoffRecord: { findMany: mockFindMany },
+    } as any);
+
+    const list = await listSignoffs();
+    expect(list.length).toBe(1);
+    expect(mockFindMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'desc' }, take: 50 });
+  });
 });

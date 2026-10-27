@@ -62,7 +62,7 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
     expect((result.chainOfCustody as any[])[0].sha256).toBe(result.sha256Hash);
 
     // Verify physical file was written to disk
-    const clipFilename = path.basename(result.downloadUrl);
+    const clipFilename = path.basename(result.downloadUrl!);
     const clipInfo = RecordingsService.getClipFilePath(clipFilename);
     expect(clipInfo.exists).toBe(true);
 
