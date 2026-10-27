@@ -66,3 +66,38 @@ export function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+
+export const BANGKOK_TIMEZONE = 'Asia/Bangkok';
+
+export function toBangkokDateAndTimeString(dateInput: string | Date | number): { date: string; time: string; secondsOfDay: number } {
+  const d = typeof dateInput === 'string' || typeof dateInput === 'number' ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) {
+    return { date: '', time: '', secondsOfDay: 0 };
+  }
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BANGKOK_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(d);
+  const partMap: Record<string, string> = {};
+  for (const p of parts) {
+    partMap[p.type] = p.value;
+  }
+  const date = `${partMap.year}-${partMap.month}-${partMap.day}`;
+  const h = parseInt(partMap.hour, 10) || 0;
+  const m = parseInt(partMap.minute, 10) || 0;
+  const s = parseInt(partMap.second, 10) || 0;
+  const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  const secondsOfDay = h * 3600 + m * 60 + s;
+  return { date, time, secondsOfDay };
+}
+
+export function isoToBangkokDaySeconds(isoStr: string): number {
+  return toBangkokDateAndTimeString(isoStr).secondsOfDay;
+}

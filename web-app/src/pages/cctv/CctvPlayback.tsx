@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
+import { toBangkokDateAndTimeString, isoToBangkokDaySeconds } from '@/utils/dateUtils';
 import {
   Play,
   Pause,
@@ -81,7 +82,7 @@ export const CctvPlayback: React.FC = () => {
 
   // URL parameters or defaults
   const initialCameraId = searchParams.get('cameraId') || '';
-  const initialDate = searchParams.get('date') || new Date().toISOString().slice(0, 10);
+  const initialDate = searchParams.get('date') || toBangkokDateAndTimeString(new Date()).date;
   const initialTime = searchParams.get('time') || '';
 
   const [selectedCameraId, setSelectedCameraId] = useState<string>(initialCameraId);
@@ -184,10 +185,9 @@ export const CctvPlayback: React.FC = () => {
     return `${h}:${m}:${second}`;
   };
 
-  // Convert ISO string to seconds from start of target day
+  // Convert ISO string to seconds from start of target day (Asia/Bangkok timezone)
   const isoToDaySeconds = useCallback((isoStr: string) => {
-    const d = new Date(isoStr);
-    return d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds();
+    return isoToBangkokDaySeconds(isoStr);
   }, []);
 
   // Check if current playhead is in recorded block or in a gap
@@ -387,6 +387,10 @@ export const CctvPlayback: React.FC = () => {
               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 Phase 4: Direct fMP4 Remux
               </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1" title="Timezone display enforced to Asia/Bangkok (UTC+7)">
+                <Clock size={10} />
+                <span>Asia/Bangkok (UTC+7)</span>
+              </span>
             </div>
             <p className="text-xs text-slate-400">
               ระบบตรวจสอบวิดีโอย้อนหลัง 24 ชั่วโมง แยกบันทึกจากโหนดมีเดียแบบ Pass-through ไม่กิน CPU API กลาง
@@ -425,9 +429,9 @@ export const CctvPlayback: React.FC = () => {
 
           {/* Quick Date Jump */}
           <button
-            onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+            onClick={() => setSelectedDate(toBangkokDateAndTimeString(new Date()).date)}
             className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition-all ${
-              selectedDate === new Date().toISOString().slice(0, 10)
+              selectedDate === toBangkokDateAndTimeString(new Date()).date
                 ? 'bg-cyan-500 text-slate-950 font-bold'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}

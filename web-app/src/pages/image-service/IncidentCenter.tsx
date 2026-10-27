@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { hasPermission } from '@/App'
 import { imageServiceApi } from '@/services/imageServiceApi'
 import { TableSkeleton, ExportButton, SearchableSelect, Modal } from '@/components/ui'
-import { formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime, toBangkokDateAndTimeString } from '@/utils/dateUtils'
 import { getLocalizedValue } from '@/utils/textUtils'
 import {
   ClipboardList, Search, Wrench,
@@ -880,14 +880,19 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                 {probeLoading ? 'Testing Socket...' : 'Probe Socket (554)'}
               </button>
 
-              <Link
-                to={`/image-service/playback?cameraId=${incident.cameraId}&date=${new Date(incident.openedAt).toISOString().slice(0, 10)}&time=${new Date(incident.openedAt).toISOString().slice(11, 19)}`}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 flex items-center gap-1.5 transition-colors"
-                title="เปิดดูวิดีโอย้อนหลัง 24 ชั่วโมง ณ วินาทีที่เกิดเหตุ"
-              >
-                <Film size={13} />
-                <span>Jump to Playback</span>
-              </Link>
+              {(() => {
+                const bkk = toBangkokDateAndTimeString(incident.openedAt);
+                return (
+                  <Link
+                    to={`/image-service/playback?cameraId=${incident.cameraId}&date=${bkk.date}&time=${bkk.time}`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 flex items-center gap-1.5 transition-colors"
+                    title="เปิดดูวิดีโอย้อนหลัง 24 ชั่วโมง ณ วินาทีที่เกิดเหตุ (เวลาประเทศไทย Asia/Bangkok)"
+                  >
+                    <Film size={13} />
+                    <span>Jump to Playback</span>
+                  </Link>
+                );
+              })()}
             </div>
 
             <div className="flex items-center gap-2 relative">
