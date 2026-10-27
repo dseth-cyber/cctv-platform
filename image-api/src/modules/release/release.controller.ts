@@ -34,7 +34,7 @@ export async function releaseRoutes(app: FastifyInstance): Promise<void> {
     '/signoffs',
     { preHandler: [app.authenticate] },
     async (_request: FastifyRequest, reply: FastifyReply) => {
-      const records = listSignoffs();
+      const records = await listSignoffs();
       return reply.status(200).send(records);
     }
   );

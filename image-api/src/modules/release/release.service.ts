@@ -255,9 +255,26 @@ export async function recordSignoff(
   notes: string,
   checklistPassed: boolean
 ): Promise<ReleaseSignoffRecord> {
+  const prisma = getPrisma();
+  let dbRecord: any = null;
+
+  try {
+    dbRecord = await prisma.signoffRecord.create({
+      data: {
+        phase: scope,
+        role: targetEnvironment,
+        signoffBy: signedBy || 'Administrator',
+        comment: notes,
+        metadata: { checklistPassed, targetEnvironment, scope },
+      },
+    });
+  } catch (err) {
+    logger.warn({ err }, 'Failed to write sign-off to signoffRecord database table, falling back to memory');
+  }
+
   const newRecord: ReleaseSignoffRecord = {
-    id: `signoff-${Date.now().toString(36)}`,
-    signedAt: new Date().toISOString(),
+    id: dbRecord?.id || `signoff-${Date.now().toString(36)}`,
+    signedAt: dbRecord?.signedAt ? dbRecord.signedAt.toISOString() : new Date().toISOString(),
     signedBy: signedBy || 'Administrator',
     targetEnvironment,
     scope,
@@ -268,25 +285,44 @@ export async function recordSignoff(
   signoffRecords.unshift(newRecord);
   logger.info({ record: newRecord }, 'Pilot & Release signoff recorded');
 
-  // Also log into AuditLog if available
+  // Also log into AuditLog with correct schema fields
   try {
-    const prisma = getPrisma();
-    await (prisma as any).auditLog?.create({
+    await prisma.auditLog.create({
       data: {
         action: 'RELEASE_SIGNOFF',
-        entityType: 'PILOT_RELEASE',
+        entity: 'PILOT_RELEASE',
         entityId: newRecord.id,
-        details: JSON.stringify(newRecord),
-        createdAt: new Date(),
+        description: `Pilot/Release sign-off recorded by ${newRecord.signedBy} for ${scope}`,
+        metadata: { checklistPassed, notes, targetEnvironment, scope },
       },
-    }).catch(() => null);
+    });
   } catch (err) {
-    // Ignore audit log error if model schema differs
+    logger.warn({ err }, 'Failed to write release sign-off audit log');
   }
 
   return newRecord;
 }
 
-export function listSignoffs(): ReleaseSignoffRecord[] {
+export async function listSignoffs(): Promise<ReleaseSignoffRecord[]> {
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.signoffRecord.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    if (rows && rows.length > 0) {
+      return rows.map((r: any) => ({
+        id: r.id,
+        signedAt: r.signedAt ? r.signedAt.toISOString() : r.createdAt.toISOString(),
+        signedBy: r.signoffBy,
+        targetEnvironment: r.role,
+        scope: r.phase,
+        checklistPassed: (r.metadata as any)?.checklistPassed ?? true,
+        notes: r.comment || '',
+      }));
+    }
+  } catch {
+    // fallback to in-memory cache
+  }
   return signoffRecords;
 }
