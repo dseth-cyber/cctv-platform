@@ -62,6 +62,17 @@ export const config = {
     hlsUrl: process.env.MEDIAMTX_HLS_URL ?? 'http://localhost:8888',
     webhookSecret: process.env.MEDIA_WEBHOOK_SECRET ?? 'cctv-media-webhook-secret-dev',
   },
+
+  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:5173',
+
+  cctv: {
+    maxConcurrentExports: parseInt(process.env.MAX_CONCURRENT_EXPORTS ?? '2', 10),
+    diskWarningThresholdPct: parseInt(process.env.DISK_WARNING_THRESHOLD_PCT ?? '85', 10),
+    diskCriticalThresholdPct: parseInt(process.env.DISK_CRITICAL_THRESHOLD_PCT ?? '92', 10),
+    turnServerUrl: process.env.TURN_SERVER_URL ?? 'turn.cctv-local.lc.co.th:3478',
+    turnSecret: process.env.TURN_SECRET ?? 'cctv-secure-turn-key-prod-default',
+    seedSyntheticRecordings: process.env.SEED_SYNTHETIC_RECORDINGS === 'true',
+  },
 } as const;
 
 // Fail closed rather than silently running with a guessable secret — this exact class

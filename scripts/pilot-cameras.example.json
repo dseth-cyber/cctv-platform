@@ -1,0 +1,112 @@
+[
+  {
+    "id": "cam-01",
+    "name": "Gate 1 (Main Entrance)",
+    "host": "192.168.10.101",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-02",
+    "name": "Gate 2 (Visitor Entry)",
+    "host": "192.168.10.102",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-03",
+    "name": "Perimeter Fence North",
+    "host": "192.168.10.103",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-04",
+    "name": "Perimeter Fence East",
+    "host": "192.168.10.104",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-05",
+    "name": "Perimeter Fence South",
+    "host": "192.168.10.105",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-06",
+    "name": "Perimeter Fence West",
+    "host": "192.168.10.106",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-07",
+    "name": "Server Room Door",
+    "host": "192.168.10.107",
+    "rtspPort": 554,
+    "httpPort": 8080,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-08",
+    "name": "Loading Dock A",
+    "host": "192.168.10.108",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-09",
+    "name": "Loading Dock B",
+    "host": "192.168.10.109",
+    "rtspPort": 554,
+    "httpPort": 80,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  },
+  {
+    "id": "cam-10",
+    "name": "Emergency Exit Corridor",
+    "host": "192.168.10.110",
+    "rtspPort": 554,
+    "httpPort": 8080,
+    "username": "admin",
+    "password": "Password123!",
+    "mainPath": "/Streaming/Channels/101",
+    "subPath": "/Streaming/Channels/102"
+  }
+]

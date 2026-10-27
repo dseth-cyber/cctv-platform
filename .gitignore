@@ -41,3 +41,6 @@ camera-*.json
 /recordings/
 /image-api/recordings/
 
+# Verification & test report outputs
+*-verification-report.json
+

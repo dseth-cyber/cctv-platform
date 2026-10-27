@@ -211,4 +211,5 @@ export class ExportConcurrencyQueue {
   }
 }
 
-export const defaultExportQueue = new ExportConcurrencyQueue(2);
+const envMaxExports = process.env.MAX_CONCURRENT_EXPORTS ? parseInt(process.env.MAX_CONCURRENT_EXPORTS, 10) : 2;
+export const defaultExportQueue = new ExportConcurrencyQueue(Number.isFinite(envMaxExports) && envMaxExports > 0 ? envMaxExports : 2);

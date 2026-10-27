@@ -237,9 +237,11 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
 }): Promise<DiskWatermarkResult> {
   const prisma = getPrisma();
   const dirPath = options?.directoryPath || process.env.RECORDINGS_DIR || path.resolve(process.cwd(), 'recordings');
-  const warnThreshold = options?.warningThresholdPercent ?? 85;
-  const critThreshold = options?.criticalThresholdPercent ?? 92;
-  const targetPercent = options?.targetRecoveryPercent ?? 85;
+  const envWarn = process.env.DISK_WARNING_THRESHOLD_PCT ? parseInt(process.env.DISK_WARNING_THRESHOLD_PCT, 10) : 85;
+  const envCrit = process.env.DISK_CRITICAL_THRESHOLD_PCT ? parseInt(process.env.DISK_CRITICAL_THRESHOLD_PCT, 10) : 92;
+  const warnThreshold = options?.warningThresholdPercent ?? (Number.isFinite(envWarn) ? envWarn : 85);
+  const critThreshold = options?.criticalThresholdPercent ?? (Number.isFinite(envCrit) ? envCrit : 92);
+  const targetPercent = options?.targetRecoveryPercent ?? warnThreshold;
 
   let diskInfo: StatfsInfo;
   if (options?.statfsProvider) {
