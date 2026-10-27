@@ -572,3 +572,279 @@ export function stopCameraHealthMonitor(): void {
     logger.info('Camera health monitor stopped');
   }
 }
+
+/**
+ * Real-time stream status handler (< 3s detection) triggered via MediaMTX HTTP webhook [ENH-01].
+ * Instantly transitions camera to offline / recovering / online without waiting for background cron,
+ * while preserving anti-flapping suppression and recovery grace periods.
+ */
+export async function handleStreamStatusEvent(
+  streamPath: string,
+  status: 'ready' | 'not_ready'
+): Promise<{ success: boolean; cameraId?: string; status: string; message: string }> {
+  const prisma = getPrisma();
+  const cleanPath = (streamPath || '').replace(/^\/+/, '');
+  const basePath = cleanPath.replace(/_sub$/, '');
+
+  // 1. If dev simulated stream without a DB camera, acknowledge
+  if (cleanPath.startsWith('sim/')) {
+    logger.debug({ streamPath: cleanPath, status }, 'MediaMTX simulated stream event acknowledged');
+    return {
+      success: true,
+      status: status === 'ready' ? 'online' : 'offline',
+      message: `Simulated dev stream "${cleanPath}" acknowledged as ${status}`,
+    };
+  }
+
+  // 2. Resolve camera by streamPath or id
+  let camera = await prisma.camera.findFirst({
+    where: {
+      OR: [
+        { streamPath: cleanPath },
+        { streamPath: basePath },
+        { id: cleanPath.replace(/^camera_/, '').replace(/_sub$/, '') },
+      ],
+    },
+  });
+
+  if (!camera) {
+    // Fallback scan: check synthetic path camera_${camera.id.replace(/-/g, '').substring(0, 12)}
+    const allCams = await prisma.camera.findMany({
+      where: { enabled: true },
+      select: { id: true, name: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true },
+    });
+    for (const c of allCams) {
+      const synthetic = `camera_${c.id.replace(/-/g, '').substring(0, 12)}`;
+      if (basePath === synthetic || cleanPath === synthetic || c.name === cleanPath || c.name === basePath) {
+        camera = c as any;
+        break;
+      }
+    }
+  }
+
+  if (!camera) {
+    logger.warn({ streamPath: cleanPath, status }, 'Webhook received for unmapped camera stream path');
+    return {
+      success: false,
+      status: 'not_found',
+      message: `No active camera mapped to stream path "${cleanPath}"`,
+    };
+  }
+
+  const configs = await getAllConfigs();
+  const autoIncidentEnabled = configs.camera_auto_incident_enabled?.value === true;
+  const autoResolveEnabled = configs.camera_auto_resolve_enabled?.value === true;
+  const recoveryGraceMs = Number(configs.camera_recovery_grace_minutes?.value ?? 1) * 60 * 1000;
+  const prev = camera.operationalStatus;
+
+  // Stream went down (not_ready)
+  if (status === 'not_ready') {
+    if (camera.status === 'maintenance') {
+      return { success: true, cameraId: camera.id, status: 'maintenance', message: 'Camera is in maintenance mode' };
+    }
+
+    await prisma.camera.update({
+      where: { id: camera.id },
+      data: { operationalStatus: 'offline', operationalSince: new Date() },
+    });
+
+    const isFlapping = checkAndRecordFlap(camera.id);
+    if (isFlapping) {
+      logger.warn({ camera: camera.name, cameraId: camera.id }, 'Camera connection flapping via webhook — alert throttled');
+      await prisma.cameraEvent.create({
+        data: {
+          cameraId: camera.id,
+          eventType: 'error',
+          source: 'webhook',
+          message: `Camera "${camera.name}" connection is flapping (rapid stream drops). Webhook alerts throttled.`,
+          metadata: { isFlapping: true, streamPath: cleanPath },
+        },
+      });
+      return {
+        success: true,
+        cameraId: camera.id,
+        status: 'flapping_throttled',
+        message: `Camera ${camera.name} is offline (flapping throttled)`,
+      };
+    }
+
+    await prisma.cameraEvent.create({
+      data: {
+        cameraId: camera.id,
+        eventType: 'offline',
+        source: 'webhook',
+        message: `Real-time stream drop detected for camera "${camera.name}" (stream: ${cleanPath})`,
+        metadata: { streamPath: cleanPath, trigger: 'runOnNotReady' },
+      },
+    });
+
+    const recentAlert = await prisma.alert.findFirst({
+      where: {
+        alertType: 'camera_offline',
+        source: camera.id,
+        resolvedAt: null,
+        createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+      },
+    });
+
+    if (!recentAlert) {
+      await createAlert({
+        alertType: 'camera_offline',
+        severity: 'critical',
+        source: camera.id,
+        title: `Camera offline: ${camera.name}`,
+        message: `Camera "${camera.name}" stream disconnected instantly (< 3s detection). Stream: ${cleanPath}.`,
+        details: { cameraId: camera.id, cameraName: camera.name, streamPath: cleanPath, detectionSource: 'realtime_webhook' },
+      });
+    }
+
+    if (autoIncidentEnabled) {
+      const openIncident = await incidentService.getOpenIncidentForCamera(camera.id);
+      if (!openIncident) {
+        await incidentService.createIncident({
+          cameraId: camera.id,
+          fromStatus: camera.status,
+          toStatus: 'error',
+          reason: 'rtsp_stream_dropped',
+          rootCause: 'rtsp_stream',
+          description: `Real-time webhook: MediaMTX stream became unready for ${cleanPath}`,
+          priority: 'medium',
+          impact: 'none',
+          openedBy: 'system',
+          detectionSource: 'realtime_webhook',
+          rootCauseConfidence: 'high',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      cameraId: camera.id,
+      status: 'offline',
+      message: `Camera ${camera.name} marked offline in real-time`,
+    };
+  }
+
+  // Stream is up (ready)
+  if (status === 'ready') {
+    if (prev === 'offline') {
+      await prisma.camera.update({
+        where: { id: camera.id },
+        data: { operationalStatus: 'recovering', operationalSince: new Date(), lastPolledAt: new Date() },
+      });
+
+      await prisma.cameraEvent.create({
+        data: {
+          cameraId: camera.id,
+          eventType: 'recovering',
+          source: 'webhook',
+          message: `Camera "${camera.name}" stream resumed — entered recovery grace period`,
+        },
+      });
+
+      return {
+        success: true,
+        cameraId: camera.id,
+        status: 'recovering',
+        message: `Camera ${camera.name} stream active, entered recovery grace period`,
+      };
+    }
+
+    if (prev === 'recovering') {
+      const recoveringSince = camera.operationalSince ? new Date(camera.operationalSince).getTime() : 0;
+      if (Date.now() - recoveringSince < recoveryGraceMs) {
+        return {
+          success: true,
+          cameraId: camera.id,
+          status: 'recovering',
+          message: `Camera ${camera.name} stream active, within grace period`,
+        };
+      }
+
+      await prisma.camera.update({
+        where: { id: camera.id },
+        data: { operationalStatus: 'online', operationalSince: new Date(), lastPolledAt: new Date() },
+      });
+
+      await prisma.cameraEvent.create({
+        data: {
+          cameraId: camera.id,
+          eventType: 'online',
+          source: 'webhook',
+          message: `Camera "${camera.name}" confirmed back online via real-time stream`,
+        },
+      });
+
+      const openAlert = await prisma.alert.findFirst({
+        where: { alertType: 'camera_offline', source: camera.id, resolvedAt: null },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      let downtimeMs = 0;
+      if (openAlert) {
+        downtimeMs = Date.now() - new Date(openAlert.createdAt).getTime();
+        await prisma.alert.update({
+          where: { id: openAlert.id },
+          data: {
+            resolvedAt: new Date(),
+            resolvedBy: 'system',
+            details: {
+              ...(openAlert.details as any ?? {}),
+              resolvedReason: 'Stream reconnected in real-time',
+              downtimeMs,
+              downtimeFormatted: formatDuration(downtimeMs),
+            },
+          },
+        });
+      }
+
+      await createAlert({
+        alertType: 'camera_offline',
+        severity: 'info',
+        source: camera.id,
+        title: `Camera online: ${camera.name}`,
+        message: `Camera "${camera.name}" is back online via real-time webhook${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
+        details: { cameraId: camera.id, cameraName: camera.name, event: 'back_online', detectionSource: 'realtime_webhook' },
+      });
+
+      if (autoResolveEnabled) {
+        const openIncident = await incidentService.getOpenIncidentForCamera(camera.id);
+        if (openIncident && ['health_monitor', 'realtime_webhook'].includes(openIncident.detectionSource || '')) {
+          const openDurationMs = downtimeMs || (Date.now() - new Date(openIncident.openedAt).getTime());
+          await incidentService.resolveIncident(openIncident.id, {
+            resolution: `Camera reconnected via real-time webhook after ${formatDuration(openDurationMs)}.`,
+            closedBy: 'system',
+            autoResolved: true,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        cameraId: camera.id,
+        status: 'online',
+        message: `Camera ${camera.name} confirmed online`,
+      };
+    }
+
+    // Already online or unknown
+    await prisma.camera.update({
+      where: { id: camera.id },
+      data: { operationalStatus: 'online', lastPolledAt: new Date() },
+    });
+
+    return {
+      success: true,
+      cameraId: camera.id,
+      status: 'online',
+      message: `Camera ${camera.name} is streaming and online`,
+    };
+  }
+
+  return {
+    success: false,
+    status: 'invalid_status',
+    message: `Unknown status "${status}"`,
+  };
+}
+

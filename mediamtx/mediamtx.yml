@@ -40,13 +40,16 @@ hlsAllowOrigins: ["*"]
 
 # ── Recording Defaults ──────────────────────────────────────────
 # Direct fMP4 remux on media node with zero CPU transcoding
-record: yes
-recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S
-recordFormat: fmp4
-recordPartDuration: 1s
-recordSegmentDuration: 60s
-# Note: Physical recording retention is managed by API retention-sweeper service
-# to enforce Legal Hold compliance and prevent premature evidence deletion.
+pathDefaults:
+  record: yes
+  recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S
+  recordFormat: fmp4
+  recordPartDuration: 1s
+  recordSegmentDuration: 60s
+  # Event-Driven Real-time Camera Health Webhook (< 3s Detection) [ENH-01]
+  runOnReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
+  runOnNotReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"not_ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
+
 
 # ── Stream Paths ───────────────────────────────────────────────
 paths:
@@ -65,10 +68,6 @@ paths:
 
   # Default policy for dynamically added camera streams
   all_others:
-    # sourceOnDemand: pulls stream from RTSP source ONLY when someone watches
-    # This prevents idle network overload for 200+ channels.
-    sourceOnDemand: yes
-    sourceOnDemandStartTimeout: 10s
-    sourceOnDemandCloseAfter: 15s
     maxReaders: 50
     record: yes
+

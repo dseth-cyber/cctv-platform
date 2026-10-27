@@ -60,6 +60,7 @@ export const config = {
     rtspUrl: process.env.MEDIAMTX_RTSP_URL ?? 'rtsp://localhost:8554',
     webrtcUrl: process.env.MEDIAMTX_WEBRTC_URL ?? 'http://localhost:8889',
     hlsUrl: process.env.MEDIAMTX_HLS_URL ?? 'http://localhost:8888',
+    webhookSecret: process.env.MEDIA_WEBHOOK_SECRET ?? 'cctv-media-webhook-secret-dev',
   },
 } as const;
 
