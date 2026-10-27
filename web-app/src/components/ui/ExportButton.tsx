@@ -17,34 +17,41 @@ export interface ExportButtonProps {
 }
 
 function exportExcel(sections: ExportSection[], filename: string) {
-  import('xlsx').then((XLSX) => {
-    const wb = XLSX.utils.book_new()
-    const allRows: any[][] = []
+  import('exceljs').then(async (module) => {
+    const ExcelJS = (module.default || module) as any;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Report');
 
     for (let si = 0; si < sections.length; si++) {
-      const section = sections[si]
-      if (si > 0) allRows.push([])
-      allRows.push([section.title])
-      allRows.push(section.columns.map(c => c.label))
+      const section = sections[si];
+      if (si > 0) sheet.addRow([]);
+      sheet.addRow([section.title]);
+      sheet.addRow(section.columns.map(c => c.label));
       if (section.data.length > 0) {
         for (const row of section.data) {
-          allRows.push(section.columns.map(c => {
-            const v = row[c.key]
-            return v === null || v === undefined ? '' : v
-          }))
+          sheet.addRow(section.columns.map(c => {
+            const v = row[c.key];
+            return v === null || v === undefined ? '' : v;
+          }));
         }
       } else {
-        allRows.push(section.columns.map(() => '-'))
+        sheet.addRow(section.columns.map(() => '-'));
       }
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(allRows)
-    const maxCols = Math.max(...allRows.map(r => r.length))
-    ws['!cols'] = Array.from({ length: maxCols }, () => ({ wch: 25 }))
-    XLSX.utils.book_append_sheet(wb, ws, 'Report')
-    XLSX.writeFile(wb, `${filename}.xlsx`)
-  })
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 }
+
 
 async function loadFont(): Promise<string> {
   const res = await fetch('/fonts/Sarabun-Regular.ttf')
