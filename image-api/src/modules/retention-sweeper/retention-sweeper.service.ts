@@ -1,7 +1,9 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
+import { createAlert } from '../alerts/alerts.service.js';
 
 // `Image.retentionUntil` tracks exactly one thing: when this image's **raw** file
 // should be swept by the age-based sweeper below. Processed/thumbnail files have
@@ -204,3 +206,186 @@ export async function sweepExpiredRecordings(options?: {
 
   return { deleted, errors, skippedLegalHold };
 }
+
+export interface DiskWatermarkResult {
+  status: 'normal' | 'warning' | 'emergency_eviction_completed';
+  usedPercent: number;
+  totalBytes: number;
+  freeBytes: number;
+  evictedCount: number;
+  bytesFreed: number;
+  skippedLegalHold: number;
+}
+
+export interface StatfsInfo {
+  totalBytes: number;
+  freeBytes: number;
+  usedPercent: number;
+}
+
+/**
+ * Checks disk high-watermark for the CCTV recordings directory and triggers
+ * emergency FIFO eviction if disk utilization reaches critical threshold (>= 92%) [ENH-03].
+ * Eviction strictly skips legalHold: true recordings and stops once usage drops below 85%.
+ */
+export async function checkDiskHighWatermarkAndEvict(options?: {
+  directoryPath?: string;
+  warningThresholdPercent?: number;
+  criticalThresholdPercent?: number;
+  targetRecoveryPercent?: number;
+  statfsProvider?: (dirPath: string) => Promise<StatfsInfo> | StatfsInfo;
+}): Promise<DiskWatermarkResult> {
+  const prisma = getPrisma();
+  const dirPath = options?.directoryPath || process.env.RECORDINGS_DIR || path.resolve(process.cwd(), 'recordings');
+  const warnThreshold = options?.warningThresholdPercent ?? 85;
+  const critThreshold = options?.criticalThresholdPercent ?? 92;
+  const targetPercent = options?.targetRecoveryPercent ?? 85;
+
+  let diskInfo: StatfsInfo;
+  if (options?.statfsProvider) {
+    diskInfo = await options.statfsProvider(dirPath);
+  } else {
+    try {
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+      const stat = fs.statfsSync(dirPath);
+      const totalBytes = Number(stat.blocks) * Number(stat.bsize);
+      const freeBytes = Number(stat.bavail) * Number(stat.bsize);
+      const usedBytes = Math.max(0, totalBytes - freeBytes);
+      const usedPercent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+      diskInfo = { totalBytes, freeBytes, usedPercent };
+    } catch (err) {
+      logger.error({ err, dirPath }, 'Failed to read disk statfs');
+      return {
+        status: 'normal',
+        usedPercent: 0,
+        totalBytes: 0,
+        freeBytes: 0,
+        evictedCount: 0,
+        bytesFreed: 0,
+        skippedLegalHold: 0,
+      };
+    }
+  }
+
+  const { totalBytes, freeBytes, usedPercent } = diskInfo;
+
+  // 1. Normal state (< 85%)
+  if (usedPercent < warnThreshold) {
+    logger.debug({ usedPercent, warnThreshold }, 'Disk usage within normal operating range');
+    return {
+      status: 'normal',
+      usedPercent,
+      totalBytes,
+      freeBytes,
+      evictedCount: 0,
+      bytesFreed: 0,
+      skippedLegalHold: 0,
+    };
+  }
+
+  // 2. Warning state (85% <= usedPercent < 92%)
+  if (usedPercent >= warnThreshold && usedPercent < critThreshold) {
+    logger.warn({ usedPercent, warnThreshold, critThreshold }, 'Disk usage reached warning high-watermark threshold');
+    await createAlert({
+      alertType: 'disk_space',
+      severity: 'warning',
+      source: 'disk_watermark_monitor',
+      title: 'Recording Storage High-Watermark Warning',
+      message: `Recording disk usage reached ${usedPercent.toFixed(1)}% (Threshold: ${warnThreshold}%). Approaching critical capacity limit.`,
+      details: { usedPercent, warnThreshold, critThreshold, totalBytes, freeBytes, dirPath },
+      skipDedup: false,
+    });
+    return {
+      status: 'warning',
+      usedPercent,
+      totalBytes,
+      freeBytes,
+      evictedCount: 0,
+      bytesFreed: 0,
+      skippedLegalHold: 0,
+    };
+  }
+
+  // 3. Critical state (>= 92%): Trigger Emergency FIFO Eviction
+  logger.warn({ usedPercent, critThreshold }, 'Disk usage critical — initiating emergency FIFO eviction');
+  await createAlert({
+    alertType: 'disk_space',
+    severity: 'critical',
+    source: 'disk_watermark_monitor',
+    title: 'Emergency FIFO Eviction Triggered',
+    message: `Recording disk usage is critical at ${usedPercent.toFixed(1)}% (Threshold: ${critThreshold}%). Evicting oldest non-legal-hold recordings until usage < ${targetPercent}%.`,
+    details: { usedPercent, critThreshold, targetPercent, totalBytes, freeBytes, dirPath },
+    skipDedup: true,
+  });
+
+  let currentFree = freeBytes;
+  let currentUsedPercent = usedPercent;
+  let evictedCount = 0;
+  let bytesFreed = 0;
+
+  // Fetch oldest unarchived recordings that are NOT marked legalHold (FIFO order: oldest first)
+  const candidateRecordings = await prisma.cameraRecording.findMany({
+    where: {
+      legalHold: false,
+      isArchived: false,
+    },
+    orderBy: { startTime: 'asc' },
+    take: 500,
+  });
+
+  for (const rec of candidateRecordings) {
+    if (currentUsedPercent < targetPercent) {
+      break;
+    }
+
+    try {
+      if (rec.filePath && fs.existsSync(rec.filePath)) {
+        try {
+          fs.unlinkSync(rec.filePath);
+        } catch (unlinkErr) {
+          logger.warn({ unlinkErr, filePath: rec.filePath }, 'Could not unlink physical file during eviction');
+        }
+      }
+
+      await prisma.cameraRecording.update({
+        where: { id: rec.id },
+        data: { isArchived: true },
+      });
+
+      const size = Number(rec.fileSizeBytes || 0);
+      bytesFreed += size;
+      evictedCount++;
+      currentFree += size;
+      if (totalBytes > 0) {
+        currentUsedPercent = ((totalBytes - currentFree) / totalBytes) * 100;
+      }
+    } catch (err) {
+      logger.error({ err, recordingId: rec.id }, 'Failed to evict recording segment');
+    }
+  }
+
+  const skippedLegalHold = await prisma.cameraRecording.count({
+    where: {
+      legalHold: true,
+      isArchived: false,
+    },
+  });
+
+  logger.warn(
+    { evictedCount, bytesFreed, initialUsedPercent: usedPercent, finalUsedPercent: currentUsedPercent, skippedLegalHold },
+    'Emergency FIFO eviction completed'
+  );
+
+  return {
+    status: 'emergency_eviction_completed',
+    usedPercent: currentUsedPercent,
+    totalBytes,
+    freeBytes: currentFree,
+    evictedCount,
+    bytesFreed,
+    skippedLegalHold,
+  };
+}
+
