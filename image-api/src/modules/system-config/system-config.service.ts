@@ -56,7 +56,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   webhook_url: { value: '', description: 'Webhook URL to notify on events (image processed, camera offline)', valueType: 'string', category: 'general' },
   // Used to build clickable links in outbound notifications (currently: the incident
   // link in camera status-change Telegram/alert messages) — no trailing slash.
-  public_base_url: { value: 'https://images.lc.co.th', description: 'Public URL the system is reachable at, used to build links in notifications (e.g. Telegram)', valueType: 'string', category: 'general' },
+  public_base_url: { value: process.env.PUBLIC_BASE_URL || 'http://localhost:5173', description: 'Public URL the system is reachable at, used to build links in notifications (e.g. Telegram)', valueType: 'string', category: 'general' },
   webhook_secret: { value: '', description: 'Webhook secret for HMAC signature', valueType: 'string', category: 'general' },
 
   // General settings — managed via UI

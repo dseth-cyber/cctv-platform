@@ -11,9 +11,9 @@ import { probeCameraHealth } from './camera-probe.service.js';
 let cronTask: ScheduledTask | null = null;
 
 // Flapping detection: cameraId -> array of offline transition timestamps (ms)
-const cameraFlapHistory = new Map<string, number[]>();
+export const cameraFlapHistory = new Map<string, number[]>();
 
-function checkAndRecordFlap(cameraId: string, windowMs = 15 * 60 * 1000, maxFlaps = 3): boolean {
+export function checkAndRecordFlap(cameraId: string, windowMs = 15 * 60 * 1000, maxFlaps = 3): boolean {
   const now = Date.now();
   const history = (cameraFlapHistory.get(cameraId) || []).filter((t) => now - t <= windowMs);
   history.push(now);
@@ -24,7 +24,7 @@ function checkAndRecordFlap(cameraId: string, windowMs = 15 * 60 * 1000, maxFlap
 // Deterministic keyword lookup — not ML. "confidence" reflects how specific/unambiguous
 // the matched pattern is, not a statistical probability, so operators should treat it as
 // a suggestion to verify, not a conclusion.
-function suggestRootCause(message: string): { rootCause: string; confidence: string } | null {
+export function suggestRootCause(message: string): { rootCause: string; confidence: string } | null {
   const text = (message || '').toLowerCase();
   if (/enospc|disk full|no space left/.test(text)) return { rootCause: 'storage', confidence: 'high' };
   if (/etimedout|econnrefused|enetunreach|ehostunreach|network is unreachable|\btimeout\b/.test(text)) {
@@ -51,7 +51,7 @@ async function getRecentErrorMessage(cameraId: string): Promise<string | null> {
   return alert?.message ?? null;
 }
 
-function computeEscalatedPriority(offlineMs: number, highMin: number, criticalMin: number): string {
+export function computeEscalatedPriority(offlineMs: number, highMin: number, criticalMin: number): string {
   const offlineMin = offlineMs / 60000;
   if (offlineMin >= criticalMin) return 'critical';
   if (offlineMin >= highMin) return 'high';
