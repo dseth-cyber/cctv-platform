@@ -80,11 +80,11 @@ export default function StorageProvidersPage() {
 
   const testMutation = useMutation({
     mutationFn: (id: string) => imageServiceApi.testStorageProvider(id),
-    onSuccess: (data, id) => {
+    onSuccess: (data: any, id) => {
       setTestResults(prev => ({ ...prev, [id]: data }))
       setTestingId(null)
-      if (data.ok) toast.success(t('imageService.storageProviders.testSuccess'))
-      else toast.error(`${t('imageService.storageProviders.testFailed')}: ${data.error}`)
+      if (data?.ok) toast.success(t('imageService.storageProviders.testSuccess'))
+      else toast.error(`${t('imageService.storageProviders.testFailed')}: ${data?.error ?? ''}`)
     },
     onError: (err: any, id) => {
       setTestingId(null)

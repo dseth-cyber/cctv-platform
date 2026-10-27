@@ -1116,11 +1116,11 @@ export default function ImageServiceCameras() {
               <span className={`text-xs mr-1 font-medium ${themeConfig.text.primary}`}>
                 {t('imageService.cameras.selectedCount', { count: selectedIds.size })}
               </span>
-              <Button size="xs" onClick={() => setBulkCloneModal({ open: true })}>
+              <Button size="sm" onClick={() => setBulkCloneModal({ open: true })}>
                 <Copy size={12} className="mr-1" /> {t('imageService.cameras.bulkClone')}
               </Button>
               {canDelete && (
-                <Button size="xs" variant="danger" onClick={() => setBulkDeleteModal({ open: true })}>
+                <Button size="sm" variant="destructive" onClick={() => setBulkDeleteModal({ open: true })}>
                   <Trash2 size={12} className="mr-1" /> {t('imageService.cameras.bulkDelete')}
                 </Button>
               )}
@@ -2063,7 +2063,7 @@ export default function ImageServiceCameras() {
                     const selected = statusForm.status === opt.value;
                     return (
                       <button key={opt.value} type="button"
-                        onClick={() => setStatusForm(p => ({ ...p, status: opt.value }))}
+                        onClick={() => setStatusForm((p: any) => ({ ...p, status: opt.value }))}
                         className={`px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 border transition-all ${selected ? 'border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30' : 'border-white/10 hover:border-white/20 hover:bg-white/5'}`}>
                         <span className={`${opt.bg.split(' ').filter((c: string) => c.startsWith('text-')).join(' ')}`}>
                           <OptIcon size={14} />
@@ -2086,7 +2086,7 @@ export default function ImageServiceCameras() {
                     const selected = statusForm.priority === p.value;
                     return (
                       <button key={p.value} type="button"
-                        onClick={() => setStatusForm(prev => ({ ...prev, priority: p.value }))}
+                        onClick={() => setStatusForm((prev: any) => ({ ...prev, priority: p.value }))}
                         className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${p.color} ${selected ? 'ring-1 ring-white/30 opacity-100' : 'opacity-60 hover:opacity-90'}`}>
                         {t(`imageService.incidents.${p.labelKey}`)}
                         {selected && <CheckCircle size={10} className="inline ml-1" />}
@@ -2104,7 +2104,7 @@ export default function ImageServiceCameras() {
                     <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                       {t('imageService.incidents.reason')} <span className="text-red-400">*</span>
                     </label>
-                    <SearchableSelect value={statusForm.reason} onChange={v => setStatusForm(p => ({ ...p, reason: v }))}
+                    <SearchableSelect value={statusForm.reason} onChange={v => setStatusForm((p: any) => ({ ...p, reason: v }))}
                       placeholder={t('imageService.incidents.reason')}
                       options={(incidentOptions?.reasons || []).map((r: any) => ({
                         value: r.code, label: getLocalizedValue(r, i18n.language),
@@ -2118,7 +2118,7 @@ export default function ImageServiceCameras() {
                       {t('imageService.incidents.problemDesc')}{incidentStar('problemDesc')}
                     </label>
                     <textarea value={statusForm.problemDesc}
-                      onChange={e => setStatusForm(p => ({ ...p, problemDesc: e.target.value }))}
+                      onChange={e => setStatusForm((p: any) => ({ ...p, problemDesc: e.target.value }))}
                       rows={3}
                       className={`w-full px-3 py-2 rounded-md text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} resize-none`}
                       placeholder={t('imageService.incidents.problemDesc')} />
@@ -2130,7 +2130,7 @@ export default function ImageServiceCameras() {
                       {t('imageService.incidents.resolutionDesc')}
                     </label>
                     <textarea value={statusForm.resolutionDesc}
-                      onChange={e => setStatusForm(p => ({ ...p, resolutionDesc: e.target.value }))}
+                      onChange={e => setStatusForm((p: any) => ({ ...p, resolutionDesc: e.target.value }))}
                       rows={2}
                       className={`w-full px-3 py-2 rounded-md text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} resize-none`}
                       placeholder={t('imageService.incidents.resolutionDesc')} />
@@ -2249,7 +2249,7 @@ export default function ImageServiceCameras() {
                       </label>
                       <DateTimePicker
                         value={statusForm.estimatedFinish}
-                        onChange={v => setStatusForm(p => ({ ...p, estimatedFinish: v }))}
+                        onChange={v => setStatusForm((p: any) => ({ ...p, estimatedFinish: v }))}
                       />
                     </div>
                   )}
@@ -2264,7 +2264,7 @@ export default function ImageServiceCameras() {
                         <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                           <input type="radio" name="impact" value={opt.value}
                             checked={statusForm.impact === opt.value}
-                            onChange={() => setStatusForm(p => ({ ...p, impact: opt.value }))}
+                            onChange={() => setStatusForm((p: any) => ({ ...p, impact: opt.value }))}
                             className="accent-cyan-400" />
                           <span className={`text-sm ${themeConfig.text.primary}`}>
                             {t(`imageService.incidents.${opt.labelKey}`)}

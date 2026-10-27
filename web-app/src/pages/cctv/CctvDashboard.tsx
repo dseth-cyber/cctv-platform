@@ -382,7 +382,7 @@ export default function CctvDashboard() {
                 <p>No physical sites registered yet.</p>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => navigate('/image-service/sites')}
                   className="mt-3 text-xs gap-1.5"
                 >
@@ -682,9 +682,9 @@ export default function CctvDashboard() {
           <div className="space-y-4">
             <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl">
               <WhepPlayer
-                cameraId={previewCamera.id}
+                streamUrl={`/mediamtx/webrtc/${(previewCamera as any).streamPath || previewCamera.id}/whep`}
                 cameraName={previewCamera.name}
-                profile="main"
+                streamProfile="main"
                 autoPlay={true}
               />
             </div>

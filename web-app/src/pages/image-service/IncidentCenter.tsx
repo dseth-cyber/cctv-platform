@@ -166,7 +166,8 @@ function AttachmentImage({ filename, alt }: { filename: string; alt: string }) {
 }
 
 export default function IncidentCenter() {
-  const { t, i18n } = useTranslation()
+  const { t: rawT, i18n } = useTranslation()
+  const t = (k: string, ...args: any[]): string => (rawT as any)(k, ...args) as string
   const { themeConfig } = useTheme()
   const toast = useToast()
   const { user } = useAuth()
@@ -952,9 +953,9 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
           {showLiveStream && incident?.cameraId && (
             <div className="rounded-xl overflow-hidden bg-black border border-white/20 aspect-video shadow-2xl relative">
               <WhepPlayer
-                cameraId={incident.cameraId}
+                streamUrl={`/mediamtx/webrtc/${incident.camera?.streamPath || incident.cameraId}/whep`}
                 cameraName={incident.camera?.name || 'Camera'}
-                profile="main"
+                streamProfile="main"
                 autoPlay={true}
               />
             </div>

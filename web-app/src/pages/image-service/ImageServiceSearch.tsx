@@ -819,7 +819,7 @@ export default function ImageServiceSearch() {
                 {t('imageService.overview.totalImages')}
               </p>
               <p className="text-xl font-bold text-cyan-300">
-                <CountUpValue value={overview?.totalImages ?? data?.pagination?.total ?? 0} />
+                <CountUpValue value={overview?.totalImages ?? (data as any)?.pagination?.total ?? (data as any)?.total ?? 0} />
               </p>
             </div>
           </div>
@@ -1102,7 +1102,7 @@ export default function ImageServiceSearch() {
                 />
               </div>
               <span className={`ml-2 px-2 py-1 rounded bg-white/5 border border-white/10 ${themeConfig.text.secondary}`}>
-                {t('imageService.search.totalImages', 'พบทั้งหมด {{count}} ภาพ', { count: '' })} <CountUpValue value={totalItems} isLoading={isLoading} />
+                {t('imageService.search.totalImages', 'พบทั้งหมด {{count}} ภาพ', { count: 0 })} <CountUpValue value={totalItems} isLoading={isLoading} />
               </span>
             </div>
 
@@ -1501,12 +1501,11 @@ export default function ImageServiceSearch() {
               <p className={`text-sm font-medium ${bulkDeletePreview.count > 0 ? 'text-red-400' : themeConfig.text.primary}`}>
                 {bulkDeletePreview.cutoffDate 
                   ? t('imageService.search.bulkDeletePreview', {
-                      count: bulkDeletePreview.count.toLocaleString(),
+                      count: Number(bulkDeletePreview.count),
                       date: bulkDeletePreview.cutoffDate.split('T')[0],
                     })
-                  : t('imageService.search.bulkDeletePreviewAll', {
-                      count: bulkDeletePreview.count.toLocaleString(),
-                      defaultValue: `จะลบทั้งหมด ${bulkDeletePreview.count.toLocaleString()} รายการ`
+                  : t('imageService.search.bulkDeletePreviewAll', `จะลบทั้งหมด ${bulkDeletePreview.count.toLocaleString()} รายการ`, {
+                      count: Number(bulkDeletePreview.count),
                     })
                 }
               </p>

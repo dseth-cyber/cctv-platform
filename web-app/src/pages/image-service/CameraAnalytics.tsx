@@ -660,7 +660,7 @@ export default function CameraAnalytics() {
                 healthGrade === 'good' ? 'text-blue-400' :
                 healthGrade === 'warning' ? 'text-yellow-400' : 'text-red-400'
               }`}>
-                {t(`imageService.analytics.${healthGrade}`, healthGrade)}
+                {String(t(`imageService.analytics.${healthGrade}`, healthGrade))}
               </p>
               <p className="text-[10px] text-gray-400 mt-1.5 italic">
                 {t('imageService.analytics.healthTip', 'เกณฑ์คะแนน: >= 80 (ปกติ/ดี)')}

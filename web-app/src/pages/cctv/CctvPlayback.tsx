@@ -354,7 +354,7 @@ export const CctvPlayback: React.FC = () => {
     });
   };
 
-  const selectedCamera = cameras.find(c => c.id === selectedCameraId);
+  const selectedCamera = cameras.find((c: any) => c.id === selectedCameraId);
 
   // Jump to next/prev incident
   const handleJumpIncident = (direction: 'prev' | 'next') => {
@@ -404,7 +404,7 @@ export const CctvPlayback: React.FC = () => {
               onChange={(e) => setSelectedCameraId(e.target.value)}
               className="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer"
             >
-              {cameras.map((c) => (
+              {cameras.map((c: any) => (
                 <option key={c.id} value={c.id} className="bg-slate-900 text-white">
                   {c.name} {c.site?.name ? `(${c.site.name})` : ''} - CH{c.channelNumber || 1}
                 </option>

@@ -15,7 +15,7 @@ type NodeStatus = 'ok' | 'degraded' | 'down'
 
 interface PipelineNode {
   id: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: React.ComponentType<{ size?: number | string; className?: string }>
   labelKey: string
   status: NodeStatus
   metric: string

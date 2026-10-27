@@ -342,7 +342,7 @@ export default function ImageServiceProcessingLogs() {
             ) : bulkDeletePreview ? (
               <p className={`text-sm font-medium ${bulkDeletePreview.count > 0 ? 'text-red-400' : themeConfig.text.primary}`}>
                 {t('imageService.processingLogs.bulkDeletePreview', {
-                  count: bulkDeletePreview.count.toLocaleString(),
+                  count: Number(bulkDeletePreview.count),
                   date: bulkDeletePreview.cutoffDate.split('T')[0],
                 })}
               </p>

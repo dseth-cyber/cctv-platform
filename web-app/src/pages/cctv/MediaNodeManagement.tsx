@@ -216,7 +216,7 @@ export const MediaNodeManagement: React.FC = () => {
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           const c = event.candidate;
-          const candidateLine = `[${c.type.toUpperCase()}] ${c.protocol.toUpperCase()} ${c.address || c.ip}:${c.port} (Priority: ${c.priority})`;
+          const candidateLine = `[${(c.type || 'host').toUpperCase()}] ${(c.protocol || 'udp').toUpperCase()} ${c.address || (c as any).ip || '127.0.0.1'}:${c.port} (Priority: ${c.priority})`;
           collected.push(candidateLine);
           setIceCandidates([...collected]);
         } else {

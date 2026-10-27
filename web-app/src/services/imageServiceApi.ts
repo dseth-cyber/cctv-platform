@@ -85,7 +85,7 @@ export function createImageServiceApi(api: any) {
       api.post(`${BASE}/images/trash/delete-bulk`, { ids, password }).then((r: any) => r.data),
 
     // Cameras
-    getCameras: (params?: { status?: string; enabled?: boolean }) =>
+    getCameras: (params?: { status?: string; enabled?: boolean; limit?: number; page?: number }) =>
       api.get(`${BASE}/cameras`, { params }).then((r: any) => r.data),
 
     getCamera: (id: string) => api.get(`${BASE}/cameras/${id}`).then((r: any) => r.data),

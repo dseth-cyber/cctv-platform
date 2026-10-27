@@ -369,7 +369,7 @@ function VerificationCard() {
     const token = localStorage.getItem('accessToken')
     const base = '/image-service/api/v1'
     const newResults: typeof results = []
-    for (const ep of VERIFY_ENDPOINTS) {
+    for (const ep of (VERIFY_ENDPOINTS as any[])) {
       const start = Date.now()
       try {
         if (ep.method === 'POST') {
