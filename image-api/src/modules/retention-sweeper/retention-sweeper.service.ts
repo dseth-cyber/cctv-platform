@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
@@ -134,4 +135,72 @@ export async function sweepExpiredImages(): Promise<{ deleted: number; errors: n
   }
 
   return { deleted, errors };
+}
+
+/**
+ * Sweeps expired CCTV recording segments from disk while strictly respecting Legal Hold flags.
+ * Physical files are deleted and records are marked isArchived = true ONLY when legalHold = false.
+ */
+export async function sweepExpiredRecordings(options?: {
+  defaultRetentionDays?: number;
+}): Promise<{ deleted: number; errors: number; skippedLegalHold: number }> {
+  const prisma = getPrisma();
+  let deleted = 0;
+  let errors = 0;
+  let skippedLegalHold = 0;
+
+  const retentionDays = options?.defaultRetentionDays ?? 7;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+  const now = new Date();
+
+  try {
+    // Query expired recordings where legalHold is FALSE
+    const expiredRecordings = await prisma.cameraRecording.findMany({
+      where: {
+        legalHold: false,
+        isArchived: false,
+        OR: [
+          { retentionUntil: { lte: now } },
+          { createdAt: { lte: cutoffDate } },
+        ],
+      },
+      take: 500,
+    });
+
+    for (const rec of expiredRecordings) {
+      try {
+        if (rec.filePath && fs.existsSync(rec.filePath)) {
+          fs.unlinkSync(rec.filePath);
+        }
+        await prisma.cameraRecording.update({
+          where: { id: rec.id },
+          data: { isArchived: true },
+        });
+        deleted++;
+      } catch (err) {
+        logger.error({ err, recordingId: rec.id }, 'Failed to delete expired recording file');
+        errors++;
+      }
+    }
+
+    // Count how many expired recordings were preserved due to legalHold = true
+    skippedLegalHold = await prisma.cameraRecording.count({
+      where: {
+        legalHold: true,
+        OR: [
+          { retentionUntil: { lte: now } },
+          { createdAt: { lte: cutoffDate } },
+        ],
+      },
+    });
+
+    if (deleted > 0 || skippedLegalHold > 0) {
+      logger.info({ deleted, errors, skippedLegalHold }, 'Recording retention sweep completed');
+    }
+  } catch (err) {
+    logger.error({ err }, 'Recording retention sweep query failed');
+  }
+
+  return { deleted, errors, skippedLegalHold };
 }

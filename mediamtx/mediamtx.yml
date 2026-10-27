@@ -45,7 +45,8 @@ recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S
 recordFormat: fmp4
 recordPartDuration: 1s
 recordSegmentDuration: 60s
-recordDeleteAfter: 7d
+# Note: Physical recording retention is managed by API retention-sweeper service
+# to enforce Legal Hold compliance and prevent premature evidence deletion.
 
 # ── Stream Paths ───────────────────────────────────────────────
 paths:
