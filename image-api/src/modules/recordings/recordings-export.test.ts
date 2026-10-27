@@ -18,6 +18,12 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
         })),
+        update: vi.fn().mockImplementation(({ where, data }) => Promise.resolve({
+          id: where.id,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })),
       },
     } as any);
   });

@@ -65,6 +65,15 @@ export async function getClipsHandler(request: FastifyRequest, reply: FastifyRep
   return reply.status(200).send({ items: clips });
 }
 
+export async function getClipByIdHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const clip = await RecordingsService.getClipById(id);
+  if (!clip) {
+    return reply.status(404).send({ message: 'Clip not found' });
+  }
+  return reply.status(200).send(clip);
+}
+
 export async function toggleSegmentLegalHoldHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const { legalHold } = request.body as { legalHold: boolean };
@@ -157,10 +166,16 @@ export async function recordingsRoutes(app: FastifyInstance) {
     getClipsHandler,
   );
   app.get(
+    '/clips/:id',
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    getClipByIdHandler,
+  );
+  app.get(
     '/clips/download/:filename',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     downloadClipHandler,
   );
+
   app.patch(
     '/segments/:id/legal-hold',
     { preHandler: [app.authenticate, requirePermission('cameras:update')] },

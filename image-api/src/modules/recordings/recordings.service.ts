@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
+import { defaultExportQueue } from './export-queue.js';
 
 export interface TimelineContinuousBlock {
   startTime: string;
@@ -232,8 +232,11 @@ export class RecordingsService {
   /**
    * Exports an incident or operator-requested clip with pre/post buffer.
    * If pre-buffer is unavailable in the rolling buffer, marks hasPreBuffer = false.
+  /**
+   * Exports an incident or operator-requested clip with pre/post buffer via ExportConcurrencyQueue [ENH-02].
+   * Job advances QUEUED -> PROCESSING -> COMPLETED (or FAILED).
    */
-  static async exportClip(dto: ExportClipDto) {
+  static async exportClip(dto: ExportClipDto, options?: { asyncProcess?: boolean }) {
     const prisma = getPrisma();
     const preBufferSec = dto.preBufferSeconds ?? 30;
     const postBufferSec = dto.postBufferSeconds ?? 60;
@@ -264,61 +267,8 @@ export class RecordingsService {
     const fullDiskPath = path.join(clipsDir, clipFilename);
     const filePath = `/recordings/clips/${clipFilename}`;
 
-    // If segments exist physically, stitch/copy them; otherwise create verifiable valid fMP4 container
-    if (!fs.existsSync(fullDiskPath)) {
-      const segments = await prisma.cameraRecording.findMany({
-        where: {
-          cameraId: dto.cameraId,
-          startTime: { lte: bufferedEnd },
-          endTime: { gte: actualStartTime },
-        },
-        orderBy: { startTime: 'asc' },
-      });
-
-      let clipWritten = false;
-      for (const seg of segments) {
-        if (seg.filePath && fs.existsSync(seg.filePath)) {
-          try {
-            fs.copyFileSync(seg.filePath, fullDiskPath);
-            clipWritten = true;
-            break;
-          } catch {
-            // fallback to sample container
-          }
-        }
-      }
-
-      if (!clipWritten) {
-        const sampleHeader = Buffer.from([
-          0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, // ftyp
-          0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00, // isom
-          0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32, // isomiso2
-          0x6d, 0x70, 0x34, 0x31, 0x00, 0x00, 0x00, 0x08, // mp41 free
-          0x66, 0x72, 0x65, 0x65,
-        ]);
-        fs.writeFileSync(fullDiskPath, sampleHeader);
-      }
-    }
-
-    const fileBuffer = fs.readFileSync(fullDiskPath);
-    const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-    const fileStat = fs.statSync(fullDiskPath);
-    const fileSizeBytes = BigInt(fileStat.size);
-
-    const chainOfCustody = [
-      {
-        timestamp: new Date().toISOString(),
-        action: 'export',
-        performedBy: dto.exportedBy ?? 'operator',
-        sha256: sha256Hash,
-        fileSizeBytes: fileStat.size,
-        hasPreBuffer,
-        preBufferSeconds: hasPreBuffer ? preBufferSec : 0,
-        postBufferSeconds: postBufferSec,
-      },
-    ];
-
-    const clip = await prisma.recordingClip.create({
+    // 1. Create recording clip record initially in QUEUED status
+    const initialClip = await prisma.recordingClip.create({
       data: {
         cameraId: dto.cameraId,
         incidentId: dto.incidentId,
@@ -328,27 +278,68 @@ export class RecordingsService {
         endTime: bufferedEnd,
         durationSeconds,
         filePath,
-        fileSizeBytes,
+        fileSizeBytes: null,
         format: 'mp4',
-        status: 'ready',
+        status: 'QUEUED',
         hasPreBuffer,
         preBufferSeconds: hasPreBuffer ? preBufferSec : 0,
         postBufferSeconds: postBufferSec,
         legalHold: dto.legalHold ?? false,
-        sha256Hash,
-        chainOfCustody,
+        sha256Hash: null,
+        chainOfCustody: [],
         downloadUrl: `/api/v1/recordings/clips/download/${clipFilename}`,
         exportedBy: dto.exportedBy ?? 'operator',
       },
     });
 
-    logger.info({ clipId: clip.id, cameraId: dto.cameraId, hasPreBuffer, sha256Hash }, 'Exported recording event clip');
+    const exportJob = {
+      clipId: initialClip.id,
+      cameraId: dto.cameraId,
+      actualStartTime,
+      bufferedEnd,
+      durationSeconds,
+      hasPreBuffer,
+      preBufferSec,
+      postBufferSec,
+      fullDiskPath,
+      filePath,
+      clipFilename,
+      exportedBy: dto.exportedBy ?? 'operator',
+    };
 
+    if (options?.asyncProcess) {
+      defaultExportQueue.enqueue(exportJob).catch((err) => {
+        logger.error({ err, clipId: initialClip.id }, 'Background export queue job failed');
+      });
+      return {
+        ...initialClip,
+        fileSizeBytes: null,
+      };
+    }
+
+    // Default synchronous execution through concurrency queue
+    const completed = await defaultExportQueue.enqueue(exportJob);
+    logger.info({ clipId: initialClip.id, cameraId: dto.cameraId, hasPreBuffer, status: completed.status }, 'Processed recording event clip');
+
+    return completed;
+  }
+
+  static async getClipById(clipId: string) {
+    const prisma = getPrisma();
+    const clip = await prisma.recordingClip.findUnique({
+      where: { id: clipId },
+      include: {
+        camera: { select: { id: true, name: true, streamPath: true } },
+        incident: { select: { id: true, incidentNumber: true, reason: true, priority: true } },
+      },
+    });
+    if (!clip) return null;
     return {
       ...clip,
       fileSizeBytes: clip.fileSizeBytes ? clip.fileSizeBytes.toString() : null,
     };
   }
+
 
   static getClipsDir(): string {
     const baseDir = process.env.RECORDINGS_DIR || path.resolve(process.cwd(), 'recordings');
