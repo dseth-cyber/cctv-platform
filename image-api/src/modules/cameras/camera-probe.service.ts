@@ -1,4 +1,5 @@
 import net from 'net';
+import { openRtspUrl } from '../../lib/rtsp-credentials.js';
 import { getPrisma } from '../../lib/prisma.js';
 
 export interface ProbeResult {
@@ -73,7 +74,7 @@ export async function probeCameraHealth(camera: {
 
   // 1. If RTSP URL is provided, probe RTSP endpoint
   if (camera.rtspUrl) {
-    const ep = parseRtspEndpoint(camera.rtspUrl);
+    const ep = parseRtspEndpoint(openRtspUrl(camera.rtspUrl) ?? '');
     if (ep) {
       const res = await probeTcpEndpoint(ep.host, ep.port);
       if (res.reachable) {

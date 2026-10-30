@@ -28,7 +28,8 @@ RUN npm install -g prisma tsx
 
 # Install smbclient for SMB connection testing and browsing
 # Install postgresql-client for pg_dump backup
-RUN apk add --no-cache samba-client postgresql16-client
+# Install ffmpeg for clip export (stream copy, no re-encode)
+RUN apk add --no-cache samba-client postgresql16-client ffmpeg
 
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist

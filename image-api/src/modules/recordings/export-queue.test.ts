@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExportConcurrencyQueue, ExportJob } from './export-queue.js';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 // Mock dependencies
 const mockPrisma = {
@@ -103,55 +105,100 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
     expect(queue.queuedCount).toBe(0);
   });
 
-  it('updates clip status from PROCESSING to COMPLETED and sets real hash and stream-copy metadata', async () => {
+  function makeJob(id: string, fullDiskPath: string): ExportJob {
+    return {
+      clipId: id,
+      cameraId: 'cam-test',
+      actualStartTime: new Date(),
+      bufferedEnd: new Date(),
+      durationSeconds: 30,
+      hasPreBuffer: true,
+      preBufferSec: 10,
+      postBufferSec: 20,
+      fullDiskPath,
+      filePath: `/recordings/clips/${path.basename(fullDiskPath)}`,
+      clipFilename: path.basename(fullDiskPath),
+      exportedBy: 'operator-1',
+    };
+  }
+
+  it('updates clip status from PROCESSING to COMPLETED with the hash of the file ffmpeg produced from a real segment', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cctv-export-'));
+    const segment = path.join(dir, 'seg-1.mp4');
+    fs.writeFileSync(segment, 'recorded-video-bytes');
+    const output = path.join(dir, 'clip.mp4');
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: segment }]);
+
     const queue = new ExportConcurrencyQueue(1);
-    const testClipId = 'clip-verify-101';
-    const tempFile = path.resolve(process.cwd(), `temp_${Date.now()}.mp4`);
+    const ffmpeg = vi.spyOn(queue as any, 'runFfmpeg').mockImplementation(async (args: any) => {
+      fs.copyFileSync(args[args.indexOf('-i') + 1], args[args.length - 1]);
+    });
 
     try {
-      const job: ExportJob = {
-        clipId: testClipId,
-        cameraId: 'cam-test',
-        actualStartTime: new Date(),
-        bufferedEnd: new Date(),
-        durationSeconds: 30,
-        hasPreBuffer: true,
-        preBufferSec: 10,
-        postBufferSec: 20,
-        fullDiskPath: tempFile,
-        filePath: `/recordings/clips/${path.basename(tempFile)}`,
-        clipFilename: path.basename(tempFile),
-        exportedBy: 'operator-1',
-      };
+      const result = await queue.enqueue(makeJob('clip-verify-101', output));
 
-      const result = await queue.enqueue(job);
+      const ffmpegArgs = ffmpeg.mock.calls[0][0] as string[];
+      expect(ffmpegArgs).toEqual(expect.arrayContaining(['-c', 'copy', '-movflags', '+faststart']));
+      expect(ffmpegArgs[ffmpegArgs.length - 1]).toBe(`${output}.partial`);
 
-      // Verify DB updates
+      const expectedHash = crypto.createHash('sha256').update('recorded-video-bytes').digest('hex');
+      expect(mockPrisma.recordingClip.update).toHaveBeenCalledWith({ where: { id: 'clip-verify-101' }, data: { status: 'PROCESSING' } });
       expect(mockPrisma.recordingClip.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: testClipId },
-          data: { status: 'PROCESSING' },
-        })
-      );
-
-      expect(mockPrisma.recordingClip.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: testClipId },
+          where: { id: 'clip-verify-101' },
           data: expect.objectContaining({
             status: 'COMPLETED',
-            sha256Hash: expect.stringMatching(/^[a-f0-9]{64}$/),
-            chainOfCustody: expect.arrayContaining([
-              expect.objectContaining({ streamCopy: true, action: 'export' }),
-            ]),
+            sha256Hash: expectedHash,
+            chainOfCustody: expect.arrayContaining([expect.objectContaining({ streamCopy: true, action: 'export' })]),
           }),
         })
       );
-
       expect(result.status).toBe('COMPLETED');
+      expect(fs.existsSync(`${output}.partial`)).toBe(false);
     } finally {
-      if (fs.existsSync(tempFile)) {
-        fs.unlinkSync(tempFile);
-      }
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('marks clip FAILED (and writes no file) when no recorded video exists for the window', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cctv-export-'));
+    const output = path.join(dir, 'clip.mp4');
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: path.join(dir, 'missing.mp4') }]);
+
+    try {
+      await expect(new ExportConcurrencyQueue(1).enqueue(makeJob('clip-empty', output))).rejects.toThrow('No recorded video found');
+
+      expect(fs.existsSync(output)).toBe(false);
+      expect(mockPrisma.recordingClip.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) })
+      );
+      expect(mockPrisma.recordingClip.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'clip-empty' }, data: expect.objectContaining({ status: 'FAILED' }) })
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('marks clip FAILED and leaves no partial file when ffmpeg fails', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cctv-export-'));
+    const segment = path.join(dir, 'seg-1.mp4');
+    fs.writeFileSync(segment, 'x');
+    const output = path.join(dir, 'clip.mp4');
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: segment }]);
+
+    const queue = new ExportConcurrencyQueue(1);
+    vi.spyOn(queue as any, 'runFfmpeg').mockImplementation(async (args: any) => {
+      fs.writeFileSync(args[args.length - 1], 'half-written');
+      throw new Error('ffmpeg is not installed in the image-api runtime; cannot export clips');
+    });
+
+    try {
+      await expect(queue.enqueue(makeJob('clip-noffmpeg', output))).rejects.toThrow('ffmpeg is not installed');
+      expect(fs.existsSync(output)).toBe(false);
+      expect(fs.existsSync(`${output}.partial`)).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 

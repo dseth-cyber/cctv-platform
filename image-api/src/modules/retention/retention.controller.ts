@@ -64,8 +64,8 @@ async function deleteHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function retentionRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/', { preHandler: [app.authenticate] }, listHandler);
-  app.get('/:id', { preHandler: [app.authenticate] }, getByIdHandler);
+  app.get('/', { preHandler: [app.authenticate, requirePermission('retention:read')] }, listHandler);
+  app.get('/:id', { preHandler: [app.authenticate, requirePermission('retention:read')] }, getByIdHandler);
   app.post('/', { preHandler: [app.authenticate, requirePermission('retention:create')] }, createHandler);
   app.patch('/:id', { preHandler: [app.authenticate, requirePermission('retention:update')] }, updateHandler);
   app.delete('/:id', { preHandler: [app.authenticate, requirePermission('retention:delete')] }, deleteHandler);

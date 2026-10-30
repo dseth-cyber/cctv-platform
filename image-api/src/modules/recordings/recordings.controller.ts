@@ -89,6 +89,10 @@ export async function toggleClipLegalHoldHandler(request: FastifyRequest, reply:
 }
 
 export async function seedDevRecordingsHandler(request: FastifyRequest, reply: FastifyReply) {
+  // Synthetic segments are indistinguishable from evidence in the index, so this stays off unless explicitly enabled in Dev.
+  if (process.env.SEED_SYNTHETIC_RECORDINGS !== 'true' || process.env.NODE_ENV === 'production') {
+    return reply.status(403).send({ message: 'Synthetic recording seeding is disabled (set SEED_SYNTHETIC_RECORDINGS=true in Dev only)' });
+  }
   const { cameraId, date } = request.body as { cameraId: string; date?: string };
   if (!cameraId) {
     return reply.status(400).send({ message: 'cameraId is required' });

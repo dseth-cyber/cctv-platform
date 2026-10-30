@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RecordingsService } from './recordings.service.js';
 import { getPrisma } from '../../lib/prisma.js';
-import fs from 'node:fs';
 import path from 'node:path';
 
 describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
@@ -42,39 +41,27 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
     expect(result.fullPath).toContain('clips');
   });
 
-  it('should export clip with real SHA-256 hash, physical file, and chain of custody', async () => {
-    // Mock prisma client for test
+  it('should mark the clip FAILED instead of fabricating a file when no recording exists', async () => {
+    const prisma = getPrisma() as any;
     const mockCameraId = '00000000-0000-0000-0000-000000000001';
-    const testStartTime = new Date(Date.now() - 120000).toISOString();
-    const testEndTime = new Date().toISOString();
 
-    const result = await RecordingsService.exportClip({
-      cameraId: mockCameraId,
-      title: 'Audit Test Event Clip',
-      startTime: testStartTime,
-      endTime: testEndTime,
-      preBufferSeconds: 15,
-      postBufferSeconds: 15,
-      exportedBy: 'auditor',
-    });
+    await expect(
+      RecordingsService.exportClip({
+        cameraId: mockCameraId,
+        title: 'Audit Test Event Clip',
+        startTime: new Date(Date.now() - 120000).toISOString(),
+        endTime: new Date().toISOString(),
+        preBufferSeconds: 15,
+        postBufferSeconds: 15,
+        exportedBy: 'auditor',
+      }),
+    ).rejects.toThrow('No recorded video found');
 
-    expect(result).toBeDefined();
-    expect(result.sha256Hash).toBeDefined();
-    expect(result.sha256Hash).toMatch(/^[a-f0-9]{64}$/);
-    expect(result.chainOfCustody).toBeDefined();
-    expect(Array.isArray(result.chainOfCustody)).toBe(true);
-    expect((result.chainOfCustody as any[])[0].action).toBe('export');
-    expect((result.chainOfCustody as any[])[0].performedBy).toBe('auditor');
-    expect((result.chainOfCustody as any[])[0].sha256).toBe(result.sha256Hash);
-
-    // Verify physical file was written to disk
-    const clipFilename = path.basename(result.downloadUrl!);
-    const clipInfo = RecordingsService.getClipFilePath(clipFilename);
-    expect(clipInfo.exists).toBe(true);
-
-    // Verify hash matches actual file content
-    const fileBytes = fs.readFileSync(clipInfo.fullPath);
-    const expectedHash = (await import('node:crypto')).createHash('sha256').update(fileBytes).digest('hex');
-    expect(result.sha256Hash).toBe(expectedHash);
+    expect(prisma.recordingClip.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
+    );
+    expect(prisma.recordingClip.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) }),
+    );
   });
 });

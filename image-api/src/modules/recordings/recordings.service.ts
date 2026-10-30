@@ -95,7 +95,7 @@ export class RecordingsService {
 
     // Do not inject fake timeline recordings implicitly (AUDIT-MED-04).
     // Only auto-seed if explicitly enabled in developer environment via SEED_SYNTHETIC_RECORDINGS=true.
-    if (recordings.length === 0 && process.env.SEED_SYNTHETIC_RECORDINGS === 'true') {
+    if (recordings.length === 0 && process.env.SEED_SYNTHETIC_RECORDINGS === 'true' && process.env.NODE_ENV !== 'production') {
       await this.seedDevRecordings(cameraId, targetDateStr);
       recordings = await prisma.cameraRecording.findMany({
         where: {

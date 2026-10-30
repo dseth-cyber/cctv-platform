@@ -1,3 +1,4 @@
+import { requirePermission } from '../../middleware/rbac.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { growthQuerySchema } from './storage.schema.js';
 import * as storageService from './storage.service.js';
@@ -25,8 +26,8 @@ async function forecastHandler(_request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function storageRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/summary', { preHandler: [app.authenticate] }, summaryHandler);
-  app.get('/cameras/:cameraId', { preHandler: [app.authenticate] }, cameraStorageHandler);
-  app.get('/growth', { preHandler: [app.authenticate] }, growthHandler);
-  app.get('/forecast', { preHandler: [app.authenticate] }, forecastHandler);
+  app.get('/summary', { preHandler: [app.authenticate, requirePermission('storage:read')] }, summaryHandler);
+  app.get('/cameras/:cameraId', { preHandler: [app.authenticate, requirePermission('storage:read')] }, cameraStorageHandler);
+  app.get('/growth', { preHandler: [app.authenticate, requirePermission('storage:read')] }, growthHandler);
+  app.get('/forecast', { preHandler: [app.authenticate, requirePermission('storage:read')] }, forecastHandler);
 }

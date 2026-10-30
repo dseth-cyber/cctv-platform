@@ -34,8 +34,8 @@ async function restoreTestHandler(request: FastifyRequest, reply: FastifyReply) 
 }
 
 export async function backupRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/status', { preHandler: [app.authenticate] }, getStatusHandler);
-  app.get('/', { preHandler: [app.authenticate] }, listHandler);
+  app.get('/status', { preHandler: [app.authenticate, requirePermission('backup:read')] }, getStatusHandler);
+  app.get('/', { preHandler: [app.authenticate, requirePermission('backup:read')] }, listHandler);
   app.post('/run/database', { preHandler: [app.authenticate, requirePermission('backup:create')] }, runDbBackupHandler);
   app.post('/run/storage', { preHandler: [app.authenticate, requirePermission('backup:create')] }, runStorageBackupHandler);
   app.post('/:id/restore-test', { preHandler: [app.authenticate, requirePermission('backup:create')] }, restoreTestHandler);

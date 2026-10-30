@@ -5,6 +5,7 @@ import * as cameraAnalytics from './camera-analytics.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { openRtspUrl } from '../../lib/rtsp-credentials.js';
 import { getRedisClient } from '../../lib/redis.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { createAlert } from '../alerts/alerts.service.js';
@@ -26,13 +27,14 @@ function ensureAttachmentDir() {
 async function listHandler(request: FastifyRequest, reply: FastifyReply) {
   const filters = cameraQuerySchema.parse(request.query);
   const cameras = await camerasService.listCameras(filters);
-  return reply.status(200).send(cameras);
+  const role = (request as any).user?.role;
+  return reply.status(200).send(cameras.map((c) => camerasService.toPublicCamera(c, role)));
 }
 
 async function getByIdHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const camera = await camerasService.getCameraById(id);
-  return reply.status(200).send(camera);
+  return reply.status(200).send(camerasService.toPublicCamera(camera, (request as any).user?.role));
 }
 
 async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -44,7 +46,7 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
   }
 
   const isSub = profile === 'sub' && Boolean(camera.rtspUrlSub);
-  const targetRtsp = isSub ? camera.rtspUrlSub : camera.rtspUrl;
+  const targetRtsp = openRtspUrl(isSub ? camera.rtspUrlSub : camera.rtspUrl);
   const basePath = camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
   const streamPath = isSub ? `${basePath}_sub` : basePath;
 
@@ -110,7 +112,7 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
     bypassCooldown: true,
   }).catch(() => {});
 
-  return reply.status(201).send(camera);
+  return reply.status(201).send(camerasService.toPublicCamera(camera, user?.role));
 }
 
 async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -247,7 +249,7 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
     }).catch(() => {});
   }
 
-  return reply.status(200).send(camera);
+  return reply.status(200).send(camerasService.toPublicCamera(camera, user?.role));
 }
 
 async function deleteCameraHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -836,7 +838,7 @@ async function clearAllIncidentsHandler(request: FastifyRequest, reply: FastifyR
 export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     '/',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     listHandler,
   );
   app.get(
@@ -866,7 +868,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.get(
     '/incidents/options',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     incidentOptionsHandler,
   );
   app.post(
@@ -971,7 +973,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.get(
     '/:id',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     getByIdHandler,
   );
   app.get(

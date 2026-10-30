@@ -36,6 +36,10 @@
 - ห้ามเปลี่ยนค่ากล้องจริง/PTZ/reboot/ตั้งเวลาหรือ storage บนอุปกรณ์โดยไม่ขออนุญาต; discovery ต้องจำกัดเครือข่ายที่อนุมัติ
 - ห้ามรับรอง RAM/latency/จำนวนกล้องต่อโหนดหรือว่าไม่กระทบ Production โดยไม่มีหลักฐานทดสอบ
 - ห้ามระบุงานเสร็จเพราะแก้เอกสารหรือ compile ผ่านอย่างเดียว; ต้องผ่าน acceptance criteria ของเฟส
+- ห้าม fallback ที่สร้างผลสำเร็จหรือข้อมูลจำลองแทนผลจริง เช่น ไฟล์หลักฐานปลอม, สถานะ `COMPLETED` เมื่อไม่มีวิดีโอ, preflight/sign-off/DR drill สำเร็จเมื่อ API ล้มเหลว; เมื่อทำไม่ได้ต้องรายงาน `FAILED`/error ให้เห็นชัด (บทเรียนตรวจซ้ำ 2026-10-30)
+- ห้ามคืน credential ใน API response โดยตรง: response กล้อง/อุปกรณ์ต้องผ่าน `toPublicCamera()` / `redactRtspUrl()`; RTSP URL ที่มี credential ต้องเก็บผ่าน `sealRtspUrl()` เท่านั้น
+- Recording cleanup ต้องผ่าน `quarantineRecording()` (claim atomic `legalHold=false` + ย้ายไป quarantine) ห้าม `unlink` ไฟล์วิดีโอตรง และเปิดได้เฉพาะ `RECORDINGS_CLEANUP_ENABLED=true` หลังนโยบาย retention ได้รับอนุมัติ
+- Handoff/Roadmap ต้องแยก "ทำโค้ดแล้ว" (`[x]`) กับ "ตรวจรับ end-to-end ผ่าน" (`[A]`); ห้ามใช้คำว่า Production-Hardened/100% โดยไม่มีหลักฐานการรันจริง
 
 ## ลำดับความปลอดภัยก่อนใช้คำสั่ง legacy
 

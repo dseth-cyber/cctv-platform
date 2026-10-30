@@ -92,6 +92,9 @@ services:
     volumes:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
       - ./mediamtx/recordings:/recordings
+    environment:
+      # Sent by runOnReady/runOnNotReady hooks; must match image-api's value or the webhook gets 401
+      MEDIA_WEBHOOK_SECRET: ${MEDIA_WEBHOOK_SECRET:-dev-media-webhook-secret-change-in-production}
     restart: unless-stopped
     networks:
       - cctv-network
@@ -241,8 +244,15 @@ services:
       - incident-attachments-data:/app/incident-attachments
       - backup-data:/app/backups
       - ./host-storage:/mnt/host-storage
+      # Same path as inside mediamtx so indexed segment paths resolve in both containers,
+      # and the disk watermark monitor measures the filesystem that actually holds video [R1.7]
+      - ./mediamtx/recordings:/recordings
     environment:
       NODE_ENV: production
+      RECORDINGS_DIR: /recordings
+      # Recording cleanup stays off until a retention policy is approved (AGENTS.md); when on, files move to quarantine
+      RECORDINGS_CLEANUP_ENABLED: ${RECORDINGS_CLEANUP_ENABLED:-false}
+      RECORDINGS_QUARANTINE_DIR: ${RECORDINGS_QUARANTINE_DIR:-/recordings/.quarantine}
       HOST: 0.0.0.0
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-image_user}:${POSTGRES_PASSWORD:-image_pass}@postgres:5432/${POSTGRES_DB:-image_db}?connection_limit=50&pool_timeout=30
@@ -260,6 +270,7 @@ services:
       REDIS_PORT: 6379
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key-32chars!!}
       SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
+      MEDIA_WEBHOOK_SECRET: ${MEDIA_WEBHOOK_SECRET:-dev-media-webhook-secret-change-in-production}
       LOG_LEVEL: info
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}

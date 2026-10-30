@@ -1,4 +1,5 @@
 import { getPrisma } from '../../lib/prisma.js';
+import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
 import type { CreateDeviceInput, UpdateDeviceInput, DeviceQueryInput } from './devices.schema.js';
@@ -93,7 +94,8 @@ export async function getDeviceById(id: string) {
 
   return {
     ...device,
-    passwordEncrypted: device.passwordEncrypted ? '********' : null,
+    passwordEncrypted: device.passwordEncrypted ? SECRET_MASK : null,
+    cameras: device.cameras.map((c) => ({ ...c, rtspUrl: redactRtspUrl(c.rtspUrl), rtspUrlSub: redactRtspUrl(c.rtspUrlSub) })),
   };
 }
 
@@ -162,7 +164,7 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (input.httpPort !== undefined) data.httpPort = input.httpPort;
   if (input.onvifPort !== undefined) data.onvifPort = input.onvifPort;
   if (input.username !== undefined) data.username = input.username;
-  if (input.password !== undefined) data.passwordEncrypted = input.password ? encrypt(input.password) : null;
+  if (input.password !== undefined && input.password !== SECRET_MASK) data.passwordEncrypted = input.password ? encrypt(input.password) : null;
   if (input.totalChannels !== undefined) data.totalChannels = input.totalChannels;
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.status !== undefined) data.status = input.status;
@@ -224,8 +226,8 @@ export async function provisionDeviceChannels(deviceId: string) {
           deviceId: device.id,
           channelNumber: ch,
           ipAddress: device.ipAddress,
-          rtspUrl,
-          rtspUrlSub,
+          rtspUrl: sealRtspUrl(rtspUrl),
+          rtspUrlSub: sealRtspUrl(rtspUrlSub),
           streamPath,
           siteId: device.siteId,
           status: 'inactive',
@@ -240,7 +242,7 @@ export async function provisionDeviceChannels(deviceId: string) {
   return {
     deviceId: device.id,
     provisionedCount: createdCameras.length,
-    cameras: createdCameras,
+    cameras: createdCameras.map((c) => ({ ...c, rtspUrl: redactRtspUrl(c.rtspUrl), rtspUrlSub: redactRtspUrl(c.rtspUrlSub) })),
   };
 }
 

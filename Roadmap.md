@@ -1,8 +1,54 @@
 # CCTV Platform — Roadmap
 
-อัปเดต: 2026-10-27 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
-สถานะภาพรวม: **Dev Complete – Pilot Wave 1 pending (HW-Required)**
-*(ผ่านการตรวจสอบและแก้ไขข้อบกพร่องตามรายงาน Audit Report ครบทุกระดับ Critical/High/Medium ในสภาพแวดล้อมจำลอง พร้อมก้าวเข้าสู่การทดสอบร่วมกับฮาร์ดแวร์จริงใน Pilot Wave 1)*
+อัปเดต: 2026-10-30 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
+สถานะภาพรวม: **Prototype — ยังไม่พร้อม Pilot/Production (อยู่ระหว่าง Remediation Phase R1–R4)**
+*(ตรวจโค้ดซ้ำ 2026-10-30 พบว่าสถานะ "Enterprise Production-Hardened / 100%" เดิมไม่ตรงหลักฐาน: playback/recording index/export ยังมีส่วนจำลอง, credential รั่วผ่าน API, retention ลบถาวรและวัดดิสก์ผิด mount, failover แก้เฉพาะ DB, pilot report เป็น DRY_RUN — ดูรายละเอียดใน "Remediation หลังตรวจซ้ำ" ด้านล่าง; checkbox ของ Phase 4–6 หมายถึง "มีโค้ดต้นแบบ" ไม่ใช่ "ตรวจรับผ่าน")*
+
+## Remediation หลังตรวจซ้ำ (2026-10-30)
+
+นิยามสถานะ: `[x]` = ทำโค้ดแล้วและมี unit test, `[A]` = ตรวจรับ end-to-end ผ่านพร้อมหลักฐาน, `[ ]` = ยังไม่ทำ งานจะถือว่าเสร็จเมื่อเป็น `[A]` เท่านั้น
+
+### Phase R1 — Security & Data Integrity (ทำก่อนทุกอย่าง)
+
+เกณฑ์ผ่าน: ไม่มี API ใดคืน credential plaintext, ทุก write endpoint มี `requirePermission`, export ไม่รายงาน `COMPLETED` เมื่อไม่มีวิดีโอจริง, retention ไม่ลบถาวรและไม่ลบไฟล์ที่ติด Legal Hold แม้ถูกเปิดระหว่าง cleanup, ตัววัดดิสก์วัด mount เดียวกับที่ MediaMTX บันทึก
+
+- [x] R1.1 เข้ารหัส `rtspUrl`/`rtspUrlSub` ที่มี credential ก่อนเก็บ DB และ redact ใน API response ทุกจุด (camera list/detail/create/update, device detail)
+- [x] R1.2 ไม่คืน SMB password ที่ถอดรหัสแล้วให้ผู้ใช้ทั่วไป (เฉพาะ service role `system` ของ factory worker) และ mask `device.passwordEncrypted` ใน include
+- [x] R1.3 เพิ่ม `requirePermission` ให้ `POST /release/signoff`, `POST /media-nodes/:id/heartbeat`, `GET /cameras/`, `GET /cameras/incidents/options` และใช้ผู้ลงนามจาก session ไม่ใช่จาก body
+- [x] R1.4 ปิด `POST /recordings/seed-dev` เว้นแต่ `SEED_SYNTHETIC_RECORDINGS=true` และไม่ใช่ production
+- [x] R1.5 Export: ตัด fallback หัวไฟล์ MP4 ปลอมและ fallback copy เมื่อไม่มี ffmpeg → สถานะ `FAILED` พร้อมเหตุผล
+- [x] R1.6 Retention/Eviction: ย้ายไฟล์ไป quarantine (กู้คืนได้) แทน `unlink`, claim แบบ atomic `updateMany where legalHold=false` ก่อนย้าย, นับพื้นที่คืนเฉพาะไฟล์ที่ย้ายจริง
+- [x] R1.7 Mount `./mediamtx/recordings` เข้า `image-api` ที่ path เดียวกับ MediaMTX และตั้ง `RECORDINGS_DIR`
+- [x] R1.8 ผล DR drill ใน Release Center ต้องมาจากการตรวจจริง หรือแสดงชัดว่าเป็น simulation (ห้ามข้อความ SUCCESS ตายตัว)
+
+ความคืบหน้า R1 (2026-10-30): โค้ดครบ 8 ข้อ + unit test (`image-api` 16 files / 77 tests ผ่าน, `tsc` ผ่านทั้งสองฝั่ง, `web-app` build ผ่าน) — **ยังไม่ `[A]`** เพราะยังไม่ได้ rebuild/รัน container จริง ต้องตรวจ: (1) รัน `prisma/seal-rtsp-credentials.ts` dry-run แล้ว `--apply` บน Dev DB ที่มี backup, (2) `docker compose up` แล้วยืนยันว่า webhook สถานะกล้องได้ 200 ไม่ใช่ 401 (MediaMTX ต้องขยาย `$MEDIA_WEBHOOK_SECRET` ใน `runOnReady` ได้), (3) export กับ segment จริงใน container ที่มี ffmpeg, (4) watermark monitor เห็นดิสก์ของ `/recordings`, (5) ทดสอบ UI แก้ไขกล้องที่ได้ค่า redact กลับไป
+เพิ่มเติมที่พบระหว่างทำ R1: Release Center เดิมสร้าง preflight "95% ready" และ sign-off ปลอมเมื่อ API ล้มเหลว (แก้แล้ว), image-api image ไม่มี ffmpeg (เพิ่มแล้ว), compose ไม่ส่ง `MEDIA_WEBHOOK_SECRET` (เพิ่มแล้ว), `decrypt()` ตีความค่าที่มี `:` 2 ตัวเป็น ciphertext (แก้ใน rtsp-credentials แล้ว; SMB password ยังใช้ `decrypt()` ตรง — ย้ายไป R2), `CctvReleaseCenter.tsx` ไม่ใช้ i18n (R2), snapshot ไม่มี watermark (R3.4), export ยังรวมทั้ง segment ไม่ตัดตามช่วงเวลา (R3.5), toggle Legal Hold บน segment ที่อยู่ใน quarantine ยังไม่กู้ไฟล์กลับ (R3)
+
+### Phase R2 — ถอดส่วนโรงงานที่ยัง active
+
+เกณฑ์ผ่าน: API/UI/background jobs ที่เหลือเป็น CCTV หรือเป็นบริการร่วมที่จำเป็น (auth/users/roles/audit/backup/alerts) เท่านั้น; ส่วนโรงงานย้ายไป archive ที่กู้คืนได้ ตามกฎ AGENTS ข้อห้ามตัดแบบเหมารวม
+
+- [ ] R2.1 สำรวจ dependency ของ modules `images`, `worker-upload`, `processing-logs` (DLQ/orphan sweeper), `smb`, `masterdata`, `search`, `storage-*`, `telegram-bot` และ 29 หน้าใน `pages/image-service/`
+- [ ] R2.2 ปิดการ register route และ background jobs โรงงานผ่าน feature flag ก่อน แล้วจึงย้ายไป archive
+- [ ] R2.3 แยก schema ฟิลด์ SMB/processing ออกจาก `Camera` ด้วย migration ที่ตรวจ SQL และมี backup
+- [ ] R2.4 ย้ายเส้นทาง UI `/image-service/*` เป็น `/cctv/*` และลบเมนูโรงงาน
+
+### Phase R3 — Recording → Index → Playback → Export ครบวงจร
+
+เกณฑ์ผ่าน: segment ที่ MediaMTX เขียนจริงถูกลงดัชนีอัตโนมัติ, เล่นย้อนหลังจากไฟล์จริงในเบราว์เซอร์ได้, export ได้ไฟล์ที่เล่นได้และ hash ตรง, ไม่มี seed จำลองในเส้นทางหลัก
+
+- [ ] R3.1 Indexer: `runOnRecordSegmentComplete` webhook (มี secret) + reconcile scan ตอน start
+- [ ] R3.2 Playback API ผ่าน MediaMTX playback server (`/get?path=&start=&duration=`) พร้อม stream token
+- [ ] R3.3 หน้า Playback ใช้ `<video>` จริง เลิก timer/placeholder จำลอง
+- [ ] R3.4 Snapshot ฝัง watermark (ผู้ใช้/เวลา) ลงในไฟล์ภาพ; ระบุในเอกสารว่า overlay ไม่ป้องกัน screen capture
+- [ ] R3.5 ทดสอบ export กับ segment จริง (เล่นได้, SHA-256 ตรง, chain of custody)
+
+### Phase R4 — ตรวจรับจริง
+
+- [ ] R4.1 Pilot 10 กล้องจริง (ไม่ใช่ DRY_RUN) พร้อม report ที่ไม่มี password
+- [ ] R4.2 Legal Hold ระหว่าง cleanup, restart/recovery ของ image-api และ MediaMTX
+- [ ] R4.3 Failover ที่ย้ายสตรีมจริงบน media node ปลายทาง + load test จริงตามขนาดที่จะรับรอง
+- [ ] R4.4 ปรับ HANDOFF/Roadmap แยก "ทำโค้ดแล้ว" กับ "ตรวจรับผ่านแล้ว"
 
 ## เป้าหมายและขอบเขต
 
@@ -110,7 +156,7 @@
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 3 ครบถ้วน (CctvMap blueprint, Health 3 เสาหลัก, Operations Dashboard, Alert Dedup & Cooldown, Anti-Flapping, Snooze & Maintenance Mode, และ Telegram CCTV Bot)
 
 
-### Phase 4 — Recording, Event Clips & Playback (เสร็จสมบูรณ์)
+### Phase 4 — Recording, Event Clips & Playback (โค้ดต้นแบบ — ยังไม่ตรวจรับ, ดู R1/R3)
 
 งานที่ทำเสร็จแล้ว:
 - [x] บันทึก segment บน media node แบบ remux ([mediamtx.yml](file:///d:/Qwen/DVR/cctv-platform/mediamtx/mediamtx.yml) `record: yes`, `recordFormat: fmp4`, `recordSegmentDuration: 60s`, `recordDeleteAfter: 7d`) แยกบันทึกตรงบน media node ไม่ผ่าน CPU ของ API กลาง
@@ -138,7 +184,7 @@
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 4 ครบถ้วน (บันทึก fMP4 remux ตรง, Timeline 24h วิเคราะห์ Continuous Blocks & Data Gaps, ตรวจสอบสถานะ Pre-Buffer เมื่อดึงจาก Rolling Buffer, ระบบ Legal Hold ป้องกัน Retention, Fast Actions จาก Incident Center, ควบคุมสิทธิ์ผ่าน JWT token)
 
-### Phase 5 — Scale, Multi-node & WFH (เสร็จสมบูรณ์)
+### Phase 5 — Scale, Multi-node & WFH (โค้ดต้นแบบ — failover แก้เฉพาะ DB, benchmark เป็นเครื่องคำนวณ, ดู R4)
 
 งานที่ทำเสร็จแล้ว:
 - [x] Media-Node Registry & Cluster Models ([schema.prisma](file:///d:/Qwen/DVR/cctv-platform/image-api/prisma/schema.prisma)):
@@ -157,7 +203,7 @@
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 5 ครบถ้วน (มี Media-node registry, Edge site routing, Failover evacuation, Benchmark สเกล 10-1000 ช่องแยก Ingress/Egress/Storage/IOPS ชัดเจน, WFH STUN/TURN และการทดสอบ WebRTC ICE บนเบราว์เซอร์)
 
-### Phase 6 — Pilot & Release ของ CCTV (เสร็จสมบูรณ์)
+### Phase 6 — Pilot & Release ของ CCTV (มีเครื่องมือ — pilot report เป็น DRY_RUN, ดู R4)
 
 งานที่ทำเสร็จแล้ว:
 - [x] คู่มือการนำร่องและปล่อยระบบ ([PILOT_RELEASE_GUIDE.md](file:///d:/Qwen/DVR/cctv-platform/PILOT_RELEASE_GUIDE.md)):

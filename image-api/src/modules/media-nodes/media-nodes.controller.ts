@@ -156,7 +156,7 @@ export async function mediaNodeRoutes(app: FastifyInstance) {
   );
   app.post(
     '/:id/heartbeat',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
     heartbeatHandler,
   );
   app.post(

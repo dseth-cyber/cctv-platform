@@ -67,7 +67,8 @@ export const CctvReleaseCenter: React.FC = () => {
   const [signoffs, setSignoffs] = useState<SignoffRecord[]>([]);
 
   // Signoff form state
-  const [signedBy, setSignedBy] = useState(user?.username || 'Security QA Lead');
+  // The server records the authenticated user as signer; this is display only.
+  const signedBy = user?.username ?? '';
   const [targetEnv, setTargetEnv] = useState('pilot-staging-vlan');
   const [scope, setScope] = useState('Phase 6 — Pilot Release (Wave 1: 25 Cameras)');
   const [notes, setNotes] = useState(
@@ -75,10 +76,10 @@ export const CctvReleaseCenter: React.FC = () => {
   );
   const [submittingSignoff, setSubmittingSignoff] = useState(false);
   const [signoffSuccessMsg, setSignoffSuccessMsg] = useState('');
+  const [signoffErrorMsg, setSignoffErrorMsg] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // DR Drill simulated state
-  const [drSimulating, setDrSimulating] = useState(false);
-  const [drResult, setDrResult] = useState<string | null>(null);
 
   // UAT interactive checklist state
   const [uatChecked, setUatChecked] = useState<Record<number, boolean>>({
@@ -96,58 +97,9 @@ export const CctvReleaseCenter: React.FC = () => {
       const res = await imageServiceApi.getPreflightReadiness();
       setPreflight(res);
     } catch {
-      // Fallback fallback simulated preflight report if API is offline
-      setPreflight({
-        score: 95,
-        overallStatus: 'ready',
-        environment: 'development',
-        isolationVerified: true,
-        checkedAt: new Date().toISOString(),
-        items: [
-          {
-            id: 'iso-fail-closed',
-            category: 'isolation',
-            name: 'Legacy Image-Service Isolation (Fail-Closed)',
-            status: 'passed',
-            details: 'cctv-network bound to 127.0.0.1; deploy-prod.sh blocked from touching legacy prod.',
-          },
-          {
-            id: 'sec-jwt',
-            category: 'security',
-            name: 'JWT Secret Hardening',
-            status: 'passed',
-            details: 'JWT_SECRET meets minimum entropy requirements (>= 16 chars)',
-          },
-          {
-            id: 'sec-enc',
-            category: 'security',
-            name: 'Data Encryption Key (AES-256)',
-            status: 'passed',
-            details: 'ENCRYPTION_KEY configured properly for encrypted RTSP camera credentials',
-          },
-          {
-            id: 'db-postgres',
-            category: 'database',
-            name: 'PostgreSQL Database Connectivity',
-            status: 'passed',
-            details: 'Database response time: 8ms, pool healthy',
-          },
-          {
-            id: 'stream-mediamtx',
-            category: 'streaming',
-            name: 'MediaMTX Core Streaming Engine',
-            status: 'passed',
-            details: 'MediaMTX API reachable at 127.0.0.1:9997 (WHEP / RTSP / fMP4 remux ready)',
-          },
-          {
-            id: 'store-fmp4',
-            category: 'storage',
-            name: 'Recording Storage & Database Index',
-            status: 'passed',
-            details: 'Active recording metadata records ready. Rolling buffer retention: 7d.',
-          },
-        ],
-      });
+      // No simulated readiness report: an unreachable API must never look "ready".
+      setPreflight(null);
+      setLoadError('โหลดผล Pre-flight ไม่สำเร็จ — สถานะความพร้อมไม่ทราบ');
     } finally {
       setLoading(false);
     }
@@ -158,30 +110,8 @@ export const CctvReleaseCenter: React.FC = () => {
       const res = await imageServiceApi.getPilotRolloutPlan(cameras);
       setPilotPlan(res);
     } catch {
-      const ingress = Math.round(cameras * 2);
-      const storage = Math.round(cameras * 21.6);
-      setPilotPlan({
-        phase: cameras <= 15 ? 'Pilot Wave 1 (Initial Canary)' : cameras <= 50 ? 'Pilot Wave 2 (Multi-Zone)' : 'Full Staging Release',
-        targetCameras: cameras,
-        expectedIngressMbps: ingress,
-        expectedStoragePerDayGB: storage,
-        recommendedNodes: Math.ceil(cameras / 100),
-        prerequisites: [
-          'Dedicated LAN subnet with isolated VLAN for IP cameras',
-          'MediaMTX host configured with >= 1Gbps NIC for ingress',
-          'PostgreSQL automated daily backup script tested with restore drill',
-          'STUN/TURN ICE credentials configured for external/WFH viewers',
-          'All default secrets replaced in .env',
-        ],
-        acceptanceCriteria: [
-          'Sub-500ms WebRTC WHEP live stream playback on 16-channel multi-grid',
-          'Continuous 24-hour fMP4 recording segments without missing gaps > 120s',
-          'Export clip feature generates MP4 with pre-buffer within < 15 seconds',
-          'Telegram Bot alerts fire within 5 seconds upon camera disconnect/tamper',
-          'Failover evacuation test successfully migrates streams to secondary node',
-          'Strict fail-closed isolation: Zero network traffic towards legacy Image Service',
-        ],
-      });
+      setPilotPlan(null);
+      setLoadError('โหลดแผน Pilot ไม่สำเร็จ — ไม่แสดงข้อมูลแทนที่');
     }
   };
 
@@ -190,17 +120,8 @@ export const CctvReleaseCenter: React.FC = () => {
       const res = await imageServiceApi.getReleaseSignoffs();
       if (Array.isArray(res)) setSignoffs(res);
     } catch {
-      setSignoffs([
-        {
-          id: 'signoff-dev-baseline',
-          signedAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-          signedBy: 'System QA Lead',
-          targetEnvironment: 'dev-local',
-          scope: 'Phase 0 - 5 Verification',
-          checklistPassed: true,
-          notes: 'All Phase 0-5 acceptance criteria verified in isolated local docker network.',
-        },
-      ]);
+      setSignoffs([]);
+      setLoadError('โหลดประวัติ Sign-off ไม่สำเร็จ — ไม่แสดงข้อมูลแทนที่');
     }
   };
 
@@ -216,24 +137,13 @@ export const CctvReleaseCenter: React.FC = () => {
     loadPilotPlan(val);
   };
 
-  const handleRunDrill = () => {
-    setDrSimulating(true);
-    setDrResult(null);
-    setTimeout(() => {
-      setDrSimulating(false);
-      setDrResult(
-        'SUCCESS: Database snapshot dump verified (pg_dump 14.2MB in 1.4s). Media node evacuation simulated successfully to fallback node (0 frames dropped).'
-      );
-    }, 1800);
-  };
-
   const handleSubmitSignoff = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingSignoff(true);
     setSignoffSuccessMsg('');
+    setSignoffErrorMsg('');
     try {
       await imageServiceApi.submitReleaseSignoff({
-        signedBy,
         targetEnvironment: targetEnv,
         scope,
         notes,
@@ -241,19 +151,9 @@ export const CctvReleaseCenter: React.FC = () => {
       });
       setSignoffSuccessMsg('บันทึกการ Sign-off และอนุมัติ Pilot Release สำเร็จเรียบร้อย!');
       loadSignoffs();
-    } catch {
-      // Local fallback
-      const mockNew: SignoffRecord = {
-        id: `signoff-${Date.now().toString(36)}`,
-        signedAt: new Date().toISOString(),
-        signedBy,
-        targetEnvironment: targetEnv,
-        scope,
-        checklistPassed: true,
-        notes,
-      };
-      setSignoffs([mockNew, ...signoffs]);
-      setSignoffSuccessMsg('บันทึกการ Sign-off (Local State) เรียบร้อย!');
+    } catch (err: any) {
+      // Never record a sign-off locally when the server rejected it (e.g. 403 without settings:update).
+      setSignoffErrorMsg(err?.response?.data?.message || err?.message || 'บันทึก Sign-off ไม่สำเร็จ');
     } finally {
       setSubmittingSignoff(false);
     }
@@ -288,7 +188,7 @@ export const CctvReleaseCenter: React.FC = () => {
             <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-right">
               <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Readiness Score</div>
               <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                {preflight?.score ?? 95}%
+                {preflight ? `${preflight.score}%` : '—'}
               </div>
             </div>
             <button
@@ -363,6 +263,13 @@ export const CctvReleaseCenter: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {loadError}
+        </div>
+      )}
 
       {/* TAB 1: PRE-FLIGHT & SECRET AUDIT */}
       {activeTab === 'preflight' && (
@@ -614,22 +521,12 @@ export const CctvReleaseCenter: React.FC = () => {
                   คู่มือและคำสั่งสำหรับการสำรองฐานข้อมูล การกู้คืนระบบ และการซักซ้อมเหตุฉุกเฉิน (DR Drill)
                 </p>
               </div>
-              <button
-                onClick={handleRunDrill}
-                disabled={drSimulating}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm disabled:opacity-50"
-              >
-                <Terminal className={`w-4 h-4 ${drSimulating ? 'animate-spin' : ''}`} />
-                {drSimulating ? 'กำลังรัน DR Drill...' : 'ซ้อม DR Drill (Live Simulation)'}
-              </button>
-            </div>
-
-            {drResult && (
-              <div className="mt-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
-                <span>{drResult}</span>
+              {/* [R1.8] No automated drill exists yet; never show a fabricated SUCCESS result. */}
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 max-w-sm">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                ยังไม่มี DR Drill อัตโนมัติ — ต้องซ้อมตาม runbook ด้านล่างบนเครื่อง Dev และบันทึกผลจริงใน Sign-off
               </div>
-            )}
+            </div>
 
             {/* Runbook Snippets */}
             <div className="mt-6 space-y-4">
@@ -672,6 +569,11 @@ export const CctvReleaseCenter: React.FC = () => {
                 ยืนยันการรับมอบระบบ CCTV Platform เข้าสู่ระยะ Pilot Rollout อย่างเป็นทางการ
               </p>
 
+              {signoffErrorMsg && (
+                <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
+                  {signoffErrorMsg}
+                </div>
+              )}
               {signoffSuccessMsg && (
                 <div className="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
                   {signoffSuccessMsg}
@@ -686,8 +588,7 @@ export const CctvReleaseCenter: React.FC = () => {
                   <input
                     type="text"
                     value={signedBy}
-                    onChange={(e) => setSignedBy(e.target.value)}
-                    required
+                    readOnly
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                 </div>

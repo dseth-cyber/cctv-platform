@@ -1,6 +1,7 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
+import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
 
@@ -348,9 +349,9 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
     throw new ConflictError(`Camera with name '${input.name}' already exists`);
   }
 
-  const encryptedPassword = input.smbPasswordEncrypted
+  const encryptedPassword = input.smbPasswordEncrypted && input.smbPasswordEncrypted !== SECRET_MASK
     ? encrypt(input.smbPasswordEncrypted)
-    : input.smbPasswordEncrypted ?? null;
+    : null;
 
   let streamPath = input.streamPath ?? null;
   if (!streamPath && input.deviceId && input.channelNumber) {
@@ -386,8 +387,8 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       status: 'inactive',
       deviceId: input.deviceId ?? null,
       channelNumber: input.channelNumber ?? null,
-      rtspUrl: input.rtspUrl ?? null,
-      rtspUrlSub: input.rtspUrlSub ?? null,
+      rtspUrl: sealRtspUrl(input.rtspUrl) ?? null,
+      rtspUrlSub: sealRtspUrl(input.rtspUrlSub) ?? null,
       streamProfile: input.streamProfile ?? undefined,
       mediaNodeId: input.mediaNodeId ?? null,
       streamPath,
@@ -438,7 +439,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.smbSharePath !== undefined) data.smbSharePath = input.smbSharePath;
   if (input.smbDomain !== undefined) data.smbDomain = input.smbDomain;
   if (input.smbUsername !== undefined) data.smbUsername = input.smbUsername;
-  if (input.smbPasswordEncrypted !== undefined) data.smbPasswordEncrypted = input.smbPasswordEncrypted ? encrypt(input.smbPasswordEncrypted) : input.smbPasswordEncrypted;
+  if (input.smbPasswordEncrypted !== undefined && input.smbPasswordEncrypted !== SECRET_MASK) data.smbPasswordEncrypted = input.smbPasswordEncrypted ? encrypt(input.smbPasswordEncrypted) : input.smbPasswordEncrypted;
   if (input.smbSubdirectoryPattern !== undefined) data.smbSubdirectoryPattern = input.smbSubdirectoryPattern;
   if (input.pollIntervalSeconds !== undefined) data.pollIntervalSeconds = input.pollIntervalSeconds;
   if (input.timezone !== undefined) data.timezone = input.timezone;
@@ -463,8 +464,9 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   // CCTV & Streaming fields
   if (input.deviceId !== undefined) data.deviceId = input.deviceId;
   if (input.channelNumber !== undefined) data.channelNumber = input.channelNumber;
-  if (input.rtspUrl !== undefined) data.rtspUrl = input.rtspUrl;
-  if (input.rtspUrlSub !== undefined) data.rtspUrlSub = input.rtspUrlSub;
+  // A redacted URL echoed back by an edit form means "unchanged".
+  if (input.rtspUrl !== undefined && !isMaskedRtspUrl(input.rtspUrl)) data.rtspUrl = sealRtspUrl(input.rtspUrl);
+  if (input.rtspUrlSub !== undefined && !isMaskedRtspUrl(input.rtspUrlSub)) data.rtspUrlSub = sealRtspUrl(input.rtspUrlSub);
   if (input.streamProfile !== undefined) data.streamProfile = input.streamProfile;
   if (input.mediaNodeId !== undefined) data.mediaNodeId = input.mediaNodeId;
   if (input.streamPath !== undefined) data.streamPath = input.streamPath;
@@ -592,4 +594,25 @@ export async function emptyCameraTrash() {
     return tx.camera.deleteMany({ where: { id: { in: ids } } });
   });
   return { deleted: result.count };
+}
+
+/**
+ * Shape a camera for an API response: RTSP credentials are always redacted, the
+ * device password is masked, and the decrypted SMB password is only kept for the
+ * factory sync worker's service key (role 'system'), which needs it to mount shares.
+ */
+export function toPublicCamera<T extends Record<string, any>>(camera: T, viewerRole?: string): T {
+  if (!camera) return camera;
+  const out: Record<string, any> = {
+    ...camera,
+    rtspUrl: redactRtspUrl(camera.rtspUrl),
+    rtspUrlSub: redactRtspUrl(camera.rtspUrlSub),
+  };
+  if (viewerRole !== 'system' && 'smbPasswordEncrypted' in camera) {
+    out.smbPasswordEncrypted = camera.smbPasswordEncrypted ? SECRET_MASK : null;
+  }
+  if (camera.device && typeof camera.device === 'object' && 'passwordEncrypted' in camera.device) {
+    out.device = { ...camera.device, passwordEncrypted: camera.device.passwordEncrypted ? SECRET_MASK : null };
+  }
+  return out as T;
 }

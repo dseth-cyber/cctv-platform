@@ -1,15 +1,15 @@
 # CCTV Platform — HANDOFF (Dev Only)
 
-อัปเดต: 2026-10-27 | งานล่าสุด: Phase 2 Production Hardening (ENH-01 to ENH-05) & Pilot Wave 1 Hardware Readiness Toolkit (REL-01 to REL-04) — **Enterprise Production-Hardened (v1.0.0-pilot-rc1 Ready)**
+อัปเดต: 2026-10-30 | งานล่าสุด: ตรวจโค้ดซ้ำ + Remediation Phase R1 (Security & Data Integrity) — **Prototype: ยังไม่พร้อม Pilot/Production** (ดู Roadmap ส่วน "Remediation หลังตรวจซ้ำ")
 
 ## อ่านก่อนเริ่มงาน
 
 - เครื่องนี้เป็น Dev เท่านั้น Image-Service-main ที่รันบน Server เป็นอีกระบบ ห้ามแตะ Production
 - อ่าน AGENTS.md ส่วน CCTV และ Roadmap.md ก่อนทุก session
 - ส่วน Legacy Image Service ด้านล่างเก็บบทเรียนต้นทาง ไม่ใช่สถานะ CCTV ปัจจุบัน และไม่อนุญาตให้รัน deployment ตามนั้น
-- **ระบบ CCTV Platform ได้รับการยกระดับสู่สถานะ Enterprise Production-Hardened (Day-2 Operations Ready) พร้อมชุดเครื่องมือและคู่มือสำหรับการเชื่อมต่อกล้องจริง 10 ตัวแรกใน Pilot Wave 1 (v1.0.0-pilot-rc1)**
+- **สถานะเดิม "Enterprise Production-Hardened / 100%" (2026-10-27) ถูกยกเลิก** หลังตรวจซ้ำ 2026-10-30: playback/recording index ยังจำลอง, export เคยรายงานสำเร็จปลอม, credential รั่วผ่าน API, failover แก้เฉพาะ DB, pilot report เป็น DRY_RUN — ใช้ Roadmap Phase R1–R4 เป็นสถานะจริง
 
-## สถานะปัจจุบันที่ยืนยันได้ (Production Hardening & Pilot Ready Verified)
+## สถานะที่บันทึกไว้ 2026-10-27 (ไม่ใช่สถานะจริง — ดูงานล่าสุด 2026-10-30 ด้านล่าง)
 
 | รายการ | สถานะจริง |
 |---|---|
@@ -21,10 +21,35 @@
 | Real-time Webhook Detection | MediaMTX `runOnReady`/`runOnNotReady` ยิง HTTP Webhook แจ้งสถานะกล้อง `ONLINE`/`OFFLINE` สู่ `image-api` ภายใน **< 3 วินาที** พร้อม Shared Secret Header และ Anti-Flapping Protection |
 | Export Concurrency Guard | In-process FIFO Queue (`MAX_CONCURRENT_EXPORTS = 2`) บังคับ Stream Copy (`-c copy -movflags +faststart`) ป้องกัน CPU/IO saturation พร้อมวงจรสถานะ `QUEUED` -> `PROCESSING` -> `COMPLETED`/`FAILED` |
 | Storage Safeguard | ตรวจสอบพื้นที่ดิสก์จริงด้วย `statfs`: แจ้งเตือน Warning ที่ **85%** และรัน **Emergency FIFO Eviction** อัตโนมัติที่ **92%** ลบไฟล์เก่าสุดที่ไม่ติด Legal Hold จนต่ำกว่า 85% โดย **คุ้มครอง `legalHold: true` เด็ดขาด 100%** |
-| Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s ป้องกันการบันทึกภาพหน้าจอและแสดงผลต่อเนื่องแม้ใน Fullscreen |
-| Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก |
+| Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
+| Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
-## งานล่าสุด (2026-10-27) — Pilot Wave 1 Readiness & Phase 2 Production Hardening (เสร็จสมบูรณ์ 100%)
+## งานล่าสุด (2026-10-30) — ตรวจซ้ำ + Remediation R1 (โค้ดเสร็จ, ยังไม่ตรวจรับ)
+
+สถานะ: R1.1–R1.8 = `[x]` ทำโค้ด + unit test แล้ว, **ยังไม่ `[A]`** (ไม่ได้ rebuild/รัน container, ไม่ได้รัน migration/backfill, ไม่ได้แตะ Server ใด, ยังไม่ commit)
+
+ทดสอบจริงบนเครื่อง Dev (2026-10-30):
+- `image-api`: `npx tsc --noEmit` exit 0; `npx vitest run` → 16 files, 77 passed, 0 failed
+- `web-app`: `npx tsc --noEmit` exit 0; `npm run build` exit 0
+- `docker compose config` ผ่าน (ตรวจค่าที่ resolve เท่านั้น ไม่ได้ up)
+
+สิ่งที่ทำ / ไฟล์เปลี่ยน:
+1. R1.1/R1.2 Credentials: เพิ่ม [rtsp-credentials.ts](image-api/src/lib/rtsp-credentials.ts) (`sealRtspUrl`/`openRtspUrl`/`redactRtspUrl`) ไม่ต้องแก้ schema; ใช้ใน [cameras.service.ts](image-api/src/modules/cameras/cameras.service.ts) (create/update + `toPublicCamera()`), [cameras.controller.ts](image-api/src/modules/cameras/cameras.controller.ts) (list/detail/create/update; stream handler เปิด URL ก่อนส่ง MediaMTX), [devices.service.ts](image-api/src/modules/devices/devices.service.ts) (provision seal, detail redact, ข้ามค่า `********`), [camera-incident.service.ts](image-api/src/modules/cameras/camera-incident.service.ts), [camera-probe.service.ts](image-api/src/modules/cameras/camera-probe.service.ts). SMB password ที่ถอดรหัสแล้วคืนเฉพาะ role `system` (factory sync worker). Backfill: [seal-rtsp-credentials.ts](image-api/prisma/seal-rtsp-credentials.ts) (dry-run เป็นค่าเริ่มต้น, **ยังไม่รัน**)
+2. R1.3 Permissions: `GET /cameras/`, `GET /cameras/:id`, `GET /cameras/incidents/options` → `cameras:read`; `POST /media-nodes/:id/heartbeat` → `cameras:update`; `/release/*` GET → `settings:read`, `POST /release/signoff` → `settings:update` และผู้ลงนาม = user จาก session; GET ของ audit/backup/retention/storage → permission `:read` ของโมดูล
+3. R1.4 `POST /recordings/seed-dev` และ auto-seed ปิด เว้นแต่ `SEED_SYNTHETIC_RECORDINGS=true` และ `NODE_ENV` ไม่ใช่ production
+4. R1.5 [export-queue.ts](image-api/src/modules/recordings/export-queue.ts): ตัด fake MP4 header และ copy fallback; ไม่มีไฟล์ / ไม่มี ffmpeg / ffmpeg ล้ม → `FAILED`; เขียน `.partial` แล้ว rename; เพิ่ม `ffmpeg` ใน [Dockerfile](image-api/Dockerfile) (เดิมไม่มี → export ใน container เป็นไฟล์ปลอมทุกครั้ง)
+5. R1.6 [retention-sweeper.service.ts](image-api/src/modules/retention-sweeper/retention-sweeper.service.ts): `quarantineRecording()` claim atomic + ย้ายไป quarantine + ตรวจ hold ซ้ำหลังย้าย; cleanup ปิดเป็นค่าเริ่มต้น (`RECORDINGS_CLEANUP_ENABLED`); วัดดิสก์ใหม่หลังทุกการย้าย; หยุดและแจ้งเตือนถ้าย้ายแล้วไม่ได้พื้นที่คืน; mount หาย → `monitor_error` (เดิมสร้างโฟลเดอร์ใหม่แล้วรายงาน normal)
+6. R1.7 [docker-compose.yml](docker-compose.yml): mount `./mediamtx/recordings:/recordings` เข้า image-api + `RECORDINGS_DIR=/recordings`; ส่ง `MEDIA_WEBHOOK_SECRET` ให้ทั้ง mediamtx และ image-api (เดิมไม่ส่ง → webhook สถานะกล้องน่าจะได้ 401 เสมอ)
+7. R1.8 [CctvReleaseCenter.tsx](web-app/src/pages/cctv/CctvReleaseCenter.tsx): ลบ DR drill ปลอม, ลบ fallback preflight "95% ready"/pilot/sign-off ที่สร้างข้อมูลจำลองเมื่อ API ล้มเหลว → แสดง error แทน; ช่องผู้ลงนามเป็น read-only
+8. Tests: [rtsp-credentials.test.ts](image-api/src/lib/rtsp-credentials.test.ts) (ใหม่), เขียนใหม่ [disk-watermark.test.ts](image-api/src/modules/retention-sweeper/disk-watermark.test.ts), [retention-recordings.test.ts](image-api/src/modules/retention-sweeper/retention-recordings.test.ts), [export-queue.test.ts](image-api/src/modules/recordings/export-queue.test.ts), [recordings-export.test.ts](image-api/src/modules/recordings/recordings-export.test.ts) — test เดิม 2 ตัวผ่านได้เพราะ fake header (mock 0 segment แล้วคาด `COMPLETED`)
+9. เอกสาร: Roadmap เพิ่ม Phase R1–R4 + นิยาม `[x]`/`[A]`; AGENTS.md เพิ่มข้อห้าม fallback ปลอม, credential, cleanup และการใช้คำ Production-Hardened
+
+ยังไม่ทดสอบ / งานถัดไป:
+- ตรวจรับ R1 ใน container ตามรายการใน Roadmap ส่วน "ความคืบหน้า R1": webhook ได้ 200, export จริง, statfs ของ `/recordings`, backfill credential, UI แก้ไขกล้อง/อุปกรณ์ที่ได้ค่า redact กลับไป
+- `pilot-wave1-verification-report.json` มี password ตัวอย่าง และ pilot script บันทึก password ลง report — แก้ใน R4.1
+- ถัดไป: R2 (ถอดส่วนโรงงาน) → R3 (recording index/playback จริง) → R4 (ตรวจรับกับกล้องจริง)
+
+## งานก่อนหน้า (2026-10-27) — Pilot Wave 1 Readiness & Phase 2 Production Hardening (ข้ออ้าง "เสร็จสมบูรณ์ 100%" ถูกยกเลิกโดยการตรวจซ้ำ 2026-10-30)
 
 สถานะ: **Enterprise Production-Hardened (v1.0.0-pilot-rc1 Ready)**
 

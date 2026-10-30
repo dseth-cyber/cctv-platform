@@ -1,4 +1,5 @@
 import { getPrisma } from '../../lib/prisma.js';
+import { redactRtspUrl } from '../../lib/rtsp-credentials.js';
 
 async function generateIncidentNumber(): Promise<string> {
   const prisma = getPrisma();
@@ -149,7 +150,7 @@ export async function getIncidents(params: {
 
 export async function getIncident(id: string) {
   const prisma = getPrisma();
-  return prisma.cameraIncident.findUnique({
+  const incident = await prisma.cameraIncident.findUnique({
     where: { id },
     include: {
       camera: {
@@ -166,6 +167,10 @@ export async function getIncident(id: string) {
       event: true,
     },
   });
+  if (incident?.camera) {
+    incident.camera.rtspUrl = redactRtspUrl(incident.camera.rtspUrl);
+  }
+  return incident;
 }
 
 export async function getOpenIncidentForCamera(cameraId: string) {

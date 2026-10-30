@@ -107,36 +107,38 @@ export class ExportConcurrencyQueue {
         .map((s) => s.filePath)
         .filter((fp): fp is string => Boolean(fp && fs.existsSync(fp)));
 
-      if (validFiles.length > 0) {
+      // Never fabricate evidence: no recorded video on disk means the export failed.
+      if (validFiles.length === 0) {
+        throw new Error(`No recorded video found on disk for the requested window (${segments.length} indexed segments, 0 files present)`);
+      }
+
+      // Write to a temp name and rename only on success, so a half-written file is never downloadable.
+      const partialPath = `${job.fullDiskPath}.partial`;
+      try {
         if (validFiles.length === 1) {
-          // Single file: run ffmpeg with -c copy -movflags +faststart
-          await this.runFfmpeg(['-y', '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', job.fullDiskPath]);
+          await this.runFfmpeg(['-y', '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
         } else {
-          // Multiple files: generate concat file list
           const concatListPath = `${job.fullDiskPath}.concat.txt`;
           const concatContent = validFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
           fs.writeFileSync(concatListPath, concatContent);
 
           try {
-            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', job.fullDiskPath]);
+            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
           } finally {
             if (fs.existsSync(concatListPath)) {
               fs.unlinkSync(concatListPath);
             }
           }
         }
-      }
 
-      // If no valid source files or output not created (e.g. simulated environment), produce sample fMP4 header
-      if (!fs.existsSync(job.fullDiskPath)) {
-        const sampleHeader = Buffer.from([
-          0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, // ftyp
-          0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00, // isom
-          0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32, // isomiso2
-          0x6d, 0x70, 0x34, 0x31, 0x00, 0x00, 0x00, 0x08, // mp41 free
-          0x66, 0x72, 0x65, 0x65,
-        ]);
-        fs.writeFileSync(job.fullDiskPath, sampleHeader);
+        if (!fs.existsSync(partialPath) || fs.statSync(partialPath).size === 0) {
+          throw new Error('ffmpeg finished without producing an output file');
+        }
+        fs.renameSync(partialPath, job.fullDiskPath);
+      } finally {
+        if (fs.existsSync(partialPath)) {
+          fs.unlinkSync(partialPath);
+        }
       }
 
       // 3. Compute SHA-256 and chain of custody
@@ -193,22 +195,14 @@ export class ExportConcurrencyQueue {
     try {
       await execFileAsync('ffmpeg', args, { timeout: 120000 });
     } catch (err: any) {
-      // If ffmpeg executable is missing on host, fallback to copyFileSync if input file exists
+      // No copy fallback: copying the raw input (or the concat list) would yield a file that is not a valid clip.
       if (err.code === 'ENOENT') {
-        logger.warn('ffmpeg not found on system PATH — falling back to direct copy mode');
-        const inputArgIndex = args.indexOf('-i');
-        if (inputArgIndex !== -1 && args[inputArgIndex + 1]) {
-          const src = args[inputArgIndex + 1];
-          const dest = args[args.length - 1];
-          if (fs.existsSync(src)) {
-            fs.copyFileSync(src, dest);
-            return;
-          }
-        }
+        throw new Error('ffmpeg is not installed in the image-api runtime; cannot export clips');
       }
-      throw err;
+      throw new Error(`ffmpeg failed: ${String(err.stderr || err.message).slice(-500)}`);
     }
   }
+
 }
 
 const envMaxExports = process.env.MAX_CONCURRENT_EXPORTS ? parseInt(process.env.MAX_CONCURRENT_EXPORTS, 10) : 2;
