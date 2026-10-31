@@ -45,7 +45,7 @@
 
 - [A] R3.1 Indexer: hook `runOnRecordSegmentComplete` → `POST /media/events/segment-complete` (secret), duration จาก ffprobe, path ต้องอยู่ใน `RECORDINGS_DIR`; reconcile ตอน start + ทุก 5 นาที. ตรวจ: hook ลงดัชนี segment จริง; หยุด image-api ระหว่างบันทึก → reconcile ตอน start เก็บ 2 segment ที่พลาดครบ
 - [A] R3.2 `GET /recordings/playback-stream?cameraId&start&duration` คืน URL ของ MediaMTX playback (`/mediamtx/playback/get`, mp4, stream token) เฉพาะช่วงที่มีในดัชนี ไม่งั้น 404. ตรวจ: ผ่าน nginx ได้ 200 `video/mp4` h264+aac 60.006s; path กล้องไม่มี token/ token ผิด → 403
-- [x] R3.3 หน้า Playback ใช้ `<video>` จริง (ตาม currentTime, seek/โหลดช่วงใหม่, ความเร็ว), ลบ timer จำลองและปุ่ม seed; แก้เวลาไทยถูกส่งเป็น UTC (export คลาด 7 ชม.) และ timeline ใช้วันแบบ UTC. ยังไม่ได้เปิดเล่นในเบราว์เซอร์
+- [A] R3.3 หน้า Playback ใช้ `<video>` จริง (ตาม currentTime, seek/โหลดช่วงใหม่, ความเร็ว), ลบ timer จำลองและปุ่ม seed; แก้เวลาไทยถูกส่งเป็น UTC (export คลาด 7 ชม.) และ timeline ใช้วันแบบ UTC. ตรวจในเบราว์เซอร์ 2026-10-31: เล่น `sim/ch1` ของ `r1-accept-cam` ได้ภาพจริง, ตัวนับในภาพ 126s หลังเริ่มสตรีม 08:03:47Z = 15:05:53 (UTC+7) ตรงกับเวลาที่หน้าแสดง, timeline แสดงช่วงที่บันทึกจริง. แก้ระหว่างตรวจ: ช่องเลือกกล้องว่างเพราะอ่าน `.items` จาก `/cameras` ที่คืน array
 - [x] R3.4 Snapshot ฝังผู้ใช้/กล้อง/เวลาไทยลงในภาพ; overlay บนหน้าจอ (SecurityWatermark) ป้องกัน screen capture ไม่ได้ — เป็นแค่การระบุตัวผู้ดู. ยังไม่ได้กดถ่ายในเบราว์เซอร์
 - [A] R3.5 export ตัดตามช่วงที่ขอ (`-ss/-t`, stream copy, ตรง keyframe) และบันทึกช่วงที่ครอบคลุม + segment ต้นทางใน chain of custody. ตรวจ: ขอ 30s ข้าม 2 segment → ไฟล์ 30.017s h264+aac, SHA-256 ของไฟล์ที่ดาวน์โหลดตรง
 
