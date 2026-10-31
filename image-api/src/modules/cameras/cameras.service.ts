@@ -1,8 +1,10 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
-import { encrypt, decrypt } from '../../lib/encryption.js';
+import { decrypt } from '../../lib/encryption.js';
 import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
+import { config } from '../../config/index.js';
+import { factoryInclude, flattenFactory, toFactoryData, type FactorySettingsInput } from './camera-factory.js';
 import type { Prisma } from '@prisma/client';
 
 // System-wide defaults used when neither the camera nor its template specify a value.
@@ -71,10 +73,10 @@ export async function getCameraEffectiveConfig(cameraId: string): Promise<Effect
   const prisma = getPrisma();
   const camera = await prisma.camera.findUnique({
     where: { id: cameraId },
-    include: { template: true },
+    include: { template: true, factorySettings: true },
   });
   if (!camera) throw new NotFoundError('Camera', cameraId);
-  return resolveEffectiveConfig(camera as ResolvableCamera);
+  return resolveEffectiveConfig({ ...(camera.factorySettings ?? {}), template: camera.template } as ResolvableCamera);
 }
 
 export async function listCameras(filters?: { status?: string; enabled?: boolean; deviceId?: string; siteId?: string; zoneId?: string }) {
@@ -95,6 +97,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
       device: { select: { id: true, name: true, deviceType: true, ipAddress: true } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
+      ...factoryInclude(),
     },
     orderBy: { name: 'asc' },
   });
@@ -102,7 +105,8 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
   const cameraIds = cameras.map(c => c.id);
 
   const [counts, allIncidents] = await Promise.all([
-    cameraIds.length > 0
+    // Factory image counts only exist while the factory modules are on [R2.3].
+    config.factoryModulesEnabled && cameraIds.length > 0
       ? prisma.image.groupBy({
           by: ['cameraId'],
           where: { cameraId: { in: cameraIds }, deletedAt: null },
@@ -183,37 +187,40 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
     return `${start} - ${end}`;
   };
 
-  // Decrypt SMB passwords for workers that need plaintext credentials, and
-  // expose resolved processing config so sync/processing workers can read it.
   return cameras.map((c) => {
-    const totalImagesCount = countMap.get(c.id) ?? 0;
     const cameraAgeDays = Math.max(1, Math.ceil((Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
-    const averageImagesPerDay = Math.round((Number(totalImagesCount) / cameraAgeDays) * 100) / 100;
     const stats = statsMap.get(c.id);
-
-    return {
-      ...c,
-      totalImagesCount,
+    const base = {
+      ...flattenFactory(c),
       cameraAgeDays,
-      averageImagesPerDay,
       incidentCount: stats?.incidentCount ?? 0,
       topTechnician: stats ? getMaxKey(stats.technicians) : '—',
       topReason: stats ? getMaxKey(stats.reasons) : '—',
       peakHour: stats ? getPeakHourStr(stats.hours) : '—',
-      overrides: {
-        acceptedExtensions: c.acceptedExtensions,
-        convertToPng: c.convertToPng,
-        keepSmaller: c.keepSmaller,
-        generateThumbnail: c.generateThumbnail,
-        thumbnailSize: c.thumbnailSize,
-        compressionQuality: c.compressionQuality,
-      },
-      smbPasswordEncrypted: c.smbPasswordEncrypted
-        ? decrypt(c.smbPasswordEncrypted)
-        : c.smbPasswordEncrypted,
-      ...resolveEffectiveConfig(c as ResolvableCamera),
     };
+    if (!config.factoryModulesEnabled) return base;
+    // Factory workers need the plaintext SMB password and the resolved processing config.
+    const totalImagesCount = countMap.get(c.id) ?? 0;
+    return { ...base, ...factoryExtras(base as any, totalImagesCount, cameraAgeDays) };
   });
+}
+
+// Image counts, raw overrides, decrypted SMB password and resolved processing config (factory only).
+function factoryExtras(camera: Record<string, any>, totalImagesCount: number, cameraAgeDays: number) {
+  return {
+    totalImagesCount,
+    averageImagesPerDay: Math.round((Number(totalImagesCount) / cameraAgeDays) * 100) / 100,
+    overrides: {
+      acceptedExtensions: camera.acceptedExtensions,
+      convertToPng: camera.convertToPng,
+      keepSmaller: camera.keepSmaller,
+      generateThumbnail: camera.generateThumbnail,
+      thumbnailSize: camera.thumbnailSize,
+      compressionQuality: camera.compressionQuality,
+    },
+    smbPasswordEncrypted: camera.smbPasswordEncrypted ? decrypt(camera.smbPasswordEncrypted) : camera.smbPasswordEncrypted,
+    ...resolveEffectiveConfig(camera as ResolvableCamera),
+  };
 }
 
 export async function getCameraEvents(cameraId: string, params: { since?: string; until?: string; limit?: number }) {
@@ -243,16 +250,13 @@ export async function getCameraById(id: string) {
       site: true,
       zone: true,
       mediaNode: true,
+      ...factoryInclude(),
     },
   });
 
   if (!camera) {
     throw new (await import('../../lib/errors.js')).NotFoundError('Camera', id);
   }
-
-  const totalImagesCount = await prisma.image.count({
-    where: { cameraId: id, deletedAt: null }
-  });
 
   const incidents = await (prisma as any).cameraIncident.findMany({
     where: { cameraId: id },
@@ -304,37 +308,24 @@ export async function getCameraById(id: string) {
   };
 
   const cameraAgeDays = Math.max(1, Math.ceil((Date.now() - new Date(camera.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
-  const averageImagesPerDay = Math.round((Number(totalImagesCount) / cameraAgeDays) * 100) / 100;
 
-  // Decrypt SMB password for workers that need plaintext credentials, and
-  // expose resolved processing config so sync/processing workers can read it.
-  // Raw (possibly null) camera-level overrides are preserved under `overrides`
-  // so the UI can distinguish "explicitly set" from "inherit from template".
-  return {
-    ...camera,
-    totalImagesCount,
+  const base = {
+    ...flattenFactory(camera),
     cameraAgeDays,
-    averageImagesPerDay,
     incidentCount: incidents.length,
     topTechnician: getMaxKey(technicians),
     topReason: getMaxKey(reasons),
     peakHour: getPeakHourStr(hours),
-    overrides: {
-      acceptedExtensions: camera.acceptedExtensions,
-      convertToPng: camera.convertToPng,
-      keepSmaller: camera.keepSmaller,
-      generateThumbnail: camera.generateThumbnail,
-      thumbnailSize: camera.thumbnailSize,
-      compressionQuality: camera.compressionQuality,
-    },
-    smbPasswordEncrypted: camera.smbPasswordEncrypted
-      ? decrypt(camera.smbPasswordEncrypted)
-      : camera.smbPasswordEncrypted,
-    ...resolveEffectiveConfig(camera as ResolvableCamera),
   };
+  if (!config.factoryModulesEnabled) return base;
+
+  // Raw (possibly null) overrides are kept under `overrides` so the factory UI can tell
+  // "explicitly set" from "inherit from template".
+  const totalImagesCount = await prisma.image.count({ where: { cameraId: id, deletedAt: null } });
+  return { ...base, ...factoryExtras(base as any, totalImagesCount, cameraAgeDays) };
 }
 
-export async function createCamera(input: CreateCameraInput & { createdBy?: string }) {
+export async function createCamera(input: CreateCameraInput & { createdBy?: string }, factory: FactorySettingsInput | null = null) {
   const prisma = getPrisma();
 
   if (input.retentionPolicyId) {
@@ -349,10 +340,6 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
     throw new ConflictError(`Camera with name '${input.name}' already exists`);
   }
 
-  const encryptedPassword = input.smbPasswordEncrypted && input.smbPasswordEncrypted !== SECRET_MASK
-    ? encrypt(input.smbPasswordEncrypted)
-    : null;
-
   let streamPath = input.streamPath ?? null;
   if (!streamPath && input.deviceId && input.channelNumber) {
     streamPath = `device_${input.deviceId.substring(0, 8)}_ch${input.channelNumber}`;
@@ -363,24 +350,9 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       name: input.name,
       description: input.description,
       ipAddress: input.ipAddress ?? null,
-      smbSharePath: input.smbSharePath ?? null,
-      smbDomain: input.smbDomain ?? null,
-      smbUsername: input.smbUsername ?? null,
-      smbPasswordEncrypted: encryptedPassword,
-      smbSubdirectoryPattern: input.smbSubdirectoryPattern ?? null,
-      pollIntervalSeconds: input.pollIntervalSeconds,
       timezone: input.timezone,
-      captureMode: input.captureMode,
-      cameraTypeCode: input.cameraTypeCode ?? null,
-      viewpointCode: input.viewpointCode ?? null,
       retentionPolicyId: input.retentionPolicyId ?? null,
       templateId: input.templateId ?? null,
-      acceptedExtensions: input.acceptedExtensions ?? [],
-      convertToPng: input.convertToPng ?? null,
-      keepSmaller: input.keepSmaller ?? null,
-      generateThumbnail: input.generateThumbnail ?? null,
-      thumbnailSize: input.thumbnailSize ?? null,
-      compressionQuality: input.compressionQuality ?? null,
       metadata: input.metadata as object,
       slaTargetPercent: input.slaTargetPercent ?? null,
       createdBy: input.createdBy ?? null,
@@ -397,6 +369,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       onvifProfileToken: input.onvifProfileToken ?? null,
+      ...(factory ? { factorySettings: { create: toFactoryData(factory) as any } } : {}),
     },
     include: {
       retentionPolicy: true,
@@ -404,13 +377,14 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       device: true,
       site: true,
       zone: true,
+      ...factoryInclude(),
     },
   });
 
-  return camera;
+  return flattenFactory(camera);
 }
 
-export async function updateCamera(id: string, input: UpdateCameraInput) {
+export async function updateCamera(id: string, input: UpdateCameraInput, factory: FactorySettingsInput | null = null) {
   const prisma = getPrisma();
 
   const existing = await prisma.camera.findUnique({ where: { id } });
@@ -436,30 +410,13 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.name !== undefined) data.name = input.name;
   if (input.description !== undefined) data.description = input.description;
   if (input.ipAddress !== undefined) data.ipAddress = input.ipAddress;
-  if (input.smbSharePath !== undefined) data.smbSharePath = input.smbSharePath;
-  if (input.smbDomain !== undefined) data.smbDomain = input.smbDomain;
-  if (input.smbUsername !== undefined) data.smbUsername = input.smbUsername;
-  if (input.smbPasswordEncrypted !== undefined && input.smbPasswordEncrypted !== SECRET_MASK) data.smbPasswordEncrypted = input.smbPasswordEncrypted ? encrypt(input.smbPasswordEncrypted) : input.smbPasswordEncrypted;
-  if (input.smbSubdirectoryPattern !== undefined) data.smbSubdirectoryPattern = input.smbSubdirectoryPattern;
-  if (input.pollIntervalSeconds !== undefined) data.pollIntervalSeconds = input.pollIntervalSeconds;
   if (input.timezone !== undefined) data.timezone = input.timezone;
-  if (input.captureMode !== undefined) data.captureMode = input.captureMode;
-  if (input.cameraTypeCode !== undefined) data.cameraTypeCode = input.cameraTypeCode;
-  if (input.viewpointCode !== undefined) data.viewpointCode = input.viewpointCode;
   if (input.retentionPolicyId !== undefined) data.retentionPolicyId = input.retentionPolicyId;
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.status !== undefined) data.status = input.status;
   if (input.lastPolledAt !== undefined) data.lastPolledAt = new Date(input.lastPolledAt);
-  if (input.sourceOldestFileAt !== undefined) data.sourceOldestFileAt = input.sourceOldestFileAt ? new Date(input.sourceOldestFileAt) : null;
-  if (input.sourceFileCount !== undefined) data.sourceFileCount = input.sourceFileCount;
   if (input.metadata !== undefined) data.metadata = input.metadata as object;
   if (input.templateId !== undefined) data.templateId = input.templateId;
-  if (input.acceptedExtensions !== undefined) data.acceptedExtensions = input.acceptedExtensions ?? [];
-  if (input.convertToPng !== undefined) data.convertToPng = input.convertToPng;
-  if (input.keepSmaller !== undefined) data.keepSmaller = input.keepSmaller;
-  if (input.generateThumbnail !== undefined) data.generateThumbnail = input.generateThumbnail;
-  if (input.thumbnailSize !== undefined) data.thumbnailSize = input.thumbnailSize;
-  if (input.compressionQuality !== undefined) data.compressionQuality = input.compressionQuality;
   if (input.slaTargetPercent !== undefined) data.slaTargetPercent = input.slaTargetPercent;
   // CCTV & Streaming fields
   if (input.deviceId !== undefined) data.deviceId = input.deviceId;
@@ -476,6 +433,10 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;
+  if (factory) {
+    const factoryData = toFactoryData(factory) as any;
+    data.factorySettings = { upsert: { create: factoryData, update: factoryData } };
+  }
 
   const updated = await prisma.camera.update({
     where: { id },
@@ -486,6 +447,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
       device: true,
       site: true,
       zone: true,
+      ...factoryInclude(),
     },
   });
 
@@ -504,7 +466,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
     });
   }
 
-  return updated;
+  return flattenFactory(updated);
 }
 
 export async function deactivateCamera(id: string) {

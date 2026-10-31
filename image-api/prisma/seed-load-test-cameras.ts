@@ -36,19 +36,25 @@ async function main() {
 
   // Insert mock cameras in batch
   const camerasData = [];
+  // [R2.3] SMB/polling settings live in camera_factory_settings, one row per camera.
+  const factoryData = [];
   for (let i = 1; i <= count; i++) {
-    camerasData.push({
-      id: `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`,
-      name: `Mock Camera ${i}`,
-      description: `Auto-generated camera for load testing at scale`,
-      ipAddress: 'image-smb-server',
+    const id = `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`;
+    factoryData.push({
+      cameraId: id,
       smbSharePath: '//image-smb-server/images',
       smbDomain: 'WORKGROUP',
       smbUsername: 'camera',
       smbPasswordEncrypted: 'smbpass',
       smbSubdirectoryPattern: `cam_${i}`, // Scanner will look inside images/cam_i/
-      status: CameraStatus.active,
       pollIntervalSeconds: 30,
+    });
+    camerasData.push({
+      id,
+      name: `Mock Camera ${i}`,
+      description: `Auto-generated camera for load testing at scale`,
+      ipAddress: 'image-smb-server',
+      status: CameraStatus.active,
       retentionPolicyId: defaultPolicyId,
       enabled: true,
       metadata: { location: 'stress-test-rack', index: i },
@@ -60,6 +66,7 @@ async function main() {
     data: camerasData,
     skipDuplicates: true,
   });
+  await prisma.cameraFactorySettings.createMany({ data: factoryData, skipDuplicates: true });
 
   console.log(`Successfully seeded ${created.count} mock cameras.`);
 }

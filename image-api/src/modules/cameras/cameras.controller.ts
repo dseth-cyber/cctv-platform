@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createCameraSchema, updateCameraSchema, cameraQuerySchema } from './cameras.schema.js';
+import { extractFactoryInput } from './camera-factory.js';
+import { config } from '../../config/index.js';
 import * as camerasService from './cameras.service.js';
 import * as cameraAnalytics from './camera-analytics.service.js';
 import * as incidentService from './camera-incident.service.js';
@@ -80,9 +82,10 @@ async function eventsHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 async function createHandler(request: FastifyRequest, reply: FastifyReply) {
+  const factory = extractFactoryInput(request.body);
   const input = createCameraSchema.parse(request.body);
   const user = (request as any).user;
-  const camera = await camerasService.createCamera({ ...input, createdBy: user?.username });
+  const camera = await camerasService.createCamera({ ...input, createdBy: user?.username }, factory);
   const redis = getRedisClient();
   await redis.set('sync:scan-now', 'all', 'EX', 60);
 
@@ -133,11 +136,12 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
     resolutionDesc: body.resolutionDesc as string | undefined,
     observers: body.observers as any[] | undefined,
   };
+  const factory = extractFactoryInput(body);
   const input = updateCameraSchema.parse(body);
   const user = (request as any).user;
 
   const beforeCamera = await camerasService.getCameraById(id);
-  const camera = await camerasService.updateCamera(id, { ...input, _changedBy: user?.username } as any);
+  const camera = await camerasService.updateCamera(id, { ...input, _changedBy: user?.username } as any, factory);
 
   if (input.status && input.status !== beforeCamera.status) {
     createAuditLog({
@@ -386,6 +390,10 @@ async function comparisonHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 async function scanNowHandler(_request: FastifyRequest, reply: FastifyReply) {
+  // Signals the factory SMB sync worker [R2.3].
+  if (!config.factoryModulesEnabled) {
+    return reply.status(409).send({ statusCode: 409, error: 'Conflict', message: 'SMB scan is part of the factory modules, which are disabled' });
+  }
   const redis = getRedisClient();
   await redis.set('sync:scan-now', 'all', 'EX', 60);
 
@@ -399,15 +407,17 @@ async function scanNowHandler(_request: FastifyRequest, reply: FastifyReply) {
 
 async function scanCameraHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
+  // "Scan now" asks the factory SMB sync worker to poll this camera [R2.3].
+  if (!config.factoryModulesEnabled) {
+    return reply.status(409).send({ statusCode: 409, error: 'Conflict', message: 'SMB scan is part of the factory modules, which are disabled' });
+  }
   const prisma = (await import('../../lib/prisma.js')).getPrisma();
-  const camera = await prisma.camera.findUnique({
+  const found = await prisma.camera.findUnique({
     where: { id },
-    select: {
-      id: true, operationalStatus: true,
-      smbSharePath: true, smbUsername: true, smbPasswordEncrypted: true, smbDomain: true,
-    },
+    select: { id: true, operationalStatus: true, factorySettings: true },
   });
-  if (!camera) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Camera not found' });
+  if (!found) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Camera not found' });
+  const camera = { ...(found.factorySettings ?? {}), ...found } as any;
 
   const redis = getRedisClient();
   await redis.sadd('sync:scan-now:ids', id);

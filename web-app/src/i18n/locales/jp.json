@@ -3007,7 +3007,11 @@
       "field_permissions": "権限",
       "field_expiresAt": "有効期限",
       "field_sortOrder": "表示順",
-      "field_customPermissions": "カスタム権限"
+      "field_customPermissions": "カスタム権限",
+      "groupStream": "ストリーム元",
+      "field_rtspUrl": "RTSP URL（メイン）",
+      "field_rtspUrlSub": "RTSP URL（サブ）",
+      "field_streamPath": "ストリームパス"
     },
     "productionRuns": {
       "title": "生産ラン",
@@ -4099,7 +4103,13 @@
       "clearFilters": "絞り込みを解除",
       "clear": "クリア",
       "confirmDeletingTheSelected": "選択したカメラ",
-      "camerasPermanentlyPreviouslyProcessedImagesAre": "台を完全に削除しますか? 処理済みの画像は残りますが、カメラとの関連付けは解除されます。この操作は元に戻せません。"
+      "camerasPermanentlyPreviouslyProcessedImagesAre": "台を完全に削除しますか? 処理済みの画像は残りますが、カメラとの関連付けは解除されます。この操作は元に戻せません。",
+      "rtspUrlMain": "RTSP URL（メインストリーム）",
+      "rtspUrlSub": "RTSP URL（サブストリーム）",
+      "rtspUrlHint": "URL 内の認証情報は保存前に暗号化され、再表示されません",
+      "rtspUrlRedactedHint": "パスワードは非表示です。そのままで既存の URL を維持、変更する場合は新しい URL を入力してください",
+      "streamPath": "ストリームパス (MediaMTX)",
+      "streamPathHint": "ライブ表示と録画に使うパス（一意）。DVR/NVR チャンネルは空欄可"
     },
     "deadLetterQueue": {
       "jobQueuedForRetry": "ジョブを再試行キューに入れました",

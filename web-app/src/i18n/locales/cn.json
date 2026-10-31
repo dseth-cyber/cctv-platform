@@ -3007,7 +3007,11 @@
       "field_permissions": "权限",
       "field_expiresAt": "过期日期",
       "field_sortOrder": "排序",
-      "field_customPermissions": "自定义权限"
+      "field_customPermissions": "自定义权限",
+      "groupStream": "视频流来源",
+      "field_rtspUrl": "RTSP URL（主码流）",
+      "field_rtspUrlSub": "RTSP URL（子码流）",
+      "field_streamPath": "流路径"
     },
     "productionRuns": {
       "title": "生产批次",
@@ -4099,7 +4103,13 @@
       "clearFilters": "清除筛选",
       "clear": "清除",
       "confirmDeletingTheSelected": "确认删除所选的",
-      "camerasPermanentlyPreviouslyProcessedImagesAre": "台摄像机？已处理的图像会保留，但与摄像机解除关联。此操作无法撤销。"
+      "camerasPermanentlyPreviouslyProcessedImagesAre": "台摄像机？已处理的图像会保留，但与摄像机解除关联。此操作无法撤销。",
+      "rtspUrlMain": "RTSP URL（主码流）",
+      "rtspUrlSub": "RTSP URL（子码流）",
+      "rtspUrlHint": "URL 中的账号密码会在保存前加密，之后不会再显示",
+      "rtspUrlRedactedHint": "密码已隐藏；保持不变即沿用原值，或输入完整新 URL 以更改",
+      "streamPath": "流路径 (MediaMTX)",
+      "streamPathHint": "用于实时查看和录像的路径，必须唯一。DVR/NVR 通道可留空"
     },
     "deadLetterQueue": {
       "jobQueuedForRetry": "任务已加入重试队列",

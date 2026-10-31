@@ -100,11 +100,16 @@ export async function listCameraNames(): Promise<string[]> {
 
 export async function buildCameraReport(cameraId: string): Promise<string> {
   const prisma = getPrisma();
-  const cam = await prisma.camera.findUnique({
+  const row = await prisma.camera.findUnique({
     where: { id: cameraId },
-    select: { id: true, name: true, status: true, operationalStatus: true, ipAddress: true, lastPolledAt: true, sourceOldestFileAt: true, sourceFileCount: true },
+    select: {
+      id: true, name: true, status: true, operationalStatus: true, ipAddress: true, lastPolledAt: true,
+      // Source-buffer figures come from the factory SMB scanner [R2.3].
+      factorySettings: { select: { sourceOldestFileAt: true, sourceFileCount: true } },
+    },
   });
-  if (!cam) return '❌ ไม่พบกล้องนี้ในระบบ';
+  if (!row) return '❌ ไม่พบกล้องนี้ในระบบ';
+  const cam = { ...row, sourceOldestFileAt: row.factorySettings?.sourceOldestFileAt ?? null, sourceFileCount: row.factorySettings?.sourceFileCount ?? null };
 
   const todayStart = localDayStart();
   const sevenDaysAgo = localDayStart(7);
@@ -134,10 +139,10 @@ export async function buildCameraReport(cameraId: string): Promise<string> {
     `งานเสียล่าสุด: ${latest?.capturedAt ? thaiTime(latest.capturedAt) : 'ไม่มีข้อมูล'}`,
     '',
     `📷 <b>งานเสียวันนี้: ${num(todayCount)}</b>`,
-    `งานเสียทั้งหมด: ${num(Number(detail?.totalImagesCount ?? 0))}`,
+    `งานเสียทั้งหมด: ${num(Number((detail as any)?.totalImagesCount ?? 0))}`,
     `เฉลี่ย/ชั่วโมง (วันนี้): ${num(avgPerHour)}`,
     `เฉลี่ย/วัน (7 วันย้อนหลัง): ${num(avgPerDay)}`,
-    `เฉลี่ย/วัน (ตลอดอายุกล้อง): ${num(Number(detail?.averageImagesPerDay ?? 0))}`,
+    `เฉลี่ย/วัน (ตลอดอายุกล้อง): ${num(Number((detail as any)?.averageImagesPerDay ?? 0))}`,
     '',
     `🩺 <b>ความพร้อมใช้งาน (7 วัน)</b>`,
     `Health Score: ${report.healthScore}/100 (${GRADE_TH[report.healthGrade] ?? report.healthGrade})`,

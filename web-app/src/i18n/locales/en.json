@@ -3089,7 +3089,11 @@
       "field_permissions": "Permissions",
       "field_expiresAt": "Expiry Date",
       "field_sortOrder": "Sort Order",
-      "field_customPermissions": "Custom Permissions"
+      "field_customPermissions": "Custom Permissions",
+      "groupStream": "Stream source",
+      "field_rtspUrl": "RTSP URL (main)",
+      "field_rtspUrlSub": "RTSP URL (sub)",
+      "field_streamPath": "Stream path"
     },
     "productionRuns": {
       "title": "Production Runs",
@@ -4102,7 +4106,13 @@
       "clearFilters": "Clear filters",
       "clear": "Clear",
       "confirmDeletingTheSelected": "Confirm deleting the selected",
-      "camerasPermanentlyPreviouslyProcessedImagesAre": "cameras permanently? Previously processed images are kept but unlinked from the camera. This cannot be undone."
+      "camerasPermanentlyPreviouslyProcessedImagesAre": "cameras permanently? Previously processed images are kept but unlinked from the camera. This cannot be undone.",
+      "rtspUrlMain": "RTSP URL (main stream)",
+      "rtspUrlSub": "RTSP URL (sub stream)",
+      "rtspUrlHint": "Credentials in the URL are encrypted before saving and never shown again",
+      "rtspUrlRedactedHint": "The password is hidden; leave it to keep the stored URL, or type a full new URL to change it",
+      "streamPath": "Stream path (MediaMTX)",
+      "streamPathHint": "Path used for live view and recording; must be unique. May be left blank for DVR/NVR channels"
     },
     "deadLetterQueue": {
       "jobQueuedForRetry": "Job queued for retry",

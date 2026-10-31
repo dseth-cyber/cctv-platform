@@ -2,19 +2,24 @@ export interface Camera {
   id: string;
   name: string;
   description?: string;
-  ipAddress: string;
-  smbSharePath: string;
-  smbDomain?: string;
-  smbUsername: string;
-  smbPasswordEncrypted?: string;
-  smbSubdirectoryPattern?: string;
+  ipAddress?: string | null;
   status: 'active' | 'inactive' | 'error' | 'maintenance';
-  pollIntervalSeconds: number;
   timezone?: string;
-  captureMode: 'periodic' | 'on_demand' | 'continuous';
   retentionPolicyId: string;
   enabled: boolean;
   lastPolledAt?: string;
+  // CCTV stream source (RTSP URLs come back with the password redacted).
+  rtspUrl?: string | null;
+  rtspUrlSub?: string | null;
+  streamPath?: string | null;
+  // [R2.3] Factory image-pipeline fields: only present while FACTORY_MODULES_ENABLED=true.
+  smbSharePath?: string;
+  smbDomain?: string;
+  smbUsername?: string;
+  smbPasswordEncrypted?: string;
+  smbSubdirectoryPattern?: string;
+  pollIntervalSeconds?: number;
+  captureMode?: 'periodic' | 'on_demand' | 'continuous';
   lastImageAt?: string;
   totalImagesCount?: number;
   createdAt: string;

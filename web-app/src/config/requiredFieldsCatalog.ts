@@ -44,21 +44,18 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
         fields: [
           f('name', true),
           f('description'),
-          f('cameraTypeCode'),
-          f('captureMode'),
-          f('pollIntervalSeconds'),
           f('templateId'),
           f('retentionPolicyId', true),
         ],
       },
       {
-        labelKey: 'imageService.requiredFields.groupCredentials',
+        // [R2.3] CCTV stream source; the factory SMB fields left the camera form.
+        labelKey: 'imageService.requiredFields.groupStream',
         fields: [
-          f('ipAddress', true),
-          f('smbSharePath', true),
-          f('smbDomain'),
-          f('smbUsername', true),
-          f('smbPasswordEncrypted'),
+          f('ipAddress'),
+          f('rtspUrl'),
+          f('rtspUrlSub'),
+          f('streamPath'),
         ],
       },
     ],

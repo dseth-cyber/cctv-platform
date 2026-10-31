@@ -232,7 +232,6 @@ export async function provisionDeviceChannels(deviceId: string) {
           siteId: device.siteId,
           status: 'inactive',
           operationalStatus: 'unknown',
-          captureMode: 'continuous',
         },
       });
       createdCameras.push(cam);

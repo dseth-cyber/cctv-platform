@@ -3002,7 +3002,11 @@
       "field_permissions": "ခွင့်ပြုချက်များ",
       "field_expiresAt": "သက်တမ်းကုန်ရက်",
       "field_sortOrder": "စီစဉ်မှုအစဉ်",
-      "field_customPermissions": "စိတ်ကြိုက်ခွင့်ပြုချက်"
+      "field_customPermissions": "စိတ်ကြိုက်ခွင့်ပြုချက်",
+      "groupStream": "Stream ရင်းမြစ်",
+      "field_rtspUrl": "RTSP URL (အဓိက)",
+      "field_rtspUrlSub": "RTSP URL (sub)",
+      "field_streamPath": "Stream path"
     },
     "productionRuns": {
       "title": "ထုတ်လုပ်မှု အလုပ်",
@@ -4094,7 +4098,13 @@
       "clearFilters": "စစ်ထုတ်မှု ရှင်းရန်",
       "clear": "ရှင်းရန်",
       "confirmDeletingTheSelected": "ရွေးထားသော ကင်မရာများ ဖျက်ရန် အတည်ပြု",
-      "camerasPermanentlyPreviouslyProcessedImagesAre": "လုံးကို အပြီးဖျက်မလား? လုပ်ဆောင်ပြီး ပုံများကို ထားရှိမည်ဖြစ်သော်လည်း ကင်မရာနှင့် ချိတ်ဆက်မှု ဖြုတ်မည်။ ပြန်ပြင်၍ မရပါ။"
+      "camerasPermanentlyPreviouslyProcessedImagesAre": "လုံးကို အပြီးဖျက်မလား? လုပ်ဆောင်ပြီး ပုံများကို ထားရှိမည်ဖြစ်သော်လည်း ကင်မရာနှင့် ချိတ်ဆက်မှု ဖြုတ်မည်။ ပြန်ပြင်၍ မရပါ။",
+      "rtspUrlMain": "RTSP URL (အဓိက stream)",
+      "rtspUrlSub": "RTSP URL (sub stream)",
+      "rtspUrlHint": "URL ထဲရှိ စကားဝှက်ကို သိမ်းမီ စာဝှက်ပြီး ပြန်မပြပါ",
+      "rtspUrlRedactedHint": "စကားဝှက်ကို ဖျောက်ထားသည်၊ မူလအတိုင်း ထားပါ သို့မဟုတ် URL အသစ် အပြည့်ထည့်ပါ",
+      "streamPath": "Stream path (MediaMTX)",
+      "streamPathHint": "တိုက်ရိုက်ကြည့်ရှုမှုနှင့် မှတ်တမ်းအတွက် path (မထပ်ရ)။ DVR/NVR channel ဖြစ်ပါက ချန်ထားနိုင်သည်"
     },
     "deadLetterQueue": {
       "jobQueuedForRetry": "Job ကို ပြန်ကြိုးစားရန် Queue ထဲ ထည့်ပြီး",

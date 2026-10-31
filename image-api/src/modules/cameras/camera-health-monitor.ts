@@ -8,6 +8,7 @@ import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
 import { probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
+import { config } from '../../config/index.js';
 
 let cronTask: ScheduledTask | null = null;
 
@@ -250,10 +251,10 @@ export async function checkCameraHealth(): Promise<void> {
       ipAddress: true,
       rtspUrl: true,
       streamPath: true,
-      smbSharePath: true,
-      smbUsername: true,
-      smbPasswordEncrypted: true,
-      smbDomain: true,
+      // SMB is only a probe target while the factory modules are on [R2.3].
+      ...(config.factoryModulesEnabled
+        ? { factorySettings: { select: { smbSharePath: true, smbUsername: true, smbPasswordEncrypted: true, smbDomain: true } } }
+        : {}),
       device: { select: { ipAddress: true, rtspPort: true } },
       lastPolledAt: true,
       operationalStatus: true,
@@ -274,7 +275,9 @@ export async function checkCameraHealth(): Promise<void> {
 
     // Actively probe the camera's network/RTSP/SMB target
     const streamReady = !!cam.streamPath && readyPaths.has(cam.streamPath.replace(/^\/+/, ''));
-    const probeResult = streamReady ? { reachable: true, latencyMs: 0 } : await probeCameraHealth(cam);
+    const probeResult = streamReady
+      ? { reachable: true, latencyMs: 0 }
+      : await probeCameraHealth({ ...cam, ...((cam as any).factorySettings ?? {}) });
     const isProbeSuccess = probeResult.reachable;
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
@@ -496,10 +499,11 @@ export async function checkIngestBuffer(): Promise<void> {
   const warnDays = Number(configs.ingest_buffer_warn_days?.value ?? 0);
   if (!Number.isFinite(warnDays) || warnDays <= 0) return;
 
-  const cameras = await prisma.camera.findMany({
-    where: { enabled: true, sourceOldestFileAt: { not: null } },
-    select: { id: true, name: true, sourceOldestFileAt: true, sourceFileCount: true },
+  const rows = await prisma.camera.findMany({
+    where: { enabled: true, factorySettings: { is: { sourceOldestFileAt: { not: null } } } },
+    select: { id: true, name: true, factorySettings: { select: { sourceOldestFileAt: true, sourceFileCount: true } } },
   });
+  const cameras = rows.map((r) => ({ id: r.id, name: r.name, ...r.factorySettings! }));
 
   for (const cam of cameras) {
     const bufferMs = Date.now() - new Date(cam.sourceOldestFileAt!).getTime();
@@ -552,6 +556,8 @@ export function startCameraHealthMonitor(): void {
     }
     // Runs after checkCameraHealth so it reads the operationalStatus that tick just wrote,
     // and in its own try/catch so a failure here can't stop the offline detection above.
+    // Image-flow and ingest-buffer checks watch the factory image pipeline [R2.3].
+    if (!config.factoryModulesEnabled) return;
     try {
       await checkCameraImageFlow();
     } catch (err) {

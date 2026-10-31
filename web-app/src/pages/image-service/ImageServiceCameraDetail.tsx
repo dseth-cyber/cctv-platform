@@ -93,6 +93,7 @@ export default function ImageServiceCameraDetail() {
           </span>
         </div>
 
+        {factoryModules && (
         <div className={`p-4 rounded-xl border ${themeConfig.card}`}>
           <div className="flex items-center gap-2 mb-2">
             <HardDrive size={16} className="text-cyan-400" />
@@ -104,6 +105,7 @@ export default function ImageServiceCameraDetail() {
             {Number(camera.totalImagesCount ?? 0).toLocaleString()}
           </p>
         </div>
+        )}
 
         <div className={`p-4 rounded-xl border ${themeConfig.card}`}>
           <div className="flex items-center gap-2 mb-2">
@@ -127,14 +129,13 @@ export default function ImageServiceCameraDetail() {
           <dd className={themeConfig.text.primary}>{camera.ipAddress}</dd>
           <dt className={themeConfig.text.secondary}>{t('imageService.cameras.description')}</dt>
           <dd className={themeConfig.text.primary}>{camera.description || '—'}</dd>
-          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameraDetail.smbPath')}</dt>
-          <dd className={`${themeConfig.text.primary} font-mono text-xs`}>{camera.smbSharePath}</dd>
-          <dt className={themeConfig.text.secondary}>{t('imageService.cameras.captureMode')}</dt>
-          <dd className={themeConfig.text.primary}>{camera.captureMode}</dd>
-          <dt className={themeConfig.text.secondary}>{t('imageService.cameras.pollInterval')}</dt>
-          <dd className={themeConfig.text.primary}>{camera.pollIntervalSeconds}s</dd>
-          <dt className={themeConfig.text.secondary}>{t('imageService.cameras.smbUsername')}</dt>
-          <dd className={themeConfig.text.primary}>{camera.smbUsername}</dd>
+          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameras.streamPath')}</dt>
+          <dd className={`${themeConfig.text.primary} font-mono text-xs`}>{camera.streamPath || '—'}</dd>
+          {/* Stored RTSP URLs come back with the password redacted. */}
+          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameras.rtspUrlMain')}</dt>
+          <dd className={`${themeConfig.text.primary} font-mono text-xs break-all`}>{camera.rtspUrl || '—'}</dd>
+          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameras.rtspUrlSub')}</dt>
+          <dd className={`${themeConfig.text.primary} font-mono text-xs break-all`}>{camera.rtspUrlSub || '—'}</dd>
         </dl>
       </div>
 

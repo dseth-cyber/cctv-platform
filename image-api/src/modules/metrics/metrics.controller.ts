@@ -28,7 +28,7 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
     prisma.image.count().catch(() => 0),
     prisma.processingJob.groupBy({ by: ['status'], _count: true }).catch(() => []),
     prisma.camera.groupBy({ by: ['status'], _count: true }).catch(() => []),
-    prisma.camera.findMany({ where: { enabled: true }, select: { id: true, name: true, status: true, lastPolledAt: true, totalImagesCount: true } }).catch(() => []),
+    prisma.camera.findMany({ where: { enabled: true }, select: { id: true, name: true, status: true, lastPolledAt: true, factorySettings: { select: { totalImagesCount: true } } } }).catch(() => []),
     redis.llen('bull:image-processing:wait').catch(() => 0),
     redis.llen('bull:image-processing:active').catch(() => 0),
     redis.zcard('bull:image-processing:failed').catch(() => 0),
@@ -103,7 +103,7 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
   g('image_service_camera_images_total', 'Total images per camera', 'gauge',
     camArr.map((c: any) => {
       const name = (c.name || '').replace(/"/g, '');
-      return `image_service_camera_images_total{camera_id="${c.id}",camera_name="${name}"} ${Number(c.totalImagesCount ?? 0)}`;
+      return `image_service_camera_images_total{camera_id="${c.id}",camera_name="${name}"} ${Number(c.factorySettings?.totalImagesCount ?? 0)}`;
     }));
 
   g('image_service_camera_last_poll_seconds', 'Seconds since last poll per camera', 'gauge',

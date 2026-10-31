@@ -10,9 +10,10 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
 import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Edit, Trash2, Eye, Camera, Activity, Wifi, WifiOff, AlertTriangle, Wrench,
-  FolderOpen, RefreshCw, CheckCircle, XCircle, ExternalLink, ChevronRight, Play, Undo2, Copy } from 'lucide-react';
+  RefreshCw, CheckCircle, Play, Undo2, Copy } from 'lucide-react';
 import { Modal, Button, SearchableSelect, TableSkeleton, ColumnSelector, ExportButton, DateTimePicker } from '@/components/ui';
-import { getLocalizedValue, translateSmbTestResult } from '@/utils/textUtils';
+import { getLocalizedValue } from '@/utils/textUtils';
+import { useFeatures } from '@/hooks/useFeatures';
 import { useRequiredFields } from '@/hooks/useRequiredFields';
 import { catalogFieldsFor } from '@/config/requiredFieldsCatalog';
 
@@ -32,27 +33,15 @@ const OPERATIONAL_STATUS_DOT: Record<string, string> = {
 };
 
 const emptyForm = () => ({
-  name: '', ipAddress: '', smbSharePath: '', smbDomain: '',
-  smbUsername: '', smbPasswordEncrypted: '',
-  pollIntervalSeconds: 30, captureMode: 'periodic',
-  cameraTypeCode: '', viewpointCode: '', retentionPolicyId: '', description: '',
-  // Template + per-camera processing overrides. Blank/'inherit' = inherit from template.
+  name: '', ipAddress: '', retentionPolicyId: '', description: '',
+  // [R2.3] CCTV stream settings; the factory SMB/processing fields moved to camera_factory_settings.
+  rtspUrl: '', rtspUrlSub: '', streamPath: '',
   templateId: '',
-  acceptedExtensions: [] as string[],
-  convertToPng: 'inherit', keepSmaller: 'inherit', generateThumbnail: 'inherit',
-  thumbnailSize: '', compressionQuality: '',
   slaTargetPercent: '',
 });
 
-// Available source extensions for the per-camera override chip selector.
-const SOURCE_EXTENSIONS = ['tif', 'tiff', 'ptif', 'ptiff', 'jpg', 'jpeg', 'png', 'bmp'];
-
-// Convert tri-state form value -> payload (null = inherit).
-const triToPayload = (v: string): boolean | null =>
-  v === 'inherit' || v === '' ? null : v === 'true';
-// Convert nullable boolean from API -> tri-state form value.
-const boolToTri = (v: boolean | null | undefined): string =>
-  v === null || v === undefined ? 'inherit' : v ? 'true' : 'false';
+// A stored RTSP URL comes back redacted (user:********@); sending it back means "unchanged".
+const isRedactedRtsp = (url?: string | null) => !!url && url.includes('********');
 
 export default function ImageServiceCameras() {
   const { t, i18n } = useTranslation();
@@ -61,6 +50,7 @@ export default function ImageServiceCameras() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { factoryModules } = useFeatures();
   const canUpdate = hasPermission(user, 'cameras:update');
   const canDelete = hasPermission(user, 'cameras:delete');
   const hasUsersPermission = hasPermission(user, 'users:read');
@@ -90,15 +80,7 @@ export default function ImageServiceCameras() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<{ open: boolean; item?: any | null }>({ open: false });
   const [form, setForm] = useState(emptyForm());
-  const [showOverrides, setShowOverrides] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [testResult, setTestResult] = useState<{ loading: boolean; success?: boolean; message?: string }>({ loading: false });
-  const [browseOpen, setBrowseOpen] = useState(false);
-  const [browseItems, setBrowseItems] = useState<Array<{ name: string; isDirectory: boolean }>>([]);
-  const [browsePath, setBrowsePath] = useState('');
-  const [browseLoading, setBrowseLoading] = useState(false);
-  const [browseShares, setBrowseShares] = useState<Array<{ name: string; description: string }>>([]);
-  const [browseStep, setBrowseStep] = useState<'shares' | 'files'>('shares');
 
   // Delete camera state
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; camera?: any }>({ open: false });
@@ -172,14 +154,6 @@ export default function ImageServiceCameras() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: cameraTypesRaw } = useQuery({
-    queryKey: ['masterdata-camera-types'],
-    queryFn: () => imageServiceApi.getMasterdata({ type: 'camera_type' }, { silent403: true }),
-    staleTime: 1000 * 60 * 5,
-    enabled: hasMasterdataPermission,
-  });
-  const cameraTypes = (cameraTypesRaw?.data ?? cameraTypesRaw ?? []) as any[];
-
   const { data: cameraStatusesRaw } = useQuery({
     queryKey: ['masterdata-camera-statuses'],
     queryFn: () => imageServiceApi.getMasterdata({ type: 'camera_status' }, { silent403: true }),
@@ -187,22 +161,6 @@ export default function ImageServiceCameras() {
     enabled: hasMasterdataPermission,
   });
   const cameraStatuses = (cameraStatusesRaw?.data ?? cameraStatusesRaw ?? []) as any[];
-
-  const { data: captureModesRaw } = useQuery({
-    queryKey: ['masterdata-capture-modes'],
-    queryFn: () => imageServiceApi.getMasterdata({ type: 'capture_mode' }, { silent403: true }),
-    staleTime: 1000 * 60 * 5,
-    enabled: hasMasterdataPermission,
-  });
-  const captureModes = (captureModesRaw?.data ?? captureModesRaw ?? []) as any[];
-
-  const { data: viewpointsRaw } = useQuery({
-    queryKey: ['masterdata-image-viewpoints'],
-    queryFn: () => imageServiceApi.getMasterdata({ type: 'image_viewpoint' }, { silent403: true }),
-    staleTime: 1000 * 60 * 5,
-    enabled: hasMasterdataPermission,
-  });
-  const viewpoints = (viewpointsRaw?.data ?? viewpointsRaw ?? []) as any[];
 
   const { data: templates = [] } = useQuery({
     queryKey: ['camera-templates'],
@@ -237,57 +195,17 @@ export default function ImageServiceCameras() {
     setForm(p => ({
       ...p,
       templateId,
-      ...(tpl ? {
-        retentionPolicyId: tpl.retentionPolicyId || p.retentionPolicyId,
-        pollIntervalSeconds: tpl.pollIntervalSeconds || p.pollIntervalSeconds,
-        captureMode: tpl.captureMode || p.captureMode,
-      } : {})
+      ...(tpl ? { retentionPolicyId: tpl.retentionPolicyId || p.retentionPolicyId } : {})
     }));
-  };
-
-  const handleIpChange = (newIp: string) => {
-    setForm(p => {
-      let newSmbPath = p.smbSharePath;
-      const previousIp = p.ipAddress;
-      const currentPath = p.smbSharePath;
-      
-      const isDefaultOrEmpty = !currentPath || 
-        currentPath === `//${previousIp}/` || 
-        (previousIp && currentPath.startsWith(`//${previousIp}/`));
-        
-      if (isDefaultOrEmpty) {
-        if (newIp) {
-          if (previousIp && currentPath.startsWith(`//${previousIp}/`)) {
-            const suffix = currentPath.slice(`//${previousIp}/`.length);
-            newSmbPath = `//${newIp}/${suffix}`;
-          } else {
-            newSmbPath = `//${newIp}/`;
-          }
-        } else {
-          newSmbPath = '';
-        }
-      }
-      return { ...p, ipAddress: newIp, smbSharePath: newSmbPath };
-    });
   };
 
   const openCreate = () => {
     const defaultTemplate = templates.find((t: any) => t.isDefault && t.isActive);
-    const defaultCameraType = cameraTypes.find((ct: any) => ct.isDefault && ct.isActive);
     const formInit = emptyForm();
-    if (defaultCameraType) {
-      formInit.cameraTypeCode = defaultCameraType.code;
-    }
     if (defaultTemplate) {
       formInit.templateId = defaultTemplate.id;
       if (defaultTemplate.retentionPolicyId) {
         formInit.retentionPolicyId = defaultTemplate.retentionPolicyId;
-      }
-      if (defaultTemplate.pollIntervalSeconds) {
-        formInit.pollIntervalSeconds = defaultTemplate.pollIntervalSeconds;
-      }
-      if (defaultTemplate.captureMode) {
-        formInit.captureMode = defaultTemplate.captureMode;
       }
     }
     const defaultRetention = policies.find((rp: any) => rp.isDefault);
@@ -297,50 +215,36 @@ export default function ImageServiceCameras() {
     setForm(formInit);
     setModal({ open: true, item: null });
   };
+  const formFromCamera = (item: any) => ({
+    name: item.name, ipAddress: item.ipAddress ?? '',
+    retentionPolicyId: item.retentionPolicyId ?? '', description: item.description ?? '',
+    rtspUrl: item.rtspUrl ?? '', rtspUrlSub: item.rtspUrlSub ?? '', streamPath: item.streamPath ?? '',
+    templateId: item.templateId ?? '',
+    slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
+  });
+
   const openEdit = (item: any) => {
-    const ov = item.overrides ?? {};
-    setForm({
-      name: item.name, ipAddress: item.ipAddress, smbSharePath: item.smbSharePath,
-      smbDomain: item.smbDomain ?? '', smbUsername: item.smbUsername,
-      smbPasswordEncrypted: '', pollIntervalSeconds: item.pollIntervalSeconds,
-      captureMode: item.captureMode, cameraTypeCode: item.cameraTypeCode ?? '', viewpointCode: item.viewpointCode ?? '',
-      retentionPolicyId: item.retentionPolicyId, description: item.description ?? '',
-      templateId: item.templateId ?? '',
-      acceptedExtensions: Array.isArray(ov.acceptedExtensions) ? ov.acceptedExtensions : [],
-      convertToPng: boolToTri(ov.convertToPng),
-      keepSmaller: boolToTri(ov.keepSmaller),
-      generateThumbnail: boolToTri(ov.generateThumbnail),
-      thumbnailSize: ov.thumbnailSize != null ? String(ov.thumbnailSize) : '',
-      compressionQuality: ov.compressionQuality != null ? String(ov.compressionQuality) : '',
-      slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
-    });
+    setForm(formFromCamera(item));
     setModal({ open: true, item });
   };
 
+  // A clone gets a new name and no stream path (it must be unique), and must not reuse a redacted URL.
   const openClone = (item: any) => {
-    const ov = item.overrides ?? {};
-    const uniqueName = getUniqueCloneName(item.name);
+    const f = formFromCamera(item);
     setForm({
-      name: uniqueName, ipAddress: item.ipAddress, smbSharePath: item.smbSharePath,
-      smbDomain: item.smbDomain ?? '', smbUsername: item.smbUsername,
-      smbPasswordEncrypted: item.smbPasswordEncrypted ?? '', pollIntervalSeconds: item.pollIntervalSeconds,
-      captureMode: item.captureMode, cameraTypeCode: item.cameraTypeCode ?? '', viewpointCode: item.viewpointCode ?? '',
-      retentionPolicyId: item.retentionPolicyId, description: item.description ?? '',
-      templateId: item.templateId ?? '',
-      acceptedExtensions: Array.isArray(ov.acceptedExtensions) ? ov.acceptedExtensions : [],
-      convertToPng: boolToTri(ov.convertToPng),
-      keepSmaller: boolToTri(ov.keepSmaller),
-      generateThumbnail: boolToTri(ov.generateThumbnail),
-      thumbnailSize: ov.thumbnailSize != null ? String(ov.thumbnailSize) : '',
-      compressionQuality: ov.compressionQuality != null ? String(ov.compressionQuality) : '',
-      slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
+      ...f,
+      name: getUniqueCloneName(item.name),
+      streamPath: '',
+      rtspUrl: isRedactedRtsp(f.rtspUrl) ? '' : f.rtspUrl,
+      rtspUrlSub: isRedactedRtsp(f.rtspUrlSub) ? '' : f.rtspUrlSub,
     });
     setModal({ open: true, item: null });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.ipAddress || !form.smbSharePath || !form.smbUsername || !form.retentionPolicyId) {
+    // A new camera needs a stream source; on edit a redacted URL means "unchanged".
+    if (!form.name || !form.retentionPolicyId || (!modal.item && !form.rtspUrl)) {
       toast.warning(t('common.requiredFields')); return;
     }
     const isNameDuplicate = cameras.some((c: any) => c.id !== modal.item?.id && c.name.trim().toLowerCase() === form.name.trim().toLowerCase());
@@ -349,13 +253,10 @@ export default function ImageServiceCameras() {
       return;
     }
     // Enforce admin-configured required fields for the camera form (only fields
-    // that have an input in this modal; smbPassword is skipped on edit since it
-    // is intentionally left blank to keep the existing value).
-    const cameraFormKeys = ['name', 'ipAddress', 'smbSharePath', 'smbUsername',
-      'smbPasswordEncrypted', 'cameraTypeCode', 'captureMode', 'pollIntervalSeconds', 'retentionPolicyId', 'templateId', 'description'];
+    // that have an input in this modal).
+    const cameraFormKeys = ['name', 'ipAddress', 'rtspUrl', 'rtspUrlSub', 'streamPath', 'retentionPolicyId', 'templateId', 'description'];
     for (const fd of catalogFieldsFor('camera')) {
       if (!cameraFormKeys.includes(fd.key) || !isCameraFieldRequired(fd.key)) continue;
-      if (modal.item && fd.key === 'smbPasswordEncrypted') continue;
       const val = (form as any)[fd.key];
       const empty = val === undefined || val === null
         || (typeof val === 'string' && val.trim() === '')
@@ -364,30 +265,23 @@ export default function ImageServiceCameras() {
     }
     try {
       setSubmitting(true);
-      // Build payload, mapping tri-state override fields back to nullable values.
       const buildPayload = () => {
-        const {
-          convertToPng, keepSmaller, generateThumbnail,
-          thumbnailSize, compressionQuality, acceptedExtensions, templateId, slaTargetPercent,
-          ...rest
-        } = form as any;
-        return {
-          ...rest,
-          templateId: templateId || null,
-          acceptedExtensions: Array.isArray(acceptedExtensions) ? acceptedExtensions : [],
-          convertToPng: triToPayload(convertToPng),
-          keepSmaller: triToPayload(keepSmaller),
-          generateThumbnail: triToPayload(generateThumbnail),
-          thumbnailSize: thumbnailSize === '' ? null : parseInt(thumbnailSize, 10),
-          compressionQuality: compressionQuality === '' ? null : parseInt(compressionQuality, 10),
-          slaTargetPercent: slaTargetPercent === '' ? null : parseFloat(slaTargetPercent),
+        const payload: Record<string, unknown> = {
+          name: form.name,
+          ipAddress: form.ipAddress || null,
+          retentionPolicyId: form.retentionPolicyId || null,
+          description: form.description,
+          templateId: form.templateId || null,
+          rtspUrl: form.rtspUrl || null,
+          rtspUrlSub: form.rtspUrlSub || null,
+          slaTargetPercent: form.slaTargetPercent === '' ? null : parseFloat(form.slaTargetPercent),
         };
+        // Leave the stream path to the server when blank; it is unique and drives MediaMTX.
+        if (form.streamPath) payload.streamPath = form.streamPath;
+        return payload;
       };
       if (modal.item) {
-        const payload: any = buildPayload();
-        if (!payload.smbPasswordEncrypted) delete payload.smbPasswordEncrypted;
-        if (!payload.smbDomain) delete payload.smbDomain;
-        await imageServiceApi.updateCamera(modal.item.id, payload);
+        await imageServiceApi.updateCamera(modal.item.id, buildPayload());
         toast.success(t('imageService.cameras.updated'));
       } else {
         await imageServiceApi.createCamera(buildPayload());
@@ -447,29 +341,17 @@ export default function ImageServiceCameras() {
       for (const id of ids) {
         const item = cameras.find((c: any) => c.id === id);
         if (!item) continue;
-        const ov = item.overrides ?? {};
         const uniqueName = getUniqueCloneName(item.name, newlyCreatedNames);
         newlyCreatedNames.add(uniqueName.trim().toLowerCase());
+        // Redacted RTSP URLs cannot be copied; such clones are created without a stream source.
         const payload = {
           name: uniqueName,
-          ipAddress: item.ipAddress,
-          smbSharePath: item.smbSharePath,
-          smbDomain: item.smbDomain ?? '',
-          smbUsername: item.smbUsername,
-          smbPasswordEncrypted: item.smbPasswordEncrypted ?? '',
-          pollIntervalSeconds: item.pollIntervalSeconds,
-          captureMode: item.captureMode,
-          cameraTypeCode: item.cameraTypeCode ?? '',
-          viewpointCode: item.viewpointCode ?? '',
+          ipAddress: item.ipAddress ?? null,
           retentionPolicyId: item.retentionPolicyId,
           description: item.description ?? '',
           templateId: item.templateId || null,
-          acceptedExtensions: Array.isArray(ov.acceptedExtensions) ? ov.acceptedExtensions : [],
-          convertToPng: ov.convertToPng !== undefined ? ov.convertToPng : null,
-          keepSmaller: ov.keepSmaller !== undefined ? ov.keepSmaller : null,
-          generateThumbnail: ov.generateThumbnail !== undefined ? ov.generateThumbnail : null,
-          thumbnailSize: ov.thumbnailSize != null ? parseInt(ov.thumbnailSize, 10) : null,
-          compressionQuality: ov.compressionQuality != null ? parseInt(ov.compressionQuality, 10) : null,
+          rtspUrl: isRedactedRtsp(item.rtspUrl) ? null : item.rtspUrl ?? null,
+          rtspUrlSub: isRedactedRtsp(item.rtspUrlSub) ? null : item.rtspUrlSub ?? null,
           slaTargetPercent: item.slaTargetPercent != null ? parseFloat(item.slaTargetPercent) : null,
         };
         await imageServiceApi.createCamera(payload);
@@ -884,132 +766,17 @@ export default function ImageServiceCameras() {
     }
   };
 
-  const handleTestConnection = async () => {
-    if (!form.smbSharePath || !form.smbUsername) { toast.warning(t('common.requiredFields')); return; }
-    setTestResult({ loading: true });
-    try {
-      const res = await imageServiceApi.testSmbConnection({
-        smbSharePath: form.smbSharePath,
-        smbUsername: form.smbUsername,
-        smbPasswordEncrypted: form.smbPasswordEncrypted,
-        smbDomain: form.smbDomain || undefined,
-      });
-      const message = translateSmbTestResult(res, t);
-      setTestResult({ loading: false, success: res.success, message });
-      if (res.success) toast.success(message);
-      else toast.error(message);
-    } catch {
-      setTestResult({ loading: false, success: false, message: t('imageService.cameras.smbError.unknown', { detail: t('common.error') }) });
-      toast.error(t('common.error'));
-    }
-  };
-
-  const openBrowse = async () => {
-    if (!form.ipAddress || !form.smbUsername) { toast.warning(t('common.requiredFields')); return; }
-    setBrowseOpen(true);
-    if (form.smbSharePath) {
-      setBrowseStep('files');
-      setBrowsePath('');
-      setBrowseLoading(true);
-      try {
-        const parts = form.smbSharePath.replace(/^\/\//, '').split('/');
-        const share = parts[1];
-        const subPath = parts.slice(2).join('/');
-        const res = await imageServiceApi.browseSmb({
-          smbSharePath: form.smbSharePath,
-          smbUsername: form.smbUsername,
-          smbPasswordEncrypted: form.smbPasswordEncrypted,
-          smbDomain: form.smbDomain || undefined,
-          path: subPath || undefined,
-        });
-        setBrowseItems(res.entries ?? []);
-        setBrowsePath(parts.slice(1).join('/') + '/');
-      } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-      finally { setBrowseLoading(false); }
-    } else {
-      setBrowseStep('shares');
-      setBrowseLoading(true);
-      try {
-        const res = await imageServiceApi.listSmbShares({
-          host: form.ipAddress,
-          smbUsername: form.smbUsername,
-          smbPasswordEncrypted: form.smbPasswordEncrypted,
-          smbDomain: form.smbDomain || undefined,
-        });
-        setBrowseShares(res.shares ?? []);
-      } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-      finally { setBrowseLoading(false); }
-    }
-  };
-
-  const browseShare = async (share: string) => {
-    const path = `//${form.ipAddress}/${share}`;
-    setBrowseStep('files');
-    setBrowsePath('');
-    setBrowseLoading(true);
-    try {
-      const res = await imageServiceApi.browseSmb({
-        smbSharePath: path,
-        smbUsername: form.smbUsername,
-        smbPasswordEncrypted: form.smbPasswordEncrypted,
-        smbDomain: form.smbDomain || undefined,
-      });
-      setBrowseItems(res.entries ?? []);
-      setBrowsePath(share + '/');
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-    finally { setBrowseLoading(false); }
-  };
-
-  const browseFolder = async (folder: string) => {
-    const parts = browsePath.split('/').filter(Boolean);
-    const newPath = [...parts, folder].join('/');
-    const share = parts[0];
-    const subPath = parts.slice(1).concat(folder).join('/');
-    setBrowseLoading(true);
-    try {
-      const res = await imageServiceApi.browseSmb({
-        smbSharePath: `//${form.ipAddress}/${share}`,
-        smbUsername: form.smbUsername,
-        smbPasswordEncrypted: form.smbPasswordEncrypted,
-        smbDomain: form.smbDomain || undefined,
-        path: subPath,
-      });
-      setBrowseItems(res.entries ?? []);
-      setBrowsePath(newPath + '/');
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-    finally { setBrowseLoading(false); }
-  };
-
-  const selectBrowsePath = (folder: string) => {
-    const share = browsePath.split('/').filter(Boolean)[0];
-    const subPath = browsePath.endsWith('/') ? browsePath.slice(0, -1) : browsePath;
-    const fullPath = subPath.split('/').slice(1).join('/');
-    const smbPath = fullPath ? `//${form.ipAddress}/${share}/${fullPath}` : `//${form.ipAddress}/${share}`;
-    setForm(p => ({ ...p, smbSharePath: smbPath }));
-    setBrowseOpen(false);
-  };
-
-  const goBackShares = () => {
-    setBrowseStep('shares');
-    setBrowseItems([]);
-    setBrowsePath('');
-  };
-
   const filtered = cameras.filter((c: any) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()));
 
   const getSortValue = (camera: any, col: string) => {
     switch (col) {
-      case 'cameraType':
-        return camera.cameraTypeCode ?? '';
       case 'retentionPolicy': {
         const p = (policies as any[]).find((rp: any) => rp.id === camera.retentionPolicyId);
         return p?.name ?? '';
       }
       case 'lastPoll':
         return camera.lastPolledAt ?? '';
-      case 'totalImages':
-        return Number(camera.totalImagesCount ?? 0);
       case 'dateAdded':
         return camera.createdAt ?? '';
       default:
@@ -1038,7 +805,6 @@ export default function ImageServiceCameras() {
     ipAddress: camera.ipAddress,
     status: camera.status,
     lastPolledAt: camera.lastPolledAt ? new Date(camera.lastPolledAt).toLocaleString() : '-',
-    totalImages: Number(camera.totalImagesCount ?? 0),
     createdAt: camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '-',
     createdBy: camera.createdBy || '-',
   })), [sorted, i18n.language]);
@@ -1049,14 +815,12 @@ export default function ImageServiceCameras() {
     { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
     { key: 'status', label: t('imageService.cameras.status') },
     { key: 'lastPolledAt', label: t('imageService.cameras.lastPoll') },
-    { key: 'totalImages', label: t('imageService.cameras.totalImages') },
     { key: 'createdAt', label: t('imageService.cameras.dateAdded') },
     { key: 'createdBy', label: t('imageService.cameras.createdBy') },
   ];
 
   const isNameDuplicate = form.name ? cameras.some((c: any) => c.id !== modal.item?.id && c.name.trim().toLowerCase() === form.name.trim().toLowerCase()) : false;
-  const ipDupCamera = form.ipAddress ? cameras.find((c: any) => c.id !== modal.item?.id && c.ipAddress.trim() === form.ipAddress.trim()) : null;
-  const smbDupCamera = form.smbSharePath ? cameras.find((c: any) => c.id !== modal.item?.id && c.smbSharePath.trim().toLowerCase() === form.smbSharePath.trim().toLowerCase()) : null;
+  const ipDupCamera = form.ipAddress ? cameras.find((c: any) => c.id !== modal.item?.id && (c.ipAddress ?? '').trim() === form.ipAddress.trim()) : null;
 
   return (
     <div className="pt-6 px-6 pb-2.5">
@@ -1133,10 +897,12 @@ export default function ImageServiceCameras() {
               <Button onClick={openCreate}>
                 <Plus size={16} className="mr-1.5" /> {t('imageService.cameras.newCamera')}
               </Button>
-              <Button variant="secondary" onClick={handleScanNow} disabled={scanning}>
-                <RefreshCw size={16} className={`mr-1.5 ${scanning ? 'animate-spin' : ''}`} />
-                {t('imageService.cameras.scanNow')}
-              </Button>
+              {factoryModules && (
+                <Button variant="secondary" onClick={handleScanNow} disabled={scanning}>
+                  <RefreshCw size={16} className={`mr-1.5 ${scanning ? 'animate-spin' : ''}`} />
+                  {t('imageService.cameras.scanNow')}
+                </Button>
+              )}
               {canDelete && (
                 <button onClick={handleOpenCameraTrash}
                   className="px-3 py-2 rounded-md text-xs flex items-center gap-1.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors">
@@ -1178,10 +944,6 @@ export default function ImageServiceCameras() {
                   <div className="flex items-center gap-1">{t('imageService.cameras.ipAddress')}
                     {sortCol === 'ipAddress' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
-                <th onClick={() => handleSort('cameraType')} className={thCls('cameraType')}>
-                  <div className="flex items-center gap-1">{t('imageService.cameras.cameraType')}
-                    {sortCol === 'cameraType' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
-                </th>
                 <th onClick={() => handleSort('retentionPolicy')} className={thCls('retentionPolicy')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.retentionPolicy')}
                     {sortCol === 'retentionPolicy' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
@@ -1193,10 +955,6 @@ export default function ImageServiceCameras() {
                 <th onClick={() => handleSort('lastPoll')} className={thCls('lastPoll')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.lastPoll')}
                     {sortCol === 'lastPoll' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
-                </th>
-                <th onClick={() => handleSort('totalImages')} className={`px-4 py-3 text-right text-sm font-semibold cursor-pointer select-none hover:text-cyan-300 ${themeConfig.text.primary}`}>
-                  <div className="flex items-center justify-end gap-1">{t('imageService.cameras.totalImages')}
-                    {sortCol === 'totalImages' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
                 <th onClick={() => handleSort('dateAdded')} className={thCls('dateAdded')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.dateAdded')}
@@ -1245,11 +1003,6 @@ export default function ImageServiceCameras() {
                     </td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
-                      {camera.cameraTypeCode
-                        ? (() => { const ct = cameraTypes.find((c: any) => c.code === camera.cameraTypeCode); return ct ? getLocalizedValue(ct, i18n.language) : camera.cameraTypeCode; })()
-                        : '—'}
-                    </td>
-                    <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {(() => {
                         const p = (policies as any[]).find((rp: any) => rp.id === camera.retentionPolicyId);
                         if (!p) return '—';
@@ -1288,9 +1041,6 @@ export default function ImageServiceCameras() {
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {camera.lastPolledAt ? formatDateTime(camera.lastPolledAt, i18n.language) : '—'}
                     </td>
-                    <td className={`px-4 py-3 text-sm text-right ${themeConfig.text.primary}`}>
-                      {Number(camera.totalImagesCount ?? 0).toLocaleString()}
-                    </td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '—'}
                     </td>
@@ -1299,11 +1049,13 @@ export default function ImageServiceCameras() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleScanCamera(camera.id)}
-                          disabled={scanningCameras.has(camera.id)}
-                          className="p-2 rounded-lg hover:bg-green-500/20">
-                          <RefreshCw size={15} className={`${scanningCameras.has(camera.id) ? 'animate-spin text-green-400' : 'text-green-500'}`} />
-                        </button>
+                        {factoryModules && (
+                          <button onClick={() => handleScanCamera(camera.id)}
+                            disabled={scanningCameras.has(camera.id)}
+                            className="p-2 rounded-lg hover:bg-green-500/20">
+                            <RefreshCw size={15} className={`${scanningCameras.has(camera.id) ? 'animate-spin text-green-400' : 'text-green-500'}`} />
+                          </button>
+                        )}
                         <button onClick={() => openEdit(camera)}
                           className="p-2 rounded-lg hover:bg-yellow-500/20"><Edit size={15} className="text-yellow-500" /></button>
                         {canDelete && (
@@ -1422,11 +1174,11 @@ export default function ImageServiceCameras() {
             </div>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.ipAddress')} <span className="text-red-400">*</span>
+                {t('imageService.cameras.ipAddress')}{cameraStar('ipAddress')}
               </label>
-              <input value={form.ipAddress} onChange={e => handleIpChange(e.target.value)}
+              <input value={form.ipAddress} onChange={e => setForm(p => ({ ...p, ipAddress: e.target.value }))}
                 placeholder={t('imageService.cameras.ipExample')}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${ipDupCamera ? 'border-yellow-500 focus:ring-yellow-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
+                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${ipDupCamera ? 'border-yellow-500 focus:ring-yellow-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-[10px] mt-0.5 ${themeConfig.text.secondary}`}>
                 {t('imageService.cameras.ipExample')}
               </p>
@@ -1436,94 +1188,33 @@ export default function ImageServiceCameras() {
                 </p>
               )}
             </div>
-            <div>
+            <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.smbUsername')} <span className="text-red-400">*</span>
+                {t('ui.imageServiceCameras.rtspUrlMain')}{!modal.item && <span className="text-red-400"> *</span>}{cameraStar('rtspUrl')}
               </label>
-              <input value={form.smbUsername} onChange={e => setForm(p => ({ ...p, smbUsername: e.target.value }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
+              <input value={form.rtspUrl} onChange={e => setForm(p => ({ ...p, rtspUrl: e.target.value }))}
+                placeholder="rtsp://user:password@192.168.1.64:554/Streaming/Channels/101"
+                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>
-                {t('imageService.cameras.smbUsernameHint')}
-              </p>
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.smbPassword')}{cameraStar('smbPasswordEncrypted')}
-              </label>
-              <input type="password" autoComplete="new-password" value={form.smbPasswordEncrypted}
-                onChange={e => setForm(p => ({ ...p, smbPasswordEncrypted: e.target.value }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>
-                {modal.item ? t('imageService.cameras.smbPasswordHintEdit') : t('imageService.cameras.smbPasswordHintCreate')}
+                {modal.item && isRedactedRtsp(form.rtspUrl) ? t('ui.imageServiceCameras.rtspUrlRedactedHint') : t('ui.imageServiceCameras.rtspUrlHint')}
               </p>
             </div>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.smbPath')} <span className="text-red-400">*</span>
+                {t('ui.imageServiceCameras.rtspUrlSub')}{cameraStar('rtspUrlSub')}
               </label>
-              <div className="flex gap-2">
-                <input value={form.smbSharePath} onChange={e => setForm(p => ({ ...p, smbSharePath: e.target.value }))}
-                  placeholder={t('imageService.cameras.smbPathExample')}
-                  className={`flex-1 px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${smbDupCamera ? 'border-yellow-500 focus:ring-yellow-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
-                <button type="button" onClick={handleTestConnection} disabled={testResult.loading}
-                  className={`px-3 py-2 rounded-md text-xs font-medium border ${themeConfig.inputBorder} ${themeConfig.text.primary} hover:bg-white/5`}>
-                  {testResult.loading ? <RefreshCw size={14} className="animate-spin" /> : <ExternalLink size={14} />}
-                  <span className="ml-1 hidden sm:inline">{t('imageService.cameras.testConnection')}</span>
-                </button>
-                <button type="button" onClick={openBrowse}
-                  className={`px-3 py-2 rounded-md text-xs font-medium border ${themeConfig.inputBorder} ${themeConfig.text.primary} hover:bg-white/5`}>
-                  <FolderOpen size={14} /><span className="ml-1 hidden sm:inline">{t('common.browse')}</span>
-                </button>
-              </div>
-              <p className={`text-[10px] mt-0.5 ${themeConfig.text.secondary}`}>
-                {t('imageService.cameras.smbPathExample')}
-              </p>
-              {smbDupCamera && (
-                <p className="text-xs text-yellow-400 mt-1">
-                  {t('imageService.cameras.validation.smbDuplicateWarning', { name: smbDupCamera.name })}
-                </p>
-              )}
-              {testResult.message && (
-                <p className={`text-xs mt-1 ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
-                  {testResult.success ? <CheckCircle size={12} className="inline mr-1" /> : <XCircle size={12} className="inline mr-1" />}
-                  {testResult.message}
-                </p>
-              )}
+              <input value={form.rtspUrlSub} onChange={e => setForm(p => ({ ...p, rtspUrlSub: e.target.value }))}
+                placeholder="rtsp://user:password@192.168.1.64:554/Streaming/Channels/102"
+                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.cameraType')}{cameraStar('cameraTypeCode')}
+                {t('ui.imageServiceCameras.streamPath')}{cameraStar('streamPath')}
               </label>
-              <SearchableSelect value={form.cameraTypeCode} onChange={v => setForm(p => ({ ...p, cameraTypeCode: v }))}
-                placeholder={t('common.select')}
-                options={[{ value: '', label: '-' }, ...cameraTypes.filter((ct: any) => ct.isActive).map((ct: any) => ({ value: ct.code, label: ct.isDefault ? `${getLocalizedValue(ct, i18n.language)} ★` : getLocalizedValue(ct, i18n.language) }))]} />
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.viewpoint', 'มุมมองภาพ')}{cameraStar('viewpointCode')}
-              </label>
-              <SearchableSelect value={form.viewpointCode} onChange={v => setForm(p => ({ ...p, viewpointCode: v }))}
-                placeholder={t('common.select')}
-                options={[{ value: '', label: '-' }, ...viewpoints.filter((vp: any) => vp.isActive).map((vp: any) => ({ value: vp.code, label: getLocalizedValue(vp, i18n.language) }))]} />
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.captureMode')}{cameraStar('captureMode')}
-              </label>
-              <SearchableSelect value={form.captureMode} onChange={v => setForm(p => ({ ...p, captureMode: v }))}
-                placeholder={t('common.select')}
-                options={captureModes.filter((cm: any) => cm.isActive).length > 0
-                  ? captureModes.filter((cm: any) => cm.isActive).map((cm: any) => ({ value: cm.code, label: getLocalizedValue(cm, i18n.language) }))
-                  : ['periodic', 'on_demand', 'continuous'].map(m => ({ value: m, label: t(`imageService.cameras.captureMode${m.charAt(0).toUpperCase() + m.slice(1)}`) }))
-                } />
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.pollInterval')}{cameraStar('pollIntervalSeconds')}
-              </label>
-              <input type="number" value={form.pollIntervalSeconds}
-                onChange={e => setForm(p => ({ ...p, pollIntervalSeconds: parseInt(e.target.value) || 30 }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+              <input value={form.streamPath} onChange={e => setForm(p => ({ ...p, streamPath: e.target.value }))}
+                placeholder="cam/gate1"
+                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('ui.imageServiceCameras.streamPathHint')}</p>
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
@@ -1545,118 +1236,11 @@ export default function ImageServiceCameras() {
             </div>
           </div>
 
-          {/* Collapsible per-camera processing overrides (blank = inherit from template) */}
-          <div className="border rounded-md" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-            <button type="button" onClick={() => setShowOverrides(s => !s)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium ${themeConfig.text.primary}`}>
-              <span>{t('imageService.cameras.overrideSection')}</span>
-              {showOverrides ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
-            {showOverrides && (
-              <div className="px-3 pb-3 space-y-3">
-                <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.overrideHint')}</p>
-                <div>
-                  <label className={`block text-xs font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.cameras.acceptedExtensions')}</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {SOURCE_EXTENSIONS.map(ext => {
-                      const active = form.acceptedExtensions.includes(ext);
-                      return (
-                        <button key={ext} type="button"
-                          onClick={() => setForm(p => ({ ...p, acceptedExtensions: active ? p.acceptedExtensions.filter(x => x !== ext) : [...p.acceptedExtensions, ext] }))}
-                          className={`px-2.5 py-1 rounded-full text-xs border ${active ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200' : `${themeConfig.inputBorder} ${themeConfig.text.secondary}`}`}>
-                          {ext}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.acceptedExtensionsHint')}</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {([
-                    ['convertToPng', 'convertToPng'],
-                    ['keepSmaller', 'keepSmaller'],
-                    ['generateThumbnail', 'generateThumbnail'],
-                  ] as const).map(([field, key]) => (
-                    <div key={field}>
-                      <label className={`block text-xs font-medium mb-1 ${themeConfig.text.primary}`}>{t(`imageService.cameras.${key}`)}</label>
-                      <SearchableSelect value={(form as any)[field]} onChange={v => setForm(p => ({ ...p, [field]: v }))}
-                        options={[
-                          { value: 'inherit', label: t('imageService.cameras.inherit') },
-                          { value: 'true', label: t('common.yes') },
-                          { value: 'false', label: t('common.no') },
-                        ]} />
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.cameras.thumbnailSize')}</label>
-                    <input type="number" value={form.thumbnailSize} placeholder={t('imageService.cameras.inherit')}
-                      onChange={e => setForm(p => ({ ...p, thumbnailSize: e.target.value }))}
-                      className={`w-full px-3 py-2 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.cameras.compressionQuality')}</label>
-                    <input type="number" value={form.compressionQuality} placeholder={t('imageService.cameras.inherit')}
-                      onChange={e => setForm(p => ({ ...p, compressionQuality: e.target.value }))}
-                      className={`w-full px-3 py-2 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
             <Button variant="secondary" type="button" onClick={() => setModal({ open: false })}>{t('common.cancel')}</Button>
             <Button type="submit" disabled={submitting || isNameDuplicate}>{submitting ? t('common.saving') : t('common.save')}</Button>
           </div>
         </form>
-      </Modal>
-
-      <Modal isOpen={browseOpen} onClose={() => setBrowseOpen(false)}
-        title={t('imageService.cameras.browseSmb')}>
-        <div className="max-h-80 overflow-y-auto p-1 space-y-1">
-          {browseLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <RefreshCw size={20} className="animate-spin text-cyan-400" />
-            </div>
-          ) : browseStep === 'shares' ? (
-            browseShares.length === 0 ? (
-              <p className={`text-sm text-center py-4 ${themeConfig.text.secondary}`}>{t('common.noData')}</p>
-            ) : (
-              browseShares.map(s => (
-                <button key={s.name} onClick={() => browseShare(s.name)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center justify-between hover:bg-white/5 ${themeConfig.text.primary}`}>
-                  <span className="flex items-center gap-2"><FolderOpen size={15} />{s.name}</span>
-                  <span className={`text-xs ${themeConfig.text.secondary}`}>{s.description}</span>
-                </button>
-              ))
-            )
-          ) : (
-            <>
-              <div className="flex items-center gap-1.5 mb-2 text-xs">
-                <button onClick={goBackShares} className="text-cyan-400 hover:underline">{t('imageService.cameras.shares')}</button>
-                <ChevronRight size={10} className={themeConfig.text.secondary} />
-                <span className={themeConfig.text.secondary}>{browsePath}</span>
-              </div>
-              <button onClick={() => selectBrowsePath('')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm border border-dashed hover:bg-white/5 ${themeConfig.text.primary} ${themeConfig.inputBorder}`}>
-                {t('imageService.cameras.useCurrentFolder')}
-              </button>
-              {browseItems.filter(e => e.isDirectory).map(e => (
-                <div key={e.name} className="flex items-center gap-1">
-                  <button onClick={() => browseFolder(e.name)}
-                    className={`flex-1 text-left px-3 py-2 rounded-lg text-sm hover:bg-white/5 ${themeConfig.text.primary}`}>
-                    <span className="flex items-center gap-2"><FolderOpen size={14} />{e.name}</span>
-                  </button>
-                  <button onClick={() => selectBrowsePath(e.name)}
-                    className="px-2 py-2 rounded text-xs text-cyan-400 hover:bg-white/5"
-                    title={t('common.select')}><CheckCircle size={14} /></button>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
       </Modal>
 
       {/* Delete Camera Confirmation Modal */}

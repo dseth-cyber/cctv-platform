@@ -37,8 +37,9 @@ Commits บน `fix/audit-remediation`: `b3f27f0` (MediaMTX API + isolation), `2
 
 ข้อมูลทดสอบที่ค้างใน Dev DB/ดิสก์: กล้อง `r1-accept-cam` ตั้ง `stream_path=sim/ch1`; segment ของ `sim/ch1` ในดัชนี; clip "R3.5 verify"; ไฟล์ `mediamtx/recordings/.quarantine/sim/ch1/2026-10-31_08-25-07-918507.mp4` (จากการทดสอบ R4.2, กู้คืนได้ด้วยการย้ายกลับ); segment 08-24-08 ติด Legal Hold; sign-off "R1.8 verify"
 
+R2.3 (2026-10-31, รอบ 3): ฟิลด์โรงงานย้ายไป `camera_factory_settings` แล้ว — Dev DB migrate แล้ว (backup ก่อน migrate: `C:\Users\SC34111\AppData\Local\Temp\claude\d--Qwen-DVR\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_r23.dump`, ตรวจด้วย `pg_restore -l` แล้ว). สภาพแวดล้อมอื่นจะ migrate อัตโนมัติตอนรัน `image-api-migrate` (ไฟล์ใน `prisma/sql/` รันก่อน `db push`) — ต้อง `pg_dump` ก่อนเสมอ. กล้องทดสอบ `r23-verify-2` อยู่ในถังขยะ
+
 ยังไม่ได้ทำ / ข้อจำกัด:
-- R2.3 (แยก schema SMB/processing) ต้อง archive โค้ดโรงงานและถอด SMB จากฟอร์มกล้องก่อน; ฟอร์มกล้องยังมีปุ่มทดสอบ SMB ซึ่งตอบ 404 เมื่อปิด flag
 - R3.3/R3.4/R2.4 ยังไม่ได้ทดสอบด้วยการคลิกในเบราว์เซอร์ (ตรวจแค่ API, bundle, HTTP)
 - R4.1 และ R4.3 ต้องมีกล้องจริงและ media node ที่สอง
 - ช่วงที่ segment ซ้อนกันเล็กน้อย (~0.6s ที่รอยต่อ) ทำให้ตำแหน่งตัด export คลาดได้ไม่เกินระดับนั้น; stream copy เริ่มที่ keyframe

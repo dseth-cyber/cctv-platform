@@ -3092,7 +3092,11 @@
       "field_permissions": "สิทธิ์การใช้งาน",
       "field_expiresAt": "วันหมดอายุ",
       "field_sortOrder": "ลำดับการแสดง",
-      "field_customPermissions": "สิทธิ์เฉพาะ"
+      "field_customPermissions": "สิทธิ์เฉพาะ",
+      "groupStream": "แหล่งสตรีม",
+      "field_rtspUrl": "RTSP URL (สตรีมหลัก)",
+      "field_rtspUrlSub": "RTSP URL (สตรีมรอง)",
+      "field_streamPath": "Stream path"
     },
     "productionRuns": {
       "title": "รอบการผลิต",
@@ -4105,7 +4109,13 @@
       "clearFilters": "ล้างตัวกรอง",
       "clear": "ล้าง",
       "confirmDeletingTheSelected": "ยืนยันลบกล้องที่เลือก",
-      "camerasPermanentlyPreviouslyProcessedImagesAre": "รายการแบบถาวร? รูปภาพที่เคยประมวลผลจะยังถูกเก็บไว้แต่จะตัดการเชื่อมโยงกับกล้อง การกระทำนี้ย้อนกลับไม่ได้"
+      "camerasPermanentlyPreviouslyProcessedImagesAre": "รายการแบบถาวร? รูปภาพที่เคยประมวลผลจะยังถูกเก็บไว้แต่จะตัดการเชื่อมโยงกับกล้อง การกระทำนี้ย้อนกลับไม่ได้",
+      "rtspUrlMain": "RTSP URL (สตรีมหลัก)",
+      "rtspUrlSub": "RTSP URL (สตรีมรอง)",
+      "rtspUrlHint": "ใส่ชื่อผู้ใช้/รหัสผ่านใน URL ได้ ระบบเข้ารหัสก่อนบันทึก และไม่แสดงรหัสผ่านกลับมา",
+      "rtspUrlRedactedHint": "รหัสผ่านถูกซ่อนไว้ ปล่อยไว้แบบนี้เพื่อใช้ค่าเดิม หรือพิมพ์ URL ใหม่ทั้งหมดเพื่อเปลี่ยน",
+      "streamPath": "Stream path (MediaMTX)",
+      "streamPathHint": "ชื่อ path ที่ใช้ดูสด/บันทึก ต้องไม่ซ้ำกัน เว้นว่างได้ถ้าเป็นช่องของ DVR/NVR"
     },
     "deadLetterQueue": {
       "jobQueuedForRetry": "ส่งงานกลับเข้าคิวเพื่อลองใหม่แล้ว",

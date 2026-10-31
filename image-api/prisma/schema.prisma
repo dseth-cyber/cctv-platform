@@ -553,26 +553,11 @@ model Camera {
   name                   String                  @db.VarChar(128)
   description            String?                 @db.Text
   ipAddress              String?                 @map("ip_address") @db.VarChar(45)
-  smbSharePath           String?                 @map("smb_share_path") @db.Text
-  smbDomain              String?                 @db.VarChar(128)
-  smbUsername            String?                 @map("smb_username") @db.VarChar(256)
-  smbPasswordEncrypted   String?                 @map("smb_password_encrypted") @db.Text
-  smbSubdirectoryPattern String?                 @map("smb_subdirectory_pattern") @db.VarChar(256)
   status                 CameraStatus            @default(inactive)
-  pollIntervalSeconds    Int                     @default(30) @map("poll_interval_seconds")
   timezone               String?                 @default("UTC") @db.VarChar(64)
   metadata               Json                    @default("{}")
-  captureMode            String                  @default("periodic") @map("capture_mode") @db.VarChar(32)
-  cameraTypeCode         String?                 @map("camera_type_code") @db.VarChar(64)
-  viewpointCode          String?                 @map("viewpoint_code") @db.VarChar(64)
   retentionPolicyId      String?                 @map("retention_policy_id") @db.Uuid
   templateId             String?                 @map("template_id") @db.Uuid
-  acceptedExtensions     String[]                @default([]) @map("accepted_extensions")
-  convertToPng           Boolean?                @map("convert_to_png")
-  keepSmaller            Boolean?                @map("keep_smaller")
-  generateThumbnail      Boolean?                @map("generate_thumbnail")
-  thumbnailSize          Int?                    @map("thumbnail_size")
-  compressionQuality     Int?                    @map("compression_quality")
   enabled                Boolean                 @default(true)
   lastPolledAt           DateTime?               @map("last_polled_at")
 
@@ -591,10 +576,6 @@ model Camera {
   onvifProfileToken      String?                 @map("onvif_profile_token") @db.VarChar(128)
   streamState            String                  @default("idle") @map("stream_state") @db.VarChar(32)
 
-  sourceOldestFileAt     DateTime?               @map("source_oldest_file_at")
-  sourceFileCount        Int?                    @map("source_file_count")
-  lastImageAt            DateTime?               @map("last_image_at")
-  totalImagesCount       BigInt                  @default(0) @map("total_images_count")
   operationalStatus      CameraOperationalStatus @default(unknown) @map("operational_status")
   operationalSince       DateTime?               @map("operational_since")
   slaTargetPercent       Float?                  @map("sla_target_percent")
@@ -616,8 +597,40 @@ model Camera {
   incidents        CameraIncident[]
   recordings       CameraRecording[]
   recordingClips   RecordingClip[]
+  factorySettings  CameraFactorySettings?
 
   @@map("cameras")
+}
+
+/// [R2.3] Factory image-pipeline settings, split out of `cameras`. One row per camera; only read and
+/// written while FACTORY_MODULES_ENABLED=true.
+model CameraFactorySettings {
+  cameraId               String    @id @map("camera_id") @db.Uuid
+  smbSharePath           String?   @map("smb_share_path") @db.Text
+  smbDomain              String?   @map("smb_domain") @db.VarChar(128)
+  smbUsername            String?   @map("smb_username") @db.VarChar(256)
+  smbPasswordEncrypted   String?   @map("smb_password_encrypted") @db.Text
+  smbSubdirectoryPattern String?   @map("smb_subdirectory_pattern") @db.VarChar(256)
+  pollIntervalSeconds    Int       @default(30) @map("poll_interval_seconds")
+  captureMode            String    @default("periodic") @map("capture_mode") @db.VarChar(32)
+  cameraTypeCode         String?   @map("camera_type_code") @db.VarChar(64)
+  viewpointCode          String?   @map("viewpoint_code") @db.VarChar(64)
+  acceptedExtensions     String[]  @default([]) @map("accepted_extensions")
+  convertToPng           Boolean?  @map("convert_to_png")
+  keepSmaller            Boolean?  @map("keep_smaller")
+  generateThumbnail      Boolean?  @map("generate_thumbnail")
+  thumbnailSize          Int?      @map("thumbnail_size")
+  compressionQuality     Int?      @map("compression_quality")
+  sourceOldestFileAt     DateTime? @map("source_oldest_file_at")
+  sourceFileCount        Int?      @map("source_file_count")
+  lastImageAt            DateTime? @map("last_image_at")
+  totalImagesCount       BigInt    @default(0) @map("total_images_count")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@map("camera_factory_settings")
 }
 
 
