@@ -73,6 +73,8 @@ export const config = {
 
   cctv: {
     maxConcurrentExports: parseInt(process.env.MAX_CONCURRENT_EXPORTS ?? '2', 10),
+    // Longest clip one export may cover (wall-clock window, buffers included).
+    maxExportHours: parseFloat(process.env.MAX_EXPORT_HOURS ?? '24'),
     diskWarningThresholdPct: parseInt(process.env.DISK_WARNING_THRESHOLD_PCT ?? '85', 10),
     diskCriticalThresholdPct: parseInt(process.env.DISK_CRITICAL_THRESHOLD_PCT ?? '92', 10),
     turnServerUrl: process.env.TURN_SERVER_URL ?? 'turn.cctv-local.lc.co.th:3478',

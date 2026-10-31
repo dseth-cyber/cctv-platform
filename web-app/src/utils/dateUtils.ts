@@ -104,6 +104,19 @@ export function bangkokDaySecondsToIso(date: string, secondsOfDay: number): stri
   return new Date(dayStartUtc + Math.round(secondsOfDay) * 1000).toISOString();
 }
 
+/** `datetime-local` value (YYYY-MM-DDTHH:mm:ss) in Bangkok time for an ISO instant. */
+export function isoToBangkokInput(iso: string): string {
+  return new Date(new Date(iso).getTime() + 7 * 3600_000).toISOString().slice(0, 19);
+}
+
+/** ISO instant for a Bangkok `datetime-local` value; null when the value is incomplete. */
+export function bangkokInputToIso(value: string): string | null {
+  if (!value) return null;
+  const withSeconds = value.length === 16 ? `${value}:00` : value;
+  const d = new Date(`${withSeconds}+07:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 export function isoToBangkokDaySeconds(isoStr: string): number {
   return toBangkokDateAndTimeString(isoStr).secondsOfDay;
 }

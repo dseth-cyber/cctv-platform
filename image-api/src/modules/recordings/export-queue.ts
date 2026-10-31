@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 
@@ -111,29 +112,38 @@ export class ExportConcurrencyQueue {
         throw new Error(`No recorded video found on disk for the requested window (${segments.length} indexed segments, 0 files present)`);
       }
 
-      // Cut the joined segments down to the requested window. Stream copy can only start on a
-      // keyframe, so the clip may begin up to one GOP before the requested time.
-      const coveredStart = Math.max(job.actualStartTime.getTime(), presentSegments[0].startTime.getTime());
-      const coveredEnd = Math.min(job.bufferedEnd.getTime(), presentSegments[presentSegments.length - 1].endTime.getTime());
+      // Cut the joined segments down to the requested window. The concat timeline has no gaps, so
+      // the length to keep is the recorded time inside the window, not the wall-clock span.
+      // Stream copy can only start on a keyframe, so the clip may begin up to one GOP early.
+      const windowStart = job.actualStartTime.getTime();
+      const windowEnd = job.bufferedEnd.getTime();
+      const coveredStart = Math.max(windowStart, presentSegments[0].startTime.getTime());
+      const coveredEnd = Math.min(windowEnd, presentSegments[presentSegments.length - 1].endTime.getTime());
       const trimOffsetSeconds = Math.max(0, (coveredStart - presentSegments[0].startTime.getTime()) / 1000);
-      const trimDurationSeconds = (coveredEnd - coveredStart) / 1000;
+      const trimDurationSeconds = presentSegments.reduce(
+        (sum, seg) => sum + Math.max(0, Math.min(windowEnd, seg.endTime.getTime()) - Math.max(windowStart, seg.startTime.getTime())) / 1000,
+        0,
+      );
       if (trimDurationSeconds <= 0) {
         throw new Error('Recorded segments do not overlap the requested window');
       }
+      const gaps = findGaps(presentSegments, coveredStart, coveredEnd);
       const trimArgs = ['-ss', trimOffsetSeconds.toFixed(3), '-t', trimDurationSeconds.toFixed(3)];
+      // Stream copy runs far faster than real time; allow at least 10x real time plus a margin.
+      const ffmpegTimeoutMs = 120_000 + Math.ceil(trimDurationSeconds * 100);
 
       // Write to a temp name and rename only on success, so a half-written file is never downloadable.
       const partialPath = `${job.fullDiskPath}.partial`;
       try {
         if (validFiles.length === 1) {
-          await this.runFfmpeg(['-y', ...trimArgs, '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
+          await this.runFfmpeg(['-y', ...trimArgs, '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs);
         } else {
           const concatListPath = `${job.fullDiskPath}.concat.txt`;
           const concatContent = validFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
           fs.writeFileSync(concatListPath, concatContent);
 
           try {
-            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', ...trimArgs, '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
+            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', ...trimArgs, '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs);
           } finally {
             if (fs.existsSync(concatListPath)) {
               fs.unlinkSync(concatListPath);
@@ -152,8 +162,10 @@ export class ExportConcurrencyQueue {
       }
 
       // 3. Compute SHA-256 and chain of custody
-      const fileBuffer = fs.readFileSync(job.fullDiskPath);
-      const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      // Hash as a stream: multi-hour clips are gigabytes and must not be read into memory.
+      const hash = crypto.createHash('sha256');
+      await pipeline(fs.createReadStream(job.fullDiskPath), hash);
+      const sha256Hash = hash.digest('hex');
       const fileStat = fs.statSync(job.fullDiskPath);
       const fileSizeBytes = BigInt(fileStat.size);
 
@@ -171,6 +183,8 @@ export class ExportConcurrencyQueue {
           sourceSegments: presentSegments.map((seg) => seg.id),
           coveredStart: new Date(coveredStart).toISOString(),
           coveredEnd: new Date(coveredEnd).toISOString(),
+          recordedSeconds: Math.round(trimDurationSeconds * 1000) / 1000,
+          gaps,
           keyframeAligned: true,
         },
       ];
@@ -208,9 +222,9 @@ export class ExportConcurrencyQueue {
     }
   }
 
-  private async runFfmpeg(args: string[]): Promise<void> {
+  private async runFfmpeg(args: string[], timeoutMs = 120000): Promise<void> {
     try {
-      await execFileAsync('ffmpeg', args, { timeout: 120000 });
+      await execFileAsync('ffmpeg', args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
     } catch (err: any) {
       // No copy fallback: copying the raw input (or the concat list) would yield a file that is not a valid clip.
       if (err.code === 'ENOENT') {
@@ -220,6 +234,23 @@ export class ExportConcurrencyQueue {
     }
   }
 
+}
+
+/** Gaps (> 10 s) between consecutive recorded segments inside [from, to]; they are left out of the clip. */
+export function findGaps(
+  segments: Array<{ startTime: Date; endTime: Date }>,
+  from: number,
+  to: number,
+): Array<{ start: string; end: string; seconds: number }> {
+  const gaps: Array<{ start: string; end: string; seconds: number }> = [];
+  for (let i = 1; i < segments.length; i++) {
+    const start = Math.max(from, segments[i - 1].endTime.getTime());
+    const end = Math.min(to, segments[i].startTime.getTime());
+    if (end - start > 10_000) {
+      gaps.push({ start: new Date(start).toISOString(), end: new Date(end).toISOString(), seconds: Math.round((end - start) / 1000) });
+    }
+  }
+  return gaps;
 }
 
 const envMaxExports = process.env.MAX_CONCURRENT_EXPORTS ? parseInt(process.env.MAX_CONCURRENT_EXPORTS, 10) : 2;

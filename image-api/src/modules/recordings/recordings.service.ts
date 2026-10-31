@@ -1,8 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
-import { defaultExportQueue } from './export-queue.js';
+import { config } from '../../config/index.js';
+import { ValidationError } from '../../lib/errors.js';
+import { defaultExportQueue, findGaps } from './export-queue.js';
+
+export interface RecordingCoverage {
+  windowSeconds: number;
+  recordedSeconds: number;
+  estimatedBytes: number;
+  segmentsCount: number;
+  gaps: Array<{ start: string; end: string; seconds: number }>;
+}
+
+const DOWNLOAD_LINK_TTL_SECONDS = 300;
 
 export interface TimelineContinuousBlock {
   startTime: string;
@@ -230,8 +243,74 @@ export class RecordingsService {
   }
 
   /**
-   * Exports an incident or operator-requested clip with pre/post buffer.
-   * If pre-buffer is unavailable in the rolling buffer, marks hasPreBuffer = false.
+   * How much of [start, end] is recorded on disk for a camera, and roughly how large a clip would be.
+   */
+  static async getCoverage(cameraId: string, start: Date, end: Date): Promise<RecordingCoverage> {
+    const prisma = getPrisma();
+    const segments = await prisma.cameraRecording.findMany({
+      where: { cameraId, isArchived: false, startTime: { lt: end }, endTime: { gt: start } },
+      orderBy: { startTime: 'asc' },
+      select: { startTime: true, endTime: true, durationSeconds: true, fileSizeBytes: true },
+    });
+    const from = start.getTime();
+    const to = end.getTime();
+    let recordedSeconds = 0;
+    let estimatedBytes = 0;
+    for (const seg of segments) {
+      const overlap = Math.max(0, Math.min(to, seg.endTime.getTime()) - Math.max(from, seg.startTime.getTime())) / 1000;
+      recordedSeconds += overlap;
+      if (seg.durationSeconds > 0) estimatedBytes += Number(seg.fileSizeBytes) * Math.min(1, overlap / seg.durationSeconds);
+    }
+    const gaps = segments.length ? findGaps(segments, from, to) : [];
+    // Uncovered time at either end of the window is also missing video.
+    if (segments.length && segments[0].startTime.getTime() - from > 10_000) {
+      gaps.unshift({ start: start.toISOString(), end: segments[0].startTime.toISOString(), seconds: Math.round((segments[0].startTime.getTime() - from) / 1000) });
+    }
+    const lastEnd = segments.length ? segments[segments.length - 1].endTime.getTime() : from;
+    if (segments.length && to - lastEnd > 10_000) {
+      gaps.push({ start: new Date(lastEnd).toISOString(), end: end.toISOString(), seconds: Math.round((to - lastEnd) / 1000) });
+    }
+    return {
+      windowSeconds: Math.round((to - from) / 1000),
+      recordedSeconds: Math.round(recordedSeconds),
+      estimatedBytes: Math.round(estimatedBytes),
+      segmentsCount: segments.length,
+      gaps,
+    };
+  }
+
+  /** Short-lived signed link so a browser can stream a large clip straight to disk. */
+  static createDownloadToken(filename: string, username: string, ttlSeconds = DOWNLOAD_LINK_TTL_SECONDS): string {
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+    const user = Buffer.from(username).toString('base64url');
+    const sig = crypto.createHmac('sha256', config.jwt.secret).update(`clip-download:${filename}:${user}:${expiresAt}`).digest('base64url');
+    return `${expiresAt}.${user}.${sig}`;
+  }
+
+  /** Returns the user the link was issued to, or null when the token is invalid or expired. */
+  static verifyDownloadToken(filename: string, token: string): string | null {
+    const [exp, user, sig] = (token || '').split('.');
+    if (!exp || !user || !sig || Number(exp) < Math.floor(Date.now() / 1000)) return null;
+    const expected = crypto.createHmac('sha256', config.jwt.secret).update(`clip-download:${filename}:${user}:${exp}`).digest('base64url');
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+    return Buffer.from(user, 'base64url').toString();
+  }
+
+  /** Adds a download entry to the clip's chain of custody when a link is issued. */
+  static async recordDownloadIssued(clipId: string, username: string) {
+    const prisma = getPrisma();
+    const clip = await prisma.recordingClip.findUnique({ where: { id: clipId } });
+    if (!clip) return null;
+    const chain = Array.isArray(clip.chainOfCustody) ? (clip.chainOfCustody as any[]) : [];
+    await prisma.recordingClip.update({
+      where: { id: clipId },
+      data: { chainOfCustody: [...chain, { timestamp: new Date().toISOString(), action: 'download_link_issued', performedBy: username }] },
+    });
+    return clip;
+  }
+
   /**
    * Exports an incident or operator-requested clip with pre/post buffer via ExportConcurrencyQueue [ENH-02].
    * Job advances QUEUED -> PROCESSING -> COMPLETED (or FAILED).
@@ -243,10 +322,35 @@ export class RecordingsService {
 
     const requestedStart = new Date(dto.startTime);
     const requestedEnd = new Date(dto.endTime);
+    if (Number.isNaN(requestedStart.getTime()) || Number.isNaN(requestedEnd.getTime())) {
+      throw new ValidationError('startTime and endTime must be valid ISO times');
+    }
+    if (preBufferSec < 0 || postBufferSec < 0) {
+      throw new ValidationError('Buffers cannot be negative');
+    }
 
     // Calculate buffer window
     const bufferedStart = new Date(requestedStart.getTime() - preBufferSec * 1000);
     const bufferedEnd = new Date(requestedEnd.getTime() + postBufferSec * 1000);
+    const windowHours = (bufferedEnd.getTime() - bufferedStart.getTime()) / 3_600_000;
+    if (windowHours <= 0) {
+      throw new ValidationError('The end of the clip must be after its start');
+    }
+    if (windowHours > config.cctv.maxExportHours) {
+      throw new ValidationError(`A clip can cover at most ${config.cctv.maxExportHours} hours`);
+    }
+
+    // Refuse up front when the clip cannot fit on the clips disk (stream copy ≈ source size).
+    const coverage = await this.getCoverage(dto.cameraId, bufferedStart, bufferedEnd);
+    if (coverage.recordedSeconds === 0) {
+      throw new ValidationError('No recorded video exists in the requested window');
+    }
+    const freeBytes = this.getFreeBytes(this.getClipsDir());
+    if (freeBytes !== null && coverage.estimatedBytes * 1.1 > freeBytes) {
+      throw new ValidationError(
+        `Not enough disk space for this clip (needs about ${Math.ceil(coverage.estimatedBytes / 1e6)} MB, ${Math.floor(freeBytes / 1e6)} MB free)`,
+      );
+    }
 
     // Check if recorded data exists prior to requestedStart to satisfy pre-buffer requirement
     const preBufferRecording = await prisma.cameraRecording.findFirst({
@@ -340,6 +444,15 @@ export class RecordingsService {
     };
   }
 
+
+  static getFreeBytes(dir: string): number | null {
+    try {
+      const st = fs.statfsSync(dir);
+      return Number(st.bavail) * Number(st.bsize);
+    } catch {
+      return null;
+    }
+  }
 
   static getClipsDir(): string {
     const baseDir = process.env.RECORDINGS_DIR || path.resolve(process.cwd(), 'recordings');

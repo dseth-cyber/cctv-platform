@@ -50,14 +50,51 @@ export async function exportClipHandler(request: FastifyRequest, reply: FastifyR
   }
 
   try {
-    const clip = await RecordingsService.exportClip({
-      ...body,
-      exportedBy: user?.username ?? 'operator',
-    });
-    return reply.status(201).send(clip);
+    // Long clips take minutes, so the export runs in the background; the client polls the clip status.
+    const clip = await RecordingsService.exportClip(
+      { ...body, exportedBy: user?.username ?? 'operator' },
+      { asyncProcess: true },
+    );
+    return reply.status(202).send(clip);
   } catch (err: any) {
-    return reply.status(500).send({ message: err?.message || 'Failed to export clip' });
+    const status = err?.statusCode === 400 ? 400 : 500;
+    return reply.status(status).send({ message: err?.message || 'Failed to export clip' });
   }
+}
+
+export async function getCoverageHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { cameraId, start, end } = request.query as { cameraId?: string; start?: string; end?: string };
+  const from = new Date(start ?? '');
+  const to = new Date(end ?? '');
+  if (!cameraId || Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to <= from) {
+    return reply.status(400).send({ message: 'cameraId, start and end (after start) are required' });
+  }
+  const coverage = await RecordingsService.getCoverage(cameraId, from, to);
+  return reply.status(200).send({ ...coverage, maxExportHours: config.cctv.maxExportHours });
+}
+
+export async function createDownloadLinkHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  const clip = await RecordingsService.getClipById(id);
+  if (!clip) return reply.status(404).send({ message: 'Clip not found' });
+  if (clip.status !== 'COMPLETED' || !clip.downloadUrl) {
+    return reply.status(409).send({ message: 'Clip is not ready for download' });
+  }
+  const filename = String(clip.downloadUrl).split('/').pop()!;
+  const username = user?.username ?? 'unknown';
+  await RecordingsService.recordDownloadIssued(id, username);
+  const token = RecordingsService.createDownloadToken(filename, username);
+  return reply.status(200).send({ filename, path: `/recordings/clips/file/${encodeURIComponent(filename)}?dl=${encodeURIComponent(token)}` });
+}
+
+/** Streams a clip for a signed link (no bearer header: the browser downloads it directly). */
+export async function downloadClipByLinkHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { filename } = request.params as { filename: string };
+  const { dl } = request.query as { dl?: string };
+  const username = RecordingsService.verifyDownloadToken(filename, dl ?? '');
+  if (!username) return reply.status(403).send({ message: 'Download link is invalid or expired' });
+  return downloadClipHandler(request, reply);
 }
 
 export async function getClipsHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -206,6 +243,18 @@ export async function recordingsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     getClipByIdHandler,
   );
+  app.get(
+    '/coverage',
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    getCoverageHandler,
+  );
+  app.post(
+    '/clips/:id/download-link',
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    createDownloadLinkHandler,
+  );
+  // Authorized by the signed `dl` token issued above, not by a bearer header.
+  app.get('/clips/file/:filename', downloadClipByLinkHandler);
   app.get(
     '/clips/download/:filename',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },

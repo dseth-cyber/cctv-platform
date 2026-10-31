@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { toBangkokDateAndTimeString, isoToBangkokDaySeconds, bangkokDaySecondsToIso } from '@/utils/dateUtils';
+import { toBangkokDateAndTimeString, isoToBangkokDaySeconds, bangkokDaySecondsToIso, isoToBangkokInput, bangkokInputToIso } from '@/utils/dateUtils';
 import {
   Play,
   Pause,
@@ -113,6 +113,10 @@ export const CctvPlayback: React.FC = () => {
   const [preBufferSec, setPreBufferSec] = useState<number>(30);
   const [postBufferSec, setPostBufferSec] = useState<number>(60);
   const [legalHoldChecked, setLegalHoldChecked] = useState<boolean>(false);
+  // 'event': playhead +/- buffers; 'range': any start/end the operator picks (may span hours or days).
+  const [exportMode, setExportMode] = useState<'event' | 'range'>('event');
+  const [rangeStart, setRangeStart] = useState<string>('');
+  const [rangeEnd, setRangeEnd] = useState<string>('');
   const [selectedIncidentForClip, setSelectedIncidentForClip] = useState<IncidentMarker | null>(null);
 
   const timelineTrackRef = useRef<HTMLDivElement>(null);
@@ -166,6 +170,8 @@ export const CctvPlayback: React.FC = () => {
     queryKey: ['cctv-recording-clips', selectedCameraId],
     queryFn: () => imageServiceApi.getRecordingClips({ cameraId: selectedCameraId }),
     enabled: !!selectedCameraId,
+    refetchInterval: (query: any) =>
+      (query.state.data?.items ?? []).some((c: any) => c.status === 'QUEUED' || c.status === 'PROCESSING') ? 3000 : false,
   });
 
   const clips = clipsData?.items ?? [];
@@ -345,12 +351,9 @@ export const CctvPlayback: React.FC = () => {
   // Export Clip mutation
   const exportClipMutation = useMutation({
     mutationFn: (data: any) => imageServiceApi.exportRecordingClip(data),
-    onSuccess: (result: any) => {
-      toast.success(
-        result.hasPreBuffer
-          ? t('ui.cctvPlayback.eventClipExportedPreBufferComplete')
-          : t('ui.cctvPlayback.eventClipExportedNoteNoPre')
-      );
+    onSuccess: () => {
+      // The export runs in the background; the clip list polls until it is COMPLETED or FAILED.
+      toast.success(t('ui.cctvPlayback.clipExportStarted'));
       setIsExportModalOpen(false);
       refetchClips();
     },
@@ -379,21 +382,44 @@ export const CctvPlayback: React.FC = () => {
       setSelectedIncidentForClip(null);
       setClipTitle(`Clip_${selectedDate}_${formatSeconds(currentTimeSec).replace(/:/g, '')}`);
     }
+    const playheadIso = bangkokDaySecondsToIso(selectedDate, currentTimeSec);
+    setRangeStart(isoToBangkokInput(playheadIso));
+    setRangeEnd(isoToBangkokInput(new Date(new Date(playheadIso).getTime() + 5 * 60_000).toISOString()));
     setIsExportModalOpen(true);
   };
+
+  const rangeStartIso = bangkokInputToIso(rangeStart);
+  const rangeEndIso = bangkokInputToIso(rangeEnd);
+  const rangeValid = !!rangeStartIso && !!rangeEndIso && rangeEndIso > rangeStartIso;
+  const { data: rangeCoverage, isFetching: isCoverageLoading } = useQuery({
+    queryKey: ['cctv-recording-coverage', selectedCameraId, rangeStartIso, rangeEndIso],
+    queryFn: () => imageServiceApi.getRecordingCoverage(selectedCameraId, rangeStartIso!, rangeEndIso!),
+    enabled: isExportModalOpen && exportMode === 'range' && !!selectedCameraId && rangeValid,
+    staleTime: 1000 * 15,
+  });
+  const rangeHours = rangeValid ? (new Date(rangeEndIso!).getTime() - new Date(rangeStartIso!).getTime()) / 3_600_000 : 0;
+  const rangeTooLong = !!rangeCoverage && rangeHours > rangeCoverage.maxExportHours;
+  const canExportRange = rangeValid && !!rangeCoverage && rangeCoverage.recordedSeconds > 0 && !rangeTooLong;
+
+  const formatDuration = (sec: number) => {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m ${String(s).padStart(2, '0')}s`;
+  };
+  const formatBytes = (bytes: number) =>
+    bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`;
 
   // The download endpoint needs the bearer token, so fetch it as a blob instead of a plain link.
   const handleDownloadClip = async (clip: any) => {
     const filename = String(clip.downloadUrl || '').split('/').pop();
     if (!filename) return;
     try {
-      const blob = await imageServiceApi.downloadRecordingClip(filename);
-      const url = URL.createObjectURL(blob);
+      const url = await imageServiceApi.getClipDownloadUrl(clip.id);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err: any) {
       toast.error(err?.response?.status === 404 ? t('ui.cctvPlayback.clipFileNotFound') : t('ui.cctvPlayback.clipDownloadFailed'));
     }
@@ -401,6 +427,20 @@ export const CctvPlayback: React.FC = () => {
 
   const handleConfirmExport = () => {
     if (!selectedCameraId) return;
+    if (exportMode === 'range') {
+      if (!canExportRange) return;
+      exportClipMutation.mutate({
+        cameraId: selectedCameraId,
+        incidentId: selectedIncidentForClip?.id,
+        title: clipTitle,
+        startTime: rangeStartIso,
+        endTime: rangeEndIso,
+        preBufferSeconds: 0,
+        postBufferSeconds: 0,
+        legalHold: legalHoldChecked,
+      });
+      return;
+    }
     // The playhead is the event instant; the server adds the pre/post buffers around it.
     const eventIso = bangkokDaySecondsToIso(selectedDate, currentTimeSec);
 
@@ -931,11 +971,11 @@ export const CctvPlayback: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-300">
-                        {new Date(clip.startTime).toLocaleTimeString('th-TH')} -{' '}
-                        {new Date(clip.endTime).toLocaleTimeString('th-TH')}
+                        {new Date(clip.startTime).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })} -{' '}
+                        {new Date(clip.endTime).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
                       </td>
                       <td className="py-3 px-3 font-semibold text-slate-200">
-                        {Math.round(clip.durationSeconds)}{' '}{t('ui.cctvPlayback.s')}
+                        {formatDuration(clip.durationSeconds)}
                       </td>
                       <td className="py-3 px-3">
                         {clip.hasPreBuffer ? (
@@ -951,7 +991,11 @@ export const CctvPlayback: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-400">
-                        {clip.fileSizeBytes ? t('ui.cctvPlayback.mb', { v0: (Number(clip.fileSizeBytes) / (1024 * 1024)).toFixed(1) }) : '-'}
+                        {clip.status === 'COMPLETED' && clip.fileSizeBytes ? formatBytes(Number(clip.fileSizeBytes)) : (
+                          <span className={clip.status === 'FAILED' ? 'text-rose-400' : 'text-amber-400 animate-pulse'} title={clip.status === 'FAILED' ? clip.description : undefined}>
+                            {clip.status === 'FAILED' ? t('ui.cctvPlayback.clipStatusFailed') : t('ui.cctvPlayback.clipStatusProcessing')}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-3">
                         <button
@@ -1015,6 +1059,77 @@ export const CctvPlayback: React.FC = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-950 border border-slate-800">
+                {(['event', 'range'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setExportMode(mode)}
+                    className={`py-1.5 rounded-lg font-semibold transition-all ${exportMode === mode ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    {mode === 'event' ? t('ui.cctvPlayback.exportModeEvent') : t('ui.cctvPlayback.exportModeRange')}
+                  </button>
+                ))}
+              </div>
+
+              {exportMode === 'range' && (
+                <div className="space-y-3">
+                  {([
+                    ['start', rangeStart, setRangeStart, t('ui.cctvPlayback.rangeStart')],
+                    ['end', rangeEnd, setRangeEnd, t('ui.cctvPlayback.rangeEnd')],
+                  ] as const).map(([key, value, setValue, label]) => (
+                    <div key={key}>
+                      <label className="block text-slate-400 mb-1 font-semibold">{label} <span className="font-normal text-slate-500">(UTC+7)</span></label>
+                      <div className="flex gap-2">
+                        <input
+                          type="datetime-local"
+                          step={1}
+                          value={value}
+                          onChange={(e) => setValue(e.target.value)}
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 [color-scheme:dark]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setValue(isoToBangkokInput(bangkokDaySecondsToIso(selectedDate, currentTimeSec)))}
+                          className="px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold whitespace-nowrap"
+                        >
+                          {t('ui.cctvPlayback.usePlayhead')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 space-y-1">
+                    {!rangeValid ? (
+                      <span className="text-rose-400">{t('ui.cctvPlayback.rangeEndMustBeAfterStart')}</span>
+                    ) : isCoverageLoading || !rangeCoverage ? (
+                      <span className="text-slate-500">{t('ui.cctvPlayback.checkingRecordings')}</span>
+                    ) : (
+                      <>
+                        <div>{t('ui.cctvPlayback.rangeLength')}: <b>{formatDuration(rangeCoverage.windowSeconds)}</b></div>
+                        <div>
+                          {t('ui.cctvPlayback.rangeRecorded')}: <b className={rangeCoverage.recordedSeconds > 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatDuration(rangeCoverage.recordedSeconds)}</b>
+                          {rangeCoverage.gaps.length > 0 && (
+                            <span className="text-amber-400"> · {t('ui.cctvPlayback.rangeGaps', { count: rangeCoverage.gaps.length })}</span>
+                          )}
+                        </div>
+                        <div>{t('ui.cctvPlayback.rangeEstimatedSize')}: <b>{formatBytes(rangeCoverage.estimatedBytes)}</b></div>
+                        {rangeTooLong && (
+                          <div className="text-rose-400">{t('ui.cctvPlayback.rangeTooLong', { hours: rangeCoverage.maxExportHours })}</div>
+                        )}
+                        {rangeCoverage.recordedSeconds === 0 && (
+                          <div className="text-rose-400">{t('ui.cctvPlayback.rangeNoRecording')}</div>
+                        )}
+                        {rangeCoverage.gaps.length > 0 && (
+                          <div className="text-[11px] text-slate-500">{t('ui.cctvPlayback.rangeGapsNote')}</div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {exportMode === 'event' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1 font-semibold">{t('ui.cctvPlayback.preBufferBeforeEvent')}</label>
@@ -1044,7 +1159,10 @@ export const CctvPlayback: React.FC = () => {
                 </div>
               </div>
 
+              )}
+
               {/* Pre-buffer rolling storage policy banner */}
+              {exportMode === 'event' && (
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 space-y-1">
                 <div className="flex items-center gap-1.5 text-cyan-400 font-semibold">
                   <Info size={14} />
@@ -1054,6 +1172,7 @@ export const CctvPlayback: React.FC = () => {
                   {t('ui.cctvPlayback.thePreEventWindowIsTaken')}{' '}<span className="text-amber-400">{t('ui.cctvPlayback.noPreBuffer2')}</span>{' '}{t('ui.cctvPlayback.asRequired')}
                 </p>
               </div>
+              )}
 
               {/* Legal Hold Checkbox */}
               <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl bg-purple-950/20 border border-purple-500/20 hover:bg-purple-950/30 transition-all">
@@ -1083,7 +1202,7 @@ export const CctvPlayback: React.FC = () => {
               <button
                 type="button"
                 onClick={handleConfirmExport}
-                disabled={exportClipMutation.isPending}
+                disabled={exportClipMutation.isPending || (exportMode === 'range' && !canExportRange)}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
               >
                 {exportClipMutation.isPending ? t('ui.cctvPlayback.processingClip') : t('ui.cctvPlayback.confirmExportClip')}

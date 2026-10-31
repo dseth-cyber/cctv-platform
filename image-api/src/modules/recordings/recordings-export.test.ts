@@ -41,7 +41,7 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
     expect(result.fullPath).toContain('clips');
   });
 
-  it('should mark the clip FAILED instead of fabricating a file when no recording exists', async () => {
+  it('should refuse the export (no clip, no file) when no recording exists in the window', async () => {
     const prisma = getPrisma() as any;
     const mockCameraId = '00000000-0000-0000-0000-000000000001';
 
@@ -55,13 +55,49 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
         postBufferSeconds: 15,
         exportedBy: 'auditor',
       }),
-    ).rejects.toThrow('No recorded video found');
+    ).rejects.toThrow('No recorded video exists');
 
-    expect(prisma.recordingClip.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
-    );
+    expect(prisma.recordingClip.create).not.toHaveBeenCalled();
     expect(prisma.recordingClip.update).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) }),
     );
+  });
+
+  it('should reject an end before the start and windows longer than the limit', async () => {
+    const t0 = Date.parse('2026-10-31T00:00:00Z');
+    const base = { cameraId: 'cam', title: 'x', preBufferSeconds: 0, postBufferSeconds: 0 };
+    await expect(
+      RecordingsService.exportClip({ ...base, startTime: new Date(t0).toISOString(), endTime: new Date(t0 - 1000).toISOString() }),
+    ).rejects.toThrow('must be after its start');
+    await expect(
+      RecordingsService.exportClip({ ...base, startTime: new Date(t0).toISOString(), endTime: new Date(t0 + 25 * 3600_000).toISOString() }),
+    ).rejects.toThrow('at most 24 hours');
+  });
+
+  it('should report recorded time, gaps and size for a window', async () => {
+    const prisma = getPrisma() as any;
+    const t0 = Date.parse('2026-10-31T01:00:00Z');
+    const seg = (startMin: number) => ({
+      startTime: new Date(t0 + startMin * 60_000),
+      endTime: new Date(t0 + (startMin + 1) * 60_000),
+      durationSeconds: 60,
+      fileSizeBytes: BigInt(6_000_000),
+    });
+    prisma.cameraRecording.findMany.mockResolvedValueOnce([seg(0), seg(1), seg(5)]);
+
+    const cov = await RecordingsService.getCoverage('cam', new Date(t0 + 30_000), new Date(t0 + 6 * 60_000));
+
+    expect(cov.windowSeconds).toBe(330);
+    expect(cov.recordedSeconds).toBe(150); // 30 + 60 + 60
+    expect(cov.estimatedBytes).toBe(15_000_000);
+    expect(cov.gaps).toEqual([{ start: '2026-10-31T01:02:00.000Z', end: '2026-10-31T01:05:00.000Z', seconds: 180 }]);
+  });
+
+  it('should only accept download links signed for that file and not expired', () => {
+    const token = RecordingsService.createDownloadToken('clip_a.mp4', 'admin');
+    expect(RecordingsService.verifyDownloadToken('clip_a.mp4', token)).toBe('admin');
+    expect(RecordingsService.verifyDownloadToken('clip_b.mp4', token)).toBeNull();
+    expect(RecordingsService.verifyDownloadToken('clip_a.mp4', token.replace(/.$/, (c) => (c === 'x' ? 'y' : 'x')))).toBeNull();
+    expect(RecordingsService.verifyDownloadToken('clip_a.mp4', RecordingsService.createDownloadToken('clip_a.mp4', 'admin', -1))).toBeNull();
   });
 });

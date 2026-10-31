@@ -647,6 +647,13 @@ export function createImageServiceApi(api: any) {
       api.patch(`${BASE}/recordings/clips/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     seedDevRecordings: (cameraId: string, date?: string) =>
       api.post(`${BASE}/recordings/seed-dev`, { cameraId, date }).then((r: any) => r.data),
+    getRecordingCoverage: (cameraId: string, start: string, end: string) =>
+      api.get(`${BASE}/recordings/coverage`, { params: { cameraId, start, end } }).then((r: any) => r.data),
+
+    /** Signed short-lived URL; the browser streams the clip to disk without holding it in memory. */
+    getClipDownloadUrl: (clipId: string): Promise<string> =>
+      api.post(`${BASE}/recordings/clips/${clipId}/download-link`).then((r: any) => `${BASE}${r.data.path}`),
+
     downloadRecordingClip: (filename: string): Promise<Blob> =>
       api.get(`${BASE}/recordings/clips/download/${encodeURIComponent(filename)}`, { responseType: 'blob' }).then((r: any) => r.data),
 
