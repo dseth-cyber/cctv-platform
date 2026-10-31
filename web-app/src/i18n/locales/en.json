@@ -3558,7 +3558,6 @@
       "eventClipExportedNoteNoPre": "Event clip exported (note: no pre-buffer data in rolling storage)",
       "failedToExportClip": "Failed to export clip",
       "legalHoldUpdated": "Legal hold updated",
-      "syntheticRecordingsCreatedSegments": "Synthetic recordings created ({{count}} segments)",
       "cctvPlaybackScrubberTimeline": "CCTV Playback & Scrubber Timeline",
       "phase4DirectFMP4Remux": "Phase 4: Direct fMP4 Remux",
       "timezoneDisplayEnforcedToAsiaBangkok": "Timezone display enforced to Asia/Bangkok (UTC+7)",
@@ -3568,13 +3567,9 @@
       "today": "Today",
       "switchToLive": "Switch to Live",
       "cameraFeed": "Camera Feed",
-      "mediaNodePlaybackStreamFMP4Remuxed": "Media Node Playback Stream (fMP4 Remuxed Segment)",
-      "n1080p25fps": "1080p @ 25fps",
       "noRecordingInThisPeriodData": "No recording in this period (data gap)",
       "noRecordingDataAtThisTime": "No recording data at this time",
       "theDeviceMayBeOffThe": "The device may be off, the LAN cable disconnected, or the camera in maintenance mode",
-      "generatingData": "Generating data...",
-      "seedSyntheticRecordingsDev": "⚡ Seed synthetic recordings (Dev)",
       "playingX": "PLAYING {{playbackSpeed}}x",
       "eventDetected": "Event detected:",
       "signalAnomalyOrSecurityEvent": "Signal anomaly or security event",
@@ -3638,7 +3633,10 @@
       "preventsTheRetentionSweeperFromRemoving": "Prevents the retention sweeper from removing this clip until an authorised person releases it",
       "processingClip": "Processing clip...",
       "confirmExportClip": "Confirm & Export Clip",
-      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)"
+      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
+      "playbackLoadFailed": "Could not load the recorded video",
+      "loadingRecording": "Loading recorded video...",
+      "pressPlayToWatchRecording": "Press play to watch the recording at this time"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "Failed to load pre-flight results — readiness unknown",

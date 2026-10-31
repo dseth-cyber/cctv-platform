@@ -3555,7 +3555,6 @@
       "eventClipExportedNoteNoPre": "イベントクリップを書き出しました（注: ローリングストレージにプリバッファなし）",
       "failedToExportClip": "クリップの書き出しに失敗しました",
       "legalHoldUpdated": "リーガルホールドを更新しました",
-      "syntheticRecordingsCreatedSegments": "疑似録画データを作成しました（{{count}} 区間）",
       "cctvPlaybackScrubberTimeline": "CCTV 再生とタイムライン",
       "phase4DirectFMP4Remux": "フェーズ 4: fMP4 ダイレクトリマックス",
       "timezoneDisplayEnforcedToAsiaBangkok": "時刻は Asia/Bangkok (UTC+7) で表示",
@@ -3565,13 +3564,9 @@
       "today": "今日",
       "switchToLive": "ライブに切り替え",
       "cameraFeed": "カメラ映像",
-      "mediaNodePlaybackStreamFMP4Remuxed": "メディアノード再生ストリーム（fMP4 リマックス区間）",
-      "n1080p25fps": "1080p @ 25fps",
       "noRecordingInThisPeriodData": "この時間帯は録画なし（データ欠損）",
       "noRecordingDataAtThisTime": "この時刻の録画データはありません",
       "theDeviceMayBeOffThe": "デバイスの電源断、LAN ケーブルの抜け、またはカメラがメンテナンスモードの可能性があります",
-      "generatingData": "データを生成中...",
-      "seedSyntheticRecordingsDev": "⚡ 疑似録画を生成（開発用）",
       "playingX": "再生中 {{playbackSpeed}}x",
       "eventDetected": "イベント検出:",
       "signalAnomalyOrSecurityEvent": "信号異常またはセキュリティイベント",
@@ -3635,7 +3630,10 @@
       "preventsTheRetentionSweeperFromRemoving": "権限者が解除するまで、保持スイーパーによるこのクリップの削除を防ぎます",
       "processingClip": "クリップを処理中...",
       "confirmExportClip": "確認して書き出す",
-      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)"
+      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
+      "playbackLoadFailed": "録画を読み込めませんでした",
+      "loadingRecording": "録画を読み込み中...",
+      "pressPlayToWatchRecording": "再生を押すとこの時刻の録画を表示します"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "プリフライト結果の読み込みに失敗しました — 準備状況は不明です",

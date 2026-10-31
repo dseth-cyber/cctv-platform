@@ -4,6 +4,7 @@ import { MediaMtxService } from './mediamtx.service.js';
 import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
 import { handleStreamStatusEvent } from '../cameras/camera-health-monitor.js';
+import { indexSegment, resolveSegmentPath } from '../recordings/segment-indexer.js';
 
 interface MediaAuthBody {
   ip?: string;
@@ -14,6 +15,11 @@ interface MediaAuthBody {
   id?: string;
   action?: 'publish' | 'read' | 'playback' | 'api' | 'metrics' | 'pprof';
   query?: string;
+}
+
+interface SegmentCompleteBody {
+  path?: string;
+  segmentPath?: string;
 }
 
 interface StreamStatusBody {
@@ -97,13 +103,7 @@ export async function mediaAuthRoutes(app: FastifyInstance) {
    * Gated by x-media-webhook-secret header.
    */
   app.post('/events/stream-status', async (request: FastifyRequest, reply: FastifyReply) => {
-    const secretHeader = (request.headers['x-media-webhook-secret'] as string) || '';
-    const expectedSecret = config.mediamtx.webhookSecret || process.env.MEDIA_WEBHOOK_SECRET || 'cctv-media-webhook-secret-dev';
-
-    if (!secretHeader || secretHeader !== expectedSecret) {
-      logger.warn({ ip: request.ip }, 'Media stream webhook rejected: invalid or missing secret header');
-      return reply.status(401).send({ error: 'Unauthorized: Invalid or missing x-media-webhook-secret header' });
-    }
+    if (!webhookAuthorized(request, reply)) return reply;
 
     const body = (request.body || {}) as StreamStatusBody;
     const { path: streamPath, status } = body;
@@ -120,5 +120,41 @@ export async function mediaAuthRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: 'Internal Server Error processing stream status event' });
     }
   });
+
+  /**
+   * MediaMTX runOnRecordSegmentComplete hook: adds the finished segment to the recording index.
+   * Gated by x-media-webhook-secret header.
+   */
+  app.post('/events/segment-complete', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!webhookAuthorized(request, reply)) return reply;
+
+    const { path: streamPath, segmentPath } = (request.body || {}) as SegmentCompleteBody;
+    if (!streamPath || !segmentPath) {
+      return reply.status(400).send({ error: 'Bad Request: path and segmentPath are required' });
+    }
+
+    let filePath: string;
+    try {
+      filePath = resolveSegmentPath(segmentPath);
+    } catch (err: any) {
+      logger.warn({ path: streamPath, segmentPath }, 'Segment webhook rejected: invalid segment path');
+      return reply.status(400).send({ error: err.message });
+    }
+
+    try {
+      const result = await indexSegment(streamPath, filePath, true);
+      return reply.status(200).send(result);
+    } catch (err: any) {
+      logger.error({ err, path: streamPath, filePath }, 'Failed to index recording segment from webhook');
+      return reply.status(500).send({ error: 'Failed to index recording segment' });
+    }
+  });
 }
 
+function webhookAuthorized(request: FastifyRequest, reply: FastifyReply): boolean {
+  const secretHeader = (request.headers['x-media-webhook-secret'] as string) || '';
+  if (secretHeader && secretMatches(secretHeader, config.mediamtx.webhookSecret)) return true;
+  logger.warn({ ip: request.ip, url: request.url }, 'Media webhook rejected: invalid or missing secret header');
+  reply.status(401).send({ error: 'Unauthorized: Invalid or missing x-media-webhook-secret header' });
+  return false;
+}

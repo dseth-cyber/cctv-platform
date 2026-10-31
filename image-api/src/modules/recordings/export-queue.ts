@@ -103,27 +103,37 @@ export class ExportConcurrencyQueue {
         orderBy: { startTime: 'asc' },
       });
 
-      const validFiles = segments
-        .map((s) => s.filePath)
-        .filter((fp): fp is string => Boolean(fp && fs.existsSync(fp)));
+      const presentSegments = segments.filter((s) => Boolean(s.filePath && fs.existsSync(s.filePath)));
+      const validFiles = presentSegments.map((s) => s.filePath);
 
       // Never fabricate evidence: no recorded video on disk means the export failed.
       if (validFiles.length === 0) {
         throw new Error(`No recorded video found on disk for the requested window (${segments.length} indexed segments, 0 files present)`);
       }
 
+      // Cut the joined segments down to the requested window. Stream copy can only start on a
+      // keyframe, so the clip may begin up to one GOP before the requested time.
+      const coveredStart = Math.max(job.actualStartTime.getTime(), presentSegments[0].startTime.getTime());
+      const coveredEnd = Math.min(job.bufferedEnd.getTime(), presentSegments[presentSegments.length - 1].endTime.getTime());
+      const trimOffsetSeconds = Math.max(0, (coveredStart - presentSegments[0].startTime.getTime()) / 1000);
+      const trimDurationSeconds = (coveredEnd - coveredStart) / 1000;
+      if (trimDurationSeconds <= 0) {
+        throw new Error('Recorded segments do not overlap the requested window');
+      }
+      const trimArgs = ['-ss', trimOffsetSeconds.toFixed(3), '-t', trimDurationSeconds.toFixed(3)];
+
       // Write to a temp name and rename only on success, so a half-written file is never downloadable.
       const partialPath = `${job.fullDiskPath}.partial`;
       try {
         if (validFiles.length === 1) {
-          await this.runFfmpeg(['-y', '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
+          await this.runFfmpeg(['-y', ...trimArgs, '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
         } else {
           const concatListPath = `${job.fullDiskPath}.concat.txt`;
           const concatContent = validFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
           fs.writeFileSync(concatListPath, concatContent);
 
           try {
-            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
+            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', ...trimArgs, '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath]);
           } finally {
             if (fs.existsSync(concatListPath)) {
               fs.unlinkSync(concatListPath);
@@ -158,6 +168,10 @@ export class ExportConcurrencyQueue {
           preBufferSeconds: job.hasPreBuffer ? job.preBufferSec : 0,
           postBufferSeconds: job.postBufferSec,
           streamCopy: true,
+          sourceSegments: presentSegments.map((seg) => seg.id),
+          coveredStart: new Date(coveredStart).toISOString(),
+          coveredEnd: new Date(coveredEnd).toISOString(),
+          keyframeAligned: true,
         },
       ];
 
@@ -166,6 +180,9 @@ export class ExportConcurrencyQueue {
         where: { id: job.clipId },
         data: {
           status: 'COMPLETED',
+          startTime: new Date(coveredStart),
+          endTime: new Date(coveredEnd),
+          durationSeconds: Math.round(trimDurationSeconds),
           filePath: job.filePath,
           fileSizeBytes,
           sha256Hash,

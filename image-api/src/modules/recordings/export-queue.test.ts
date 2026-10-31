@@ -105,12 +105,21 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
     expect(queue.queuedCount).toBe(0);
   });
 
+  // One 60s segment from T0; the job asks for T0+10s .. T0+40s.
+  const T0 = new Date('2026-10-31T01:00:00.000Z');
+  const segmentRow = (filePath: string) => ({
+    id: 'seg-1',
+    filePath,
+    startTime: T0,
+    endTime: new Date(T0.getTime() + 60_000),
+  });
+
   function makeJob(id: string, fullDiskPath: string): ExportJob {
     return {
       clipId: id,
       cameraId: 'cam-test',
-      actualStartTime: new Date(),
-      bufferedEnd: new Date(),
+      actualStartTime: new Date(T0.getTime() + 10_000),
+      bufferedEnd: new Date(T0.getTime() + 40_000),
       durationSeconds: 30,
       hasPreBuffer: true,
       preBufferSec: 10,
@@ -127,7 +136,7 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
     const segment = path.join(dir, 'seg-1.mp4');
     fs.writeFileSync(segment, 'recorded-video-bytes');
     const output = path.join(dir, 'clip.mp4');
-    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: segment }]);
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([segmentRow(segment)]);
 
     const queue = new ExportConcurrencyQueue(1);
     const ffmpeg = vi.spyOn(queue as any, 'runFfmpeg').mockImplementation(async (args: any) => {
@@ -140,6 +149,8 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
       const ffmpegArgs = ffmpeg.mock.calls[0][0] as string[];
       expect(ffmpegArgs).toEqual(expect.arrayContaining(['-c', 'copy', '-movflags', '+faststart']));
       expect(ffmpegArgs[ffmpegArgs.length - 1]).toBe(`${output}.partial`);
+      // Cut to the requested 30s starting 10s into the segment, not the whole 60s file.
+      expect(ffmpegArgs.slice(ffmpegArgs.indexOf('-ss'), ffmpegArgs.indexOf('-ss') + 4)).toEqual(['-ss', '10.000', '-t', '30.000']);
 
       const expectedHash = crypto.createHash('sha256').update('recorded-video-bytes').digest('hex');
       expect(mockPrisma.recordingClip.update).toHaveBeenCalledWith({ where: { id: 'clip-verify-101' }, data: { status: 'PROCESSING' } });
@@ -163,7 +174,7 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
   it('marks clip FAILED (and writes no file) when no recorded video exists for the window', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cctv-export-'));
     const output = path.join(dir, 'clip.mp4');
-    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: path.join(dir, 'missing.mp4') }]);
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([segmentRow(path.join(dir, 'missing.mp4'))]);
 
     try {
       await expect(new ExportConcurrencyQueue(1).enqueue(makeJob('clip-empty', output))).rejects.toThrow('No recorded video found');
@@ -185,7 +196,7 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
     const segment = path.join(dir, 'seg-1.mp4');
     fs.writeFileSync(segment, 'x');
     const output = path.join(dir, 'clip.mp4');
-    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([{ filePath: segment }]);
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([segmentRow(segment)]);
 
     const queue = new ExportConcurrencyQueue(1);
     vi.spyOn(queue as any, 'runFfmpeg').mockImplementation(async (args: any) => {

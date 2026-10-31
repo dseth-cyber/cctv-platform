@@ -55,6 +55,7 @@ import { startDlqReprocessor, stopDlqReprocessor } from './modules/processing-lo
 import { startOrphanSweeper, stopOrphanSweeper } from './modules/processing-logs/orphan-sweeper.js';
 import { startMetricCollector, stopMetricCollector } from './modules/provider-metrics/provider-metric-collector.js';
 import { startCameraHealthMonitor, stopCameraHealthMonitor } from './modules/cameras/camera-health-monitor.js';
+import { startRecordingReconciler, stopRecordingReconciler } from './modules/recordings/segment-indexer.js';
 import { startTelegramBot, stopTelegramBot } from './modules/telegram-bot/telegram-bot.service.js';
 import { startSystemCleanup, stopSystemCleanup } from './modules/system-cleanup/system-cleanup.controller.js';
 import { workerUploadRoutes } from './modules/images/worker-upload.controller.js';
@@ -207,6 +208,7 @@ export async function startApp() {
   startBackupScheduler();
   startMetricCollector();
   startCameraHealthMonitor();
+  startRecordingReconciler();
   startSystemCleanup();
   startTelegramBot();
 
@@ -241,6 +243,7 @@ export async function startApp() {
     stopBackupScheduler();
     stopMetricCollector();
     stopCameraHealthMonitor();
+    stopRecordingReconciler();
     stopSystemCleanup();
     stopTelegramBot();
     await app.close();

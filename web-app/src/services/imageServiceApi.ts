@@ -643,8 +643,8 @@ export function createImageServiceApi(api: any) {
       api.patch(`${BASE}/recordings/clips/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     seedDevRecordings: (cameraId: string, date?: string) =>
       api.post(`${BASE}/recordings/seed-dev`, { cameraId, date }).then((r: any) => r.data),
-    getPlaybackStream: (cameraId: string, timestamp?: string) =>
-      api.get(`${BASE}/recordings/playback-stream`, { params: { cameraId, timestamp } }).then((r: any) => r.data),
+    getPlaybackStream: (cameraId: string, start: string, duration = 300) =>
+      api.get(`${BASE}/recordings/playback-stream`, { params: { cameraId, start, duration } }).then((r: any) => r.data),
 
     // Multi-Node Media Plane, Scale & WFH (Phase 5)
     getMediaNodes: (params?: { siteId?: string; status?: string }) =>

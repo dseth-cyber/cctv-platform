@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { SecurityWatermark } from './SecurityWatermark';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 import { useTranslation } from 'react-i18next';
@@ -210,6 +211,8 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
     }
   };
 
+  const { user } = useAuth();
+
   const handleCaptureSnapshot = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
@@ -219,6 +222,18 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Burn who took the snapshot and when into the pixels, so the saved file carries it [R3.4].
+      const takenAt = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' });
+      const label = `${user?.username ?? 'unknown'} | ${cameraName} | ${takenAt} (UTC+7)`;
+      const fontSize = Math.max(14, Math.round(canvas.height / 36));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const pad = Math.round(fontSize / 2);
+      const boxHeight = fontSize + pad * 2;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.fillRect(0, canvas.height - boxHeight, Math.min(canvas.width, ctx.measureText(label).width + pad * 2), boxHeight);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pad, canvas.height - boxHeight / 2);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       if (onSnapshot) {
         onSnapshot(dataUrl);

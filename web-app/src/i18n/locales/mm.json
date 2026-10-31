@@ -3550,7 +3550,6 @@
       "eventClipExportedNoteNoPre": "Event clip ထုတ်ပြီး (မှတ်ချက်: Rolling Storage တွင် Pre-buffer ဒေတာ မရှိ)",
       "failedToExportClip": "Clip ထုတ်မှု မအောင်မြင်ပါ",
       "legalHoldUpdated": "Legal Hold အပ်ဒိတ်ပြီး",
-      "syntheticRecordingsCreatedSegments": "စမ်းသပ် မှတ်တမ်းများ ဖန်တီးပြီး ({{count}} အပိုင်း)",
       "cctvPlaybackScrubberTimeline": "CCTV ပြန်ကြည့်ခြင်းနှင့် Timeline",
       "phase4DirectFMP4Remux": "အဆင့် ၄: fMP4 တိုက်ရိုက် Remux",
       "timezoneDisplayEnforcedToAsiaBangkok": "အချိန်ကို Asia/Bangkok (UTC+7) ဖြင့် ပြသည်",
@@ -3560,13 +3559,9 @@
       "today": "ယနေ့",
       "switchToLive": "တိုက်ရိုက်သို့ ပြောင်းရန်",
       "cameraFeed": "ကင်မရာ ပုံရိပ်",
-      "mediaNodePlaybackStreamFMP4Remuxed": "Media Node ပြန်ကြည့် Stream (fMP4 Remux အပိုင်း)",
-      "n1080p25fps": "1080p @ 25fps",
       "noRecordingInThisPeriodData": "ဤကာလတွင် မှတ်တမ်း မရှိ (Data Gap)",
       "noRecordingDataAtThisTime": "ဤအချိန်တွင် မှတ်တမ်းဒေတာ မရှိပါ",
       "theDeviceMayBeOffThe": "စက် ပိတ်ထား၊ LAN ကြိုး ပြုတ်နေ သို့မဟုတ် ကင်မရာ ပြုပြင်ထိန်းသိမ်းမုဒ်တွင် ရှိနိုင်သည်",
-      "generatingData": "ဒေတာ ဖန်တီးနေသည်...",
-      "seedSyntheticRecordingsDev": "⚡ စမ်းသပ် မှတ်တမ်း ဖန်တီးရန် (Dev)",
       "playingX": "ဖွင့်နေ {{playbackSpeed}}x",
       "eventDetected": "ဖြစ်ရပ် တွေ့ရှိ:",
       "signalAnomalyOrSecurityEvent": "Signal ပုံမှန်မဟုတ်ခြင်း သို့မဟုတ် လုံခြုံရေး ဖြစ်ရပ်",
@@ -3630,7 +3625,10 @@
       "preventsTheRetentionSweeperFromRemoving": "ခွင့်ပြုထားသူက မဖြုတ်မချင်း Retention Sweeper က ဤ clip ကို ဖယ်ရှားခြင်းမှ ကာကွယ်သည်",
       "processingClip": "Clip လုပ်ဆောင်နေသည်...",
       "confirmExportClip": "အတည်ပြု၍ Clip ထုတ်ရန်",
-      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)"
+      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
+      "playbackLoadFailed": "မှတ်တမ်းဗီဒီယို ဖွင့်၍မရပါ",
+      "loadingRecording": "မှတ်တမ်းဗီဒီယို ဖွင့်နေသည်...",
+      "pressPlayToWatchRecording": "ဤအချိန်၏ မှတ်တမ်းကို ကြည့်ရန် Play နှိပ်ပါ"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "Pre-flight ရလဒ် ဖတ်မရပါ — အသင့်ဖြစ်မှု မသိရ",

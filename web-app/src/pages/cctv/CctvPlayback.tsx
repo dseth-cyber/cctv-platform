@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { toBangkokDateAndTimeString, isoToBangkokDaySeconds } from '@/utils/dateUtils';
+import { toBangkokDateAndTimeString, isoToBangkokDaySeconds, bangkokDaySecondsToIso } from '@/utils/dateUtils';
 import {
   Play,
   Pause,
@@ -117,6 +117,14 @@ export const CctvPlayback: React.FC = () => {
 
   const timelineTrackRef = useRef<HTMLDivElement>(null);
 
+  // Real playback: a chunk of recorded video served by the MediaMTX playback server.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playback, setPlayback] = useState<{ url: string; startSec: number; durationSeconds: number } | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [isLoadingPlayback, setIsLoadingPlayback] = useState(false);
+  // Set when the video element itself moved the playhead, so the seek effect does not reload.
+  const videoDrivenRef = useRef(false);
+
   // Fetch all cameras for selector
   const { data: camerasData } = useQuery({
     queryKey: ['cctv-playback-cameras'],
@@ -145,7 +153,7 @@ export const CctvPlayback: React.FC = () => {
   }, [selectedCameraId, selectedDate, setSearchParams]);
 
   // Fetch timeline availability
-  const { data: timelineData, isLoading: isTimelineLoading, refetch: refetchTimeline } = useQuery<TimelineData>({
+  const { data: timelineData, isLoading: isTimelineLoading } = useQuery<TimelineData>({
     queryKey: ['cctv-recording-timeline', selectedCameraId, selectedDate],
     queryFn: () => imageServiceApi.getRecordingTimeline(selectedCameraId, selectedDate),
     enabled: !!selectedCameraId,
@@ -161,22 +169,66 @@ export const CctvPlayback: React.FC = () => {
 
   const clips = clipsData?.items ?? [];
 
-  // Playback timer ticker simulation
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setCurrentTimeSec(prev => {
-        const next = prev + playbackSpeed;
-        if (next >= 86399) {
-          setIsPlaying(false);
-          return 86399;
-        }
-        return next;
-      });
-    }, 1000 / (playbackSpeed > 4 ? 4 : 1));
+  const startPlayback = useCallback(async (atSec: number) => {
+    if (!selectedCameraId) return;
+    setIsLoadingPlayback(true);
+    setPlaybackError(null);
+    try {
+      const res = await imageServiceApi.getPlaybackStream(selectedCameraId, bangkokDaySecondsToIso(selectedDate, atSec), 300);
+      setPlayback({ url: res.playbackUrl, startSec: isoToBangkokDaySeconds(res.start), durationSeconds: res.durationSeconds });
+      setIsPlaying(true);
+    } catch (err: any) {
+      setPlayback(null);
+      setIsPlaying(false);
+      setPlaybackError(err?.response?.data?.message || t('ui.cctvPlayback.noRecordingDataAtThisTime'));
+    } finally {
+      setIsLoadingPlayback(false);
+    }
+  }, [selectedCameraId, selectedDate, t]);
 
-    return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed]);
+  const handleTogglePlay = () => {
+    const video = videoRef.current;
+    if (isPlaying) {
+      video?.pause();
+      setIsPlaying(false);
+      return;
+    }
+    if (video && playback && currentTimeSec >= playback.startSec && currentTimeSec < playback.startSec + playback.durationSeconds) {
+      video.currentTime = currentTimeSec - playback.startSec;
+      video.play().then(() => setIsPlaying(true)).catch(() => startPlayback(currentTimeSec));
+      return;
+    }
+    startPlayback(currentTimeSec);
+  };
+
+  // A new camera or day invalidates the loaded chunk.
+  useEffect(() => {
+    setPlayback(null);
+    setIsPlaying(false);
+    setPlaybackError(null);
+  }, [selectedCameraId, selectedDate]);
+
+  // User seeks (buttons, timeline, incident jumps) move the video or load the chunk for that time.
+  useEffect(() => {
+    if (videoDrivenRef.current) {
+      videoDrivenRef.current = false;
+      return;
+    }
+    if (isDraggingPlayhead) return;
+    const video = videoRef.current;
+    if (video && playback && currentTimeSec >= playback.startSec && currentTimeSec < playback.startSec + playback.durationSeconds) {
+      video.currentTime = currentTimeSec - playback.startSec;
+    } else if (isPlaying) {
+      startPlayback(currentTimeSec);
+    } else {
+      setPlayback(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTimeSec, isDraggingPlayhead]);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackSpeed;
+  }, [playbackSpeed, playback]);
 
   // Helper to convert seconds into HH:mm:ss
   const formatSeconds = (sec: number) => {
@@ -316,15 +368,6 @@ export const CctvPlayback: React.FC = () => {
     },
   });
 
-  // Seed Dev Timeline mutation
-  const seedDevMutation = useMutation({
-    mutationFn: () => imageServiceApi.seedDevRecordings(selectedCameraId, selectedDate),
-    onSuccess: (res: any) => {
-      toast.success(t('ui.cctvPlayback.syntheticRecordingsCreatedSegments', { count: res.count }));
-      refetchTimeline();
-    },
-  });
-
   const handleOpenExportModal = (incident?: IncidentMarker) => {
     if (incident) {
       setSelectedIncidentForClip(incident);
@@ -340,16 +383,15 @@ export const CctvPlayback: React.FC = () => {
 
   const handleConfirmExport = () => {
     if (!selectedCameraId) return;
-    const startIso = new Date(`${selectedDate}T${formatSeconds(currentTimeSec)}.000Z`).toISOString();
-    const endSec = Math.min(86399, currentTimeSec + postBufferSec);
-    const endIso = new Date(`${selectedDate}T${formatSeconds(endSec)}.000Z`).toISOString();
+    // The playhead is the event instant; the server adds the pre/post buffers around it.
+    const eventIso = bangkokDaySecondsToIso(selectedDate, currentTimeSec);
 
     exportClipMutation.mutate({
       cameraId: selectedCameraId,
       incidentId: selectedIncidentForClip?.id,
       title: clipTitle,
-      startTime: startIso,
-      endTime: endIso,
+      startTime: eventIso,
+      endTime: eventIso,
       preBufferSeconds: preBufferSec,
       postBufferSeconds: postBufferSec,
       legalHold: legalHoldChecked,
@@ -459,21 +501,56 @@ export const CctvPlayback: React.FC = () => {
           {/* Dynamic Anti-Screen-Capture Watermark Overlay [ENH-04] */}
           <SecurityWatermark />
 
-          {/* Video Placeholder / Canvas simulation */}
+          {playback && (
+            <video
+              key={playback.url}
+              ref={videoRef}
+              src={playback.url}
+              autoPlay
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-contain bg-black"
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                v.playbackRate = playbackSpeed;
+                if (currentTimeSec > playback.startSec && currentTimeSec < playback.startSec + playback.durationSeconds) {
+                  v.currentTime = currentTimeSec - playback.startSec;
+                }
+              }}
+              onTimeUpdate={(e) => {
+                const next = Math.min(86399, playback.startSec + e.currentTarget.currentTime);
+                if (next !== currentTimeSec) {
+                  videoDrivenRef.current = true;
+                  setCurrentTimeSec(next);
+                }
+              }}
+              onPause={() => setIsPlaying(false)}
+              onPlay={() => setIsPlaying(true)}
+              onEnded={() => startPlayback(playback.startSec + playback.durationSeconds)}
+              onError={() => {
+                setIsPlaying(false);
+                setPlaybackError(t('ui.cctvPlayback.playbackLoadFailed'));
+              }}
+            />
+          )}
+
+          {!playback && (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-950/80 to-slate-950 flex items-center justify-center">
-            {currentStatus.isRecorded ? (
+            {playbackError ? (
+              <div className="text-center p-6 space-y-2">
+                <XCircle size={44} className="mx-auto text-rose-500/80 mb-2" />
+                <h3 className="text-base font-semibold text-slate-200">{playbackError}</h3>
+              </div>
+            ) : currentStatus.isRecorded ? (
               <div className="text-center space-y-3">
                 <div className="inline-flex p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 mb-2">
-                  <FileVideo size={48} className={isPlaying ? 'animate-pulse text-cyan-400' : 'text-slate-500'} />
+                  <FileVideo size={48} className={isLoadingPlayback ? 'animate-pulse text-cyan-400' : 'text-slate-500'} />
                 </div>
                 <div className="text-lg font-bold text-white tracking-wide">
                   {selectedCamera?.name || t('ui.cctvPlayback.cameraFeed')}
                 </div>
-                <div className="text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" />
-                  <span>{t('ui.cctvPlayback.mediaNodePlaybackStreamFMP4Remuxed')}</span>
-                  <span className="text-slate-600">•</span>
-                  <span>{t('ui.cctvPlayback.n1080p25fps')}</span>
+                <div className="text-xs text-slate-400">
+                  {isLoadingPlayback ? t('ui.cctvPlayback.loadingRecording') : t('ui.cctvPlayback.pressPlayToWatchRecording')}
                 </div>
               </div>
             ) : (
@@ -485,16 +562,10 @@ export const CctvPlayback: React.FC = () => {
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   {currentStatus.gap?.reason || t('ui.cctvPlayback.theDeviceMayBeOffThe')}
                 </p>
-                <button
-                  onClick={() => seedDevMutation.mutate()}
-                  disabled={seedDevMutation.isPending}
-                  className="mt-3 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all"
-                >
-                  {seedDevMutation.isPending ? t('ui.cctvPlayback.generatingData') : t('ui.cctvPlayback.seedSyntheticRecordingsDev')}
-                </button>
               </div>
             )}
           </div>
+          )}
 
           {/* Top Video HUD Info */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
@@ -571,7 +642,8 @@ export const CctvPlayback: React.FC = () => {
 
             {/* Play / Pause Toggle */}
             <button
-              onClick={() => setIsPlaying(v => !v)}
+              onClick={handleTogglePlay}
+              disabled={isLoadingPlayback}
               className={`p-3 rounded-xl font-bold transition-all flex items-center justify-center ${
                 isPlaying
                   ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'

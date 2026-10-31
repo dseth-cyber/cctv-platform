@@ -4,6 +4,7 @@ import { RecordingsService } from './recordings.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { config } from '../../config/index.js';
 
 export async function getTimelineHandler(request: FastifyRequest, reply: FastifyReply) {
   const { cameraId, date } = request.query as { cameraId: string; date?: string };
@@ -102,10 +103,17 @@ export async function seedDevRecordingsHandler(request: FastifyRequest, reply: F
   return reply.status(200).send({ message: `Seeded ${count} recording segments for ${dateStr}`, count });
 }
 
+const MAX_PLAYBACK_SECONDS = 3600;
+
 export async function getPlaybackStreamHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { cameraId, timestamp } = request.query as { cameraId: string; timestamp?: string };
-  if (!cameraId) {
-    return reply.status(400).send({ message: 'cameraId is required' });
+  const { cameraId, start, duration } = request.query as { cameraId?: string; start?: string; duration?: string };
+  if (!cameraId || !start) {
+    return reply.status(400).send({ message: 'cameraId and start are required' });
+  }
+  const startTime = new Date(start);
+  const durationSeconds = duration ? Number(duration) : 300;
+  if (Number.isNaN(startTime.getTime()) || !Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > MAX_PLAYBACK_SECONDS) {
+    return reply.status(400).send({ message: `start must be an ISO time and duration 1-${MAX_PLAYBACK_SECONDS} seconds` });
   }
 
   const prisma = getPrisma();
@@ -113,20 +121,44 @@ export async function getPlaybackStreamHandler(request: FastifyRequest, reply: F
     where: { id: cameraId },
     select: { id: true, name: true, streamPath: true },
   });
-
-  if (!camera) {
-    return reply.status(404).send({ message: 'Camera not found' });
+  if (!camera?.streamPath) {
+    return reply.status(404).send({ message: 'Camera not found or has no stream path' });
   }
 
-  const streamPath = camera.streamPath ?? `ch1`;
+  // Only hand out a playback URL for time that is actually recorded on disk.
+  const windowEnd = new Date(startTime.getTime() + durationSeconds * 1000);
+  const segments = await prisma.cameraRecording.findMany({
+    where: { cameraId, startTime: { lt: windowEnd }, endTime: { gt: startTime } },
+    orderBy: { startTime: 'asc' },
+    select: { startTime: true, endTime: true },
+  });
+  if (segments.length === 0) {
+    return reply.status(404).send({ message: 'No recording exists for the requested time' });
+  }
+
+  // MediaMTX playback starts at the first recorded instant inside the window.
+  const playFrom = segments[0].startTime > startTime ? segments[0].startTime : startTime;
+  const lastEnd = segments[segments.length - 1].endTime;
+  const playUntil = lastEnd < windowEnd ? lastEnd : windowEnd;
+  const playSeconds = Math.max(1, Math.round((playUntil.getTime() - playFrom.getTime()) / 1000));
+
   const user = (request as any).user;
-  const token = MediaMtxService.generateStreamToken(streamPath, user?.username ?? 'viewer');
-  const streamUrls = MediaMtxService.getStreamUrls(streamPath, token);
+  const token = MediaMtxService.generateStreamToken(camera.streamPath, user?.username ?? 'viewer', 3600);
+  const params = new URLSearchParams({
+    path: camera.streamPath,
+    start: playFrom.toISOString(),
+    duration: String(playSeconds),
+    format: 'mp4',
+    token,
+  });
 
   return reply.status(200).send({
-    ...streamUrls,
-    playbackTimestamp: timestamp ?? new Date().toISOString(),
-    hlsPlaybackUrl: timestamp ? `${streamUrls.hlsUrl}&start=${encodeURIComponent(timestamp)}` : streamUrls.hlsUrl,
+    cameraId: camera.id,
+    streamPath: camera.streamPath,
+    start: playFrom.toISOString(),
+    durationSeconds: playSeconds,
+    segmentsCount: segments.length,
+    playbackUrl: `${config.mediamtx.playbackUrl.replace(/\/+$/, '')}/get?${params.toString()}`,
   });
 }
 

@@ -3561,7 +3561,6 @@
       "eventClipExportedNoteNoPre": "ส่งออกคลิปเหตุการณ์สำเร็จ (หมายเหตุ: ไม่มีข้อมูล Pre-buffer ใน Rolling Storage)",
       "failedToExportClip": "ไม่สามารถส่งออกคลิปได้",
       "legalHoldUpdated": "อัปเดต Legal Hold เรียบร้อย",
-      "syntheticRecordingsCreatedSegments": "สร้างข้อมูลจำลองการบันทึกสำเร็จ ({{count}} ช่วงเวลา)",
       "cctvPlaybackScrubberTimeline": "ดูย้อนหลังและไทม์ไลน์ CCTV",
       "phase4DirectFMP4Remux": "เฟส 4: Remux fMP4 โดยตรง",
       "timezoneDisplayEnforcedToAsiaBangkok": "แสดงเวลาตามโซน Asia/Bangkok (UTC+7)",
@@ -3571,13 +3570,9 @@
       "today": "วันนี้",
       "switchToLive": "สลับไปดูสด",
       "cameraFeed": "ภาพจากกล้อง",
-      "mediaNodePlaybackStreamFMP4Remuxed": "สตรีมย้อนหลังจาก Media Node (fMP4 Remux)",
-      "n1080p25fps": "1080p @ 25fps",
       "noRecordingInThisPeriodData": "ช่วงเวลานี้ไม่มีภาพบันทึก (Data Gap)",
       "noRecordingDataAtThisTime": "ไม่มีข้อมูลการบันทึกในเวลานี้",
       "theDeviceMayBeOffThe": "อุปกรณ์อาจปิดอยู่ สาย LAN หลุด หรือกล้องถูกตั้งเป็นโหมดบำรุงรักษา",
-      "generatingData": "กำลังสร้างข้อมูล...",
-      "seedSyntheticRecordingsDev": "⚡ สร้างข้อมูลบันทึกจำลอง (Dev)",
       "playingX": "กำลังเล่น {{playbackSpeed}}x",
       "eventDetected": "ตรวจพบเหตุการณ์:",
       "signalAnomalyOrSecurityEvent": "สัญญาณผิดปกติหรือเหตุการณ์ด้านความปลอดภัย",
@@ -3641,7 +3636,10 @@
       "preventsTheRetentionSweeperFromRemoving": "ป้องกันไม่ให้ระบบลบไฟล์อัตโนมัติ (Retention Sweeper) ลบคลิปนี้ จนกว่าผู้มีอำนาจจะปลดออก",
       "processingClip": "กำลังประมวลผลคลิป...",
       "confirmExportClip": "ยืนยันและส่งออกคลิป",
-      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)"
+      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
+      "playbackLoadFailed": "โหลดวิดีโอย้อนหลังไม่สำเร็จ",
+      "loadingRecording": "กำลังโหลดวิดีโอที่บันทึกไว้...",
+      "pressPlayToWatchRecording": "กดเล่นเพื่อดูวิดีโอที่บันทึกไว้ ณ เวลานี้"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "โหลดผล Pre-flight ไม่สำเร็จ — ไม่ทราบสถานะความพร้อม",

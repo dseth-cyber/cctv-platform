@@ -3555,7 +3555,6 @@
       "eventClipExportedNoteNoPre": "事件片段已导出（注意：滚动存储中没有预录数据）",
       "failedToExportClip": "导出片段失败",
       "legalHoldUpdated": "法律保留已更新",
-      "syntheticRecordingsCreatedSegments": "已生成模拟录像（{{count}} 段）",
       "cctvPlaybackScrubberTimeline": "CCTV 回放与时间轴",
       "phase4DirectFMP4Remux": "阶段 4：fMP4 直接重封装",
       "timezoneDisplayEnforcedToAsiaBangkok": "时间统一按 Asia/Bangkok (UTC+7) 显示",
@@ -3565,13 +3564,9 @@
       "today": "今天",
       "switchToLive": "切换到实时",
       "cameraFeed": "摄像机画面",
-      "mediaNodePlaybackStreamFMP4Remuxed": "媒体节点回放流（fMP4 重封装片段）",
-      "n1080p25fps": "1080p @ 25fps",
       "noRecordingInThisPeriodData": "此时段无录像（数据缺口）",
       "noRecordingDataAtThisTime": "此时间没有录像数据",
       "theDeviceMayBeOffThe": "设备可能已关机、网线断开，或摄像机处于维护模式",
-      "generatingData": "正在生成数据...",
-      "seedSyntheticRecordingsDev": "⚡ 生成模拟录像（开发）",
       "playingX": "播放中 {{playbackSpeed}}x",
       "eventDetected": "检测到事件：",
       "signalAnomalyOrSecurityEvent": "信号异常或安全事件",
@@ -3635,7 +3630,10 @@
       "preventsTheRetentionSweeperFromRemoving": "在授权人员解除前，防止保留清理程序删除此片段",
       "processingClip": "正在处理片段...",
       "confirmExportClip": "确认并导出片段",
-      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)"
+      "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
+      "playbackLoadFailed": "无法加载录像",
+      "loadingRecording": "正在加载录像...",
+      "pressPlayToWatchRecording": "点击播放观看此时间的录像"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "加载预检结果失败 — 就绪状态未知",

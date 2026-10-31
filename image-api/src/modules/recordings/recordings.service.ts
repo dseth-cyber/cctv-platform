@@ -79,10 +79,10 @@ export class RecordingsService {
       throw new Error(`Camera ${cameraId} not found`);
     }
 
-    // Default to today if date not specified
-    const targetDateStr = dateStr ?? new Date().toISOString().slice(0, 10);
-    const dayStart = new Date(`${targetDateStr}T00:00:00.000Z`);
-    const dayEnd = new Date(`${targetDateStr}T23:59:59.999Z`);
+    // The date is a Bangkok calendar day (what the Playback page shows), not a UTC day.
+    const targetDateStr = dateStr ?? new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+    const dayStart = new Date(`${targetDateStr}T00:00:00.000+07:00`);
+    const dayEnd = new Date(`${targetDateStr}T23:59:59.999+07:00`);
 
     // Fetch recordings for this camera within the day range
     let recordings = await prisma.cameraRecording.findMany({

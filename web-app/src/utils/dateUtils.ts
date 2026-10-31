@@ -98,6 +98,12 @@ export function toBangkokDateAndTimeString(dateInput: string | Date | number): {
   return { date, time, secondsOfDay };
 }
 
+/** UTC ISO string for a Bangkok calendar date plus seconds into that day (Thailand has no DST). */
+export function bangkokDaySecondsToIso(date: string, secondsOfDay: number): string {
+  const dayStartUtc = new Date(`${date}T00:00:00.000+07:00`).getTime();
+  return new Date(dayStartUtc + Math.round(secondsOfDay) * 1000).toISOString();
+}
+
 export function isoToBangkokDaySeconds(isoStr: string): number {
   return toBangkokDateAndTimeString(isoStr).secondsOfDay;
 }

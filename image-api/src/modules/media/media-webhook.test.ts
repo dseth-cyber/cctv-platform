@@ -112,6 +112,25 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
     });
   });
 
+  describe('Segment complete webhook [R3.1]', () => {
+    const post = (payload: object, secret?: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/segment-complete',
+        headers: secret ? { 'x-media-webhook-secret': secret } : {},
+        payload,
+      });
+
+    it('rejects calls without the webhook secret', async () => {
+      expect((await post({ path: 'cam1', segmentPath: './recordings/cam1/2026-10-31_01-00-00.mp4' })).statusCode).toBe(401);
+    });
+
+    it('rejects segment paths outside the recordings directory', async () => {
+      const res = await post({ path: 'cam1', segmentPath: './recordings/../../etc/2026-10-31_01-00-00.mp4' }, config.mediamtx.webhookSecret);
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
   describe('Control API authorization', () => {
     const api = (user?: string, password?: string, action = 'api') =>
       app.inject({ method: 'POST', url: '/api/v1/media/auth', payload: { action, user, password, ip: '172.18.0.9' } });

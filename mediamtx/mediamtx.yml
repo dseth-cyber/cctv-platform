@@ -14,6 +14,11 @@ authHTTPAddress: http://image-api:3001/api/v1/media/auth
 api: yes
 apiAddress: 0.0.0.0:9997
 
+# ── Playback Server (recorded segments, auth action "playback") ──
+# Reached by browsers only through nginx /mediamtx/playback/; port is not published.
+playback: yes
+playbackAddress: 0.0.0.0:9996
+
 # ── Metrics (Prometheus) ───────────────────────────────────────
 metrics: yes
 metricsAddress: 0.0.0.0:9998
@@ -42,13 +47,16 @@ hlsAllowOrigins: ["*"]
 # Direct fMP4 remux on media node with zero CPU transcoding
 pathDefaults:
   record: yes
-  recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S
+  # %f is required by the playback server; the indexer parses it as microseconds.
+  recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
   recordFormat: fmp4
   recordPartDuration: 1s
   recordSegmentDuration: 60s
   # Event-Driven Real-time Camera Health Webhook (< 3s Detection) [ENH-01]
   runOnReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
   runOnNotReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"not_ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
+  # Recording index [R3.1]: report every finished segment to image-api
+  runOnRecordSegmentComplete: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"segmentPath\":\"$MTX_SEGMENT_PATH\"}" http://image-api:3001/api/v1/media/events/segment-complete || true'
 
 
 # ── Stream Paths ───────────────────────────────────────────────
