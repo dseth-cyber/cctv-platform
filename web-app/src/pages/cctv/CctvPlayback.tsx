@@ -100,14 +100,21 @@ function DateTime24Input({ value, onChange }: { value: string; onChange: (v: str
     if (parts.map((v) => v.padStart(2, '0')).join(':') !== time) setParts(fromValue());
   }, [time]); // eslint-disable-line react-hooks/exhaustive-deps
   const refs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  // Digits typed into each part since it was focused (a part is complete after two).
+  const typedRef = useRef<string[]>(['', '', '']);
 
   const isValid = (p: string[]) => p.every((v, i) => /^\d{1,2}$/.test(v) && Number(v) <= TIME_PARTS[i].max);
   const commit = (nextDate: string, p: string[]) => {
     if (nextDate && isValid(p)) onChange(`${nextDate}T${p.map((v) => v.padStart(2, '0')).join(':')}`);
   };
+  // Handlers can run back to back in one event (keydown, then blur from moving focus), before
+  // React re-renders, so they read and write the latest parts through a ref, not the render closure.
+  const partsRef = useRef(parts);
+  partsRef.current = parts;
   const update = (i: number, raw: string) => {
-    const next = [...parts];
+    const next = [...partsRef.current];
     next[i] = raw;
+    partsRef.current = next;
     setParts(next);
     commit(date, next);
   };
@@ -131,28 +138,56 @@ function DateTime24Input({ value, onChange }: { value: string; onChange: (v: str
               placeholder={part.label}
               maxLength={2}
               value={parts[i]}
-              onFocus={(e) => e.currentTarget.select()}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
-                update(i, digits);
-                if (digits.length === 2 && i < 2) {
-                  refs[i + 1].current?.focus();
-                }
+              onFocus={(e) => {
+                typedRef.current[i] = '';
+                e.currentTarget.select();
               }}
+              // Keep the whole part selected after a click (mouseup would otherwise place a caret).
+              onMouseUp={(e) => e.preventDefault()}
               onKeyDown={(e) => {
-                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                if (/^\d$/.test(e.key)) {
+                  // Typed digits replace the part like a native time box, wherever the caret is.
+                  e.preventDefault();
+                  const typed = typedRef.current[i] + e.key;
+                  let next = typed;
+                  let done = typed.length === 2;
+                  if (typed.length === 1 && Number(e.key) * 10 > part.max) {
+                    next = `0${e.key}`; // e.g. hour "3" can only mean 03
+                    done = true;
+                  } else if (done && Number(typed) > part.max) {
+                    next = String(part.max);
+                  }
+                  typedRef.current[i] = done ? '' : next;
+                  update(i, next);
+                  if (done && i < 2) refs[i + 1].current?.focus();
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                   e.preventDefault();
                   const span = part.max + 1;
-                  const n = (Number(parts[i] || 0) + (e.key === 'ArrowUp' ? 1 : -1) + span) % span;
+                  const n = (Number(partsRef.current[i] || 0) + (e.key === 'ArrowUp' ? 1 : -1) + span) % span;
+                  typedRef.current[i] = '';
                   update(i, String(n).padStart(2, '0'));
-                } else if (e.key === 'Backspace' && !parts[i] && i > 0) {
+                } else if (e.key === 'Backspace') {
+                  e.preventDefault();
+                  typedRef.current[i] = '';
+                  if (partsRef.current[i]) update(i, '');
+                  else if (i > 0) refs[i - 1].current?.focus();
+                } else if (e.key === 'ArrowRight' && i < 2) {
+                  e.preventDefault();
+                  refs[i + 1].current?.focus();
+                } else if (e.key === 'ArrowLeft' && i > 0) {
+                  e.preventDefault();
                   refs[i - 1].current?.focus();
                 }
               }}
+              // Paste or IME input still arrives here.
+              onChange={(e) => update(i, e.target.value.replace(/\D/g, '').slice(0, 2))}
               onBlur={() => {
-                if (/^\d$/.test(parts[i])) update(i, parts[i].padStart(2, '0'));
+                // Only a part left at one typed digit needs padding ("7" -> "07").
+                const pending = typedRef.current[i];
+                typedRef.current[i] = '';
+                if (pending.length === 1) update(i, pending.padStart(2, '0'));
               }}
-              className="w-7 bg-transparent text-center text-white py-2 focus:outline-none focus:bg-cyan-500/20 rounded"
+              className="w-7 bg-transparent text-center text-white py-2 focus:outline-none focus:bg-cyan-500/20 rounded caret-transparent"
             />
           </React.Fragment>
         ))}
