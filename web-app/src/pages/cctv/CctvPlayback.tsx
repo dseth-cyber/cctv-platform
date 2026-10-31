@@ -446,9 +446,6 @@ export const CctvPlayback: React.FC = () => {
               <h1 className="text-lg font-bold tracking-tight text-white">
                 {t('ui.cctvPlayback.cctvPlaybackScrubberTimeline')}
               </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                {t('ui.cctvPlayback.phase4DirectFMP4Remux')}
-              </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1" title={t('ui.cctvPlayback.timezoneDisplayEnforcedToAsiaBangkok')}>
                 <Clock size={10} />
                 <span>{t('ui.cctvPlayback.asiaBangkokUtc')}</span>
@@ -588,7 +585,7 @@ export const CctvPlayback: React.FC = () => {
           {/* Top Video HUD Info */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
             <div className="flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-xs font-mono">
-              <span className="font-bold text-cyan-400">{selectedCamera?.name || 'CH-01'}</span>
+              <span className="font-bold text-cyan-400">{selectedCamera?.name || '—'}</span>
               <span className="text-slate-500">|</span>
               <span className="text-white font-semibold">
                 {selectedDate} {formatSeconds(currentTimeSec)}
