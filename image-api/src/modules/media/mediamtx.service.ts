@@ -88,11 +88,12 @@ export class MediaMtxService {
    */
   static async registerStreamPath(streamPath: string, rtspSourceUrl: string): Promise<boolean> {
     const cleanPath = streamPath.replace(/^\/+/, '');
+    // Cameras are pulled all the time so recording is continuous. With sourceOnDemand the
+    // camera was only pulled (and recorded) while someone was watching it.
     const payload: MediaMtxPathConfig = {
       source: rtspSourceUrl,
-      sourceOnDemand: true,
-      sourceOnDemandStartTimeout: '10s',
-      sourceOnDemandCloseAfter: '10s',
+      sourceOnDemand: false,
+      record: true,
     };
 
     try {

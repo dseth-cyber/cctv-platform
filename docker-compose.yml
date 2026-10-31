@@ -82,6 +82,8 @@ services:
   mediamtx:
     image: bluenviron/mediamtx:latest-ffmpeg
     container_name: cctv-mediamtx
+    # Same uid as image-api (appuser 1001), so retention can move segments MediaMTX wrote into quarantine.
+    user: "1001:1001"
     ports:
       # Localhost bindings for dev stream preview and control
       - "127.0.0.1:8554:8554"

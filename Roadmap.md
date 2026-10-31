@@ -1,6 +1,6 @@
 # CCTV Platform — Roadmap
 
-อัปเดต: 2026-10-30 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
+อัปเดต: 2026-10-31 | สภาพแวดล้อม: เครื่อง Dev เท่านั้น
 สถานะภาพรวม: **Prototype — ยังไม่พร้อม Pilot/Production (อยู่ระหว่าง Remediation Phase R1–R4)**
 *(ตรวจโค้ดซ้ำ 2026-10-30 พบว่าสถานะ "Enterprise Production-Hardened / 100%" เดิมไม่ตรงหลักฐาน: playback/recording index/export ยังมีส่วนจำลอง, credential รั่วผ่าน API, retention ลบถาวรและวัดดิสก์ผิด mount, failover แก้เฉพาะ DB, pilot report เป็น DRY_RUN — ดูรายละเอียดใน "Remediation หลังตรวจซ้ำ" ด้านล่าง; checkbox ของ Phase 4–6 หมายถึง "มีโค้ดต้นแบบ" ไม่ใช่ "ตรวจรับผ่าน")*
 
@@ -34,27 +34,27 @@
 
 เกณฑ์ผ่าน: API/UI/background jobs ที่เหลือเป็น CCTV หรือเป็นบริการร่วมที่จำเป็น (auth/users/roles/audit/backup/alerts) เท่านั้น; ส่วนโรงงานย้ายไป archive ที่กู้คืนได้ ตามกฎ AGENTS ข้อห้ามตัดแบบเหมารวม
 
-- [ ] R2.1 สำรวจ dependency ของ modules `images`, `worker-upload`, `processing-logs` (DLQ/orphan sweeper), `smb`, `masterdata`, `search`, `storage-*`, `telegram-bot` และ 29 หน้าใน `pages/image-service/`
-- [ ] R2.2 ปิดการ register route และ background jobs โรงงานผ่าน feature flag ก่อน แล้วจึงย้ายไป archive
-- [ ] R2.3 แยก schema ฟิลด์ SMB/processing ออกจาก `Camera` ด้วย migration ที่ตรวจ SQL และมี backup
-- [ ] R2.4 ย้ายเส้นทาง UI `/image-service/*` เป็น `/cctv/*` และลบเมนูโรงงาน
+- [A] R2.1 สำรวจ dependency (2026-10-31): `images`/`worker-upload`, `processing-logs` (DLQ/orphan sweeper), `smb`, `storage` (summary/forecast ของภาพ), `storage-profiles`, `migrations` ถูก import จาก `app.ts` เท่านั้น ยกเว้น `smb` (ปุ่มทดสอบ SMB ในฟอร์มกล้อง, dynamic import) และ `images` (จาก processing-logs). หน้าที่ใช้ร่วมแต่ยังเรียก endpoint โรงงาน: App shell (queue health, ค้นหาภาพ), Health/Settings (`processing-logs/stats`), CameraDetail (`images`), Roadmap (`storage/summary`). คงไว้เป็นบริการร่วม: `masterdata` (dropdown ในฟอร์มกล้อง), `storage-providers`/lifecycle/provider-metrics (pressure ของการบันทึก), `search` (ค้นหากล้อง/alert/user), `telegram-bot` (คำสั่งสถานะกล้อง)
+- [A] R2.2 `FACTORY_MODULES_ENABLED` (compose default `false`): ไม่ register route โรงงาน และไม่ start DLQ reprocessor/orphan sweeper; `GET /api/v1/features` บอกสถานะ; web-app `useFeatures()` ซ่อนเมนู/route (redirect ไป dashboard)/widget queue และปิด query โรงงานในหน้าที่ใช้ร่วม. ตรวจใน container: endpoint โรงงาน 6 กลุ่ม → 404, CCTV/ร่วม 11 กลุ่ม → 200. ยังไม่ย้ายโค้ดไป archive (ต้องทำก่อน R2.3)
+- [ ] R2.3 แยก schema ฟิลด์ SMB/processing ออกจาก `Camera` ด้วย migration ที่ตรวจ SQL และมี backup — ยังไม่ทำ: โค้ดโรงงานที่ยัง compile อยู่และฟอร์มกล้อง (SMB) ยังอ้างฟิลด์เหล่านี้ ต้อง archive โค้ดโรงงานและถอดฟิลด์ SMB จากฟอร์มก่อน แล้วจึงเขียน migration (คัดลอกค่าไปตาราง archive ก่อน drop)
+- [x] R2.4 เส้นทาง UI เป็น `/cctv/*` (API ยังเป็น `/image-service/api`), `/image-service/*` redirect ไป path ใหม่ (คง query/hash), map ค่าเมนูที่ผู้ใช้บันทึกไว้จาก path เก่า, ลิงก์ Telegram/ค้นหาฝั่ง backend ใช้ `/cctv/*`; เมนูโรงงานซ่อนด้วย flag R2.2 (ไม่ลบ). ตรวจ bundle และ HTTP แล้ว ยังไม่ได้คลิกทดสอบในเบราว์เซอร์
 
 ### Phase R3 — Recording → Index → Playback → Export ครบวงจร
 
 เกณฑ์ผ่าน: segment ที่ MediaMTX เขียนจริงถูกลงดัชนีอัตโนมัติ, เล่นย้อนหลังจากไฟล์จริงในเบราว์เซอร์ได้, export ได้ไฟล์ที่เล่นได้และ hash ตรง, ไม่มี seed จำลองในเส้นทางหลัก
 
-- [ ] R3.1 Indexer: `runOnRecordSegmentComplete` webhook (มี secret) + reconcile scan ตอน start
-- [ ] R3.2 Playback API ผ่าน MediaMTX playback server (`/get?path=&start=&duration=`) พร้อม stream token
-- [ ] R3.3 หน้า Playback ใช้ `<video>` จริง เลิก timer/placeholder จำลอง
-- [ ] R3.4 Snapshot ฝัง watermark (ผู้ใช้/เวลา) ลงในไฟล์ภาพ; ระบุในเอกสารว่า overlay ไม่ป้องกัน screen capture
-- [ ] R3.5 ทดสอบ export กับ segment จริง (เล่นได้, SHA-256 ตรง, chain of custody)
+- [A] R3.1 Indexer: hook `runOnRecordSegmentComplete` → `POST /media/events/segment-complete` (secret), duration จาก ffprobe, path ต้องอยู่ใน `RECORDINGS_DIR`; reconcile ตอน start + ทุก 5 นาที. ตรวจ: hook ลงดัชนี segment จริง; หยุด image-api ระหว่างบันทึก → reconcile ตอน start เก็บ 2 segment ที่พลาดครบ
+- [A] R3.2 `GET /recordings/playback-stream?cameraId&start&duration` คืน URL ของ MediaMTX playback (`/mediamtx/playback/get`, mp4, stream token) เฉพาะช่วงที่มีในดัชนี ไม่งั้น 404. ตรวจ: ผ่าน nginx ได้ 200 `video/mp4` h264+aac 60.006s; path กล้องไม่มี token/ token ผิด → 403
+- [x] R3.3 หน้า Playback ใช้ `<video>` จริง (ตาม currentTime, seek/โหลดช่วงใหม่, ความเร็ว), ลบ timer จำลองและปุ่ม seed; แก้เวลาไทยถูกส่งเป็น UTC (export คลาด 7 ชม.) และ timeline ใช้วันแบบ UTC. ยังไม่ได้เปิดเล่นในเบราว์เซอร์
+- [x] R3.4 Snapshot ฝังผู้ใช้/กล้อง/เวลาไทยลงในภาพ; overlay บนหน้าจอ (SecurityWatermark) ป้องกัน screen capture ไม่ได้ — เป็นแค่การระบุตัวผู้ดู. ยังไม่ได้กดถ่ายในเบราว์เซอร์
+- [A] R3.5 export ตัดตามช่วงที่ขอ (`-ss/-t`, stream copy, ตรง keyframe) และบันทึกช่วงที่ครอบคลุม + segment ต้นทางใน chain of custody. ตรวจ: ขอ 30s ข้าม 2 segment → ไฟล์ 30.017s h264+aac, SHA-256 ของไฟล์ที่ดาวน์โหลดตรง
 
 ### Phase R4 — ตรวจรับจริง
 
-- [ ] R4.1 Pilot 10 กล้องจริง (ไม่ใช่ DRY_RUN) พร้อม report ที่ไม่มี password
-- [ ] R4.2 Legal Hold ระหว่าง cleanup, restart/recovery ของ image-api และ MediaMTX
-- [ ] R4.3 Failover ที่ย้ายสตรีมจริงบน media node ปลายทาง + load test จริงตามขนาดที่จะรับรอง
-- [ ] R4.4 ปรับ HANDOFF/Roadmap แยก "ทำโค้ดแล้ว" กับ "ตรวจรับผ่านแล้ว"
+- [ ] R4.1 Pilot 10 กล้องจริง (ไม่ใช่ DRY_RUN) พร้อม report ที่ไม่มี password — ต้องมีกล้องจริง ทำบนเครื่อง Dev ไม่ได้
+- [A] R4.2 Legal Hold ระหว่าง cleanup, restart/recovery ของ image-api และ MediaMTX — ตรวจ 2026-10-31: segment หมดอายุ 2 ตัว (ติด hold 1) → `quarantined 1, skippedLegalHold 1`, ไฟล์ที่ติด hold อยู่ที่เดิม, อีกไฟล์อยู่ใน `.quarantine` (ไม่ลบ); restart image-api ระหว่างบันทึก → reconcile เก็บ segment ที่พลาด. พบและแก้: MediaMTX รันเป็น root ทำให้ image-api (uid 1001) ย้ายไฟล์ไม่ได้ (EACCES) → MediaMTX `user: 1001:1001`; กล้องลงทะเบียนเป็น `sourceOnDemand` ทำให้บันทึกเฉพาะตอนมีคนดู → ดึงตลอดเวลา
+- [ ] R4.3 Failover ที่ย้ายสตรีมจริงบน media node ปลายทาง + load test จริงตามขนาดที่จะรับรอง — ต้องมี media node ที่สองและกล้องจริง
+- [x] R4.4 ปรับ HANDOFF/Roadmap แยก "ทำโค้ดแล้ว" กับ "ตรวจรับผ่านแล้ว"
 
 ## เป้าหมายและขอบเขต
 

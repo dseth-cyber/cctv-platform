@@ -1,6 +1,6 @@
 # CCTV Platform — HANDOFF (Dev Only)
 
-อัปเดต: 2026-10-31 | งานล่าสุด: ตรวจรับ R1 ใน container (21/21 ผ่าน) + แก้ปัญหาที่พบระหว่างตรวจ — **Prototype: ยังไม่พร้อม Pilot/Production** (ดู Roadmap ส่วน "Remediation หลังตรวจซ้ำ")
+อัปเดต: 2026-10-31 | งานล่าสุด: R2.1/R2.2/R2.4, R3 ครบ, R4.2 ตรวจรับใน container + แก้ MediaMTX API/การบันทึกต่อเนื่อง
 
 ## อ่านก่อนเริ่มงาน
 
@@ -23,6 +23,26 @@
 | Storage Safeguard | ตรวจสอบพื้นที่ดิสก์จริงด้วย `statfs`: แจ้งเตือน Warning ที่ **85%** และรัน **Emergency FIFO Eviction** อัตโนมัติที่ **92%** ลบไฟล์เก่าสุดที่ไม่ติด Legal Hold จนต่ำกว่า 85% โดย **คุ้มครอง `legalHold: true` เด็ดขาด 100%** |
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
+
+## งานล่าสุด (2026-10-31, รอบ 2) — R2, R3, R4.2
+
+Commits บน `fix/audit-remediation`: `b3f27f0` (MediaMTX API + isolation), `22441fa` (R3), `4590736` (R2.1/R2.2), `a867987` (R2.4) และ commit R4.2 ตามหลัง. สถานะรายข้ออยู่ใน Roadmap
+
+สิ่งที่ต้องรู้ก่อนรัน Dev stack:
+- `.env` (gitignored, ไม่มี secret) ตั้ง `CCTV_ISOLATION_VERIFIED=true` และ `WEB_HTTP_PORT=8090`. Isolation ตรวจ 2026-10-31: compose ที่ resolve แล้ว (ทุก service อยู่ใน `cctv-network`, ไม่มี external network/volume, ไม่ mount docker socket), docker context `desktop-linux`, ปลายทางใน Dev DB (กล้องทดสอบ, media node localhost, storage minio/seaweedfs ภายใน, ไม่มี Telegram) และโค้ด (`192.168.30.248` ของ Image Service เดิมอยู่แค่ใน README/ตัวอย่าง `ssl/generate-cert.sh`). ต้องตรวจใหม่ทุกครั้งที่ config เปลี่ยน
+- `FACTORY_MODULES_ENABLED` default `false`: route/job โรงงานไม่ถูก register; ถ้าต้องใช้หน้าโรงงานให้ตั้ง `true`
+- MediaMTX: `authMethod http` ใช้กับ control API ด้วย → image-api เรียก API ด้วย Basic `image-api:<MEDIA_WEBHOOK_SECRET>`; `MEDIAMTX_API_URL=http://mediamtx:9997` (เดิมชี้ localhost ของ container เอง ทุก path add/patch/delete ล้มเหลว); playback server `:9996` ผ่าน nginx `/mediamtx/playback/` เท่านั้น; `recordPath` มี `-%f` (playback บังคับ) — ไฟล์เก่าไม่มี `%f` export ได้แต่เล่นผ่าน playback ไม่ได้; รันเป็น uid 1001 เท่ากับ image-api
+- กล้องที่ลงทะเบียนใหม่ใช้ `sourceOnDemand: false` → ดึงและบันทึกตลอด (เดิมบันทึกเฉพาะตอนมีคนดู). path ที่ลงทะเบียนไว้แล้วใน MediaMTX จะเปลี่ยนเมื่อมีการ register ใหม่ (แก้กล้อง/restart sync)
+- UI อยู่ที่ `/cctv/*`; `/image-service/*` redirect ให้
+
+ข้อมูลทดสอบที่ค้างใน Dev DB/ดิสก์: กล้อง `r1-accept-cam` ตั้ง `stream_path=sim/ch1`; segment ของ `sim/ch1` ในดัชนี; clip "R3.5 verify"; ไฟล์ `mediamtx/recordings/.quarantine/sim/ch1/2026-10-31_08-25-07-918507.mp4` (จากการทดสอบ R4.2, กู้คืนได้ด้วยการย้ายกลับ); segment 08-24-08 ติด Legal Hold; sign-off "R1.8 verify"
+
+ยังไม่ได้ทำ / ข้อจำกัด:
+- R2.3 (แยก schema SMB/processing) ต้อง archive โค้ดโรงงานและถอด SMB จากฟอร์มกล้องก่อน; ฟอร์มกล้องยังมีปุ่มทดสอบ SMB ซึ่งตอบ 404 เมื่อปิด flag
+- R3.3/R3.4/R2.4 ยังไม่ได้ทดสอบด้วยการคลิกในเบราว์เซอร์ (ตรวจแค่ API, bundle, HTTP)
+- R4.1 และ R4.3 ต้องมีกล้องจริงและ media node ที่สอง
+- ช่วงที่ segment ซ้อนกันเล็กน้อย (~0.6s ที่รอยต่อ) ทำให้ตำแหน่งตัด export คลาดได้ไม่เกินระดับนั้น; stream copy เริ่มที่ keyframe
+- ถ้า image-api ล่ม ผู้ชมใหม่เข้า live/playback ไม่ได้ (auth ผ่าน image-api) แต่การบันทึกกล้องที่ดึงอยู่ไม่หยุด และ reconcile เก็บ segment ที่ hook พลาด
 
 ## งานล่าสุด (2026-10-31) — ตรวจรับ R1 ใน container
 
