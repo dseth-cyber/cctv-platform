@@ -199,7 +199,7 @@ export default function IncidentCenter() {
   // Detail modal
   const [detailId, setDetailId] = useState<string | null>(null)
 
-  // Deep link support: /image-service/incidents?incident=INC-2026-000008 (used by the
+  // Deep link support: /cctv/incidents?incident=INC-2026-000008 (used by the
   // Telegram/alert "Link:" line) — resolve the human-readable number to its DB id and
   // open the detail modal directly, instead of just landing on the list.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -884,7 +884,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                 const bkk = toBangkokDateAndTimeString(incident.openedAt);
                 return (
                   <Link
-                    to={`/image-service/playback?cameraId=${incident.cameraId}&date=${bkk.date}&time=${bkk.time}`}
+                    to={`/cctv/playback?cameraId=${incident.cameraId}&date=${bkk.date}&time=${bkk.time}`}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 flex items-center gap-1.5 transition-colors"
                     title={t('ui.incidentCenter.open24HourPlaybackAtThe')}
                   >

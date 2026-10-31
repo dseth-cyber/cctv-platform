@@ -159,7 +159,7 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
     let downtimeLabel: string | undefined;
     const detailParts: string[] = [];
     const configs = await getAllConfigs();
-    const incidentsUrl = configs.public_base_url?.value ? `${configs.public_base_url.value}/image-service/incidents` : null;
+    const incidentsUrl = configs.public_base_url?.value ? `${configs.public_base_url.value}/cctv/incidents` : null;
 
     if (input.status === 'active') {
       // Resolving: auto-resolve any open incident for this camera

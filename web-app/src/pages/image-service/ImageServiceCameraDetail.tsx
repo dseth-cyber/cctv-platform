@@ -59,7 +59,7 @@ export default function ImageServiceCameraDetail() {
 
   return (
     <div className="p-6">
-      <button onClick={() => navigate('/image-service/cameras')}
+      <button onClick={() => navigate('/cctv/cameras')}
         className={`flex items-center gap-1 text-sm mb-4 hover:text-cyan-300 transition-colors ${themeConfig.text.secondary}`}>
         <ArrowLeft size={14} /> {t('common.back')}
       </button>

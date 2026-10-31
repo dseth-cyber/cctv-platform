@@ -36,10 +36,10 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
 
   return reply.send({
     results: [
-      ...cameras.map(c => ({ type: 'camera', id: c.id, title: c.name, subtitle: `${c.status} · ${c.ipAddress}`, url: `/image-service/cameras?q=${encodeURIComponent(c.name)}` })),
-      ...images.map(i => ({ type: 'image', id: i.id, title: i.originalFilename, subtitle: i.status, url: `/image-service/search?q=${encodeURIComponent(q)}` })),
-      ...alerts.map(a => ({ type: 'alert', id: a.id, title: a.title, subtitle: a.severity, url: `/image-service/alerts?q=${encodeURIComponent(a.title)}` })),
-      ...users.map(u => ({ type: 'user', id: u.id, title: u.username, subtitle: u.role, url: `/image-service/users?q=${encodeURIComponent(u.username)}` })),
+      ...cameras.map(c => ({ type: 'camera', id: c.id, title: c.name, subtitle: `${c.status} · ${c.ipAddress}`, url: `/cctv/cameras?q=${encodeURIComponent(c.name)}` })),
+      ...images.map(i => ({ type: 'image', id: i.id, title: i.originalFilename, subtitle: i.status, url: `/cctv/search?q=${encodeURIComponent(q)}` })),
+      ...alerts.map(a => ({ type: 'alert', id: a.id, title: a.title, subtitle: a.severity, url: `/cctv/alerts?q=${encodeURIComponent(a.title)}` })),
+      ...users.map(u => ({ type: 'user', id: u.id, title: u.username, subtitle: u.role, url: `/cctv/users?q=${encodeURIComponent(u.username)}` })),
     ],
   });
 }

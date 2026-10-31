@@ -485,7 +485,7 @@ export const CctvPlayback: React.FC = () => {
 
           {/* Live Switch Button */}
           <Link
-            to="/image-service/live-grid"
+            to="/cctv/live-grid"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
           >
             <Radio size={14} className="animate-pulse" />

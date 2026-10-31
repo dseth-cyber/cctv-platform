@@ -47,7 +47,7 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
     setLoading(true)
     try {
       await login(username, password)
-      navigate('/image-service/overview', { replace: true })
+      navigate('/cctv/overview', { replace: true })
     } catch (err: any) {
       // Distinguish the account-lockout case (too many failed attempts) from a plain
       // wrong password — matched on the backend's message text since that's the only

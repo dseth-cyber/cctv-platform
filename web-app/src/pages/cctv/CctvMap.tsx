@@ -357,7 +357,7 @@ export default function CctvMap() {
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <button
-                  onClick={() => navigate('/image-service/live-grid')}
+                  onClick={() => navigate('/cctv/live-grid')}
                   className="flex-1 py-1.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />

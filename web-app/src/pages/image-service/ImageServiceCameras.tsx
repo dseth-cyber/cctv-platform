@@ -1237,7 +1237,7 @@ export default function ImageServiceCameras() {
                     <td className={`px-4 py-3 text-sm font-medium ${themeConfig.text.primary}`}>
                       <div className="flex items-center gap-2">
                         <Camera size={14} className="text-cyan-400" />
-                        <button onClick={() => navigate(`/image-service/cameras/${camera.id}`)}
+                        <button onClick={() => navigate(`/cctv/cameras/${camera.id}`)}
                           className="hover:text-cyan-300 transition-colors text-left">
                           {camera.name}
                         </button>

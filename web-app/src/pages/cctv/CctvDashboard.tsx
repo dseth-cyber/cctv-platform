@@ -229,7 +229,7 @@ export default function CctvDashboard() {
 
           <Button
             size="sm"
-            onClick={() => navigate('/image-service/live-grid')}
+            onClick={() => navigate('/cctv/live-grid')}
             className="text-xs gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-900/40"
           >
             <Play size={13} />
@@ -239,7 +239,7 @@ export default function CctvDashboard() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => navigate('/image-service/map')}
+            onClick={() => navigate('/cctv/map')}
             className="text-xs gap-1.5 text-slate-300 hover:bg-white/10 border border-white/10"
           >
             <MapPin size={13} />
@@ -383,7 +383,7 @@ export default function CctvDashboard() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => navigate('/image-service/sites')}
+                  onClick={() => navigate('/cctv/sites')}
                   className="mt-3 text-xs gap-1.5"
                 >
                   <Building2 size={13} />
@@ -399,7 +399,7 @@ export default function CctvDashboard() {
                   return (
                     <div
                       key={site.id}
-                      onClick={() => navigate('/image-service/live-grid')}
+                      onClick={() => navigate('/cctv/live-grid')}
                       className="p-3.5 rounded-xl bg-slate-800/40 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -615,7 +615,7 @@ export default function CctvDashboard() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => navigate('/image-service/incidents')}
+                onClick={() => navigate('/cctv/incidents')}
                 className="text-[11px] h-7 text-cyan-400 hover:bg-cyan-500/10 p-1"
               >
                 <span>{t('ui.cctvDashboard.viewAll')}</span>

@@ -91,42 +91,42 @@ function UnauthorizedPage() {
 }
 
 const navItems = [
-  { path: '/image-service/overview', labelKey: 'nav.overview', icon: LayoutDashboard, permission: 'overview:read' },
-  { path: '/image-service/cameras', labelKey: 'nav.cameras', icon: Camera, permission: 'cameras:read' },
-  { path: '/image-service/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'cameras:read' },
-  { path: '/image-service/playback', labelKey: 'nav.playback', icon: Film, permission: 'cameras:read' },
-  { path: '/image-service/devices', labelKey: 'nav.devices', icon: Server, permission: 'cameras:read' },
-  { path: '/image-service/sites', labelKey: 'nav.sites', icon: Building2, permission: 'cameras:read' },
-  { path: '/image-service/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
-  { path: '/image-service/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
-  { path: '/image-service/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
-  { path: '/image-service/search', factory: true, labelKey: 'nav.search', icon: Image, permission: 'search:read' },
-  { path: '/image-service/processing', factory: true, labelKey: 'nav.processing', icon: Activity, permission: 'processing:read' },
-  { path: '/image-service/storage', factory: true, labelKey: 'nav.storage', icon: HardDrive, permission: 'storage:read' },
-  { path: '/image-service/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
-  { path: '/image-service/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
-  { path: '/image-service/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
-  { path: '/image-service/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
-  { path: '/image-service/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
-  { path: '/image-service/storage-profiles', factory: true, labelKey: 'nav.storageProfiles', icon: Layers, permission: 'storage:read' },
-  { path: '/image-service/logs', factory: true, labelKey: 'nav.logs', icon: FileText, permission: 'logs:read' },
-  { path: '/image-service/dead-letter', factory: true, labelKey: 'nav.deadLetter', icon: AlertTriangle, permission: 'dead-letter:read' },
-  { path: '/image-service/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
-  { path: '/image-service/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
-  { path: '/image-service/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
-  { path: '/image-service/alerts', labelKey: 'nav.alerts', icon: Bell, permission: 'alerts:read' },
-  { path: '/image-service/masterdata', labelKey: 'nav.masterdata', icon: BookText, permission: 'masterdata:read' },
+  { path: '/cctv/overview', labelKey: 'nav.overview', icon: LayoutDashboard, permission: 'overview:read' },
+  { path: '/cctv/cameras', labelKey: 'nav.cameras', icon: Camera, permission: 'cameras:read' },
+  { path: '/cctv/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'cameras:read' },
+  { path: '/cctv/playback', labelKey: 'nav.playback', icon: Film, permission: 'cameras:read' },
+  { path: '/cctv/devices', labelKey: 'nav.devices', icon: Server, permission: 'cameras:read' },
+  { path: '/cctv/sites', labelKey: 'nav.sites', icon: Building2, permission: 'cameras:read' },
+  { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
+  { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
+  { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
+  { path: '/cctv/search', factory: true, labelKey: 'nav.search', icon: Image, permission: 'search:read' },
+  { path: '/cctv/processing', factory: true, labelKey: 'nav.processing', icon: Activity, permission: 'processing:read' },
+  { path: '/cctv/storage', factory: true, labelKey: 'nav.storage', icon: HardDrive, permission: 'storage:read' },
+  { path: '/cctv/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
+  { path: '/cctv/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
+  { path: '/cctv/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
+  { path: '/cctv/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
+  { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
+  { path: '/cctv/storage-profiles', factory: true, labelKey: 'nav.storageProfiles', icon: Layers, permission: 'storage:read' },
+  { path: '/cctv/logs', factory: true, labelKey: 'nav.logs', icon: FileText, permission: 'logs:read' },
+  { path: '/cctv/dead-letter', factory: true, labelKey: 'nav.deadLetter', icon: AlertTriangle, permission: 'dead-letter:read' },
+  { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
+  { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
+  { path: '/cctv/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
+  { path: '/cctv/alerts', labelKey: 'nav.alerts', icon: Bell, permission: 'alerts:read' },
+  { path: '/cctv/masterdata', labelKey: 'nav.masterdata', icon: BookText, permission: 'masterdata:read' },
 ]
 
 const settingsSubItems = [
-  { path: '/image-service/settings', labelKey: 'nav.settings', icon: Settings, permission: 'settings:read' },
-  { path: '/image-service/roadmap', labelKey: 'nav.roadmap', icon: Map, permission: 'roadmap:read' },
-  { path: '/image-service/api-keys', labelKey: 'nav.apiKeys', icon: Key, permission: 'api-keys:read' },
-  { path: '/image-service/telegram-bot', labelKey: 'nav.telegramBot', icon: MessageCircle, permission: 'telegram-bot:read' },
-  { path: '/image-service/system-config', labelKey: 'nav.systemConfig', icon: Sliders, permission: 'system-config:read' },
-  { path: '/image-service/required-fields', labelKey: 'nav.requiredFields', icon: ClipboardList, permission: 'system-config:read' },
-  { path: '/image-service/users', labelKey: 'nav.users', icon: Users, permission: 'users:read' },
-  { path: '/image-service/health', labelKey: 'nav.health', icon: HeartPulse, permission: 'health:read' },
+  { path: '/cctv/settings', labelKey: 'nav.settings', icon: Settings, permission: 'settings:read' },
+  { path: '/cctv/roadmap', labelKey: 'nav.roadmap', icon: Map, permission: 'roadmap:read' },
+  { path: '/cctv/api-keys', labelKey: 'nav.apiKeys', icon: Key, permission: 'api-keys:read' },
+  { path: '/cctv/telegram-bot', labelKey: 'nav.telegramBot', icon: MessageCircle, permission: 'telegram-bot:read' },
+  { path: '/cctv/system-config', labelKey: 'nav.systemConfig', icon: Sliders, permission: 'system-config:read' },
+  { path: '/cctv/required-fields', labelKey: 'nav.requiredFields', icon: ClipboardList, permission: 'system-config:read' },
+  { path: '/cctv/users', labelKey: 'nav.users', icon: Users, permission: 'users:read' },
+  { path: '/cctv/health', labelKey: 'nav.health', icon: HeartPulse, permission: 'health:read' },
 ]
 
 const LANG_OPTIONS = [
@@ -314,7 +314,7 @@ function NavBell() {
           ) : (
             <p className="px-3 py-4 text-xs text-gray-400 text-center">{t('imageService.health.healthy') || t('ui.app.noNotifications')}</p>
           )}
-          <a href="/image-service/alerts" className="block px-3 py-2 text-center text-xs text-cyan-400 hover:bg-white/5 border-t border-white/10 transition-colors">
+          <a href="/cctv/alerts" className="block px-3 py-2 text-center text-xs text-cyan-400 hover:bg-white/5 border-t border-white/10 transition-colors">
             {t('imageService.alerts.viewAll') || t('ui.app.viewAll')} →
           </a>
         </div>
@@ -519,6 +519,18 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
 // `factory`: part of the factory image pipeline, shown only when the server enables it [R2.2].
 type NavItem = { path: string; labelKey: string; icon: any; permission: string; factory?: boolean }
 
+// [R2.4] UI routes moved from /image-service/* to /cctv/*; saved menu preferences may hold old paths.
+function migrateMenuPaths(paths: string[]): string[] {
+  return paths.map(p => (typeof p === 'string' ? p.replace(/^\/image-service\//, '/cctv/') : p))
+}
+
+// Old bookmarks and Telegram links keep working: /image-service/x?y -> /cctv/x?y
+function LegacyRouteRedirect() {
+  const location = useLocation()
+  const target = location.pathname.replace(/^\/image-service\//, '/cctv/') + location.search + location.hash
+  return <Navigate to={target} replace />
+}
+
 // Hook: returns nav items ordered by a per-user saved order, with reorder handlers
 function useSidebarOrder(username: string | undefined, items: NavItem[]) {
   const storageKey = username ? `sidebar-nav-order:${username}` : ''
@@ -526,7 +538,7 @@ function useSidebarOrder(username: string | undefined, items: NavItem[]) {
     if (!storageKey) return []
     try {
       const raw = localStorage.getItem(storageKey)
-      return raw ? JSON.parse(raw) : []
+      return raw ? migrateMenuPaths(JSON.parse(raw)) : []
     } catch { return [] }
   })
 
@@ -535,7 +547,7 @@ function useSidebarOrder(username: string | undefined, items: NavItem[]) {
     if (!storageKey) { setOrder([]); return }
     try {
       const raw = localStorage.getItem(storageKey)
-      setOrder(raw ? JSON.parse(raw) : [])
+      setOrder(raw ? migrateMenuPaths(JSON.parse(raw)) : [])
     } catch { setOrder([]) }
   }, [storageKey])
 
@@ -616,7 +628,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
     setOverPath(null)
   }
 
-  const hiddenPaths: string[] = Array.isArray(user?.hiddenMenuItems) ? user.hiddenMenuItems : []
+  const hiddenPaths: string[] = Array.isArray(user?.hiddenMenuItems) ? migrateMenuPaths(user.hiddenMenuItems) : []
   const hiddenSet = new Set(hiddenPaths)
   const toggleHidden = (path: string) => {
     const next = hiddenSet.has(path) ? hiddenPaths.filter(p => p !== path) : [...hiddenPaths, path]
@@ -678,7 +690,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
                   {collapsed ? (
                     <div className="relative">
                       <Icon size={16} className="flex-shrink-0" />
-                      {item.path === '/image-service/incidents' && openCount > 0 && (
+                      {item.path === '/cctv/incidents' && openCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse z-10">
                           {openCount > 99 ? '99+' : openCount}
                         </span>
@@ -688,7 +700,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
                     <>
                       <Icon size={16} className="flex-shrink-0" />
                       <span className="truncate">{t(`imageService.${item.labelKey}`)}</span>
-                      {item.path === '/image-service/incidents' && openCount > 0 && (
+                      {item.path === '/cctv/incidents' && openCount > 0 && (
                         <span className="ml-auto w-5 h-5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse flex-shrink-0">
                           {openCount > 99 ? '99+' : openCount}
                         </span>
@@ -987,7 +999,7 @@ function QueueHealthBanner() {
         </div>
       </div>
       {jobsFailing ? (
-        <Link to="/image-service/dead-letter"
+        <Link to="/cctv/dead-letter"
           className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-semibold text-sm rounded-lg flex items-center gap-2 transition-colors">
           <AlertTriangle size={13} />{' '}{t('ui.app.viewDeadLetter')}
         </Link>
@@ -1174,110 +1186,111 @@ export default function App() {
           {factoryModules && <QueueHealthBanner />}
           <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" /></div>}>
           <Routes>
-            <Route path="/image-service/overview" element={
+            <Route path="/cctv/overview" element={
               hasPermission(user, 'overview:read') ? <CctvDashboard /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/cameras" element={
+            <Route path="/cctv/cameras" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceCameras /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/live-grid" element={
+            <Route path="/cctv/live-grid" element={
               hasPermission(user, 'cameras:read') ? <LiveGrid /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/playback" element={
+            <Route path="/cctv/playback" element={
               hasPermission(user, 'cameras:read') ? <CctvPlayback /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/devices" element={
+            <Route path="/cctv/devices" element={
               hasPermission(user, 'cameras:read') ? <DeviceManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/sites" element={
+            <Route path="/cctv/sites" element={
               hasPermission(user, 'cameras:read') ? <SiteManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/map" element={
+            <Route path="/cctv/map" element={
               hasPermission(user, 'cameras:read') ? <CctvMap /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/media-nodes" element={
+            <Route path="/cctv/media-nodes" element={
               hasPermission(user, 'cameras:read') ? <MediaNodeManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/release" element={
+            <Route path="/cctv/release" element={
               hasPermission(user, 'settings:read') ? <CctvReleaseCenter /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/cameras/:id" element={
+            <Route path="/cctv/cameras/:id" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceCameraDetail /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/camera-analytics" element={
+            <Route path="/cctv/camera-analytics" element={
               hasPermission(user, 'cameras:read') ? <CameraAnalytics /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/incidents" element={
+            <Route path="/cctv/incidents" element={
               hasPermission(user, 'cameras:read') ? <IncidentCenter /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/reports" element={
+            <Route path="/cctv/reports" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceReports /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/camera-templates" element={
+            <Route path="/cctv/camera-templates" element={
               hasPermission(user, 'cameras:read') ? <CameraTemplates /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/search" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'search:read') ? <ImageServiceSearch /> : <UnauthorizedPage />
+            <Route path="/cctv/search" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'search:read') ? <ImageServiceSearch /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/processing" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'processing:read') ? <ImageServiceProcessingMonitor /> : <UnauthorizedPage />
+            <Route path="/cctv/processing" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'processing:read') ? <ImageServiceProcessingMonitor /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/storage" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'storage:read') ? <ImageServiceStorage /> : <UnauthorizedPage />
+            <Route path="/cctv/storage" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'storage:read') ? <ImageServiceStorage /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/storage-providers" element={
+            <Route path="/cctv/storage-providers" element={
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/storage-profiles" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'storage:read') ? <StorageProfilesPage /> : <UnauthorizedPage />
+            <Route path="/cctv/storage-profiles" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'storage:read') ? <StorageProfilesPage /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/logs" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'logs:read') ? <ImageServiceProcessingLogs /> : <UnauthorizedPage />
+            <Route path="/cctv/logs" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'logs:read') ? <ImageServiceProcessingLogs /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/dead-letter" element={
-              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'dead-letter:read') ? <DeadLetterQueue /> : <UnauthorizedPage />
+            <Route path="/cctv/dead-letter" element={
+              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'dead-letter:read') ? <DeadLetterQueue /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/audit-log" element={
+            <Route path="/cctv/audit-log" element={
               hasPermission(user, 'audit-log:read') ? <AuditLogViewer /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/backup" element={
+            <Route path="/cctv/backup" element={
               hasPermission(user, 'backup:read') ? <BackupDashboard /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/retention" element={
+            <Route path="/cctv/retention" element={
               hasPermission(user, 'retention:read') ? <ImageServiceRetention /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/roadmap" element={
+            <Route path="/cctv/roadmap" element={
               hasPermission(user, 'roadmap:read') ? <ImageServiceRoadmap /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/alerts" element={
+            <Route path="/cctv/alerts" element={
               hasPermission(user, 'alerts:read') ? <AlertManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/users" element={
+            <Route path="/cctv/users" element={
               hasPermission(user, 'users:read') ? <UserManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/health" element={
+            <Route path="/cctv/health" element={
               hasPermission(user, 'health:read') ? <HealthStatus /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/api-keys" element={
+            <Route path="/cctv/api-keys" element={
               hasPermission(user, 'api-keys:read') ? <ApiKeysManagement /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/telegram-bot" element={
+            <Route path="/cctv/telegram-bot" element={
               hasPermission(user, 'telegram-bot:read') ? <TelegramBotSettings /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/masterdata" element={
+            <Route path="/cctv/masterdata" element={
               hasPermission(user, 'masterdata:read') ? <MasterdataManagement /> : <UnauthorizedPage />
             } />
-             <Route path="/image-service/system-config" element={
+             <Route path="/cctv/system-config" element={
               hasPermission(user, 'system-config:read') ? <SystemConfigPage /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/required-fields" element={
+            <Route path="/cctv/required-fields" element={
               hasPermission(user, 'system-config:read') ? <RequiredFieldsSettings /> : <UnauthorizedPage />
             } />
-            <Route path="/image-service/settings" element={
+            <Route path="/cctv/settings" element={
               hasPermission(user, 'settings:read') ? <ImageServiceSettings /> : <UnauthorizedPage />
             } />
-            <Route path="/" element={<Navigate to="/image-service/overview" replace />} />
-            <Route path="*" element={<Navigate to="/image-service/overview" replace />} />
+            <Route path="/image-service/*" element={<LegacyRouteRedirect />} />
+            <Route path="/" element={<Navigate to="/cctv/overview" replace />} />
+            <Route path="*" element={<Navigate to="/cctv/overview" replace />} />
           </Routes>
           </Suspense>
         </main>
