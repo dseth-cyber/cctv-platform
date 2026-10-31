@@ -131,7 +131,8 @@ export const CctvPlayback: React.FC = () => {
     queryFn: () => imageServiceApi.getCameras({ limit: 200 }),
   });
 
-  const cameras = camerasData?.items ?? [];
+  // GET /cameras returns a plain array (other CCTV pages read it the same way).
+  const cameras: any[] = Array.isArray(camerasData) ? camerasData : (camerasData?.items ?? []);
 
   // Auto-select first camera if none selected
   useEffect(() => {
