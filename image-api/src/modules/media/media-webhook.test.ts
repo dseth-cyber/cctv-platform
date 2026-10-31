@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
 import { mediaAuthRoutes } from './media-auth.controller.js';
 import { cameraFlapHistory } from '../cameras/camera-health-monitor.js';
+import { config } from '../../config/index.js';
 
 // Mock dependencies
 const mockPrisma = {
@@ -108,6 +109,22 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       expect((await publish('172.18.0.5')).statusCode).toBe(401);
       expect((await publish('192.168.1.50', 'sim/ch1')).statusCode).toBe(401);
       expect((await publish('')).statusCode).toBe(401);
+    });
+  });
+
+  describe('Control API authorization', () => {
+    const api = (user?: string, password?: string, action = 'api') =>
+      app.inject({ method: 'POST', url: '/api/v1/media/auth', payload: { action, user, password, ip: '172.18.0.9' } });
+
+    it('allows image-api with the shared secret', async () => {
+      expect((await api('image-api', config.mediamtx.webhookSecret)).statusCode).toBe(200);
+    });
+
+    it('rejects the control API without the right credentials', async () => {
+      expect((await api()).statusCode).toBe(401);
+      expect((await api('image-api', 'wrong')).statusCode).toBe(401);
+      expect((await api('someone', config.mediamtx.webhookSecret)).statusCode).toBe(401);
+      expect((await api(undefined, undefined, 'metrics')).statusCode).toBe(401);
     });
   });
 

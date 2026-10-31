@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { MediaMtxService } from './mediamtx.service.js';
 import { logger } from '../../lib/logger.js';
@@ -11,13 +12,22 @@ interface MediaAuthBody {
   path?: string;
   protocol?: string;
   id?: string;
-  action?: 'publish' | 'read';
+  action?: 'publish' | 'read' | 'playback' | 'api' | 'metrics' | 'pprof';
   query?: string;
 }
 
 interface StreamStatusBody {
   path?: string;
   status?: 'ready' | 'not_ready';
+}
+
+/** User name image-api presents to the MediaMTX control API (password = MEDIA_WEBHOOK_SECRET). */
+export const MEDIAMTX_API_USER = 'image-api';
+
+function secretMatches(given: string | undefined, expected: string): boolean {
+  const a = Buffer.from(given ?? '');
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 function isLoopback(ip: string | undefined): boolean {
@@ -46,12 +56,21 @@ export async function mediaAuthRoutes(app: FastifyInstance) {
       return reply.status(401).send({ status: 'Unauthorized', allowed: false });
     }
 
-    // 2. Allow Dev test synthetic streams without token
+    // 2. The control API, metrics and pprof are for image-api only, which signs in with the shared secret.
+    if (action === 'api' || action === 'metrics' || action === 'pprof') {
+      if (body.user === MEDIAMTX_API_USER && secretMatches(body.password, config.mediamtx.webhookSecret)) {
+        return reply.status(200).send({ status: 'OK', allowed: true });
+      }
+      logger.warn({ ip, action }, 'MediaMTX control API access rejected');
+      return reply.status(401).send({ status: 'Unauthorized', allowed: false });
+    }
+
+    // 3. Allow Dev test synthetic streams without token
     if (cleanPath.startsWith('sim/')) {
       return reply.status(200).send({ status: 'OK', allowed: true });
     }
 
-    // 3. For stream subscribers (readers), verify token
+    // 4. For stream subscribers (readers, playback), verify token
     let token = '';
     if (query) {
       const parsed = new URLSearchParams(query);

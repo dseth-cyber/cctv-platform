@@ -1,6 +1,7 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../lib/logger.js';
+import { MediaMtxService } from '../media/mediamtx.service.js';
 
 export interface PreflightCheckItem {
   id: string;
@@ -125,15 +126,11 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
 
   // 2. MediaMTX Streaming Node Check
   try {
-    const mediamtxHost = process.env.MEDIAMTX_HOST || '127.0.0.1';
-    const mediamtxPort = process.env.MEDIAMTX_API_PORT || '9997';
+    const mediamtxApi = config.mediamtx.apiUrl;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000);
-    
-    // Attempt HTTP health fetch to MediaMTX
-    const res = await fetch(`http://${mediamtxHost}:${mediamtxPort}/v3/paths/list`, {
-      signal: controller.signal,
-    }).catch(() => null);
+
+    const res = await MediaMtxService.apiFetch('/v3/paths/list', { signal: controller.signal }).catch(() => null);
     clearTimeout(timeout);
 
     if (res && res.ok) {
@@ -142,7 +139,7 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
         category: 'streaming',
         name: 'MediaMTX Core Streaming Engine',
         status: 'passed',
-        details: `MediaMTX API reachable at ${mediamtxHost}:${mediamtxPort} (WHEP / RTSP / fMP4 remux ready)`,
+        details: `MediaMTX API reachable at ${mediamtxApi}`,
       });
     } else {
       items.push({
@@ -150,7 +147,7 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
         category: 'streaming',
         name: 'MediaMTX Core Streaming Engine',
         status: 'warning',
-        details: `MediaMTX API not responding at ${mediamtxHost}:${mediamtxPort}`,
+        details: `MediaMTX API not responding at ${mediamtxApi}${res ? ` (HTTP ${res.status})` : ''}`,
         remediation: 'Verify mediamtx container status: `docker compose ps mediamtx`.',
       });
     }

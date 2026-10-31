@@ -26,6 +26,15 @@ export class MediaMtxService {
     return config.mediamtx.apiUrl.replace(/\/+$/, '');
   }
 
+  /** MediaMTX runs authMethod http, so control API calls must carry image-api's credentials. */
+  static apiFetch(apiPath: string, init: RequestInit = {}): Promise<Response> {
+    const auth = Buffer.from(`image-api:${config.mediamtx.webhookSecret}`).toString('base64');
+    return fetch(`${this.baseUrl}${apiPath}`, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), Authorization: `Basic ${auth}` },
+    });
+  }
+
   /**
    * Generates a signed stream viewing token for a given path and user.
    */
@@ -79,8 +88,6 @@ export class MediaMtxService {
    */
   static async registerStreamPath(streamPath: string, rtspSourceUrl: string): Promise<boolean> {
     const cleanPath = streamPath.replace(/^\/+/, '');
-    const url = `${this.baseUrl}/v3/config/paths/add/${cleanPath}`;
-
     const payload: MediaMtxPathConfig = {
       source: rtspSourceUrl,
       sourceOnDemand: true,
@@ -89,7 +96,7 @@ export class MediaMtxService {
     };
 
     try {
-      const res = await fetch(url, {
+      const res = await this.apiFetch(`/v3/config/paths/add/${cleanPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -102,8 +109,7 @@ export class MediaMtxService {
 
       // If already exists (400 or 409), try PATCH to update source
       if (res.status === 400 || res.status === 409) {
-        const patchUrl = `${this.baseUrl}/v3/config/paths/patch/${cleanPath}`;
-        const patchRes = await fetch(patchUrl, {
+        const patchRes = await this.apiFetch(`/v3/config/paths/patch/${cleanPath}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -128,10 +134,8 @@ export class MediaMtxService {
    */
   static async removeStreamPath(streamPath: string): Promise<boolean> {
     const cleanPath = streamPath.replace(/^\/+/, '');
-    const url = `${this.baseUrl}/v3/config/paths/delete/${cleanPath}`;
-
     try {
-      const res = await fetch(url, { method: 'DELETE' });
+      const res = await this.apiFetch(`/v3/config/paths/delete/${cleanPath}`, { method: 'DELETE' });
       return res.ok;
     } catch (err) {
       logger.warn({ streamPath: cleanPath, err }, 'Failed to delete stream path from MediaMTX');
@@ -143,9 +147,8 @@ export class MediaMtxService {
    * Check live status of paths from MediaMTX.
    */
   static async getLivePaths(): Promise<any[]> {
-    const url = `${this.baseUrl}/v3/paths/list`;
     try {
-      const res = await fetch(url);
+      const res = await this.apiFetch('/v3/paths/list');
       if (!res.ok) return [];
       const data = await res.json() as any;
       return data?.items ?? [];
