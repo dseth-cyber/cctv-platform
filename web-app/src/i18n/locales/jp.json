@@ -3609,7 +3609,6 @@
       "legalHoldStopsTheRetentionPolicy": "リーガルホールドは保持ポリシーによる自動削除を防ぎます",
       "legalHoldOn": "リーガルホールド中",
       "releaseHold": "ホールド解除",
-      "mp4FileIsReadyOnThe": "メディアノード上の MP4 ファイルの準備ができました",
       "download": "ダウンロード",
       "exportEventClip": "イベントクリップを書き出す",
       "evidenceClipTitle2": "証拠クリップ名:",
@@ -3633,7 +3632,9 @@
       "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
       "playbackLoadFailed": "録画を読み込めませんでした",
       "loadingRecording": "録画を読み込み中...",
-      "pressPlayToWatchRecording": "再生を押すとこの時刻の録画を表示します"
+      "pressPlayToWatchRecording": "再生を押すとこの時刻の録画を表示します",
+      "clipFileNotFound": "サーバーにクリップファイルがありません",
+      "clipDownloadFailed": "クリップのダウンロードに失敗しました"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "プリフライト結果の読み込みに失敗しました — 準備状況は不明です",

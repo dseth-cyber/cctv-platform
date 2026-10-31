@@ -647,6 +647,9 @@ export function createImageServiceApi(api: any) {
       api.patch(`${BASE}/recordings/clips/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     seedDevRecordings: (cameraId: string, date?: string) =>
       api.post(`${BASE}/recordings/seed-dev`, { cameraId, date }).then((r: any) => r.data),
+    downloadRecordingClip: (filename: string): Promise<Blob> =>
+      api.get(`${BASE}/recordings/clips/download/${encodeURIComponent(filename)}`, { responseType: 'blob' }).then((r: any) => r.data),
+
     getPlaybackStream: (cameraId: string, start: string, duration = 300) =>
       api.get(`${BASE}/recordings/playback-stream`, { params: { cameraId, start, duration } }).then((r: any) => r.data),
 

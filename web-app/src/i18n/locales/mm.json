@@ -3604,7 +3604,6 @@
       "legalHoldStopsTheRetentionPolicy": "Legal Hold သည် Retention မူဝါဒက clip ကို အလိုအလျောက် ဖျက်ခြင်းမှ ကာကွယ်သည်",
       "legalHoldOn": "Legal Hold ဖွင့်ထား",
       "releaseHold": "Hold ပိတ်ရန်",
-      "mp4FileIsReadyOnThe": "Media Node ပေါ်တွင် MP4 ဖိုင် အသင့်ဖြစ်ပြီ",
       "download": "ဒေါင်းလုဒ်",
       "exportEventClip": "Event Clip ထုတ်ရန်",
       "evidenceClipTitle2": "အထောက်အထား Clip အမည်:",
@@ -3628,7 +3627,9 @@
       "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
       "playbackLoadFailed": "မှတ်တမ်းဗီဒီယို ဖွင့်၍မရပါ",
       "loadingRecording": "မှတ်တမ်းဗီဒီယို ဖွင့်နေသည်...",
-      "pressPlayToWatchRecording": "ဤအချိန်၏ မှတ်တမ်းကို ကြည့်ရန် Play နှိပ်ပါ"
+      "pressPlayToWatchRecording": "ဤအချိန်၏ မှတ်တမ်းကို ကြည့်ရန် Play နှိပ်ပါ",
+      "clipFileNotFound": "ဆာဗာပေါ်တွင် clip ဖိုင် မတွေ့ပါ",
+      "clipDownloadFailed": "Clip ဒေါင်းလုဒ် မအောင်မြင်ပါ"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "Pre-flight ရလဒ် ဖတ်မရပါ — အသင့်ဖြစ်မှု မသိရ",

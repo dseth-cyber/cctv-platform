@@ -3609,7 +3609,6 @@
       "legalHoldStopsTheRetentionPolicy": "法律保留可防止保留策略自动删除该片段",
       "legalHoldOn": "法律保留已开启",
       "releaseHold": "解除保留",
-      "mp4FileIsReadyOnThe": "MP4 文件已在媒体节点上准备好",
       "download": "下载",
       "exportEventClip": "导出事件片段",
       "evidenceClipTitle2": "证据片段名称：",
@@ -3633,7 +3632,9 @@
       "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
       "playbackLoadFailed": "无法加载录像",
       "loadingRecording": "正在加载录像...",
-      "pressPlayToWatchRecording": "点击播放观看此时间的录像"
+      "pressPlayToWatchRecording": "点击播放观看此时间的录像",
+      "clipFileNotFound": "服务器上找不到剪辑文件",
+      "clipDownloadFailed": "剪辑下载失败"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "加载预检结果失败 — 就绪状态未知",

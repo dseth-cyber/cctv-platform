@@ -3612,7 +3612,6 @@
       "legalHoldStopsTheRetentionPolicy": "Legal hold stops the retention policy from deleting the clip automatically",
       "legalHoldOn": "Legal hold on",
       "releaseHold": "Release hold",
-      "mp4FileIsReadyOnThe": "MP4 file is ready on the media node",
       "download": "Download",
       "exportEventClip": "Export Event Clip",
       "evidenceClipTitle2": "Evidence clip title:",
@@ -3636,7 +3635,9 @@
       "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
       "playbackLoadFailed": "Could not load the recorded video",
       "loadingRecording": "Loading recorded video...",
-      "pressPlayToWatchRecording": "Press play to watch the recording at this time"
+      "pressPlayToWatchRecording": "Press play to watch the recording at this time",
+      "clipFileNotFound": "Clip file not found on the server",
+      "clipDownloadFailed": "Clip download failed"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "Failed to load pre-flight results — readiness unknown",

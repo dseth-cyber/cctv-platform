@@ -3615,7 +3615,6 @@
       "legalHoldStopsTheRetentionPolicy": "Legal Hold ป้องกันไม่ให้นโยบาย Retention ลบคลิปอัตโนมัติ",
       "legalHoldOn": "Legal Hold เปิด",
       "releaseHold": "ปิด Hold",
-      "mp4FileIsReadyOnThe": "เตรียมไฟล์ MP4 บนมีเดียโหนดเรียบร้อย",
       "download": "ดาวน์โหลด",
       "exportEventClip": "ตัดคลิปวิดีโอหลักฐาน",
       "evidenceClipTitle2": "ชื่อคลิปหลักฐาน:",
@@ -3639,7 +3638,9 @@
       "asiaBangkokUtc": "Asia/Bangkok (UTC+7)",
       "playbackLoadFailed": "โหลดวิดีโอย้อนหลังไม่สำเร็จ",
       "loadingRecording": "กำลังโหลดวิดีโอที่บันทึกไว้...",
-      "pressPlayToWatchRecording": "กดเล่นเพื่อดูวิดีโอที่บันทึกไว้ ณ เวลานี้"
+      "pressPlayToWatchRecording": "กดเล่นเพื่อดูวิดีโอที่บันทึกไว้ ณ เวลานี้",
+      "clipFileNotFound": "ไม่พบไฟล์คลิปบนเซิร์ฟเวอร์",
+      "clipDownloadFailed": "ดาวน์โหลดคลิปไม่สำเร็จ"
     },
     "cctvReleaseCenter": {
       "failedToLoadPreFlightResults": "โหลดผล Pre-flight ไม่สำเร็จ — ไม่ทราบสถานะความพร้อม",

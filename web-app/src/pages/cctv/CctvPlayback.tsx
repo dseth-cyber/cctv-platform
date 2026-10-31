@@ -382,6 +382,23 @@ export const CctvPlayback: React.FC = () => {
     setIsExportModalOpen(true);
   };
 
+  // The download endpoint needs the bearer token, so fetch it as a blob instead of a plain link.
+  const handleDownloadClip = async (clip: any) => {
+    const filename = String(clip.downloadUrl || '').split('/').pop();
+    if (!filename) return;
+    try {
+      const blob = await imageServiceApi.downloadRecordingClip(filename);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err: any) {
+      toast.error(err?.response?.status === 404 ? t('ui.cctvPlayback.clipFileNotFound') : t('ui.cctvPlayback.clipDownloadFailed'));
+    }
+  };
+
   const handleConfirmExport = () => {
     if (!selectedCameraId) return;
     // The playhead is the event instant; the server adds the pre/post buffers around it.
@@ -954,20 +971,15 @@ export const CctvPlayback: React.FC = () => {
                         </button>
                       </td>
                       <td className="py-3 px-3 text-right">
-                        <a
-                          href={clip.downloadUrl || '#'}
-                          download
-                          onClick={(e) => {
-                            if (!clip.downloadUrl) {
-                              e.preventDefault();
-                              toast.info(t('ui.cctvPlayback.mp4FileIsReadyOnThe'));
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 transition-all"
+                        <button
+                          type="button"
+                          disabled={clip.status !== 'COMPLETED' || !clip.downloadUrl}
+                          onClick={() => handleDownloadClip(clip)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Download size={13} />
                           <span>{t('ui.cctvPlayback.download')}</span>
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   ))}

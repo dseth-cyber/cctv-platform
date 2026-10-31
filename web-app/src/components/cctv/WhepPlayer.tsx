@@ -76,7 +76,8 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       try {
         const parsed = new URL(url);
         if (parsed.port === '8889') {
-          return `/mediamtx/webrtc${parsed.pathname}`;
+          // Keep the query: it carries the stream token MediaMTX auth checks.
+          return `/mediamtx/webrtc${parsed.pathname}${parsed.search}`;
         }
       } catch {
         // use as-is
@@ -162,7 +163,11 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       // Read location header if provided (RFC 8835)
       const location = response.headers.get('Location');
       if (location) {
-        resourceUrlRef.current = new URL(location, targetUrl).toString();
+        // MediaMTX answers with a path from its own root (e.g. /cam/whep/<session>); through nginx it lives under /mediamtx/webrtc.
+        const sessionPath = location.startsWith('/') && targetUrl.startsWith('/mediamtx/webrtc/') && !location.startsWith('/mediamtx/')
+          ? `/mediamtx/webrtc${location}`
+          : location;
+        resourceUrlRef.current = new URL(sessionPath, new URL(targetUrl, window.location.href)).toString();
       }
 
       const answerSdp = await response.text();
