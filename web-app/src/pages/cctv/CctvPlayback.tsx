@@ -75,23 +75,41 @@ interface TimelineData {
   incidents: IncidentMarker[];
 }
 
-const TIME_24H = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const TIME_PARTS = [
+  { max: 23, label: 'HH' },
+  { max: 59, label: 'mm' },
+  { max: 59, label: 'ss' },
+] as const;
 
 /**
- * Date (browser calendar) + 24-hour time typed as HH:mm:ss. A native datetime-local input
- * follows the OS locale and may show AM/PM; evidence times are always written 24-hour.
- * `value` / `onChange` use YYYY-MM-DDTHH:mm:ss.
+ * Date (browser calendar) + 24-hour time as three two-digit boxes (HH : mm : ss). A native
+ * datetime-local input follows the OS locale and may show AM/PM; evidence times are always
+ * 24-hour. Each box selects its digits on focus, so typing replaces them, and moves to the
+ * next box after two digits. `value` / `onChange` use YYYY-MM-DDTHH:mm:ss.
  */
 function DateTime24Input({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [date, time] = value ? value.split('T') : ['', ''];
-  const [timeText, setTimeText] = useState(time ?? '');
-  useEffect(() => setTimeText(time ?? ''), [time]);
-  const timeValid = TIME_24H.test(timeText);
+  const [date, time = ''] = value ? value.split('T') : ['', ''];
+  const fromValue = () => {
+    const p = time.split(':');
+    return [p[0] ?? '', p[1] ?? '', p[2] ?? '00'];
+  };
+  const [parts, setParts] = useState<string[]>(fromValue);
+  // Only take the outside value when it really changed (e.g. "use playhead"); otherwise our own
+  // commit of "1" -> "01:..." would overwrite the box while the user is still typing "15".
+  useEffect(() => {
+    if (parts.map((v) => v.padStart(2, '0')).join(':') !== time) setParts(fromValue());
+  }, [time]); // eslint-disable-line react-hooks/exhaustive-deps
+  const refs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
-  const commit = (nextDate: string, nextTime: string) => {
-    if (nextDate && TIME_24H.test(nextTime)) {
-      onChange(`${nextDate}T${nextTime.length === 5 ? `${nextTime}:00` : nextTime}`);
-    }
+  const isValid = (p: string[]) => p.every((v, i) => /^\d{1,2}$/.test(v) && Number(v) <= TIME_PARTS[i].max);
+  const commit = (nextDate: string, p: string[]) => {
+    if (nextDate && isValid(p)) onChange(`${nextDate}T${p.map((v) => v.padStart(2, '0')).join(':')}`);
+  };
+  const update = (i: number, raw: string) => {
+    const next = [...parts];
+    next[i] = raw;
+    setParts(next);
+    commit(date, next);
   };
 
   return (
@@ -99,26 +117,46 @@ function DateTime24Input({ value, onChange }: { value: string; onChange: (v: str
       <input
         type="date"
         value={date}
-        onChange={(e) => commit(e.target.value, timeText)}
+        onChange={(e) => commit(e.target.value, parts)}
         className="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 [color-scheme:dark]"
       />
-      <input
-        type="text"
-        inputMode="numeric"
-        placeholder="HH:mm:ss"
-        maxLength={8}
-        value={timeText}
-        onChange={(e) => {
-          // Accept digits only and insert the colons while typing (e.g. 150546 -> 15:05:46).
-          const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
-          const next = digits.replace(/^(\d{2})(\d{1,2})?(\d{1,2})?$/, (_m, h, mi, se) => [h, mi, se].filter(Boolean).join(':'));
-          setTimeText(next);
-          commit(date, next);
-        }}
-        className={`w-28 font-mono bg-slate-950 border rounded-xl px-3 py-2 text-white focus:outline-none ${
-          timeValid ? 'border-slate-800 focus:border-cyan-500' : 'border-rose-500'
-        }`}
-      />
+      <div className={`flex items-center bg-slate-950 border rounded-xl px-2 font-mono ${isValid(parts) ? 'border-slate-800' : 'border-rose-500'}`}>
+        {TIME_PARTS.map((part, i) => (
+          <React.Fragment key={part.label}>
+            {i > 0 && <span className="text-slate-500">:</span>}
+            <input
+              ref={refs[i]}
+              type="text"
+              inputMode="numeric"
+              placeholder={part.label}
+              maxLength={2}
+              value={parts[i]}
+              onFocus={(e) => e.currentTarget.select()}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
+                update(i, digits);
+                if (digits.length === 2 && i < 2) {
+                  refs[i + 1].current?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const span = part.max + 1;
+                  const n = (Number(parts[i] || 0) + (e.key === 'ArrowUp' ? 1 : -1) + span) % span;
+                  update(i, String(n).padStart(2, '0'));
+                } else if (e.key === 'Backspace' && !parts[i] && i > 0) {
+                  refs[i - 1].current?.focus();
+                }
+              }}
+              onBlur={() => {
+                if (/^\d$/.test(parts[i])) update(i, parts[i].padStart(2, '0'));
+              }}
+              className="w-7 bg-transparent text-center text-white py-2 focus:outline-none focus:bg-cyan-500/20 rounded"
+            />
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }
