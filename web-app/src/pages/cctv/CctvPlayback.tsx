@@ -75,6 +75,54 @@ interface TimelineData {
   incidents: IncidentMarker[];
 }
 
+const TIME_24H = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+/**
+ * Date (browser calendar) + 24-hour time typed as HH:mm:ss. A native datetime-local input
+ * follows the OS locale and may show AM/PM; evidence times are always written 24-hour.
+ * `value` / `onChange` use YYYY-MM-DDTHH:mm:ss.
+ */
+function DateTime24Input({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [date, time] = value ? value.split('T') : ['', ''];
+  const [timeText, setTimeText] = useState(time ?? '');
+  useEffect(() => setTimeText(time ?? ''), [time]);
+  const timeValid = TIME_24H.test(timeText);
+
+  const commit = (nextDate: string, nextTime: string) => {
+    if (nextDate && TIME_24H.test(nextTime)) {
+      onChange(`${nextDate}T${nextTime.length === 5 ? `${nextTime}:00` : nextTime}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-1 gap-2">
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => commit(e.target.value, timeText)}
+        className="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 [color-scheme:dark]"
+      />
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="HH:mm:ss"
+        maxLength={8}
+        value={timeText}
+        onChange={(e) => {
+          // Accept digits only and insert the colons while typing (e.g. 150546 -> 15:05:46).
+          const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+          const next = digits.replace(/^(\d{2})(\d{1,2})?(\d{1,2})?$/, (_m, h, mi, se) => [h, mi, se].filter(Boolean).join(':'));
+          setTimeText(next);
+          commit(date, next);
+        }}
+        className={`w-28 font-mono bg-slate-950 border rounded-xl px-3 py-2 text-white focus:outline-none ${
+          timeValid ? 'border-slate-800 focus:border-cyan-500' : 'border-rose-500'
+        }`}
+      />
+    </div>
+  );
+}
+
 export const CctvPlayback: React.FC = () => {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
@@ -1081,13 +1129,7 @@ export const CctvPlayback: React.FC = () => {
                     <div key={key}>
                       <label className="block text-slate-400 mb-1 font-semibold">{label} <span className="font-normal text-slate-500">(UTC+7)</span></label>
                       <div className="flex gap-2">
-                        <input
-                          type="datetime-local"
-                          step={1}
-                          value={value}
-                          onChange={(e) => setValue(e.target.value)}
-                          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500 [color-scheme:dark]"
-                        />
+                        <DateTime24Input value={value} onChange={setValue} />
                         <button
                           type="button"
                           onClick={() => setValue(isoToBangkokInput(bangkokDaySecondsToIso(selectedDate, currentTimeSec)))}
