@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Settings2 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 interface Props {
   active: boolean;
   style?: string;
@@ -9,13 +10,14 @@ interface Props {
 }
 
 const STYLES = [
-  { key: 'ring', label: 'Progress Ring' },
-  { key: 'flow', label: 'Data Flow' },
-  { key: 'pulse', label: 'Pulse Wave' },
-  { key: 'particle', label: 'Particle' },
+  { key: 'ring', labelKey: 'ui.processingVisualizer.styleRing' },
+  { key: 'flow', labelKey: 'ui.processingVisualizer.styleFlow' },
+  { key: 'pulse', labelKey: 'ui.processingVisualizer.stylePulse' },
+  { key: 'particle', labelKey: 'ui.processingVisualizer.styleParticle' },
 ];
 
 function ProgressRing({ active }: { active: boolean }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center h-full gap-6">
       <div className="relative">
@@ -40,8 +42,8 @@ function ProgressRing({ active }: { active: boolean }) {
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           {active
-            ? <span className="text-xs text-cyan-400 animate-pulse font-medium">Processing</span>
-            : <span className="text-xs text-gray-500 font-medium">Idle</span>}
+            ? <span className="text-xs text-cyan-400 animate-pulse font-medium">{t('common.processing')}</span>
+            : <span className="text-xs text-gray-500 font-medium">{t('ui.processingVisualizer.idle')}</span>}
         </div>
       </div>
       {active && (
@@ -61,6 +63,7 @@ function ProgressRing({ active }: { active: boolean }) {
 }
 
 function DataFlow({ active }: { active: boolean }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center h-full">
       <div className="flex items-center gap-1">
@@ -81,7 +84,7 @@ function DataFlow({ active }: { active: boolean }) {
         ))}
         {active && (
           <div className="ml-3 flex flex-col items-start">
-            <span className="text-[10px] text-cyan-400 animate-pulse">Processing...</span>
+            <span className="text-[10px] text-cyan-400 animate-pulse">{t('ui.processingVisualizer.processing')}</span>
             <div className="flex gap-0.5 mt-1">
               {[0, 1, 2].map(i => (
                 <div key={i} className="w-1 h-1 rounded-full bg-cyan-400 animate-bounce"
@@ -99,6 +102,7 @@ function DataFlow({ active }: { active: boolean }) {
 }
 
 function PulseWave({ active }: { active: boolean }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center h-full">
       <div className="relative">
@@ -124,7 +128,7 @@ function PulseWave({ active }: { active: boolean }) {
         <div className="ml-6">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs text-green-400">Active</span>
+            <span className="text-xs text-green-400">{t('common.active')}</span>
           </div>
           <div className="flex gap-0.5 mt-2">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -205,6 +209,7 @@ function ParticleEffect({ active }: { active: boolean }) {
 }
 
 export default function ProcessingVisualizer(props: Props) {
+  const { t } = useTranslation()
   const [style, setStyle] = useState(props.style ?? 'ring');
   const [showPicker, setShowPicker] = useState(false);
   const [previewing, setPreviewing] = useState(true);
@@ -239,7 +244,7 @@ export default function ProcessingVisualizer(props: Props) {
             <button key={s.key} onClick={() => handleChange(s.key)}
               className={`block w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors
                 ${style === s.key ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-300 hover:bg-white/5'}`}>
-              {s.label}
+              {t(s.labelKey)}
             </button>
           ))}
         </div>

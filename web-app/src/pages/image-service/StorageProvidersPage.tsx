@@ -144,7 +144,7 @@ export default function StorageProvidersPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.storageProviders.title')}
+            iSmart CCTV · {t('imageService.storageProviders.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.storageProviders.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.subtitle')}</p>
@@ -398,7 +398,7 @@ function CleanupModal({ provider, onClose }: { provider: any | null; onClose: ()
               </div>
               <div>
                 <span className={themeConfig.text.secondary}>{t('imageService.storageProviders.cleanup.spaceToFree')}</span>
-                <p className="font-semibold text-cyan-400">{(plan.candidateBytes / 1024 / 1024 / 1024).toFixed(2)} GB</p>
+                <p className="font-semibold text-cyan-400">{(plan.candidateBytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb')}</p>
               </div>
             </div>
 
@@ -408,7 +408,7 @@ function CleanupModal({ provider, onClose }: { provider: any | null; onClose: ()
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(plan.byFileType).map(([type, v]: [string, any]) => (
                     <span key={type} className={`px-2 py-1 rounded text-xs ${themeConfig.card} border ${themeConfig.cardBorder}`}>
-                      {type}: {v.count} ({(v.bytes / 1024 / 1024 / 1024).toFixed(2)} GB)
+                      {type}: {v.count} ({(v.bytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb2')}
                     </span>
                   ))}
                 </div>
@@ -423,7 +423,7 @@ function CleanupModal({ provider, onClose }: { provider: any | null; onClose: ()
                 <div className="flex flex-wrap gap-2">
                   {plan.affectedCameras.map((c: any) => (
                     <span key={c.id} className={`px-2 py-1 rounded text-xs ${themeConfig.card} border ${themeConfig.cardBorder}`}>
-                      {c.name}: {c.files} ({(c.bytes / 1024 / 1024 / 1024).toFixed(2)} GB)
+                      {c.name}: {c.files} ({(c.bytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb2')}
                     </span>
                   ))}
                 </div>
@@ -564,7 +564,7 @@ function StorageProviderFormModal({ isOpen, onClose, editTarget }: { isOpen: boo
   }
 
   const handleSubmit = async () => {
-    if (!name.trim()) { toast.error('Name is required'); return }
+    if (!name.trim()) { toast.error(t('ui.storageProvidersPage.nameIsRequired')); return }
     setSubmitting(true)
     const config = buildConfig()
     const capBytes = capacityGb ? Math.round(parseFloat(capacityGb) * 1024 * 1024 * 1024) : undefined
@@ -595,7 +595,7 @@ function StorageProviderFormModal({ isOpen, onClose, editTarget }: { isOpen: boo
       <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
         <div>
           <label className={labelClass}>{t('imageService.storageProviders.providerName')}</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Primary Storage" />
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder={t('ui.storageProvidersPage.primaryStorage')} />
         </div>
         <div>
           <label className={labelClass}>{t('imageService.storageProviders.providerType')}</label>

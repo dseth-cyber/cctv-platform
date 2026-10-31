@@ -117,7 +117,7 @@ export default function HealthStatus() {
     <div className="p-6">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.health.title')}
+          iSmart CCTV · {t('imageService.health.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.health.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.health.subtitle')}</p>
@@ -166,11 +166,11 @@ export default function HealthStatus() {
           <div className="flex items-center gap-2">
             <Radio size={18} className="text-cyan-400" />
             <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>
-              CCTV Network & Live Stream Health (High-Scale Monitoring)
+              {t('ui.healthStatus.cctvNetworkLiveStreamHealthHigh')}
             </h3>
           </div>
           <span className="text-xs text-slate-400">
-            Probe & Stream Flow Separation
+            {t('ui.healthStatus.probeStreamFlowSeparation')}
           </span>
         </div>
 
@@ -180,7 +180,7 @@ export default function HealthStatus() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-medium ${themeConfig.text.secondary}`}>
-                  1. Device Reachability (Ping / Socket)
+                  {t('ui.healthStatus.n1DeviceReachabilityPingSocket')}
                 </span>
                 {offlineDevices === 0 ? (
                   <Wifi size={16} className="text-emerald-400" />
@@ -189,13 +189,13 @@ export default function HealthStatus() {
                 )}
               </div>
               <p className="text-2xl font-bold text-slate-100">
-                {onlineDevices} / {devicesArr.length} <span className="text-xs font-normal text-slate-400">Units Online</span>
+                {onlineDevices} / {devicesArr.length} <span className="text-xs font-normal text-slate-400">{t('ui.healthStatus.unitsOnline')}</span>
               </p>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
               {offlineDevices === 0
-                ? 'All DVR/NVR/IP Cam network sockets (554/80) responding'
-                : `${offlineDevices} recording device(s) offline / socket timeout`}
+                ? t('ui.healthStatus.allDvrNvrIpCamNetwork')
+                : t('ui.healthStatus.recordingDeviceSOfflineSocketTimeout', { offlineDevices })}
             </p>
           </div>
 
@@ -204,16 +204,16 @@ export default function HealthStatus() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-medium ${themeConfig.text.secondary}`}>
-                  2. Stream Active (WHEP / RTSP)
+                  {t('ui.healthStatus.n2StreamActiveWhepRtsp')}
                 </span>
                 <Video size={16} className="text-cyan-400" />
               </div>
               <p className="text-2xl font-bold text-cyan-400">
-                {streamingCameras} / {camerasArr.length} <span className="text-xs font-normal text-slate-400">Ch Streaming</span>
+                {streamingCameras} / {camerasArr.length} <span className="text-xs font-normal text-slate-400">{t('ui.healthStatus.chStreaming')}</span>
               </p>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              MediaMTX dynamic path registration & signed stream tokens active
+              {t('ui.healthStatus.mediaMTXDynamicPathRegistrationSignedStream')}
             </p>
           </div>
 
@@ -222,7 +222,7 @@ export default function HealthStatus() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-medium ${themeConfig.text.secondary}`}>
-                  3. Video Stalled / Dropped Frames
+                  {t('ui.healthStatus.n3VideoStalledDroppedFrames')}
                 </span>
                 {stalledCameras === 0 && flowAlerts === 0 ? (
                   <CheckCircle size={16} className="text-emerald-400" />
@@ -231,13 +231,13 @@ export default function HealthStatus() {
                 )}
               </div>
               <p className={`text-2xl font-bold ${stalledCameras === 0 && flowAlerts === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {stalledCameras + flowAlerts} <span className="text-xs font-normal text-slate-400">Issues</span>
+                {stalledCameras + flowAlerts} <span className="text-xs font-normal text-slate-400">{t('ui.healthStatus.issues')}</span>
               </p>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
               {stalledCameras === 0 && flowAlerts === 0
-                ? 'Socket up & active frame flow verified on all channels'
-                : `${stalledCameras} camera(s) stalled or producing 0 frames`}
+                ? t('ui.healthStatus.socketUpActiveFrameFlowVerified')
+                : t('ui.healthStatus.cameraSStalledOrProducing', { stalledCameras })}
             </p>
           </div>
         </div>
@@ -265,14 +265,14 @@ export default function HealthStatus() {
         <div className={`${themeConfig.card} rounded-lg p-5`}>
           <div className="flex items-center gap-2 mb-4"><Cpu size={16} className="text-cyan-400" /><h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.health.serverResources')}</h3></div>
           <div className="space-y-4">
-            <UsageBar label={`${t('imageService.health.memory')} (RAM)`} used={sys.memoryUsed ?? 0} total={sys.memoryTotal ?? 0} color="#8b5cf6" />
+            <UsageBar label={t('ui.healthStatus.ram', { v0: t('imageService.health.memory') })} used={sys.memoryUsed ?? 0} total={sys.memoryTotal ?? 0} color="#8b5cf6" />
             <UsageBar label={`${t('imageService.health.disk')} (/)`} used={sys.diskUsed ?? 0} total={sys.diskTotal ?? 0} color="#06b6d4" />
           </div>
           <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
             {[
-              { label: 'CPU Cores', value: sys.cpuCores ?? '—' },
-              { label: 'Load Avg', value: (sys.loadAvg ?? []).join(' / ') || '—' },
-              { label: 'Platform', value: sys.platform ?? '—' },
+              { label: t('ui.healthStatus.cpuCores'), value: sys.cpuCores ?? '—' },
+              { label: t('ui.healthStatus.loadAvg'), value: (sys.loadAvg ?? []).join(' / ') || '—' },
+              { label: t('ui.healthStatus.platform'), value: sys.platform ?? '—' },
               { label: 'Node.js', value: sys.nodeVersion ?? '—' },
             ].map((item, i) => (
               <div key={i} className="px-3 py-2 rounded-lg bg-white/5">
@@ -418,7 +418,7 @@ function VerificationCard() {
             {results.map((r, i) => (
               <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs ${r.ok ? 'bg-green-500/5' : 'bg-red-500/10'}`}>
                 {r.ok ? <CheckCircle size={12} className="text-green-400 flex-shrink-0" /> : <XCircle size={12} className="text-red-400 flex-shrink-0" />}
-                <span className={`flex-1 truncate ${themeConfig.text.primary}`}>{r.name}</span>
+                <span className={`flex-1 truncate ${themeConfig.text.primary}`}>{t(`ui.healthStatus.endpoints.${r.name.replace(/[^A-Za-z0-9]/g, '')}`, { defaultValue: r.name })}</span>
                 <span className={`flex-shrink-0 font-mono ${r.ok ? themeConfig.text.secondary : 'text-red-400'}`}>{r.ok ? `${r.ms}ms` : r.error}</span>
               </div>
             ))}

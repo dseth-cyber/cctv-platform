@@ -110,7 +110,7 @@ export default function PipelineFlow({ cameras, syncWorker, queue, processingWor
             {t('imageService.health.pipeline')}
           </h3>
           <p className={`text-xs ${themeConfig.text.secondary}`}>
-            Camera &rarr; Sync Worker &rarr; Redis Queue &rarr; Processing Worker &rarr; Storage &rarr; Database
+            {t('ui.pipelineFlow.cameraSyncWorkerRedisQueueProcessing')}
           </p>
         </div>
       </div>

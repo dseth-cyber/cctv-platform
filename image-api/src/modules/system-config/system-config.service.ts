@@ -61,8 +61,8 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
 
   // General settings — managed via UI
   system_logo: { value: '', description: 'System logo (base64 data URL)', valueType: 'string', category: 'general' },
-  system_name: { value: 'Image Service', description: 'Application name', valueType: 'string', category: 'general' },
-  system_description: { value: 'Enterprise Image Management System', description: 'Application description', valueType: 'string', category: 'general' },
+  system_name: { value: 'iSmart CCTV', description: 'Application name', valueType: 'string', category: 'general' },
+  system_description: { value: 'Enterprise CCTV Management System', description: 'Application description', valueType: 'string', category: 'general' },
   system_version: { value: '1.0.0', description: 'System version label', valueType: 'string', category: 'general' },
   system_developer: { value: 'Chiotron', description: 'Developer / company name', valueType: 'string', category: 'general' },
   system_copyright: { value: '© 2026 Chiotron. All rights reserved.', description: 'Copyright notice text', valueType: 'string', category: 'general' },

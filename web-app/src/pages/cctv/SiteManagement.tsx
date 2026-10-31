@@ -18,7 +18,9 @@ import {
   Search,
 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 export default function SiteManagement() {
+  const { t } = useTranslation()
   const { themeConfig } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -60,12 +62,12 @@ export default function SiteManagement() {
     mutationFn: (data: typeof siteForm) => imageServiceApi.createSite(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Site created successfully');
+      toast.success(t('ui.siteManagement.siteCreatedSuccessfully'));
       setSiteModalOpen(false);
       resetSiteForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to create site');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToCreateSite'));
     },
   });
 
@@ -73,12 +75,12 @@ export default function SiteManagement() {
     mutationFn: ({ id, data }: { id: string; data: any }) => imageServiceApi.updateSite(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Site updated');
+      toast.success(t('ui.siteManagement.siteUpdated'));
       setSiteModalOpen(false);
       resetSiteForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to update site');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToUpdateSite'));
     },
   });
 
@@ -86,11 +88,11 @@ export default function SiteManagement() {
     mutationFn: (id: string) => imageServiceApi.deleteSite(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Site deleted');
+      toast.success(t('ui.siteManagement.siteDeleted'));
       setDeleteSiteTarget(null);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to delete site');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToDeleteSite'));
     },
   });
 
@@ -99,12 +101,12 @@ export default function SiteManagement() {
     mutationFn: (data: typeof zoneForm) => imageServiceApi.createZone(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Zone added');
+      toast.success(t('ui.siteManagement.zoneAdded'));
       setZoneModalOpen(false);
       resetZoneForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to add zone');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToAddZone'));
     },
   });
 
@@ -112,12 +114,12 @@ export default function SiteManagement() {
     mutationFn: ({ id, data }: { id: string; data: any }) => imageServiceApi.updateZone(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Zone updated');
+      toast.success(t('ui.siteManagement.zoneUpdated'));
       setZoneModalOpen(false);
       resetZoneForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to update zone');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToUpdateZone'));
     },
   });
 
@@ -125,11 +127,11 @@ export default function SiteManagement() {
     mutationFn: (id: string) => imageServiceApi.deleteZone(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-sites'] });
-      toast.success('Zone deleted');
+      toast.success(t('ui.siteManagement.zoneDeleted'));
       setDeleteZoneTarget(null);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to delete zone');
+      toast.error(err?.response?.data?.message || t('ui.siteManagement.failedToDeleteZone'));
     },
   });
 
@@ -219,27 +221,27 @@ export default function SiteManagement() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-cyan-950 text-cyan-400 border border-cyan-800">
-              CCTV Platform
+              {t('ui.siteManagement.cctvPlatform')}
             </span>
-            <span className="text-xs text-slate-400">· Phase 1 Foundation</span>
+            <span className="text-xs text-slate-400">{t('ui.siteManagement.phase1Foundation')}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-100 mt-1 flex items-center gap-2">
             <Building2 className="w-6 h-6 text-cyan-400" />
-            Physical Hierarchy (Sites & Zones)
+            {t('ui.siteManagement.physicalHierarchySitesZones')}
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            Organize branch locations, buildings, floors, and physical security zones
+            {t('ui.siteManagement.organizeBranchLocationsBuildingsFloorsAnd')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={() => refetch()} className="flex items-center gap-1.5">
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {t('ui.siteManagement.refresh')}
           </Button>
           <Button onClick={openAddSiteModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
             <Plus className="w-4 h-4" />
-            Add Site
+            {t('ui.siteManagement.addSite')}
           </Button>
         </div>
       </div>
@@ -248,7 +250,7 @@ export default function SiteManagement() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Total Sites / Buildings</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.siteManagement.totalSitesBuildings')}</p>
             <p className="text-2xl font-bold text-slate-100 mt-1">{sites.length}</p>
           </div>
           <div className="p-3 bg-cyan-950/70 border border-cyan-800/50 rounded-lg text-cyan-400">
@@ -258,8 +260,8 @@ export default function SiteManagement() {
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Total Security Zones</p>
-            <p className="text-2xl font-bold text-indigo-400 mt-1">{totalZonesCount} Zones</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.siteManagement.totalSecurityZones')}</p>
+            <p className="text-2xl font-bold text-indigo-400 mt-1">{totalZonesCount}{' '}{t('ui.siteManagement.zones')}</p>
           </div>
           <div className="p-3 bg-indigo-950/70 border border-indigo-800/50 rounded-lg text-indigo-400">
             <Layers className="w-5 h-5" />
@@ -268,8 +270,8 @@ export default function SiteManagement() {
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Cameras Assigned</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalCamerasCount} Cams</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.siteManagement.camerasAssigned')}</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalCamerasCount}{' '}{t('ui.siteManagement.cams')}</p>
           </div>
           <div className="p-3 bg-emerald-950/70 border border-emerald-800/50 rounded-lg text-emerald-400">
             <Camera className="w-5 h-5" />
@@ -283,7 +285,7 @@ export default function SiteManagement() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="Search sites by name, code, address..."
+            placeholder={t('ui.siteManagement.searchSitesByNameCodeAddress')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
@@ -298,10 +300,10 @@ export default function SiteManagement() {
         ) : filteredSites.length === 0 ? (
           <div className="py-16 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
             <Building2 className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-            <p className="text-base font-semibold text-slate-300">No Sites or Locations configured</p>
-            <p className="text-xs text-slate-500 mt-1">Create your first site to group cameras and physical zones</p>
+            <p className="text-base font-semibold text-slate-300">{t('ui.siteManagement.noSitesOrLocationsConfigured')}</p>
+            <p className="text-xs text-slate-500 mt-1">{t('ui.siteManagement.createYourFirstSiteToGroup')}</p>
             <Button onClick={openAddSiteModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
-              <Plus className="w-4 h-4 mr-1" /> Add Site
+              <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.siteManagement.addSite')}
             </Button>
           </div>
         ) : (
@@ -333,7 +335,7 @@ export default function SiteManagement() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
-                    {site._count?.devices || 0} Devices · {site._count?.cameras || 0} Cameras
+                    {site._count?.devices || 0}{' '}{t('ui.siteManagement.devices')}{' '}{site._count?.cameras || 0}{' '}{t('ui.siteManagement.cameras')}
                   </span>
 
                   <Button
@@ -342,13 +344,13 @@ export default function SiteManagement() {
                     className="text-xs py-1 px-2.5 flex items-center gap-1 bg-slate-800 hover:bg-slate-700"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add Zone
+                    {t('ui.siteManagement.addZone')}
                   </Button>
 
                   <button
                     onClick={() => openEditSiteModal(site)}
                     className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                    title="Edit Site"
+                    title={t('ui.siteManagement.editSite')}
                   >
                     <Edit className="w-4 h-4" />
                   </button>
@@ -356,7 +358,7 @@ export default function SiteManagement() {
                   <button
                     onClick={() => setDeleteSiteTarget(site)}
                     className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                    title="Delete Site"
+                    title={t('ui.siteManagement.deleteSite')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -367,7 +369,7 @@ export default function SiteManagement() {
               <div className="p-4">
                 {!site.zones || site.zones.length === 0 ? (
                   <p className="text-xs text-slate-500 italic py-2">
-                    No physical zones defined for this site yet. Click "Add Zone" to specify floors or areas.
+                    {t('ui.siteManagement.noPhysicalZonesDefinedForThis')}
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -382,7 +384,7 @@ export default function SiteManagement() {
                             <span className="text-xs font-semibold text-slate-200">{zone.name}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-                            <span>Floor {zone.floor || 1}</span>
+                            <span>{t('ui.siteManagement.floor')}{' '}{zone.floor || 1}</span>
                             {zone.code && <span className="font-mono text-slate-500">[{zone.code}]</span>}
                           </div>
                         </div>
@@ -391,14 +393,14 @@ export default function SiteManagement() {
                           <button
                             onClick={() => openEditZoneModal(site, zone)}
                             className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                            title="Edit Zone"
+                            title={t('ui.siteManagement.editZone')}
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteZoneTarget(zone)}
                             className="p-1 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                            title="Delete Zone"
+                            title={t('ui.siteManagement.deleteZone')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -417,15 +419,15 @@ export default function SiteManagement() {
       <Modal
         isOpen={siteModalOpen}
         onClose={() => setSiteModalOpen(false)}
-        title={editingSite ? 'Edit Site' : 'Add Physical Site / Branch'}
+        title={editingSite ? t('ui.siteManagement.editSite') : t('ui.siteManagement.addPhysicalSiteBranch')}
       >
         <form onSubmit={handleSiteSubmit} className="space-y-4 text-slate-200">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Site Name *</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.siteName')}</label>
             <input
               type="text"
               required
-              placeholder="e.g. Headquarters, Factory Plant 1, Rayong Hub"
+              placeholder={t('ui.siteManagement.eGHeadquartersFactoryPlant')}
               value={siteForm.name}
               onChange={(e) => setSiteForm({ ...siteForm, name: e.target.value })}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -434,10 +436,10 @@ export default function SiteManagement() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Site Code</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.siteCode')}</label>
               <input
                 type="text"
-                placeholder="HQ-01, P1"
+                placeholder={t('ui.siteManagement.hq01P')}
                 value={siteForm.code}
                 onChange={(e) => setSiteForm({ ...siteForm, code: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
@@ -445,10 +447,10 @@ export default function SiteManagement() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Address / Location</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.addressLocation')}</label>
               <input
                 type="text"
-                placeholder="Bangkok, Thailand"
+                placeholder={t('ui.siteManagement.bangkokThailand')}
                 value={siteForm.address}
                 onChange={(e) => setSiteForm({ ...siteForm, address: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -457,10 +459,10 @@ export default function SiteManagement() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Description</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.description')}</label>
             <textarea
               rows={2}
-              placeholder="Optional notes regarding this location"
+              placeholder={t('ui.siteManagement.optionalNotesRegardingThisLocation')}
               value={siteForm.description}
               onChange={(e) => setSiteForm({ ...siteForm, description: e.target.value })}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -469,14 +471,14 @@ export default function SiteManagement() {
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <Button variant="secondary" onClick={() => setSiteModalOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={createSiteMutation.isPending || updateSiteMutation.isPending}
               className="bg-cyan-600 hover:bg-cyan-500 text-white"
             >
-              {editingSite ? 'Save Changes' : 'Create Site'}
+              {editingSite ? t('ui.siteManagement.saveChanges') : t('ui.siteManagement.createSite')}
             </Button>
           </div>
         </form>
@@ -486,15 +488,15 @@ export default function SiteManagement() {
       <Modal
         isOpen={zoneModalOpen}
         onClose={() => setZoneModalOpen(false)}
-        title={editingZone ? `Edit Zone in ${zoneParentSite?.name}` : `Add Security Zone to ${zoneParentSite?.name}`}
+        title={editingZone ? t('ui.siteManagement.editZoneIn', { name: zoneParentSite?.name }) : t('ui.siteManagement.addSecurityZoneTo', { name: zoneParentSite?.name })}
       >
         <form onSubmit={handleZoneSubmit} className="space-y-4 text-slate-200">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Zone Name *</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.zoneName')}</label>
             <input
               type="text"
               required
-              placeholder="e.g. 1F Lobby, Perimeter North, Server Room"
+              placeholder={t('ui.siteManagement.eG1fLobbyPerimeterNorth')}
               value={zoneForm.name}
               onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -503,10 +505,10 @@ export default function SiteManagement() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Zone Code</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.zoneCode')}</label>
               <input
                 type="text"
-                placeholder="ZN-01"
+                placeholder={t('ui.siteManagement.zn')}
                 value={zoneForm.code}
                 onChange={(e) => setZoneForm({ ...zoneForm, code: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
@@ -514,7 +516,7 @@ export default function SiteManagement() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Floor Level</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.floorLevel')}</label>
               <input
                 type="number"
                 value={zoneForm.floor}
@@ -525,7 +527,7 @@ export default function SiteManagement() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Floor Plan Image URL (Optional)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.siteManagement.floorPlanImageUrlOptional')}</label>
             <input
               type="text"
               placeholder="/maps/floor1.png"
@@ -537,14 +539,14 @@ export default function SiteManagement() {
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
             <Button variant="secondary" onClick={() => setZoneModalOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={createZoneMutation.isPending || updateZoneMutation.isPending}
               className="bg-cyan-600 hover:bg-cyan-500 text-white"
             >
-              {editingZone ? 'Save Changes' : 'Create Zone'}
+              {editingZone ? t('ui.siteManagement.saveChanges') : t('ui.siteManagement.createZone')}
             </Button>
           </div>
         </form>
@@ -554,11 +556,11 @@ export default function SiteManagement() {
       <Modal
         isOpen={Boolean(deleteSiteTarget || deleteZoneTarget)}
         onClose={() => { setDeleteSiteTarget(null); setDeleteZoneTarget(null); }}
-        title="Confirm Delete"
+        title={t('common.deleteConfirm')}
       >
         <div className="space-y-4 text-slate-200">
           <p className="text-sm">
-            Are you sure you want to delete{' '}
+            {t('ui.siteManagement.areYouSureYouWantTo')}{' '}
             <span className="font-bold text-cyan-400">
               {deleteSiteTarget?.name || deleteZoneTarget?.name}
             </span>
@@ -566,7 +568,7 @@ export default function SiteManagement() {
           </p>
           <div className="flex justify-end gap-3 pt-3">
             <Button variant="secondary" onClick={() => { setDeleteSiteTarget(null); setDeleteZoneTarget(null); }}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -575,7 +577,7 @@ export default function SiteManagement() {
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Confirm Delete
+              {t('common.deleteConfirm')}
             </Button>
           </div>
         </div>

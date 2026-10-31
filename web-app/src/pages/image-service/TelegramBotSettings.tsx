@@ -142,20 +142,20 @@ export default function TelegramBotSettings() {
     setTesting(true);
     setTestResult(null);
     try {
-      const text = '✅ *Image Service* — Test connection successful!';
+      const text = '✅ *iSmart CCTV* — Test connection successful!';
       const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
       });
       if (res.ok) {
-        setTestResult({ ok: true, message: 'Message sent successfully! Check your Telegram group.' });
+        setTestResult({ ok: true, message: t('ui.telegramBotSettings.messageSentSuccessfullyCheckYourTelegram') });
       } else {
         const err = await res.text();
-        setTestResult({ ok: false, message: `Failed: ${err}` });
+        setTestResult({ ok: false, message: t('ui.telegramBotSettings.failed', { err }) });
       }
     } catch (err: any) {
-      setTestResult({ ok: false, message: err.message ?? 'Connection failed' });
+      setTestResult({ ok: false, message: err.message ?? t('ui.telegramBotSettings.connectionFailed') });
     } finally {
       setTesting(false);
     }
@@ -169,7 +169,7 @@ export default function TelegramBotSettings() {
 
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.telegramBot.title')}
+          iSmart CCTV · {t('imageService.telegramBot.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.telegramBot.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>
@@ -329,7 +329,7 @@ export default function TelegramBotSettings() {
 
         <div className="flex items-center gap-2 mt-4">
           <input value={newUserId} onChange={e => setNewUserId(e.target.value.replace(/\D/g, ''))}
-            placeholder="Telegram ID" inputMode="numeric"
+            placeholder={t('ui.telegramBotSettings.telegramId')} inputMode="numeric"
             className={`w-40 px-3 py-2 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
           <input value={newUserName} onChange={e => setNewUserName(e.target.value)}
             placeholder={t('imageService.telegramBot.nameOptional')}

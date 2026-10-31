@@ -42,7 +42,7 @@ export default function CameraTemplates() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.cameraTemplates.title')}
+            iSmart CCTV · {t('imageService.cameraTemplates.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.cameraTemplates.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameraTemplates.subtitle')}</p>

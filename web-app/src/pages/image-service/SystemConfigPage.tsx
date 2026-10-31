@@ -108,7 +108,7 @@ export default function SystemConfigPage() {
     <div className="p-6 max-w-4xl">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.systemConfig.title')}
+          iSmart CCTV · {t('imageService.systemConfig.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.systemConfig.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>
@@ -134,7 +134,7 @@ export default function SystemConfigPage() {
                 <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.systemConfig.logo')}</label>
                 <div className="flex items-center gap-4">
                   {values.system_logo && (
-                    <img src={values.system_logo} alt="Logo" className="h-14 w-14 rounded-lg object-contain border border-white/20 bg-white/10" />
+                    <img src={values.system_logo} alt={t('ui.systemConfigPage.logo')} className="h-14 w-14 rounded-lg object-contain border border-white/20 bg-white/10" />
                   )}
                   <label className="cursor-pointer">
                     <div className="flex items-center gap-2 px-4 py-2 rounded-md text-sm border border-white/30 bg-white/10 text-white hover:bg-white/20 transition-colors">
@@ -162,14 +162,14 @@ export default function SystemConfigPage() {
               <div>
                 <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.systemConfig.programName')}</label>
                 <input value={values.system_name ?? ''} onChange={e => setValues(v => ({ ...v, system_name: e.target.value }))}
-                  className={inputClass} placeholder="Image Service" />
+                  className={inputClass} placeholder="iSmart CCTV" />
               </div>
 
               {/* Program Description */}
               <div>
                 <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.systemConfig.programDescription')}</label>
                 <input value={values.system_description ?? ''} onChange={e => setValues(v => ({ ...v, system_description: e.target.value }))}
-                  className={inputClass} placeholder="Enterprise Image Management System" />
+                  className={inputClass} placeholder="Enterprise CCTV Management System" />
               </div>
 
               {/* Program Version */}

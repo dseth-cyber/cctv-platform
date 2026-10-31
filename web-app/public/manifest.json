@@ -1,6 +1,6 @@
 {
-  "name": "Image Service",
-  "short_name": "Image Service",
+  "name": "iSmart CCTV",
+  "short_name": "iSmart CCTV",
   "description": "Image capture, processing, and quality monitoring",
   "start_url": "/image-service/overview",
   "scope": "/",

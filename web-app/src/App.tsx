@@ -80,10 +80,10 @@ function UnauthorizedPage() {
     <div className="flex flex-col items-center justify-center h-full p-8 text-center min-h-[50vh]">
       <AlertTriangle size={56} className="text-red-400 mb-4 animate-pulse" />
       <h3 className={`text-xl font-bold ${themeConfig.text.primary}`}>
-        {t('imageService.auth.unauthorized') || 'Access Denied'}
+        {t('imageService.auth.unauthorized') || t('ui.app.accessDenied')}
       </h3>
       <p className={`text-sm mt-2 max-w-md ${themeConfig.text.secondary}`}>
-        {t('imageService.auth.unauthorizedDesc') || 'You do not have permission to view this resource. Please contact system administrator.'}
+        {t('imageService.auth.unauthorizedDesc') || t('ui.app.youDoNotHavePermissionTo')}
       </p>
     </div>
   )
@@ -137,9 +137,9 @@ const LANG_OPTIONS = [
 ]
 
 const THEME_OPTIONS = [
-  { value: 'modern', label: 'Modern' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'light', label: 'Light' },
+  { value: 'modern', labelKey: 'ui.app.themeModern' },
+  { value: 'dark', labelKey: 'ui.app.themeDark' },
+  { value: 'light', labelKey: 'ui.app.themeLight' },
 ]
 
 function Dropdown({ icon: Icon, options, value, onChange }: {
@@ -289,10 +289,10 @@ function NavBell() {
       {open && (
         <div className="absolute right-0 mt-1 w-80 rounded-md border border-white/20 bg-slate-800 shadow-xl z-50 overflow-hidden">
           <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-            <span className="text-xs font-semibold text-white">{t('imageService.nav.alerts') || 'การแจ้งเตือน'}</span>
+            <span className="text-xs font-semibold text-white">{t('imageService.nav.alerts') || t('ui.app.notifications')}</span>
             {count > 0 && canAcknowledge && (
               <button onClick={handleAcknowledge} className="text-[10px] text-cyan-400 hover:text-cyan-300">
-                {t('imageService.alerts.markAllRead') || 'รับทราบทั้งหมด'}
+                {t('imageService.alerts.markAllRead') || t('ui.app.acknowledgeAll')}
               </button>
             )}
           </div>
@@ -311,10 +311,10 @@ function NavBell() {
               ))}
             </div>
           ) : (
-            <p className="px-3 py-4 text-xs text-gray-400 text-center">{t('imageService.health.healthy') || 'ไม่มีการแจ้งเตือน'}</p>
+            <p className="px-3 py-4 text-xs text-gray-400 text-center">{t('imageService.health.healthy') || t('ui.app.noNotifications')}</p>
           )}
           <a href="/image-service/alerts" className="block px-3 py-2 text-center text-xs text-cyan-400 hover:bg-white/5 border-t border-white/10 transition-colors">
-            {t('imageService.alerts.viewAll') || 'ดูทั้งหมด'} →
+            {t('imageService.alerts.viewAll') || t('ui.app.viewAll')} →
           </a>
         </div>
       )}
@@ -370,7 +370,7 @@ function NavSearch() {
         <input ref={inputRef} value={query}
           onChange={e => { handleChange(e.target.value); if (!open) setOpen(true) }}
           onFocus={() => { if (query.length >= 2) setOpen(true) }}
-          placeholder={t('common.search') || 'ค้นหา...'}
+          placeholder={t('common.search') || t('ui.app.search')}
           autoComplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" name="nav-search"
           className="w-56 pl-8 pr-3 py-1.5 rounded-md text-xs bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:w-72 transition-all" />
       </div>
@@ -402,7 +402,7 @@ function NavSearch() {
             </div>
           )}
           {!loading && results.length === 0 && (
-            <p className="px-3 py-3 text-xs text-gray-400 text-center">{t('imageService.search.noResults') || 'ไม่พบ'}</p>
+            <p className="px-3 py-3 text-xs text-gray-400 text-center">{t('imageService.search.noResults') || t('ui.app.noResults')}</p>
           )}
         </div>
       )}
@@ -790,25 +790,25 @@ function AboutModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       <div className="flex flex-col items-center pt-2">
         {/* Logo */}
         {configMap.system_logo?.value ? (
-          <img src={configMap.system_logo.value} alt="Logo" className="h-16 w-auto object-contain mb-4" />
+          <img src={configMap.system_logo.value} alt={t('ui.app.logo')} className="h-16 w-auto object-contain mb-4" />
         ) : (
           <Camera size={48} className="text-cyan-400 mb-4" />
         )}
 
         {/* Title */}
         <h3 className={`text-xl font-bold text-center tracking-wide ${themeConfig.text.primary}`}>
-          {configMap.system_name?.value ?? 'Image Service'}
+          {configMap.system_name?.value ?? 'iSmart CCTV'}
         </h3>
 
         {/* Subtitle */}
         <p className="text-[10px] font-bold tracking-wider text-center text-gray-400 uppercase mt-1">
-          {configMap.system_description?.value ?? 'Enterprise Image Management System'}
+          {configMap.system_description?.value ?? 'Enterprise CCTV Management System'}
         </p>
 
         {/* Version Pill */}
         <div className="mt-4">
           <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-gray-300">
-            Version {version}
+            {t('ui.app.version')}{' '}{version}
           </span>
         </div>
 
@@ -817,7 +817,7 @@ function AboutModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
         {/* Footer / Developer Copyright */}
         <p className="text-xs text-center text-gray-400">
-          {configMap.system_copyright?.value ?? `© ${new Date().getFullYear()} Image Service. All rights reserved.`}
+          {configMap.system_copyright?.value ?? `© ${new Date().getFullYear()} iSmart CCTV. All rights reserved.`}
         </p>
       </div>
     </Modal>
@@ -937,7 +937,7 @@ function QueueHealthBanner() {
     setRecovering(true)
     try {
       const result = await imageServiceApi.recoverQueue()
-      toast.success(result.message || 'กู้คืนคิวสำเร็จ')
+      toast.success(result.message || t('ui.app.queueRecovered'))
       queryClient.invalidateQueries({ queryKey: ['queue-health-global'] })
       queryClient.invalidateQueries({ queryKey: ['queue-health'] })
       queryClient.invalidateQueries({ queryKey: ['processing-stats-initial'] })
@@ -962,19 +962,19 @@ function QueueHealthBanner() {
           {jobsFailing ? (
             <>
               <p className="text-sm font-semibold text-red-300">
-                มี {health.recentFailed} งานล้มเหลวใน 5 นาทีที่ผ่านมา — คิวไม่คืบเพราะงานผิดพลาดซ้ำ
+                {t('ui.app.thereAre')}{' '}{health.recentFailed}{' '}{t('ui.app.failedJobsInTheLast')}
               </p>
               <p className="text-xs text-red-400/80 mt-0.5">
-                มักเกิดจากกล้อง/แชร์ SMB เชื่อมต่อไม่ได้ หรือไฟล์เสีย — ดูสาเหตุจริงรายงานใน “คิวงานเสีย (Dead Letter)” (กู้คืนไม่ช่วย เพราะงานจะล้มซ้ำ)
+                {t('ui.app.usuallyCausedByAnUnreachableCamera')}
               </p>
             </>
           ) : (
             <>
               <p className="text-sm font-semibold text-amber-300">
-                คิวประมวลผลค้าง — {health.stale} งานไม่ตอบสนองนานกว่า 5 นาที
+                {t('ui.app.processingQueueStuck')}{' '}{health.stale}{' '}{t('ui.app.jobsUnresponsiveForOver5Minutes')}
               </p>
               <p className="text-xs text-amber-400/80 mt-0.5">
-                ระบบประมวลผลอาจหยุดทำงาน (ไม่มีงานล้มเหลว) — ลองกดกู้คืนเพื่อดันงานค้างกลับเข้าคิว
+                {t('ui.app.theProcessingWorkerMayHaveStopped')}
               </p>
             </>
           )}
@@ -983,14 +983,14 @@ function QueueHealthBanner() {
       {jobsFailing ? (
         <Link to="/image-service/dead-letter"
           className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-semibold text-sm rounded-lg flex items-center gap-2 transition-colors">
-          <AlertTriangle size={13} /> ดูคิวงานเสีย
+          <AlertTriangle size={13} />{' '}{t('ui.app.viewDeadLetter')}
         </Link>
       ) : (
         <button onClick={handleRecover} disabled={recovering}
           className="flex-shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50">
           {recovering
-            ? <><RefreshCw size={13} className="animate-spin" /> กำลังกู้คืน...</>
-            : <><Play size={13} /> กู้คืนคิว</>}
+            ? <><RefreshCw size={13} className="animate-spin" />{' '}{t('ui.app.recovering')}</>
+            : <><Play size={13} />{' '}{t('ui.app.recoverQueue')}</>}
         </button>
       )}
     </div>
@@ -1051,7 +1051,7 @@ export default function App() {
 
   // Dynamically update browser tab title and favicon based on system configuration
   useEffect(() => {
-    const systemName = configMap.system_name?.value || 'Image Service';
+    const systemName = configMap.system_name?.value || 'iSmart CCTV';
     document.title = systemName;
 
     let faviconLink = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
@@ -1078,18 +1078,18 @@ export default function App() {
           <button
             onClick={() => setMobileMenuOpen(v => !v)}
             className="md:hidden flex items-center p-1.5 rounded-md hover:bg-white/10 transition-colors"
-            aria-label="Toggle menu"
+            aria-label={t('ui.app.toggleMenu')}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
           <div className="flex items-center gap-2">
             {logoBase64 ? (
-              <img src={logoBase64} alt="Logo" className="h-7 w-7 rounded object-contain" />
+              <img src={logoBase64} alt={t('ui.app.logo')} className="h-7 w-7 rounded object-contain" />
             ) : (
               <Camera size={22} className="text-cyan-400" />
             )}
-            <span className="text-sm font-bold tracking-tight">Image Service</span>
+            <span className="text-sm font-bold tracking-tight">iSmart CCTV</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -1117,7 +1117,7 @@ export default function App() {
             title={t('imageService.settings.theme')}
           >
             <Palette size={15} />
-            <span>{THEME_OPTIONS.find(o => o.value === theme)?.label}</span>
+            <span>{t(THEME_OPTIONS.find(o => o.value === theme)?.labelKey ?? 'ui.app.themeModern')}</span>
           </button>
           <div className="hidden sm:block w-px h-5 mx-1 bg-white/10" />
           <ProfileMenu

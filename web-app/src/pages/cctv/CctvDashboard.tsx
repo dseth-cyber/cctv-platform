@@ -92,7 +92,7 @@ export default function CctvDashboard() {
           rtspPort: 554,
         });
       }
-      throw new Error('No IP or RTSP URL configured for camera');
+      throw new Error(t('ui.cctvDashboard.noIpOrRtspUrlConfigured'));
     },
     onSuccess: (res, cam) => {
       setProbingCameraId(null);
@@ -101,7 +101,7 @@ export default function CctvDashboard() {
     },
     onError: (err: any) => {
       setProbingCameraId(null);
-      toast.error(err?.message || 'Failed to probe camera');
+      toast.error(err?.message || t('ui.cctvDashboard.failedToProbeCamera'));
     },
   });
 
@@ -110,7 +110,7 @@ export default function CctvDashboard() {
     mutationFn: (incidentId: string) =>
       imageServiceApi.updateIncidentWorkflow(incidentId, { acknowledge: true }),
     onSuccess: () => {
-      toast.success('Incident acknowledged');
+      toast.success(t('ui.cctvDashboard.incidentAcknowledged'));
       queryClient.invalidateQueries({ queryKey: ['cctv-dashboard-summary'] });
     },
   });
@@ -191,14 +191,14 @@ export default function CctvDashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">
-                CCTV Monitoring Operations
+                {t('ui.cctvDashboard.cctvMonitoringOperations')}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                LIVE
+                {t('ui.cctvDashboard.live')}
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              High-scale DVR/NVR surveillance matrix & media plane overview
+              {t('ui.cctvDashboard.highScaleDvrNvrSurveillanceMatrix')}
             </p>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function CctvDashboard() {
             }`}
           >
             <RefreshCw size={13} className={autoRefresh ? 'animate-spin' : ''} />
-            <span>{autoRefresh ? 'Auto-Sync (10s)' : 'Paused'}</span>
+            <span>{autoRefresh ? t('ui.cctvDashboard.autoSync10s') : t('ui.cctvDashboard.paused')}</span>
           </Button>
 
           <Button
@@ -224,7 +224,7 @@ export default function CctvDashboard() {
             className="text-xs gap-1.5 text-slate-300 hover:bg-white/10 border border-white/10"
           >
             <RefreshCw size={13} />
-            <span>Refresh</span>
+            <span>{t('ui.cctvDashboard.refresh')}</span>
           </Button>
 
           <Button
@@ -233,7 +233,7 @@ export default function CctvDashboard() {
             className="text-xs gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-900/40"
           >
             <Play size={13} />
-            <span>Open Live Wall</span>
+            <span>{t('ui.cctvDashboard.openLiveWall')}</span>
           </Button>
 
           <Button
@@ -243,7 +243,7 @@ export default function CctvDashboard() {
             className="text-xs gap-1.5 text-slate-300 hover:bg-white/10 border border-white/10"
           >
             <MapPin size={13} />
-            <span>Floor Plan Map</span>
+            <span>{t('ui.cctvDashboard.floorPlanMap')}</span>
           </Button>
         </div>
       </div>
@@ -253,14 +253,14 @@ export default function CctvDashboard() {
         {/* Total Channels */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>Total Channels</span>
+            <span>{t('ui.cctvDashboard.totalChannels')}</span>
             <Camera size={15} className="text-cyan-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             {stats.cameras.total.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-            <span className="text-cyan-400 font-semibold">{stats.devices.total}</span> DVR/NVRs ({stats.devices.totalChannels} ch)
+            <span className="text-cyan-400 font-semibold">{stats.devices.total}</span>{' '}{t('ui.cctvDashboard.dvrNVRs')}{stats.devices.totalChannels}{' '}{t('ui.cctvDashboard.ch')}
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-60" />
         </div>
@@ -268,7 +268,7 @@ export default function CctvDashboard() {
         {/* Live Active Streams */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-emerald-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>Streams Active</span>
+            <span>{t('ui.cctvDashboard.streamsActive')}</span>
             <CheckCircle2 size={15} className="text-emerald-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-emerald-400 tracking-tight">
@@ -276,7 +276,7 @@ export default function CctvDashboard() {
           </div>
           <div className="text-[11px] text-emerald-400/80 mt-1 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-            WHEP & RTSP Flowing
+            {t('ui.cctvDashboard.whepRtspFlowing')}
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-60" />
         </div>
@@ -284,14 +284,14 @@ export default function CctvDashboard() {
         {/* Video Stalled / Dropped */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-amber-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>Video Stalled</span>
+            <span>{t('ui.cctvDashboard.videoStalled')}</span>
             <AlertTriangle size={15} className="text-amber-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-amber-400 tracking-tight">
             {stats.cameras.stalled.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">
-            Socket OK / Zero Frames
+            {t('ui.cctvDashboard.socketOkZeroFrames')}
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-orange-500 opacity-60" />
         </div>
@@ -299,7 +299,7 @@ export default function CctvDashboard() {
         {/* Offline / Unreachable */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-rose-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>Offline Devices</span>
+            <span>{t('ui.cctvDashboard.offlineDevices')}</span>
             <XCircle size={15} className="text-rose-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-rose-400 tracking-tight">
@@ -307,7 +307,7 @@ export default function CctvDashboard() {
           </div>
           <div className="text-[11px] text-rose-400/80 mt-1 flex items-center gap-1">
             <WifiOff size={11} />
-            Port 554/80 Timeout
+            {t('ui.cctvDashboard.port55480Timeout')}
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-red-500 opacity-60" />
         </div>
@@ -315,16 +315,16 @@ export default function CctvDashboard() {
         {/* Aggregate Bandwidth */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-blue-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>Est. Bandwidth</span>
+            <span>{t('ui.cctvDashboard.estBandwidth')}</span>
             <Activity size={15} className="text-blue-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             {stats.bandwidth.totalBitrateMbps > 1000
-              ? `${(stats.bandwidth.totalBitrateMbps / 1000).toFixed(2)} Gbps`
-              : `${stats.bandwidth.totalBitrateMbps} Mbps`}
+              ? t('ui.cctvDashboard.gbps', { v0: (stats.bandwidth.totalBitrateMbps / 1000).toFixed(2) })
+              : t('ui.cctvDashboard.mbps', { totalBitrateMbps: stats.bandwidth.totalBitrateMbps })}
           </div>
           <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-            <span>Main: {stats.bandwidth.estimatedMainMbps}M</span> • <span>Sub: {stats.bandwidth.estimatedSubMbps}M</span>
+            <span>{t('ui.cctvDashboard.main')}{' '}{stats.bandwidth.estimatedMainMbps}M</span> • <span>{t('ui.cctvDashboard.sub')}{' '}{stats.bandwidth.estimatedSubMbps}M</span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-60" />
         </div>
@@ -332,14 +332,14 @@ export default function CctvDashboard() {
         {/* System Health Score */}
         <div className={`p-4 rounded-xl border shadow-lg relative overflow-hidden ${healthBg}`}>
           <div className="flex items-center justify-between text-xs mb-1.5 opacity-90">
-            <span>Health Score</span>
+            <span>{t('ui.cctvDashboard.healthScore')}</span>
             <ShieldCheck size={15} className={healthColor} />
           </div>
           <div className={`text-2xl md:text-3xl font-black tracking-tight ${healthColor}`}>
             {healthScore}%
           </div>
           <div className="text-[11px] opacity-80 mt-1 flex items-center gap-1">
-            {healthScore >= 90 ? 'All Streams Stable' : 'Degraded Channels'}
+            {healthScore >= 90 ? t('ui.cctvDashboard.allStreamsStable') : t('ui.cctvDashboard.degradedChannels')}
           </div>
           <div
             className={`absolute bottom-0 left-0 right-0 h-0.5 ${
@@ -357,16 +357,16 @@ export default function CctvDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Building2 size={18} className="text-cyan-400" />
-                <h2 className="text-base font-bold text-white">Physical Sites & Zones Breakdown</h2>
+                <h2 className="text-base font-bold text-white">{t('ui.cctvDashboard.physicalSitesZonesBreakdown')}</h2>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Filter Site:</span>
+                <span className="text-slate-400">{t('ui.cctvDashboard.filterSite')}</span>
                 <select
                   value={selectedSiteFilter}
                   onChange={(e) => setSelectedSiteFilter(e.target.value)}
                   className="bg-slate-800 border border-white/10 rounded-lg px-2.5 py-1 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
                 >
-                  <option value="all">All Sites ({stats.sites?.length || 0})</option>
+                  <option value="all">{t('ui.cctvDashboard.allSites')}{stats.sites?.length || 0})</option>
                   {stats.sites?.map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.code})
@@ -379,7 +379,7 @@ export default function CctvDashboard() {
             {displaySites.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-sm">
                 <Building2 size={36} className="mx-auto mb-2 text-slate-600" />
-                <p>No physical sites registered yet.</p>
+                <p>{t('ui.cctvDashboard.noPhysicalSitesRegisteredYet')}</p>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -387,7 +387,7 @@ export default function CctvDashboard() {
                   className="mt-3 text-xs gap-1.5"
                 >
                   <Building2 size={13} />
-                  <span>Configure Sites</span>
+                  <span>{t('ui.cctvDashboard.configureSites')}</span>
                 </Button>
               </div>
             ) : (
@@ -416,7 +416,7 @@ export default function CctvDashboard() {
                             percent >= 90 ? 'text-emerald-400' : percent >= 70 ? 'text-amber-400' : 'text-rose-400'
                           }`}
                         >
-                          {percent}% Healthy
+                          {percent}{t('ui.cctvDashboard.healthy')}
                         </span>
                       </div>
 
@@ -436,17 +436,17 @@ export default function CctvDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="flex items-center gap-1 text-emerald-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            {site.onlineCameras} Online
+                            {site.onlineCameras}{' '}{t('ui.cctvDashboard.online')}
                           </span>
                           {site.offlineCameras > 0 && (
                             <span className="flex items-center gap-1 text-rose-400">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                              {site.offlineCameras} Offline
+                              {site.offlineCameras}{' '}{t('ui.cctvDashboard.offline')}
                             </span>
                           )}
                         </div>
                         <span className="text-[11px] text-slate-500">
-                          {site.deviceCount} Devices ({site.totalCameras} Ch)
+                          {site.deviceCount}{' '}{t('ui.cctvDashboard.devices')}{site.totalCameras}{' '}{t('ui.cctvDashboard.ch2')}
                         </span>
                       </div>
                     </div>
@@ -461,18 +461,18 @@ export default function CctvDashboard() {
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert size={18} className="text-amber-400" />
-                <h2 className="text-base font-bold text-white">Attention Required & Offline Channels</h2>
+                <h2 className="text-base font-bold text-white">{t('ui.cctvDashboard.attentionRequiredOfflineChannels')}</h2>
               </div>
               <span className="text-xs text-slate-400">
-                {problematicCameras.length} channels need operator review
+                {problematicCameras.length}{' '}{t('ui.cctvDashboard.channelsNeedOperatorReview')}
               </span>
             </div>
 
             {problematicCameras.length === 0 ? (
               <div className="py-8 text-center text-slate-400 text-sm">
                 <CheckCircle2 size={32} className="mx-auto mb-2 text-emerald-400" />
-                <p className="text-emerald-300 font-medium">All camera channels are responding normally.</p>
-                <p className="text-xs text-slate-500 mt-1">No socket timeout or zero-frame events detected.</p>
+                <p className="text-emerald-300 font-medium">{t('ui.cctvDashboard.allCameraChannelsAreRespondingNormally')}</p>
+                <p className="text-xs text-slate-500 mt-1">{t('ui.cctvDashboard.noSocketTimeoutOrZeroFrame')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -493,11 +493,11 @@ export default function CctvDashboard() {
                               : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                           }`}
                         >
-                          {cam.operationalStatus === 'offline' ? 'Offline' : 'Stalled'}
+                          {cam.operationalStatus === 'offline' ? t('ui.cctvDashboard.offline') : t('ui.cctvDashboard.stalled')}
                         </span>
                       </div>
                       <p className="text-[11px] font-mono text-slate-400 truncate">
-                        {cam.ipAddress || cam.rtspUrl || 'RTSP URL Pending'}
+                        {cam.ipAddress || cam.rtspUrl || t('ui.cctvDashboard.rtspUrlPending')}
                       </p>
                     </div>
 
@@ -510,7 +510,7 @@ export default function CctvDashboard() {
                         className="text-[11px] h-7 px-2 flex-1 text-slate-300 hover:bg-white/10 border border-white/10"
                       >
                         <RefreshCw size={11} className={probingCameraId === cam.id ? 'animate-spin' : ''} />
-                        <span>Probe</span>
+                        <span>{t('ui.cctvDashboard.probe')}</span>
                       </Button>
                       <Button
                         size="sm"
@@ -519,7 +519,7 @@ export default function CctvDashboard() {
                         className="text-[11px] h-7 px-2 flex-1 text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20"
                       >
                         <Eye size={11} />
-                        <span>Live</span>
+                        <span>{t('ui.cctvDashboard.live2')}</span>
                       </Button>
                     </div>
                   </div>
@@ -535,7 +535,7 @@ export default function CctvDashboard() {
           <div className="bg-slate-900/60 backdrop-blur-md p-5 rounded-2xl border border-white/10 shadow-xl space-y-4">
             <div className="flex items-center gap-2 border-b border-white/10 pb-3">
               <Zap size={18} className="text-cyan-400" />
-              <h2 className="text-base font-bold text-white">Media Plane & Protocols</h2>
+              <h2 className="text-base font-bold text-white">{t('ui.cctvDashboard.mediaPlaneProtocols')}</h2>
             </div>
 
             <div className="space-y-3">
@@ -545,13 +545,13 @@ export default function CctvDashboard() {
                     <Radio size={16} />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white">WebRTC (WHEP)</div>
-                    <div className="text-[10px] text-slate-400">&lt; 300ms Ultra-Low Latency</div>
+                    <div className="text-xs font-semibold text-white">{t('ui.cctvDashboard.webRTCWhep')}</div>
+                    <div className="text-[10px] text-slate-400">{t('ui.cctvDashboard.n300msUltraLowLatency')}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-cyan-400">{stats.protocols?.webrtcWhep || 0}</div>
-                  <div className="text-[10px] text-slate-500">Active Paths</div>
+                  <div className="text-[10px] text-slate-500">{t('ui.cctvDashboard.activePaths')}</div>
                 </div>
               </div>
 
@@ -561,13 +561,13 @@ export default function CctvDashboard() {
                     <Server size={16} />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white">RTSP Pass-Through</div>
-                    <div className="text-[10px] text-slate-400">DVR/NVR Native Source</div>
+                    <div className="text-xs font-semibold text-white">{t('ui.cctvDashboard.rtspPassThrough')}</div>
+                    <div className="text-[10px] text-slate-400">{t('ui.cctvDashboard.dvrNvrNativeSource')}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-indigo-400">{stats.protocols?.rtsp || 0}</div>
-                  <div className="text-[10px] text-slate-500">Configured</div>
+                  <div className="text-[10px] text-slate-500">{t('ui.cctvDashboard.configured')}</div>
                 </div>
               </div>
 
@@ -577,13 +577,13 @@ export default function CctvDashboard() {
                     <Layers size={16} />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white">HLS Fallback</div>
-                    <div className="text-[10px] text-slate-400">High-latency redundancy</div>
+                    <div className="text-xs font-semibold text-white">{t('ui.cctvDashboard.hlsFallback')}</div>
+                    <div className="text-[10px] text-slate-400">{t('ui.cctvDashboard.highLatencyRedundancy')}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-teal-400">{stats.protocols?.hls || 0}</div>
-                  <div className="text-[10px] text-slate-500">Available</div>
+                  <div className="text-[10px] text-slate-500">{t('ui.cctvDashboard.available')}</div>
                 </div>
               </div>
             </div>
@@ -593,14 +593,14 @@ export default function CctvDashboard() {
               <div className="flex items-center justify-between text-xs text-slate-300">
                 <span className="flex items-center gap-1.5">
                   <HardDrive size={13} className="text-blue-400" />
-                  Monthly 24/7 Storage Est.
+                  {t('ui.cctvDashboard.monthly247StorageEst')}
                 </span>
                 <span className="font-bold text-white">
-                  {(stats.bandwidth.estimatedMonthlyStorageGb / 1024).toFixed(1)} TB
+                  {(stats.bandwidth.estimatedMonthlyStorageGb / 1024).toFixed(1)}{' '}{t('ui.cctvDashboard.tb')}
                 </span>
               </div>
               <p className="text-[10px] text-slate-400">
-                Calculated on {stats.bandwidth.mainStreamsActive} 1080p active channels at 2.5 Mbps avg bitrate.
+                {t('ui.cctvDashboard.calculatedOn')}{' '}{stats.bandwidth.mainStreamsActive}{' '}{t('ui.cctvDashboard.n1080pActiveChannelsAt')}
               </p>
             </div>
           </div>
@@ -610,7 +610,7 @@ export default function CctvDashboard() {
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Bell size={18} className="text-rose-400" />
-                <h2 className="text-base font-bold text-white">Recent CCTV Alerts</h2>
+                <h2 className="text-base font-bold text-white">{t('ui.cctvDashboard.recentCctvAlerts')}</h2>
               </div>
               <Button
                 size="sm"
@@ -618,7 +618,7 @@ export default function CctvDashboard() {
                 onClick={() => navigate('/image-service/incidents')}
                 className="text-[11px] h-7 text-cyan-400 hover:bg-cyan-500/10 p-1"
               >
-                <span>View All</span>
+                <span>{t('ui.cctvDashboard.viewAll')}</span>
                 <ChevronRight size={13} />
               </Button>
             </div>
@@ -626,7 +626,7 @@ export default function CctvDashboard() {
             {(!stats.recentIncidents || stats.recentIncidents.length === 0) ? (
               <div className="py-6 text-center text-slate-400 text-xs">
                 <CheckCircle2 size={24} className="mx-auto mb-1.5 text-emerald-400" />
-                <p>No active incidents open.</p>
+                <p>{t('ui.cctvDashboard.noActiveIncidentsOpen')}</p>
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -637,7 +637,7 @@ export default function CctvDashboard() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-white">
-                        {inc.camera?.name || 'Camera Event'}
+                        {inc.camera?.name || t('ui.cctvDashboard.cameraEvent')}
                       </span>
                       <span
                         className={`px-1.5 py-0.2 text-[10px] font-semibold rounded ${
@@ -652,7 +652,7 @@ export default function CctvDashboard() {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-400 line-clamp-1">
-                      {inc.problemDesc || inc.reason || 'Camera offline/stalled'}
+                      {inc.problemDesc || inc.reason || t('ui.cctvDashboard.cameraOfflineStalled')}
                     </p>
                     <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px] text-slate-500">
                       <span>{new Date(inc.openedAt).toLocaleTimeString()}</span>
@@ -660,7 +660,7 @@ export default function CctvDashboard() {
                         onClick={() => acknowledgeIncidentMutation.mutate(inc.id)}
                         className="text-cyan-400 hover:underline"
                       >
-                        Acknowledge
+                        {t('ui.cctvDashboard.acknowledge')}
                       </button>
                     </div>
                   </div>
@@ -676,7 +676,7 @@ export default function CctvDashboard() {
         <Modal
           isOpen={Boolean(previewCamera)}
           onClose={() => setPreviewCamera(null)}
-          title={`Live Stream Inspection: ${previewCamera.name}`}
+          title={t('ui.cctvDashboard.liveStreamInspection', { name: previewCamera.name })}
           size="xl"
         >
           <div className="space-y-4">
@@ -689,9 +689,9 @@ export default function CctvDashboard() {
               />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>WHEP WebRTC Connection Active</span>
+              <span>{t('ui.cctvDashboard.whepWebRTCConnectionActive')}</span>
               <Button size="sm" variant="ghost" onClick={() => setPreviewCamera(null)}>
-                Close Preview
+                {t('ui.cctvDashboard.closePreview')}
               </Button>
             </div>
           </div>
@@ -703,7 +703,7 @@ export default function CctvDashboard() {
         <Modal
           isOpen={Boolean(probeResultModal)}
           onClose={() => setProbeResultModal(null)}
-          title={`Connection Probe: ${probeResultModal.camera?.name}`}
+          title={t('ui.cctvDashboard.connectionProbe', { name: probeResultModal.camera?.name })}
           size="md"
         >
           <div className="space-y-4 p-2">
@@ -717,7 +717,7 @@ export default function CctvDashboard() {
               {probeResultModal.reachable ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
               <div>
                 <div className="font-bold text-sm">
-                  {probeResultModal.reachable ? 'Target Responding' : 'Target Unreachable'}
+                  {probeResultModal.reachable ? t('ui.cctvDashboard.targetResponding') : t('ui.cctvDashboard.targetUnreachable')}
                 </div>
                 <div className="text-xs opacity-90">{probeResultModal.message}</div>
               </div>
@@ -725,13 +725,13 @@ export default function CctvDashboard() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-slate-800 border border-white/10">
-                <span className="text-slate-400 block mb-1">RTSP Port (554)</span>
+                <span className="text-slate-400 block mb-1">{t('ui.cctvDashboard.rtspPort')}</span>
                 <span className={probeResultModal.rtspOpen ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
-                  {probeResultModal.rtspOpen ? 'OPEN (Listening)' : 'CLOSED'}
+                  {probeResultModal.rtspOpen ? t('ui.cctvDashboard.openListening') : 'CLOSED'}
                 </span>
               </div>
               <div className="p-3 rounded-lg bg-slate-800 border border-white/10">
-                <span className="text-slate-400 block mb-1">Round-Trip Latency</span>
+                <span className="text-slate-400 block mb-1">{t('ui.cctvDashboard.roundTripLatency')}</span>
                 <span className="text-white font-mono font-bold">
                   {probeResultModal.latencyMs ? `${probeResultModal.latencyMs} ms` : 'N/A'}
                 </span>
@@ -740,7 +740,7 @@ export default function CctvDashboard() {
 
             <div className="flex justify-end pt-2">
               <Button size="sm" onClick={() => setProbeResultModal(null)}>
-                Dismiss
+                {t('ui.cctvDashboard.dismiss')}
               </Button>
             </div>
           </div>

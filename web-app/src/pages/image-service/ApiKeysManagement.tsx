@@ -14,15 +14,15 @@ import { TableSkeleton } from '@/components/ui/TableSkeleton';
 type SortDir = 'asc' | 'desc';
 
 const PERMISSION_OPTIONS = [
-  { key: 'overview:read', label: 'Overview' },
-  { key: 'cameras:read', label: 'Cameras (read)' },
-  { key: 'search:read', label: 'Images (read)' },
-  { key: 'search:update', label: 'Images (update)' },
-  { key: 'processing:read', label: 'Processing (read)' },
-  { key: 'storage:read', label: 'Storage (read)' },
-  { key: 'alerts:read', label: 'Alerts (read)' },
-  { key: 'health:read', label: 'Health (read)' },
-  { key: '*', label: 'Full Access (*)' },
+  { key: 'overview:read', labelKey: 'ui.apiKeysManagement.permOverview' },
+  { key: 'cameras:read', labelKey: 'ui.apiKeysManagement.permCamerasRead' },
+  { key: 'search:read', labelKey: 'ui.apiKeysManagement.permImagesRead' },
+  { key: 'search:update', labelKey: 'ui.apiKeysManagement.permImagesUpdate' },
+  { key: 'processing:read', labelKey: 'ui.apiKeysManagement.permProcessingRead' },
+  { key: 'storage:read', labelKey: 'ui.apiKeysManagement.permStorageRead' },
+  { key: 'alerts:read', labelKey: 'ui.apiKeysManagement.permAlertsRead' },
+  { key: 'health:read', labelKey: 'ui.apiKeysManagement.permHealthRead' },
+  { key: '*', labelKey: 'ui.apiKeysManagement.permFullAccess' },
 ];
 
 export default function ApiKeysManagement() {
@@ -53,14 +53,14 @@ export default function ApiKeysManagement() {
     onSuccess: (res: any) => {
       setCreatedKey(res.token);
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
-      toast.success('API key created');
+      toast.success(t('ui.apiKeysManagement.apiKeyCreated'));
     },
     onError: () => toast.error(t('common.error')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => imageServiceApi.deleteApiKey(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['api-keys'] }); toast.success('API key deleted'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['api-keys'] }); toast.success(t('ui.apiKeysManagement.apiKeyDeleted')); },
     onError: () => toast.error(t('common.error')),
   });
 
@@ -124,7 +124,7 @@ export default function ApiKeysManagement() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.apiKeys.title')}
+            iSmart CCTV · {t('imageService.apiKeys.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.apiKeys.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.apiKeys.subtitle')}</p>
@@ -221,12 +221,12 @@ export default function ApiKeysManagement() {
       </div>
 
       <Modal isOpen={modal.open} onClose={() => { setModal({ open: false }); setCreatedKey(null); }}
-        title={createdKey ? 'API Key Created' : t('imageService.apiKeys.createKey')}>
+        title={createdKey ? t('ui.apiKeysManagement.apiKeyCreated4') : t('imageService.apiKeys.createKey')}>
         {createdKey ? (
           <div className="space-y-4">
             <div className="px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-              <p className="text-sm text-cyan-400 font-medium mb-1">Your API Key</p>
-              <p className="text-xs text-cyan-300/70 mb-2">Copy this key now. You won't be able to see it again.</p>
+              <p className="text-sm text-cyan-400 font-medium mb-1">{t('ui.apiKeysManagement.yourApiKey')}</p>
+              <p className="text-xs text-cyan-300/70 mb-2">{t('ui.apiKeysManagement.copyThisKeyNowYouWon')}</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 px-3 py-2 rounded bg-black/30 text-sm font-mono text-cyan-300 break-all select-all">
                   {createdKey}
@@ -237,23 +237,23 @@ export default function ApiKeysManagement() {
               </div>
             </div>
             <div className={`px-4 py-3 rounded-lg ${themeConfig.card}`}>
-              <h4 className={`text-sm font-semibold mb-2 ${themeConfig.text.primary}`}>Connection Details</h4>
+              <h4 className={`text-sm font-semibold mb-2 ${themeConfig.text.primary}`}>{t('ui.apiKeysManagement.connectionDetails')}</h4>
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className={themeConfig.text.secondary}>Auth Header:</span>
+                  <span className={themeConfig.text.secondary}>{t('ui.apiKeysManagement.authHeader')}</span>
                   <span className="font-mono text-cyan-400">x-api-token</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={themeConfig.text.secondary}>Base URL:</span>
+                  <span className={themeConfig.text.secondary}>{t('ui.apiKeysManagement.baseUrl')}</span>
                   <span className="font-mono text-cyan-400">{window.location.origin}/image-service/api/v1</span>
                 </div>
                 <p className={`mt-2 italic ${themeConfig.text.secondary}`}>
-                  * เปลี่ยน localhost เป็น IP เครื่อง (เช่น 192.168.1.x) เพื่อให้เครื่องอื่นเข้าถึงได้
+                  {t('ui.apiKeysManagement.replaceLocalhostWithThisMachineS')}
                 </p>
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={() => { setModal({ open: false }); setCreatedKey(null); }}>Close</Button>
+              <Button onClick={() => { setModal({ open: false }); setCreatedKey(null); }}>{t('common.close')}</Button>
             </div>
           </div>
         ) : (
@@ -280,7 +280,7 @@ export default function ApiKeysManagement() {
                         className="rounded border-white/30 bg-white/10 text-cyan-500 focus:ring-cyan-500/50"
                       />
                       <span className={`${themeConfig.text.primary} ${opt.key === '*' ? 'font-semibold text-cyan-400' : ''}`}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </span>
                     </label>
                   );
@@ -294,7 +294,7 @@ export default function ApiKeysManagement() {
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.apiKeys.expiresAt')}</label>
               <input type="date" value={form.expiresAt} onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
                 className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>Leave empty for no expiration</p>
+              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('ui.apiKeysManagement.leaveEmptyForNoExpiration')}</p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setModal({ open: false })}>{t('common.cancel')}</Button>

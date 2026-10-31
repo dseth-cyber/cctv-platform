@@ -110,7 +110,7 @@ export default function MasterdataManagement() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>Image Service · {t('imageService.masterdataManagement.title')}</p>
+        <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>iSmart CCTV · {t('imageService.masterdataManagement.title')}</p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.subtitle')}</p>
       </div>

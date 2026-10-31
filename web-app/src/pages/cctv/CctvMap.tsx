@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { useTranslation } from 'react-i18next';
 interface CameraPin {
   id: string;
   name: string;
@@ -37,6 +38,7 @@ interface CameraPin {
 }
 
 export default function CctvMap() {
+  const { t } = useTranslation()
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -119,11 +121,11 @@ export default function CctvMap() {
           <div className="flex items-center gap-2">
             <Compass className="w-5 h-5 text-cyan-400" />
             <h1 className="text-base font-bold tracking-tight text-slate-100">
-              Interactive CCTV Map
+              {t('ui.cctvMap.interactiveCctvMap')}
             </h1>
           </div>
           <span className="hidden sm:inline-block text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
-            Spatial Floor Plan
+            {t('ui.cctvMap.spatialFloorPlan')}
           </span>
         </div>
 
@@ -141,7 +143,7 @@ export default function CctvMap() {
               className="bg-transparent text-xs text-slate-200 focus:outline-none"
             >
               <option value="all" className="bg-slate-900">
-                All Sites ({cameras.length} cams)
+                {t('ui.cctvMap.allSites')}{cameras.length}{' '}{t('ui.cctvMap.cams')}
               </option>
               {sites.map((s: any) => (
                 <option key={s.id} value={s.id} className="bg-slate-900">
@@ -161,11 +163,11 @@ export default function CctvMap() {
                 className="bg-transparent text-xs text-slate-200 focus:outline-none"
               >
                 <option value="all" className="bg-slate-900">
-                  All Zones / Floors
+                  {t('ui.cctvMap.allZonesFloors')}
                 </option>
                 {zonesForSite.map((z: any) => (
                   <option key={z.id} value={z.id} className="bg-slate-900">
-                    {z.name} (Floor {z.floor || 1})
+                    {z.name}{' '}{t('ui.cctvMap.floor')}{' '}{z.floor || 1})
                   </option>
                 ))}
               </select>
@@ -182,7 +184,7 @@ export default function CctvMap() {
             }`}
           >
             <Move className="w-3.5 h-3.5" />
-            <span>{isEditMode ? 'Done Positioning' : 'Edit Pins'}</span>
+            <span>{isEditMode ? t('ui.cctvMap.donePositioning') : t('ui.cctvMap.editPins')}</span>
           </button>
         </div>
       </div>
@@ -210,13 +212,13 @@ export default function CctvMap() {
             <div className="absolute inset-8 rounded-3xl border border-dashed border-slate-800/80 pointer-events-none flex flex-col justify-between p-6">
               <div className="flex justify-between text-[11px] font-mono text-slate-600 uppercase tracking-widest">
                 <span>
-                  {currentSite?.name || 'All Sites Floor Plan'} — Zone Canvas
+                  {currentSite?.name || t('ui.cctvMap.allSitesFloorPlan')}{' '}{t('ui.cctvMap.zoneCanvas')}
                 </span>
-                <span>Coordinates: 0.00% – 100.00%</span>
+                <span>{t('ui.cctvMap.coordinates')}</span>
               </div>
               <div className="flex justify-between text-[11px] font-mono text-slate-600 uppercase tracking-widest">
-                <span>Security Perimeter Grid</span>
-                <span>{filteredCameras.length} Plotted Cameras</span>
+                <span>{t('ui.cctvMap.securityPerimeterGrid')}</span>
+                <span>{filteredCameras.length}{' '}{t('ui.cctvMap.plottedCameras')}</span>
               </div>
             </div>
 
@@ -293,18 +295,18 @@ export default function CctvMap() {
           {/* Bottom Bar: Stats & Edit Mode Hint */}
           <div className="h-10 px-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-3">
-              <span className="text-slate-400">Total: {filteredCameras.length}</span>
-              <span className="text-emerald-400">Online: {onlineCount}</span>
-              {offlineCount > 0 && <span className="text-rose-400">Offline: {offlineCount}</span>}
+              <span className="text-slate-400">{t('ui.cctvMap.total')}{' '}{filteredCameras.length}</span>
+              <span className="text-emerald-400">{t('ui.cctvMap.online')}{' '}{onlineCount}</span>
+              {offlineCount > 0 && <span className="text-rose-400">{t('ui.cctvMap.offline')}{' '}{offlineCount}</span>}
             </div>
 
             {isEditMode ? (
               <span className="text-amber-400 animate-pulse font-sans font-semibold">
-                Click any camera on the list, then click on the map to set its position!
+                {t('ui.cctvMap.clickAnyCameraOnTheList')}
               </span>
             ) : (
               <span className="text-slate-500 font-sans">
-                Click any camera pin to preview live stream
+                {t('ui.cctvMap.clickAnyCameraPinToPreview')}
               </span>
             )}
           </div>
@@ -317,7 +319,7 @@ export default function CctvMap() {
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-slate-200">
-                {selectedCamera ? selectedCamera.name : 'Camera Inspector'}
+                {selectedCamera ? selectedCamera.name : t('ui.cctvMap.cameraInspector')}
               </h3>
             </div>
             {selectedCamera && (
@@ -347,7 +349,7 @@ export default function CctvMap() {
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
                     <Radio className="w-6 h-6 animate-pulse mb-2 text-cyan-400" />
-                    <span className="text-xs">Loading Live WebRTC Stream...</span>
+                    <span className="text-xs">{t('ui.cctvMap.loadingLiveWebRTCStream')}</span>
                   </div>
                 )}
               </div>
@@ -359,14 +361,14 @@ export default function CctvMap() {
                   className="flex-1 py-1.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in Live Wall</span>
+                  <span>{t('ui.cctvMap.openInLiveWall')}</span>
                 </button>
               </div>
 
               {/* Meta details */}
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Status</span>
+                  <span className="text-slate-500">{t('ui.cctvMap.status')}</span>
                   <span
                     className={`font-semibold flex items-center gap-1 ${
                       selectedCamera.operationalStatus === 'online'
@@ -385,22 +387,22 @@ export default function CctvMap() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">IP Address</span>
+                  <span className="text-slate-500">{t('ui.cctvMap.ipAddress')}</span>
                   <span className="font-mono text-slate-300">
                     {selectedCamera.ipAddress || '—'}
                   </span>
                 </div>
                 {selectedCamera.channelNumber && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">DVR Channel</span>
+                    <span className="text-slate-500">{t('ui.cctvMap.dvrChannel')}</span>
                     <span className="font-mono text-slate-300">
-                      Ch #{selectedCamera.channelNumber}
+                      {t('ui.cctvMap.ch')}{selectedCamera.channelNumber}
                     </span>
                   </div>
                 )}
                 {selectedCamera.latitude !== null && selectedCamera.latitude !== undefined && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Coordinates (Y, X)</span>
+                    <span className="text-slate-500">{t('ui.cctvMap.coordinatesYX')}</span>
                     <span className="font-mono text-cyan-400">
                       {selectedCamera.latitude}%, {selectedCamera.longitude}%
                     </span>
@@ -411,9 +413,9 @@ export default function CctvMap() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500">
               <MapPin className="w-10 h-10 stroke-1 text-slate-600 mb-2" />
-              <p className="text-xs font-medium text-slate-400">No Camera Selected</p>
+              <p className="text-xs font-medium text-slate-400">{t('ui.cctvMap.noCameraSelected')}</p>
               <p className="text-[11px] text-slate-600 mt-1 max-w-[200px]">
-                Click on any camera pin on the floor plan to view details and live stream.
+                {t('ui.cctvMap.clickOnAnyCameraPinOn')}
               </p>
             </div>
           )}

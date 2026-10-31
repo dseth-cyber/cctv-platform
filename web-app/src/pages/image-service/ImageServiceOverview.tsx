@@ -409,7 +409,7 @@ export default function ImageServiceOverview() {
             title={t('imageService.overview.title')}
             sections={[
               { title: t('imageService.overview.title'), columns: [
-                { key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' },
+                { key: 'label', label: t('ui.imageServiceOverview.metric') }, { key: 'value', label: t('ui.imageServiceOverview.value') },
               ], data: stats.map(s => ({ label: s.label, value: s.value })) },
               { title: t('imageService.overview.cameraStatus'), columns: [
                 { key: 'status', label: t('imageService.cameras.status') }, { key: 'count', label: t('imageService.overview.totalImages') }, { key: 'pct', label: '%' },
@@ -428,14 +428,14 @@ export default function ImageServiceOverview() {
               { title: t('imageService.overview.recentActivity'), columns: [
                 { key: 'label', label: t('common.date') }, { key: 'value', label: t('imageService.overview.totalImages') },
               ], data: recentActivity },
-              { title: `${t('imageService.overview.storageGrowth')} (GB)`, columns: [
+              { title: t('ui.imageServiceOverview.gb', { v0: t('imageService.overview.storageGrowth') }), columns: [
                 { key: 'label', label: t('common.date') }, { key: 'value', label: 'GB' },
               ], data: storageGrowth },
               { title: t('imageService.overview.imagesByCamera'), columns: [
                 { key: 'name', label: t('imageService.cameras.cameraName') }, { key: 'value', label: t('imageService.overview.totalImages') },
               ], data: imagesByCamera },
               { title: t('imageService.overview.queueTitle'), columns: [
-                { key: 'label', label: 'Queue' }, { key: 'value', label: 'Count' },
+                { key: 'label', label: t('ui.imageServiceOverview.queue') }, { key: 'value', label: t('ui.imageServiceOverview.count') },
               ], data: [
                 { label: t('imageService.overview.queueWait'), value: overview?.queue?.wait ?? 0 },
                 { label: t('imageService.overview.queueActive'), value: overview?.queue?.active ?? 0 },
@@ -443,7 +443,7 @@ export default function ImageServiceOverview() {
                 { label: t('imageService.overview.queueDelayed'), value: overview?.queue?.delayed ?? 0 },
               ] },
               { title: t('imageService.overview.postgresTitle'), columns: [
-                { key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' },
+                { key: 'label', label: t('ui.imageServiceOverview.metric') }, { key: 'value', label: t('ui.imageServiceOverview.value') },
               ], data: [
                 { label: t('imageService.overview.postgresTps'), value: overview?.postgres?.tps ?? 0 },
                 { label: t('imageService.overview.postgresActiveConnections'), value: overview?.postgres?.activeConnections ?? 0 },
@@ -565,7 +565,7 @@ export default function ImageServiceOverview() {
         <div key="growth" className={`${themeConfig.card} rounded-lg overflow-hidden relative p-5 flex flex-col h-full`}>
           <DragHandle show={isEditing} />
           <h3 className={`text-sm font-semibold mb-3 flex-shrink-0 flex items-center gap-2 ${themeConfig.text.primary}`}>
-            {t('imageService.overview.storageGrowth')} (GB)
+            {t('imageService.overview.storageGrowth')}{' '}{t('ui.imageServiceOverview.gb2')}
             <TimebaseBadge timebase={timebase} t={t} themeConfig={themeConfig} />
           </h3>
           <ResponsiveContainer width="100%" height="100%" className="flex-1 min-h-0">

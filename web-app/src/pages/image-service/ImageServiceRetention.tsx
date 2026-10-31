@@ -117,7 +117,7 @@ export default function ImageServiceRetention() {
     <div className="p-6">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.retention.title')}
+          iSmart CCTV · {t('imageService.retention.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.retention.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.retention.subtitle')}</p>
@@ -140,7 +140,7 @@ export default function ImageServiceRetention() {
                     {t(POLICY_NAME_KEYS[policy.name]?.name ?? policy.name)}
                     {policy.isDefault && (
                       <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-normal border border-cyan-500/30">
-                        {t('imageService.retention.defaultBadge') || 'ค่าเริ่มต้น'}
+                        {t('imageService.retention.defaultBadge') || t('ui.imageServiceRetention.default')}
                       </span>
                     )}
                   </h3>
@@ -333,7 +333,7 @@ export default function ImageServiceRetention() {
               onChange={e => setForm(p => ({ ...p, isDefault: e.target.checked }))}
               className="w-4 h-4 rounded accent-cyan-500" />
             <span className={`text-sm font-medium ${themeConfig.text.primary}`}>
-              {t('imageService.retention.isDefault') || 'ตั้งเป็นนโยบายเริ่มต้นสำหรับกล้องใหม่'}
+              {t('imageService.retention.isDefault') || t('ui.imageServiceRetention.setAsTheDefaultPolicyFor')}
             </span>
           </label>
           <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>

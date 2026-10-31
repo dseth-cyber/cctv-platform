@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { recordSignoff, listSignoffs } from './release.service.js';
+import { recordSignoff, listSignoffs, getPreflightReadiness } from './release.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 
 describe('Release Sign-off Persistence & Audit Log [AUDIT-HIGH-04 & AUDIT-HIGH-05]', () => {
@@ -70,5 +70,40 @@ describe('Release Sign-off Persistence & Audit Log [AUDIT-HIGH-04 & AUDIT-HIGH-0
     const list = await listSignoffs();
     expect(list.length).toBe(1);
     expect(mockFindMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'desc' }, take: 50 });
+  });
+
+  it('should fail instead of keeping an unsaved sign-off in memory', async () => {
+    vi.mocked(getPrisma).mockReturnValue({
+      signoffRecord: { create: vi.fn().mockRejectedValue(new Error('value too long')) },
+      auditLog: { create: vi.fn() },
+    } as any);
+
+    await expect(recordSignoff('admin', 'staging', 'Wave 1', '', true)).rejects.toThrow('value too long');
+  });
+
+  it('should not treat a stored row without the checklist flag as passed', async () => {
+    vi.mocked(getPrisma).mockReturnValue({
+      signoffRecord: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: '1', signoffBy: 'admin', role: 'staging', phase: 'Wave 1', createdAt: new Date(), metadata: {} },
+        ]),
+      },
+    } as any);
+
+    const [row] = await listSignoffs();
+    expect(row.checklistPassed).toBe(false);
+  });
+
+  it('should not report ready while isolation is unconfirmed', async () => {
+    delete process.env.CCTV_ISOLATION_VERIFIED;
+    vi.mocked(getPrisma).mockReturnValue({
+      $queryRaw: vi.fn().mockResolvedValue([1]),
+      cameraRecording: { count: vi.fn().mockResolvedValue(0) },
+    } as any);
+
+    const report = await getPreflightReadiness();
+    expect(report.isolationVerified).toBe(false);
+    expect(report.items.find((i) => i.id === 'iso-fail-closed')?.status).toBe('warning');
+    expect(report.overallStatus).not.toBe('ready');
   });
 });

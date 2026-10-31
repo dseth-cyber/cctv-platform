@@ -21,6 +21,7 @@ import {
 import { SecurityWatermark } from './SecurityWatermark';
 
 
+import { useTranslation } from 'react-i18next';
 interface WhepPlayerProps {
   streamUrl: string; // e.g. /mediamtx/webrtc/streamPath/whep or full URL
   cameraName?: string;
@@ -46,6 +47,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   onToggleProfile,
   onSnapshot,
 }) => {
+  const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const resourceUrlRef = useRef<string | null>(null);
@@ -129,7 +131,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
             }, delay);
           } else {
             setStatus('error');
-            setErrorMessage('Stream connection lost (reconnection failed)');
+            setErrorMessage(t('ui.whepPlayer.streamConnectionLostReconnectionFailed'));
           }
         }
       };
@@ -153,7 +155,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error(`MediaMTX WHEP returned HTTP ${response.status}`);
+        throw new Error(t('ui.whepPlayer.mediaMTXWhepReturnedHttp', { status: response.status }));
       }
 
       // Read location header if provided (RFC 8835)
@@ -166,7 +168,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
     } catch (err: any) {
       setStatus('error');
-      setErrorMessage(err.message || 'Failed to start WebRTC stream');
+      setErrorMessage(err.message || t('ui.whepPlayer.failedToStartWebRTCStream'));
     }
   }, [streamUrl]);
 
@@ -361,7 +363,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
             <button
               onClick={handleResetPtz}
               className="flex items-center gap-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded text-[10px] font-mono hover:bg-cyan-900 transition"
-              title="Click to reset zoom"
+              title={t('ui.whepPlayer.clickToResetZoom')}
             >
               <span>{zoom}x</span>
               <RotateCcw className="w-2.5 h-2.5" />
@@ -377,7 +379,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
                   ? 'bg-slate-800 text-cyan-300 border-cyan-500/50 hover:bg-slate-700'
                   : 'bg-amber-950/80 text-amber-300 border-amber-500/50 hover:bg-amber-900'
               }`}
-              title={`Switch to ${streamProfile === 'main' ? 'Sub Stream (SD)' : 'Main Stream (HD)'}`}
+              title={t('ui.whepPlayer.switchTo', { v0: streamProfile === 'main' ? 'Sub Stream (SD)' : 'Main Stream (HD)' })}
             >
               {streamProfile === 'main' ? 'HD' : 'SD'}
             </button>
@@ -387,7 +389,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           {status === 'connected' && (
             <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-mono font-medium">
               <Signal className="w-3 h-3" />
-              <span>LIVE</span>
+              <span>{t('ui.whepPlayer.live')}</span>
             </div>
           )}
         </div>
@@ -398,10 +400,10 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
         <div className="absolute top-12 right-2 bg-slate-900/90 backdrop-blur-md border border-slate-700 p-2 rounded-xl shadow-2xl z-30 flex flex-col items-center gap-1">
           <div className="text-[10px] font-semibold text-slate-300 flex items-center gap-1 mb-0.5">
             <Compass className="w-3 h-3 text-cyan-400" />
-            <span>Digital Zoom / Pan</span>
+            <span>{t('ui.whepPlayer.digitalZoomPan')}</span>
           </div>
           <span className="text-[9px] text-slate-400 mb-1.5 text-center leading-tight">
-            (Browser-side only • HW PTZ requires physical PTZ camera)
+            {t('ui.whepPlayer.browserSideOnlyHwPtzRequires')}
           </span>
 
           {/* Directional Pad */}
@@ -426,7 +428,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
             <button
               onClick={handleResetPtz}
               className="flex items-center justify-center rounded bg-cyan-900/50 hover:bg-cyan-800 text-cyan-300 text-[10px] font-bold font-mono transition"
-              title="Reset Zoom & Pan"
+              title={t('ui.whepPlayer.resetZoomPan')}
             >
               {zoom}x
             </button>
@@ -475,16 +477,16 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       {status === 'connecting' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-sm z-20 text-slate-300">
           <RefreshCw className="w-8 h-8 animate-spin text-cyan-400 mb-2" />
-          <p className="text-xs font-medium">Connecting WebRTC Stream...</p>
+          <p className="text-xs font-medium">{t('ui.whepPlayer.connectingWebRTCStream')}</p>
         </div>
       )}
 
       {status === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm z-20 text-rose-400 p-4 text-center">
           <AlertCircle className="w-7 h-7 mb-1.5" />
-          <p className="text-xs font-semibold text-slate-200">Unable to play WebRTC stream</p>
+          <p className="text-xs font-semibold text-slate-200">{t('ui.whepPlayer.unableToPlayWebRTCStream')}</p>
           <p className="text-[10px] text-slate-400 mt-0.5 max-w-[280px]">
-            {errorMessage || 'Camera offline or RTSP unavailable'}
+            {errorMessage || t('ui.whepPlayer.cameraOfflineOrRtspUnavailable')}
           </p>
           <div className="flex items-center gap-2 mt-2.5">
             <button
@@ -492,19 +494,19 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
               className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-md border border-slate-700 transition"
             >
               <RefreshCw className="w-3 h-3" />
-              <span>Retry</span>
+              <span>{t('ui.whepPlayer.retry')}</span>
             </button>
             {hasSubStream && onToggleProfile && (
               <button
                 onClick={() => onToggleProfile(streamProfile === 'main' ? 'sub' : 'main')}
                 className="flex items-center gap-1 px-2.5 py-1 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 text-xs rounded-md border border-cyan-700 transition font-medium"
               >
-                <span>Switch to {streamProfile === 'main' ? 'Sub-stream (H.264)' : 'Main Stream'}</span>
+                <span>{t('ui.whepPlayer.switchTo2')}{' '}{streamProfile === 'main' ? t('ui.whepPlayer.subStreamH') : t('ui.whepPlayer.mainStream')}</span>
               </button>
             )}
           </div>
           <p className="text-[9px] text-slate-400 mt-2 max-w-[260px] leading-tight font-mono">
-            * Codec recommendation: H.264 (or H.265 HW-accel) • Audio: Opus / G.711 PCMA/PCMU
+            {t('ui.whepPlayer.codecRecommendationH264OrH')}
           </p>
         </div>
       )}
@@ -517,7 +519,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           >
             <Play className="w-6 h-6 fill-current" />
           </button>
-          <p className="text-xs mt-2 text-slate-400">Click to start live stream</p>
+          <p className="text-xs mt-2 text-slate-400">{t('ui.whepPlayer.clickToStartLiveStream')}</p>
         </div>
       )}
 
@@ -527,21 +529,21 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           <button
             onClick={handleTogglePlay}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
-            title={isPlaying ? 'Stop' : 'Play'}
+            title={isPlaying ? t('ui.whepPlayer.stop') : t('ui.whepPlayer.play')}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setIsMuted(!isMuted)}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
-            title={isMuted ? 'Unmute' : 'Mute'}
+            title={isMuted ? t('ui.whepPlayer.unmute') : t('ui.whepPlayer.mute')}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <button
             onClick={startStream}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
-            title="Reconnect"
+            title={t('ui.whepPlayer.reconnect')}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -556,21 +558,21 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
                 ? 'bg-cyan-600/80 text-white'
                 : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'
             }`}
-            title="Digital Zoom / Pan Controls (Browser-side CSS)"
+            title={t('ui.whepPlayer.digitalZoomPanControlsBrowserSide')}
           >
             <Compass className="w-4 h-4" />
           </button>
           <button
             onClick={handleCaptureSnapshot}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
-            title="Take Snapshot"
+            title={t('ui.whepPlayer.takeSnapshot')}
           >
             <CameraIcon className="w-4 h-4" />
           </button>
           <button
             onClick={handleToggleFullscreen}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
-            title="Fullscreen"
+            title={t('ui.whepPlayer.fullscreen')}
           >
             <Maximize className="w-4 h-4" />
           </button>

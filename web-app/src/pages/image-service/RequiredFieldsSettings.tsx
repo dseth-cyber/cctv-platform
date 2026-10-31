@@ -91,7 +91,7 @@ export default function RequiredFieldsSettings() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.requiredFields.title')}
+            iSmart CCTV · {t('imageService.requiredFields.title')}
           </p>
           <h1 className={`text-2xl font-bold flex items-center gap-2 ${themeConfig.text.primary}`}>
             <ClipboardCheck size={22} className="text-cyan-400" />

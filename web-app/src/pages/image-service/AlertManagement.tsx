@@ -128,7 +128,7 @@ export default function AlertManagement() {
     <div className="pt-6 px-6 pb-2.5">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.alerts.title')}
+          iSmart CCTV · {t('imageService.alerts.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.alerts.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.alerts.subtitle')}</p>
@@ -147,7 +147,7 @@ export default function AlertManagement() {
           <div className="ml-auto">
             <Button variant="secondary" onClick={() => setClearDialogOpen(true)}>
               <Trash2 size={14} className="mr-1.5 inline" />
-              {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : 'Clear All'}
+              {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : t('common.clearAll')}
             </Button>
           </div>
         </div>
@@ -430,7 +430,7 @@ export default function AlertManagement() {
                 ) : (
                   <Trash2 size={13} />
                 )}
-                {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : 'Clear All'}
+                {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : t('common.clearAll')}
               </button>
             </div>
           </div>

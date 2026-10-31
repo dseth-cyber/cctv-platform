@@ -182,7 +182,7 @@ export default function ImageServiceProcessingMonitor() {
   const handleTogglePause = async () => {
     try {
       const res = await imageServiceApi.toggleQueuePause(!isQueuePaused);
-      toast.success(res.message || (isQueuePaused ? 'เริ่มทำงานคิวต่อเรียบร้อย' : 'พักคิวงานเรียบร้อย'));
+      toast.success(res.message || (isQueuePaused ? t('ui.imageServiceProcessingMonitor.queueResumed') : t('ui.imageServiceProcessingMonitor.queuePaused')));
       refetchQueuePause();
     } catch {
       toast.error(t('common.error'));
@@ -192,7 +192,7 @@ export default function ImageServiceProcessingMonitor() {
   const handlePurgeQueue = async () => {
     try {
       const res = await imageServiceApi.purgeActiveQueue();
-      toast.success(res.message || 'ล้างคิวงานค้างสำเร็จ');
+      toast.success(res.message || t('ui.imageServiceProcessingMonitor.activeQueuePurged'));
       refetchHealth();
       setRealtimeQueueTotal(0);
     } catch {
@@ -333,7 +333,7 @@ export default function ImageServiceProcessingMonitor() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.processing.title')}
+            iSmart CCTV · {t('imageService.processing.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.processing.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.processing.subtitle')}</p>
@@ -343,7 +343,7 @@ export default function ImageServiceProcessingMonitor() {
             <>
               <button
                 onClick={handleTogglePause}
-                title={isQueuePaused ? 'คลิกเพื่อเริ่มทำงานคิวต่อ' : 'คลิกเพื่อหยุดพักคิวงานชั่วคราว'}
+                title={isQueuePaused ? t('ui.imageServiceProcessingMonitor.clickToResumeTheQueue') : t('ui.imageServiceProcessingMonitor.clickToPauseTheQueue')}
                 className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   isQueuePaused
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
@@ -351,16 +351,16 @@ export default function ImageServiceProcessingMonitor() {
                 }`}
               >
                 {isQueuePaused ? <Play size={14} /> : <Pause size={14} />}
-                {isQueuePaused ? 'เริ่มทำงานคิวต่อ (Resume)' : 'พักคิวงาน (Pause Queue)'}
+                {isQueuePaused ? t('ui.imageServiceProcessingMonitor.resumeQueue') : t('ui.imageServiceProcessingMonitor.pauseQueue')}
               </button>
 
               <button
                 onClick={handlePurgeQueue}
-                title="ล้างล็อกงานเก่าที่ค้างในคิว Active"
+                title={t('ui.imageServiceProcessingMonitor.clearStaleJobLocksInThe')}
                 className="px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all"
               >
                 <RotateCcw size={14} />
-                ล้างคิวงานค้าง (Purge Active Queue)
+                {t('ui.imageServiceProcessingMonitor.purgeActiveQueue')}
               </button>
             </>
           )}
@@ -440,7 +440,7 @@ export default function ImageServiceProcessingMonitor() {
                     <span id={s.id}><CountUpValue value={s.value} /></span>
                     {s.id === 'stats-today' ? (
                       <span className={`ml-1.5 text-[11px] font-normal ${themeConfig.text.secondary}`}>
-                        (จาก <CountUpValue value={imagesToday} /> ภาพ)
+                        {t('ui.imageServiceProcessingMonitor.of')}{' '}<CountUpValue value={imagesToday} />{' '}{t('ui.imageServiceProcessingMonitor.images')}
                       </span>
                     ) : (
                       s.sub && <span className={`ml-1.5 text-[11px] font-normal ${themeConfig.text.secondary}`}>{s.sub}</span>
@@ -523,7 +523,7 @@ export default function ImageServiceProcessingMonitor() {
             <div className="flex items-center gap-2">
               <span className={`flex items-center gap-1 text-xs ${connected ? 'text-green-400' : 'text-red-400'}`}>
                 <Radio size={10} className={connected ? 'animate-pulse' : ''} />
-                {connected ? 'Live' : 'Disconnected'}
+                {connected ? t('ui.imageServiceProcessingMonitor.live') : t('ui.imageServiceProcessingMonitor.disconnected')}
               </span>
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
@@ -531,7 +531,7 @@ export default function ImageServiceProcessingMonitor() {
                   ${autoRefresh ? 'text-cyan-400 bg-cyan-500/10' : `${themeConfig.text.secondary} hover:bg-white/5`}`}
               >
                 {autoRefresh ? <Pause size={13} /> : <Play size={13} />}
-                Auto
+                {t('ui.imageServiceProcessingMonitor.auto')}
               </button>
               <button
                 onClick={() => { esRef.current?.close(); connect(); }}

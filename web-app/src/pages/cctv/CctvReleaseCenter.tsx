@@ -19,6 +19,7 @@ import {
 import { imageServiceApi } from '../../services/imageServiceApi';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { useTranslation } from 'react-i18next';
 interface PreflightItem {
   id: string;
   category: 'isolation' | 'security' | 'storage' | 'streaming' | 'database';
@@ -58,6 +59,7 @@ interface SignoffRecord {
 }
 
 export const CctvReleaseCenter: React.FC = () => {
+  const { t } = useTranslation()
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'preflight' | 'pilot' | 'dr' | 'signoff'>('preflight');
   const [loading, setLoading] = useState(false);
@@ -70,10 +72,8 @@ export const CctvReleaseCenter: React.FC = () => {
   // The server records the authenticated user as signer; this is display only.
   const signedBy = user?.username ?? '';
   const [targetEnv, setTargetEnv] = useState('pilot-staging-vlan');
-  const [scope, setScope] = useState('Phase 6 — Pilot Release (Wave 1: 25 Cameras)');
-  const [notes, setNotes] = useState(
-    'All acceptance criteria tested in isolated environment. Fail-closed confirmed: Legacy Image Service unaffected.'
-  );
+  const [scope, setScope] = useState('Pilot Wave 1 (25 cams)');
+  const [notes, setNotes] = useState('');
   const [submittingSignoff, setSubmittingSignoff] = useState(false);
   const [signoffSuccessMsg, setSignoffSuccessMsg] = useState('');
   const [signoffErrorMsg, setSignoffErrorMsg] = useState('');
@@ -81,15 +81,8 @@ export const CctvReleaseCenter: React.FC = () => {
 
   // DR Drill simulated state
 
-  // UAT interactive checklist state
-  const [uatChecked, setUatChecked] = useState<Record<number, boolean>>({
-    0: true,
-    1: true,
-    2: true,
-    3: true,
-    4: true,
-    5: true,
-  });
+  // UAT checklist starts empty: each criterion is ticked only after someone has tested it.
+  const [uatChecked, setUatChecked] = useState<Record<number, boolean>>({});
 
   const loadPreflight = async () => {
     try {
@@ -99,7 +92,7 @@ export const CctvReleaseCenter: React.FC = () => {
     } catch {
       // No simulated readiness report: an unreachable API must never look "ready".
       setPreflight(null);
-      setLoadError('โหลดผล Pre-flight ไม่สำเร็จ — สถานะความพร้อมไม่ทราบ');
+      setLoadError(t('ui.cctvReleaseCenter.failedToLoadPreFlightResults'));
     } finally {
       setLoading(false);
     }
@@ -111,7 +104,7 @@ export const CctvReleaseCenter: React.FC = () => {
       setPilotPlan(res);
     } catch {
       setPilotPlan(null);
-      setLoadError('โหลดแผน Pilot ไม่สำเร็จ — ไม่แสดงข้อมูลแทนที่');
+      setLoadError(t('ui.cctvReleaseCenter.failedToLoadPilotPlanNo'));
     }
   };
 
@@ -121,7 +114,7 @@ export const CctvReleaseCenter: React.FC = () => {
       if (Array.isArray(res)) setSignoffs(res);
     } catch {
       setSignoffs([]);
-      setLoadError('โหลดประวัติ Sign-off ไม่สำเร็จ — ไม่แสดงข้อมูลแทนที่');
+      setLoadError(t('ui.cctvReleaseCenter.failedToLoadSignOffHistory'));
     }
   };
 
@@ -137,6 +130,57 @@ export const CctvReleaseCenter: React.FC = () => {
     loadPilotPlan(val);
   };
 
+  const statusOf = (id: string) => preflight?.items.find((i) => i.id === id)?.status;
+  const secretStatuses = ['sec-jwt', 'sec-enc'].map(statusOf);
+  const secretStatus: PreflightItem['status'] | undefined = !preflight
+    ? undefined
+    : secretStatuses.includes('failed')
+    ? 'failed'
+    : secretStatuses.every((st) => st === 'passed')
+    ? 'passed'
+    : 'warning';
+  const gateStatus: PreflightItem['status'] | undefined = !preflight
+    ? undefined
+    : preflight.overallStatus === 'ready'
+    ? 'passed'
+    : preflight.overallStatus === 'blocked'
+    ? 'failed'
+    : 'warning';
+  const passedCount = preflight?.items.filter((i) => i.status === 'passed').length ?? 0;
+  const totalCriteria = pilotPlan?.acceptanceCriteria.length ?? 0;
+  const checkedCriteria = pilotPlan?.acceptanceCriteria.filter((_, idx) => uatChecked[idx]).length ?? 0;
+  const uatComplete = totalCriteria > 0 && checkedCriteria === totalCriteria;
+  const checklistPassed = preflight?.overallStatus === 'ready' && uatComplete;
+
+  const statusTone = (st: PreflightItem['status'] | undefined) =>
+    st === 'passed'
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+      : st === 'failed'
+      ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+  const statusText = (st: PreflightItem['status'] | undefined) =>
+    st === 'passed'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : st === 'failed'
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-amber-600 dark:text-amber-400';
+  const statusLabel = (st: PreflightItem['status'] | undefined) =>
+    st === 'passed'
+      ? t('ui.cctvReleaseCenter.checkPassed')
+      : st === 'failed'
+      ? t('ui.cctvReleaseCenter.checkFailed')
+      : st === 'warning'
+      ? t('ui.cctvReleaseCenter.checkWarning')
+      : t('ui.cctvReleaseCenter.checkUnknown');
+  const statusIcon = (st: PreflightItem['status'] | undefined, size = 'w-3.5 h-3.5') =>
+    st === 'passed' ? (
+      <CheckCircle className={`${size} text-emerald-500 shrink-0`} />
+    ) : st === 'failed' ? (
+      <XCircle className={`${size} text-rose-500 shrink-0`} />
+    ) : (
+      <AlertTriangle className={`${size} text-amber-500 shrink-0`} />
+    );
+
   const handleSubmitSignoff = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingSignoff(true);
@@ -147,13 +191,13 @@ export const CctvReleaseCenter: React.FC = () => {
         targetEnvironment: targetEnv,
         scope,
         notes,
-        checklistPassed: true,
+        checklistPassed,
       });
-      setSignoffSuccessMsg('บันทึกการ Sign-off และอนุมัติ Pilot Release สำเร็จเรียบร้อย!');
+      setSignoffSuccessMsg(t('ui.cctvReleaseCenter.pilotReleaseSignOffRecorded'));
       loadSignoffs();
     } catch (err: any) {
       // Never record a sign-off locally when the server rejected it (e.g. 403 without settings:update).
-      setSignoffErrorMsg(err?.response?.data?.message || err?.message || 'บันทึก Sign-off ไม่สำเร็จ');
+      setSignoffErrorMsg(err?.response?.data?.message || err?.message || t('ui.cctvReleaseCenter.failedToRecordSignOff'));
     } finally {
       setSubmittingSignoff(false);
     }
@@ -171,13 +215,13 @@ export const CctvReleaseCenter: React.FC = () => {
               </span>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  Pilot & Release Center (Phase 6)
+                  {t('ui.cctvReleaseCenter.pilotReleaseCenterPhase')}
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-medium">
-                    Final Gate
+                    {t('ui.cctvReleaseCenter.finalGate')}
                   </span>
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  ศูนย์ตรวจสอบความพร้อมก่อนปล่อยระบบ (Pre-flight Audit, Pilot Rollout Gates, DR Drill & Sign-off)
+                  {t('ui.cctvReleaseCenter.releaseReadinessCenterPreFlightAudit')}
                 </p>
               </div>
             </div>
@@ -186,8 +230,8 @@ export const CctvReleaseCenter: React.FC = () => {
           {/* Readiness Score & Badges */}
           <div className="flex items-center gap-4">
             <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-right">
-              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Readiness Score</div>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('ui.cctvReleaseCenter.readinessScore')}</div>
+              <div className={`text-2xl font-black ${statusText(gateStatus)}`}>
                 {preflight ? `${preflight.score}%` : '—'}
               </div>
             </div>
@@ -197,23 +241,37 @@ export const CctvReleaseCenter: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              ตรวจสอบ Pre-flight อีกครั้ง
+              {t('ui.cctvReleaseCenter.reRunPreFlight')}
             </button>
           </div>
         </div>
 
         {/* Isolation Alert Box */}
-        <div className="mt-5 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <span className="font-semibold text-emerald-900 dark:text-emerald-200">
-              Fail-Closed Isolation Verified:{' '}
-            </span>
-            <span className="text-emerald-800 dark:text-emerald-300">
-              ระบบ CCTV ทั้งหมดทำงานบนเครือข่ายจำลองแยกขาด (`cctv-network` บน 127.0.0.1) ไม่มีการเชื่อมต่อไปยัง Image Service Production เดิมโดยเด็ดขาด การ Deploy สู่สภาพแวดล้อม Pilot จริงจะต้องชี้ไปยัง Server ปลายทางใหม่ที่ได้รับอนุมัติเท่านั้น
-            </span>
+        {preflight?.isolationVerified ? (
+          <div className="mt-5 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+                {t('ui.cctvReleaseCenter.failClosedIsolationVerified')}{' '}
+              </span>
+              <span className="text-emerald-800 dark:text-emerald-300">
+                {t('ui.cctvReleaseCenter.theWholeCctvStackRunsOn')}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-5 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-semibold text-amber-900 dark:text-amber-200">
+                {t('ui.cctvReleaseCenter.isolationNotVerified')}{' '}
+              </span>
+              <span className="text-amber-800 dark:text-amber-300">
+                {t('ui.cctvReleaseCenter.isolationNotVerifiedDetail')}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 mt-6 border-b border-slate-200 dark:border-slate-700">
@@ -226,7 +284,7 @@ export const CctvReleaseCenter: React.FC = () => {
             }`}
           >
             <Shield className="w-4 h-4" />
-            1. Pre-flight & Secret Audit
+            {t('ui.cctvReleaseCenter.n1PreFlightSecretAudit')}
           </button>
           <button
             onClick={() => setActiveTab('pilot')}
@@ -237,7 +295,7 @@ export const CctvReleaseCenter: React.FC = () => {
             }`}
           >
             <ClipboardList className="w-4 h-4" />
-            2. Pilot Gates & UAT Checklist
+            {t('ui.cctvReleaseCenter.n2PilotGatesUatChecklist')}
           </button>
           <button
             onClick={() => setActiveTab('dr')}
@@ -248,7 +306,7 @@ export const CctvReleaseCenter: React.FC = () => {
             }`}
           >
             <Terminal className="w-4 h-4" />
-            3. Backup & DR Drill
+            {t('ui.cctvReleaseCenter.n3BackupDrDrill')}
           </button>
           <button
             onClick={() => setActiveTab('signoff')}
@@ -259,7 +317,7 @@ export const CctvReleaseCenter: React.FC = () => {
             }`}
           >
             <FileCheck className="w-4 h-4" />
-            4. Sign-off & Release Authorization
+            {t('ui.cctvReleaseCenter.n4SignOffReleaseAuthorization')}
           </button>
         </div>
       </div>
@@ -277,49 +335,59 @@ export const CctvReleaseCenter: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Environment</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('ui.cctvReleaseCenter.environment')}</span>
                 <span className="text-xs px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-700 font-mono text-slate-700 dark:text-slate-300">
                   {preflight?.environment.toUpperCase()}
                 </span>
               </div>
               <div className="mt-3 text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Server className="w-5 h-5 text-indigo-500" />
-                Local Isolation Mode
+                {t('ui.cctvReleaseCenter.localIsolationMode')}
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                MediaMTX + PostgreSQL + Redis + SeaweedFS รันใน container แยก
+                {t('ui.cctvReleaseCenter.mediaMTXPostgreSQLRedisSeaweedFSRunIn')}
               </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Secret Hygiene</span>
-                <span className="text-xs px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-medium">
-                  Audited
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('ui.cctvReleaseCenter.secretHygiene')}</span>
+                <span className={`text-xs px-2.5 py-1 rounded font-medium ${statusTone(secretStatus)}`}>
+                  {statusLabel(secretStatus)}
                 </span>
               </div>
               <div className="mt-3 text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Lock className="w-5 h-5 text-emerald-500" />
-                No Default Secrets in Staging
+                <Lock className={`w-5 h-5 ${statusText(secretStatus)}`} />
+                {secretStatus === 'passed'
+                  ? t('ui.cctvReleaseCenter.noDefaultSecretsInStaging')
+                  : t('ui.cctvReleaseCenter.secretsNeedAttention')}
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                JWT_SECRET และ ENCRYPTION_KEY ผ่านเกณฑ์ความยาวขั้นต่ำ
+                {secretStatus === 'passed'
+                  ? t('ui.cctvReleaseCenter.jwtSecretAndEncryptionKeyMeet')
+                  : t('ui.cctvReleaseCenter.secretsNeedAttentionDetail')}
               </p>
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Status Gate</span>
-                <span className="text-xs px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-semibold uppercase">
-                  {preflight?.overallStatus}
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('ui.cctvReleaseCenter.statusGate')}</span>
+                <span className={`text-xs px-2.5 py-1 rounded font-semibold ${statusTone(gateStatus)}`}>
+                  {statusLabel(gateStatus)}
                 </span>
               </div>
-              <div className="mt-3 text-xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Ready for Pilot Rollout
+              <div className={`mt-3 text-xl font-bold flex items-center gap-2 ${statusText(gateStatus)}`}>
+                {statusIcon(gateStatus, 'w-5 h-5')}
+                {!preflight
+                  ? t('ui.cctvReleaseCenter.gateUnknown')
+                  : preflight.overallStatus === 'ready'
+                  ? t('ui.cctvReleaseCenter.readyForPilotRollout')
+                  : preflight.overallStatus === 'blocked'
+                  ? t('ui.cctvReleaseCenter.gateBlocked')
+                  : t('ui.cctvReleaseCenter.gateActionRequired')}
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                ผ่านเงื่อนไขการตรวจสอบระดับสถาปัตยกรรม 100%
+                {t('ui.cctvReleaseCenter.passedChecksCount', { passed: passedCount, total: preflight?.items.length ?? 0 })}
               </p>
             </div>
           </div>
@@ -329,10 +397,10 @@ export const CctvReleaseCenter: React.FC = () => {
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Shield className="w-5 h-5 text-indigo-500" />
-                Pre-flight Inspection Items ({preflight?.items.length ?? 0} รายการ)
+                {t('ui.cctvReleaseCenter.preFlightInspectionItems')}{preflight?.items.length ?? 0}{' '}{t('ui.cctvReleaseCenter.items')}
               </h2>
               <span className="text-xs text-slate-400">
-                ตรวจสอบล่าสุด: {preflight ? new Date(preflight.checkedAt).toLocaleTimeString() : '-'}
+                {t('ui.cctvReleaseCenter.lastChecked')}{' '}{preflight ? new Date(preflight.checkedAt).toLocaleTimeString() : '-'}
               </span>
             </div>
             <div className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -360,7 +428,7 @@ export const CctvReleaseCenter: React.FC = () => {
                     {item.remediation && (
                       <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 p-2 rounded border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                        <span>คำแนะนำ: {item.remediation}</span>
+                        <span>{t('ui.cctvReleaseCenter.recommendation')}{' '}{item.remediation}</span>
                       </div>
                     )}
                   </div>
@@ -391,15 +459,15 @@ export const CctvReleaseCenter: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Video className="w-5 h-5 text-indigo-500" />
-              Pilot Rollout Wave Planner
+              {t('ui.cctvReleaseCenter.pilotRolloutWavePlanner')}
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              ปรับระดับจำนวนกล้องนำร่องเพื่อคำนวณ Bandwidth Ingress, Storage ที่ต้องจัดเตรียม และเกณฑ์การประเมิน
+              {t('ui.cctvReleaseCenter.adjustThePilotCameraCountTo')}
             </p>
 
             <div className="mt-5">
               <div className="flex justify-between text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                <span>จำนวนกล้อง Pilot: {pilotCameras} ตัว</span>
+                <span>{t('ui.cctvReleaseCenter.pilotCameras')}{' '}{pilotCameras}{' '}{t('ui.cctvReleaseCenter.cams')}</span>
                 <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{pilotPlan?.phase}</span>
               </div>
               <input
@@ -412,44 +480,44 @@ export const CctvReleaseCenter: React.FC = () => {
                 className="w-full accent-indigo-600 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-                <span>5 ตัว (Minimal)</span>
-                <span>25 ตัว (Canary Wave)</span>
-                <span>50 ตัว (Sub-zone)</span>
-                <span>100 ตัว (Full Staging)</span>
+                <span>{t('ui.cctvReleaseCenter.n5CamsMinimal')}</span>
+                <span>{t('ui.cctvReleaseCenter.n25CamsCanaryWave')}</span>
+                <span>{t('ui.cctvReleaseCenter.n50CamsSubZone')}</span>
+                <span>{t('ui.cctvReleaseCenter.n100CamsFullStaging')}</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-5 border-t border-slate-200 dark:border-slate-700">
               <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                <div className="text-xs text-slate-500">Ingress Bandwidth</div>
+                <div className="text-xs text-slate-500">{t('ui.cctvReleaseCenter.ingressBandwidth')}</div>
                 <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
-                  ~{pilotPlan?.expectedIngressMbps} Mbps
+                  ~{pilotPlan?.expectedIngressMbps}{' '}{t('ui.cctvReleaseCenter.mbps')}
                 </div>
-                <div className="text-[10px] text-slate-400">@ 2.0 Mbps ต่อช่อง</div>
+                <div className="text-[10px] text-slate-400">{t('ui.cctvReleaseCenter.n20MbpsPerChannel')}</div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                <div className="text-xs text-slate-500">Daily Storage</div>
+                <div className="text-xs text-slate-500">{t('ui.cctvReleaseCenter.dailyStorage')}</div>
                 <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
-                  ~{pilotPlan?.expectedStoragePerDayGB} GB/day
+                  ~{pilotPlan?.expectedStoragePerDayGB}{' '}{t('ui.cctvReleaseCenter.gbDay')}
                 </div>
-                <div className="text-[10px] text-slate-400">21.6 GB/ช่อง/วัน</div>
+                <div className="text-[10px] text-slate-400">{t('ui.cctvReleaseCenter.n216GbChannelDay')}</div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                <div className="text-xs text-slate-500">7-Day Retention Pool</div>
+                <div className="text-xs text-slate-500">{t('ui.cctvReleaseCenter.n7DayRetentionPool')}</div>
                 <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
-                  ~{(((pilotPlan?.expectedStoragePerDayGB ?? 0) * 7) / 1000).toFixed(1)} TB
+                  ~{(((pilotPlan?.expectedStoragePerDayGB ?? 0) * 7) / 1000).toFixed(1)}{' '}{t('ui.cctvReleaseCenter.tb')}
                 </div>
-                <div className="text-[10px] text-slate-400">Rolling Buffer fMP4</div>
+                <div className="text-[10px] text-slate-400">{t('ui.cctvReleaseCenter.rollingBufferFMP')}</div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-                <div className="text-xs text-slate-500">Media Nodes ที่แนะนำ</div>
+                <div className="text-xs text-slate-500">{t('ui.cctvReleaseCenter.recommendedMediaNodes')}</div>
                 <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                  {pilotPlan?.recommendedNodes} Node (Active/Standby)
+                  {pilotPlan?.recommendedNodes}{' '}{t('ui.cctvReleaseCenter.nodeActiveStandby')}
                 </div>
-                <div className="text-[10px] text-slate-400">1Gbps/2.5Gbps Uplink</div>
+                <div className="text-[10px] text-slate-400">{t('ui.cctvReleaseCenter.n1Gbps25GbpsUplink')}</div>
               </div>
             </div>
           </div>
@@ -458,10 +526,10 @@ export const CctvReleaseCenter: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
               <ClipboardList className="w-5 h-5 text-indigo-500" />
-              UAT Acceptance Criteria Checklist (ลงนามยอมรับผลการทดสอบ 6 มิติ)
+              {t('ui.cctvReleaseCenter.uatAcceptanceCriteriaChecklist', { count: totalCriteria })}
             </h2>
             <p className="text-xs text-slate-500 mb-4">
-              คลิกตรวจสอบเพื่อยืนยันว่าผลการทดสอบในสภาพแวดล้อม Pilot ผ่านเกณฑ์มาตรฐานทั้งหมด
+              {t('ui.cctvReleaseCenter.clickToConfirmThatResultsIn')}
             </p>
 
             <div className="space-y-3">
@@ -484,20 +552,12 @@ export const CctvReleaseCenter: React.FC = () => {
                   />
                   <div className="flex-1">
                     <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                      เกณฑ์ข้อที่ {idx + 1}: {criterion}
+                      {t('ui.cctvReleaseCenter.criterion')}{' '}{idx + 1}: {criterion}
                     </span>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {idx === 0 && 'ทดสอบเล่นสดผ่าน WebRTC WHEP ดีเลย์น้อยกว่า 500ms บน Multi-Grid 16 จอ'}
-                      {idx === 1 && 'บันทึกไฟล์ fMP4 ต่อเนื่อง 24 ชม. Scrubber Timeline แสดงช่องว่างและบล็อกต่อเนื่องชัดเจน'}
-                      {idx === 2 && 'คลิกกระโดดจาก Incident Center ไปยังวินาทีเกิดเหตุ และส่งออกคลิปหลักฐานพร้อม Pre-buffer 15 วินาที'}
-                      {idx === 3 && 'รองรับกล้องตามไซต์โรงงาน Edge Site Routing และระบบอพยพ Failover เมื่อโหนดมีเดียล่ม'}
-                      {idx === 4 && 'บอท Telegram แจ้งเตือนหลุดการเชื่อมต่อหรือภาพดับภายใน 5 วินาที'}
-                      {idx === 5 && 'ยืนยันเด็ดขาด: ห้ามมีทราฟฟิกหรือข้อมูลกระทบต่อ Image Service Production เดิม'}
-                    </div>
                   </div>
                   {uatChecked[idx] && (
                     <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium">
-                      PASS
+                      {t('ui.cctvReleaseCenter.pass')}
                     </span>
                   )}
                 </label>
@@ -515,37 +575,37 @@ export const CctvReleaseCenter: React.FC = () => {
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Database className="w-5 h-5 text-indigo-500" />
-                  Disaster Recovery (DR) & Backup Drill
+                  {t('ui.cctvReleaseCenter.disasterRecoveryDrBackupDrill')}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  คู่มือและคำสั่งสำหรับการสำรองฐานข้อมูล การกู้คืนระบบ และการซักซ้อมเหตุฉุกเฉิน (DR Drill)
+                  {t('ui.cctvReleaseCenter.runbookAndCommandsForDatabaseBackup')}
                 </p>
               </div>
               {/* [R1.8] No automated drill exists yet; never show a fabricated SUCCESS result. */}
               <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 max-w-sm">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                ยังไม่มี DR Drill อัตโนมัติ — ต้องซ้อมตาม runbook ด้านล่างบนเครื่อง Dev และบันทึกผลจริงใน Sign-off
+                {t('ui.cctvReleaseCenter.noAutomatedDrDrillYetRun')}
               </div>
             </div>
 
             {/* Runbook Snippets */}
             <div className="mt-6 space-y-4">
               <div className="p-4 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs">
-                <div className="text-slate-400 mb-1"># 1. สำรองข้อมูล PostgreSQL Database (Daily Snapshot)</div>
+                <div className="text-slate-400 mb-1">{t('ui.cctvReleaseCenter.n1BackUpThePostgreSQLDatabase')}</div>
                 <div className="text-emerald-400">
                   docker compose exec -T postgres pg_dump -U postgres cctv_db | gzip &gt; /backups/cctv_db_$(date +%Y%m%d_%H%M%S).sql.gz
                 </div>
               </div>
 
               <div className="p-4 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs">
-                <div className="text-slate-400 mb-1"># 2. กู้คืนฐานข้อมูล (Restore Test Drill)</div>
+                <div className="text-slate-400 mb-1">{t('ui.cctvReleaseCenter.n2RestoreTheDatabaseRestoreTest')}</div>
                 <div className="text-emerald-400">
                   gunzip -c /backups/cctv_db_20261027_000000.sql.gz | docker compose exec -T postgres psql -U postgres -d cctv_db_dr_test
                 </div>
               </div>
 
               <div className="p-4 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs">
-                <div className="text-slate-400 mb-1"># 3. อพยพสตรีมกล้องฉุกเฉิน (Media Node Failover Evacuation via API)</div>
+                <div className="text-slate-400 mb-1">{t('ui.cctvReleaseCenter.n3EmergencyCameraStreamEvacuationMedia')}</div>
                 <div className="text-emerald-400">
                   curl -X POST http://127.0.0.1:3000/api/v1/media-nodes/node-edge-01/failover -H "Authorization: Bearer $JWT"
                 </div>
@@ -563,10 +623,10 @@ export const CctvReleaseCenter: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                 <FileCheck className="w-5 h-5 text-indigo-500" />
-                แบบฟอร์มอนุมัติปล่อย Pilot Release (Sign-off)
+                {t('ui.cctvReleaseCenter.pilotReleaseSignOffForm')}
               </h2>
               <p className="text-xs text-slate-500 mb-4">
-                ยืนยันการรับมอบระบบ CCTV Platform เข้าสู่ระยะ Pilot Rollout อย่างเป็นทางการ
+                {t('ui.cctvReleaseCenter.formallyAcceptTheCctvPlatformInto')}
               </p>
 
               {signoffErrorMsg && (
@@ -583,7 +643,7 @@ export const CctvReleaseCenter: React.FC = () => {
               <form onSubmit={handleSubmitSignoff} className="space-y-4 text-sm">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    ชื่อผู้ลงนามอนุมัติ (Sign-off By)
+                    {t('ui.cctvReleaseCenter.signedOffBy')}
                   </label>
                   <input
                     type="text"
@@ -595,36 +655,38 @@ export const CctvReleaseCenter: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    สภาพแวดล้อมเป้าหมาย (Target Environment)
+                    {t('ui.cctvReleaseCenter.targetEnvironment')}
                   </label>
                   <input
                     type="text"
                     value={targetEnv}
                     onChange={(e) => setTargetEnv(e.target.value)}
                     required
+                    maxLength={64}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                   <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    ต้องเป็น Server หรือ VLAN ที่เตรียมไว้เฉพาะ CCTV เท่านั้น (ห้ามชี้ไปยัง Image Service เดิม)
+                    {t('ui.cctvReleaseCenter.mustBeAServerOrVlan')}
                   </span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    ขอบเขตการนำร่อง (Scope)
+                    {t('ui.cctvReleaseCenter.scope')}
                   </label>
                   <input
                     type="text"
                     value={scope}
                     onChange={(e) => setScope(e.target.value)}
                     required
+                    maxLength={32}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    บันทึกและหมายเหตุ (Release Notes & Assurance)
+                    {t('ui.cctvReleaseCenter.releaseNotesAssurance')}
                   </label>
                   <textarea
                     rows={3}
@@ -635,11 +697,35 @@ export const CctvReleaseCenter: React.FC = () => {
                 </div>
 
                 <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                  <div className="font-semibold text-slate-900 dark:text-white">คำรับรองสถาปัตยกรรม (Assurance):</div>
-                  <div>✓ สภาพแวดล้อม Dev/Staging แยกต่างหาก 100%</div>
-                  <div>✓ ตรวจสอบ Secret Hygiene ไม่มี default key หลุดไปใช้งาน</div>
-                  <div>✓ ผลการทดสอบ UAT และ DR Drill ผ่านเกณฑ์ทุกข้อ</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{t('ui.cctvReleaseCenter.architectureAssurance')}</div>
+                  <div className="flex items-center gap-1.5">
+                    {statusIcon(statusOf('iso-fail-closed'))}
+                    {t('ui.cctvReleaseCenter.assuranceIsolation')}: {statusLabel(statusOf('iso-fail-closed'))}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {statusIcon(secretStatus)}
+                    {t('ui.cctvReleaseCenter.assuranceSecrets')}: {statusLabel(secretStatus)}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {statusIcon(gateStatus)}
+                    {t('ui.cctvReleaseCenter.assurancePreflight')}: {statusLabel(gateStatus)}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {statusIcon(uatComplete ? 'passed' : 'warning')}
+                    {t('ui.cctvReleaseCenter.assuranceUat', { done: checkedCriteria, total: totalCriteria })}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {statusIcon('warning')}
+                    {t('ui.cctvReleaseCenter.assuranceDr')}
+                  </div>
                 </div>
+
+                {!checklistPassed && (
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    {t('ui.cctvReleaseCenter.checklistIncompleteWarning')}
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -647,7 +733,7 @@ export const CctvReleaseCenter: React.FC = () => {
                   className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <FileCheck className="w-4 h-4" />
-                  {submittingSignoff ? 'กำลังบันทึก...' : 'อนุมัติและลงนาม Pilot Release Sign-off'}
+                  {submittingSignoff ? t('common.saving') : t('ui.cctvReleaseCenter.approveSignPilotRelease')}
                 </button>
               </form>
             </div>
@@ -656,10 +742,10 @@ export const CctvReleaseCenter: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                 <ShieldAlert className="w-5 h-5 text-indigo-500" />
-                ประวัติการลงนามอนุมัติ (Sign-off Audit Trail)
+                {t('ui.cctvReleaseCenter.signOffAuditTrail')}
               </h2>
               <p className="text-xs text-slate-500 mb-4">
-                รายการบันทึกการอนุมัติปล่อยระบบในระบบ Audit Log
+                {t('ui.cctvReleaseCenter.releaseApprovalsRecordedInTheAudit')}
               </p>
 
               <div className="space-y-3">
@@ -670,14 +756,14 @@ export const CctvReleaseCenter: React.FC = () => {
                   >
                     <div className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
                       <span>{item.scope}</span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px]">
-                        APPROVED
+                      <span className={`px-2 py-0.5 rounded text-[10px] ${statusTone(item.checklistPassed ? 'passed' : 'warning')}`}>
+                        {item.checklistPassed ? t('ui.cctvReleaseCenter.approved') : t('ui.cctvReleaseCenter.signedChecklistNotPassed')}
                       </span>
                     </div>
                     <div className="text-slate-500 mt-1 flex items-center gap-2 text-[11px]">
-                      <span>ผู้อนุมัติ: {item.signedBy}</span>
+                      <span>{t('ui.cctvReleaseCenter.approver')}{' '}{item.signedBy}</span>
                       <span>•</span>
-                      <span>เป้าหมาย: {item.targetEnvironment}</span>
+                      <span>{t('ui.cctvReleaseCenter.target')}{' '}{item.targetEnvironment}</span>
                       <span>•</span>
                       <span>{new Date(item.signedAt).toLocaleString()}</span>
                     </div>

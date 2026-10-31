@@ -40,18 +40,7 @@ export interface ReleaseSignoffRecord {
   notes: string;
 }
 
-// In-memory registry for signoffs (with fallback to audit logs)
-const signoffRecords: ReleaseSignoffRecord[] = [
-  {
-    id: 'signoff-dev-baseline',
-    signedAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-    signedBy: 'System QA Lead',
-    targetEnvironment: 'dev-local',
-    scope: 'Phase 0 - 5 Verification',
-    checklistPassed: true,
-    notes: 'All Phase 0-5 acceptance criteria verified in isolated local docker network.',
-  },
-];
+// Sign-offs come only from the database; there is no seeded or in-memory record.
 
 /**
  * Audit environment secrets for default/insecure values
@@ -86,14 +75,19 @@ function auditSecretHygiene(): PreflightCheckItem[] {
   });
 
   // Fail-Closed Isolation Check
-  const isIsolated = process.env.CCTV_ISOLATION_VERIFIED !== 'false';
+  // Nothing here can prove network separation, so it only passes when an operator has checked it by hand.
+  const isIsolated = process.env.CCTV_ISOLATION_VERIFIED === 'true';
   items.push({
     id: 'iso-fail-closed',
     category: 'isolation',
     name: 'Legacy Image-Service Isolation (Fail-Closed)',
-    status: isIsolated ? 'passed' : 'failed',
-    details: 'Isolated network `cctv-network` bound to 127.0.0.1; deploy-prod.sh blocked from touching legacy prod.',
-    remediation: 'Keep CCTV deployments entirely separate on designated host/ports (Docker project `cctv-platform`).',
+    status: isIsolated ? 'passed' : 'warning',
+    details: isIsolated
+      ? 'Operator confirmed CCTV_ISOLATION_VERIFIED=true for this host.'
+      : 'Network isolation from legacy Image-Service production has not been confirmed on this host.',
+    remediation: isIsolated
+      ? undefined
+      : 'Check that this host cannot reach legacy production, then set CCTV_ISOLATION_VERIFIED=true.',
   });
 
   return items;
@@ -156,7 +150,7 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
         category: 'streaming',
         name: 'MediaMTX Core Streaming Engine',
         status: 'warning',
-        details: `MediaMTX internal API not responding directly at ${mediamtxHost}:${mediamtxPort} (Simulated/Dev container fallback)`,
+        details: `MediaMTX API not responding at ${mediamtxHost}:${mediamtxPort}`,
         remediation: 'Verify mediamtx container status: `docker compose ps mediamtx`.',
       });
     }
@@ -172,13 +166,13 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
 
   // 3. Storage & Recordings Directory
   try {
-    const recordingCount = await prisma.cameraRecording.count().catch(() => 0);
+    const recordingCount = await prisma.cameraRecording.count();
     items.push({
       id: 'store-fmp4',
       category: 'storage',
       name: 'Recording Storage & Database Index',
       status: 'passed',
-      details: `Active recording metadata records: ${recordingCount}. Rolling buffer retention: 7d.`,
+      details: `Recording index reachable: ${recordingCount} recording records.`,
     });
   } catch {
     items.push({
@@ -195,10 +189,11 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
   const failedCount = items.filter((i) => i.status === 'failed').length;
   const score = Math.round((passedCount / items.length) * 100);
 
+  // Ready means every check passed; any warning still needs action.
   let overallStatus: 'ready' | 'action_required' | 'blocked' = 'ready';
   if (failedCount > 0) {
     overallStatus = 'blocked';
-  } else if (score < 80) {
+  } else if (passedCount < items.length) {
     overallStatus = 'action_required';
   }
 
@@ -206,7 +201,7 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
     score,
     overallStatus,
     environment: config.nodeEnv || 'development',
-    isolationVerified: true,
+    isolationVerified: items.find((i) => i.id === 'iso-fail-closed')?.status === 'passed',
     checkedAt: new Date().toISOString(),
     items,
   };
@@ -256,33 +251,27 @@ export async function recordSignoff(
   checklistPassed: boolean
 ): Promise<ReleaseSignoffRecord> {
   const prisma = getPrisma();
-  let dbRecord: any = null;
-
-  try {
-    dbRecord = await prisma.signoffRecord.create({
-      data: {
-        phase: scope,
-        role: targetEnvironment,
-        signoffBy: signedBy || 'Administrator',
-        comment: notes,
-        metadata: { checklistPassed, targetEnvironment, scope },
-      },
-    });
-  } catch (err) {
-    logger.warn({ err }, 'Failed to write sign-off to signoffRecord database table, falling back to memory');
-  }
+  // A sign-off that was not stored must fail; never report it as recorded.
+  const dbRecord = await prisma.signoffRecord.create({
+    data: {
+      phase: scope,
+      role: targetEnvironment,
+      signoffBy: signedBy,
+      comment: notes,
+      metadata: { checklistPassed, targetEnvironment, scope },
+    },
+  });
 
   const newRecord: ReleaseSignoffRecord = {
-    id: dbRecord?.id || `signoff-${Date.now().toString(36)}`,
-    signedAt: dbRecord?.signedAt ? dbRecord.signedAt.toISOString() : new Date().toISOString(),
-    signedBy: signedBy || 'Administrator',
+    id: dbRecord.id,
+    signedAt: (dbRecord.signedAt ?? dbRecord.createdAt).toISOString(),
+    signedBy,
     targetEnvironment,
     scope,
     checklistPassed,
     notes,
   };
 
-  signoffRecords.unshift(newRecord);
   logger.info({ record: newRecord }, 'Pilot & Release signoff recorded');
 
   // Also log into AuditLog with correct schema fields
@@ -304,25 +293,19 @@ export async function recordSignoff(
 }
 
 export async function listSignoffs(): Promise<ReleaseSignoffRecord[]> {
-  try {
-    const prisma = getPrisma();
-    const rows = await prisma.signoffRecord.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-    if (rows && rows.length > 0) {
-      return rows.map((r: any) => ({
-        id: r.id,
-        signedAt: r.signedAt ? r.signedAt.toISOString() : r.createdAt.toISOString(),
-        signedBy: r.signoffBy,
-        targetEnvironment: r.role,
-        scope: r.phase,
-        checklistPassed: (r.metadata as any)?.checklistPassed ?? true,
-        notes: r.comment || '',
-      }));
-    }
-  } catch {
-    // fallback to in-memory cache
-  }
-  return signoffRecords;
+  const prisma = getPrisma();
+  const rows = await prisma.signoffRecord.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  return rows.map((r: any) => ({
+    id: r.id,
+    signedAt: r.signedAt ? r.signedAt.toISOString() : r.createdAt.toISOString(),
+    signedBy: r.signoffBy,
+    targetEnvironment: r.role,
+    scope: r.phase,
+    // Older rows without the flag are not assumed to have passed.
+    checklistPassed: (r.metadata as any)?.checklistPassed === true,
+    notes: r.comment || '',
+  }));
 }

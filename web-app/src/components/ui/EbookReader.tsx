@@ -2,6 +2,7 @@ import { useMemo, useState, Fragment } from 'react'
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 
+import { useTranslation } from 'react-i18next'
 export interface EbookPage {
   id: string
   title: string
@@ -34,6 +35,7 @@ export function EbookReader({
   pageIndex: number
   onPageChange: (index: number) => void
 }) {
+  const { t } = useTranslation()
   const { themeConfig } = useTheme()
   const [query, setQuery] = useState('')
   const [pageInput, setPageInput] = useState(String(pageIndex + 1))
@@ -76,10 +78,10 @@ export function EbookReader({
         className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
       >
         <ChevronLeft size={14} />
-        Previous
+        {t('common.prev')}
       </button>
       <div className="flex items-center gap-1.5 text-xs text-gray-400">
-        <span>Page</span>
+        <span>{t('common.page')}</span>
         <input
           type="number"
           min={1}
@@ -94,7 +96,7 @@ export function EbookReader({
           }}
           onBlur={handlePageCommit}
           className="w-12 px-1.5 py-0.5 rounded border border-white/15 bg-white/5 text-center text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
-          title="Type page number and press Enter"
+          title={t('ui.ebookReader.typePageNumberAndPressEnter')}
         />
         <span>of {pages.length}</span>
       </div>
@@ -103,7 +105,7 @@ export function EbookReader({
         disabled={pageIndex === pages.length - 1}
         className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-cyan-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
       >
-        Next
+        {t('common.next')}
         <ChevronRight size={14} />
       </button>
     </div>
@@ -117,7 +119,7 @@ export function EbookReader({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search this guide..."
+          placeholder={t('ui.ebookReader.searchThisGuide')}
           className="w-full pl-9 pr-9 py-2 rounded-md bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500/50 placeholder:text-gray-500"
         />
         {isSearching && (
@@ -134,7 +136,7 @@ export function EbookReader({
       {isSearching && (
         <div className="mb-4 rounded-md border border-white/10 divide-y divide-white/5 overflow-hidden">
           {matches.length === 0 ? (
-            <div className="p-3 text-xs text-gray-500">No pages match "{query}"</div>
+            <div className="p-3 text-xs text-gray-500">{t('ui.ebookReader.noPagesMatch')}{query}"</div>
           ) : (
             matches.map(({ index, page }) => (
               <button
@@ -146,7 +148,7 @@ export function EbookReader({
                 className="w-full text-left px-3 py-2 text-xs hover:bg-white/5 transition-colors flex items-center justify-between gap-2"
               >
                 <span>{highlight(page.title, query)}</span>
-                <span className="text-gray-500 shrink-0">Page {index + 1}</span>
+                <span className="text-gray-500 shrink-0">{t('common.page')}{' '}{index + 1}</span>
               </button>
             ))
           )}

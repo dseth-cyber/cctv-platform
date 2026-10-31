@@ -23,37 +23,37 @@ export default function DeadLetterQueue() {
   const retryMutation = useMutation({
     mutationFn: (jobId: string) => imageServiceApi.retryJob(jobId),
     onSuccess: () => {
-      toast.success('Job queued for retry');
+      toast.success(t('ui.deadLetterQueue.jobQueuedForRetry'));
       queryClient.invalidateQueries({ queryKey: ['dlq-summary'] });
     },
-    onError: (e: any) => { if (!e?._handled) toast.error('Failed to retry job'); },
+    onError: (e: any) => { if (!e?._handled) toast.error(t('ui.deadLetterQueue.failedToRetryJob')); },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (jobId: string) => imageServiceApi.rejectJob(jobId),
     onSuccess: () => {
-      toast.success('Job rejected');
+      toast.success(t('ui.deadLetterQueue.jobRejected'));
       queryClient.invalidateQueries({ queryKey: ['dlq-summary'] });
     },
-    onError: (e: any) => { if (!e?._handled) toast.error('Failed to reject job'); },
+    onError: (e: any) => { if (!e?._handled) toast.error(t('ui.deadLetterQueue.failedToRejectJob')); },
   });
 
   const bulkRetryMutation = useMutation({
     mutationFn: (jobType?: string) => imageServiceApi.bulkRetryDlq(jobType),
     onSuccess: (res: any) => {
-      toast.success(`${res.updated} jobs sent for retry`);
+      toast.success(t('ui.deadLetterQueue.jobsSentForRetry', { updated: res.updated }));
       queryClient.invalidateQueries({ queryKey: ['dlq-summary'] });
     },
-    onError: (e: any) => { if (!e?._handled) toast.error('Failed to bulk retry'); },
+    onError: (e: any) => { if (!e?._handled) toast.error(t('ui.deadLetterQueue.failedToBulkRetry')); },
   });
 
   const bulkRejectMutation = useMutation({
     mutationFn: (jobType?: string) => imageServiceApi.bulkRejectDlq(jobType),
     onSuccess: (res: any) => {
-      toast.success(`${res.updated} jobs rejected`);
+      toast.success(t('ui.deadLetterQueue.jobsRejected', { updated: res.updated }));
       queryClient.invalidateQueries({ queryKey: ['dlq-summary'] });
     },
-    onError: (e: any) => { if (!e?._handled) toast.error('Failed to bulk reject'); },
+    onError: (e: any) => { if (!e?._handled) toast.error(t('ui.deadLetterQueue.failedToBulkReject')); },
   });
 
   const jobs = dlq?.jobs ?? [];
@@ -67,7 +67,7 @@ export default function DeadLetterQueue() {
     <div className="p-6">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.deadLetter.title')}
+          iSmart CCTV · {t('imageService.deadLetter.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.deadLetter.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.deadLetter.subtitle')}</p>
@@ -163,7 +163,7 @@ export default function DeadLetterQueue() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
-                <tr><td colSpan={6} className={`text-center py-8 text-sm ${themeConfig.text.secondary}`}>Loading...</td></tr>
+                <tr><td colSpan={6} className={`text-center py-8 text-sm ${themeConfig.text.secondary}`}>{t('common.loading')}</td></tr>
               ) : filteredJobs.length === 0 ? (
                 <tr><td colSpan={6} className={`text-center py-8 text-sm ${themeConfig.text.secondary}`}>
                   {t('imageService.deadLetter.noDeadLetters')}

@@ -19,7 +19,7 @@
 - [A] R1.5 Export: ตัด fallback หัวไฟล์ MP4 ปลอมและ fallback copy เมื่อไม่มี ffmpeg → สถานะ `FAILED` พร้อมเหตุผล
 - [A] R1.6 Retention/Eviction: ย้ายไฟล์ไป quarantine (กู้คืนได้) แทน `unlink`, claim แบบ atomic `updateMany where legalHold=false` ก่อนย้าย, นับพื้นที่คืนเฉพาะไฟล์ที่ย้ายจริง
 - [A] R1.7 Mount `./mediamtx/recordings` เข้า `image-api` ที่ path เดียวกับ MediaMTX และตั้ง `RECORDINGS_DIR`
-- [x] R1.8 ผล DR drill ใน Release Center ต้องมาจากการตรวจจริง หรือแสดงชัดว่าเป็น simulation (ห้ามข้อความ SUCCESS ตายตัว)
+- [x] R1.8 ผล DR drill ใน Release Center ต้องมาจากการตรวจจริง หรือแสดงชัดว่าเป็น simulation (ห้ามข้อความ SUCCESS ตายตัว) — 2026-10-31: ข้อความรับรองทุกจุด (isolation, secret, status gate, assurance, badge ประวัติ) ผูกกับผล preflight/UAT จริง; UAT เริ่มว่าง; `checklistPassed` ส่งตามจริง; ลบ sign-off ปลอม "System QA Lead"; sign-off ที่บันทึก DB ไม่ได้ → error (เดิม fallback memory เงียบ). ตรวจ API ใน container แล้ว ยังไม่ได้เปิดหน้าในเบราว์เซอร์
 - [A] R1.9 `POST /audit-logs/bulk-delete` ต้องใช้ `audit-log:delete` (เดิมใช้แค่ `audit-log:read` — ผู้มีสิทธิ์อ่านลบ audit log ได้) และซ่อนปุ่มใน UI ตามสิทธิ์เดียวกัน
 - [A] R1.10 MediaMTX auth: `publish` อนุญาตเฉพาะ loopback (ตัวสร้างสตรีม sim ใน container MediaMTX) — เดิมอนุญาตทุก IP ทำให้ใครเข้าถึง RTSP ได้ก็ publish ทับสตรีมกล้องได้
 - [A] R1.11 image-api container crash ตอนเริ่ม: override `stream-json@^3.7.0` (ENH-05) ทำให้ `minio` import `stream-json/jsonl/Parser.js` ไม่เจอบน Linux (case-sensitive) — เอา override ออก, `minio` ใช้ `stream-json@1.9.1` แบบ nested (advisory ของ 1.x อยู่ใน filters/Assembler ซึ่ง `minio` และแอปไม่ได้เรียก; แอปไม่ใช้ `listenBucketNotification`)

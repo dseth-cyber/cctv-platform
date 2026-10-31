@@ -50,7 +50,7 @@ export default function ImageServiceCameraDetail() {
   };
 
   if (isLoading) return <div className="p-6"><TableSkeleton rows={6} /></div>;
-  if (!camera) return <div className="p-6 text-red-400">Camera not found</div>;
+  if (!camera) return <div className="p-6 text-red-400">{t('ui.imageServiceCameraDetail.cameraNotFound')}</div>;
 
   const statusStyle = CAMERA_STATUS_STYLES[camera.status] ?? CAMERA_STATUS_STYLES.inactive;
   const StatusIcon = statusStyle.icon;
@@ -65,7 +65,7 @@ export default function ImageServiceCameraDetail() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.cameras.title')}
+            iSmart CCTV · {t('imageService.cameras.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{camera.name}</h1>
         </div>
@@ -121,11 +121,11 @@ export default function ImageServiceCameraDetail() {
           {t('imageService.cameras.cameraInfo')}
         </h3>
         <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-          <dt className={themeConfig.text.secondary}>IP</dt>
+          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameraDetail.ip')}</dt>
           <dd className={themeConfig.text.primary}>{camera.ipAddress}</dd>
           <dt className={themeConfig.text.secondary}>{t('imageService.cameras.description')}</dt>
           <dd className={themeConfig.text.primary}>{camera.description || '—'}</dd>
-          <dt className={themeConfig.text.secondary}>SMB Path</dt>
+          <dt className={themeConfig.text.secondary}>{t('ui.imageServiceCameraDetail.smbPath')}</dt>
           <dd className={`${themeConfig.text.primary} font-mono text-xs`}>{camera.smbSharePath}</dd>
           <dt className={themeConfig.text.secondary}>{t('imageService.cameras.captureMode')}</dt>
           <dd className={themeConfig.text.primary}>{camera.captureMode}</dd>
@@ -160,7 +160,7 @@ export default function ImageServiceCameraDetail() {
                     <td className={`px-3 py-2 text-xs ${themeConfig.text.primary}`}>{idx + 1}</td>
                     <td className={`px-3 py-2 text-xs font-mono ${themeConfig.text.primary}`}>{img.filename}</td>
                     <td className={`px-3 py-2 text-xs text-right ${themeConfig.text.secondary}`}>
-                      {img.fileSizeBytes ? `${(img.fileSizeBytes / 1024 / 1024).toFixed(1)} MB` : '—'}
+                      {img.fileSizeBytes ? t('ui.imageServiceCameraDetail.mb', { v0: (img.fileSizeBytes / 1024 / 1024).toFixed(1) }) : '—'}
                     </td>
                     <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>
                       {img.capturedAt ? formatDateTime(img.capturedAt, i18n.language) : '—'}

@@ -58,10 +58,15 @@ export async function releaseRoutes(app: FastifyInstance): Promise<void> {
       if (!signedBy) {
         return reply.status(401).send({ message: 'Authenticated user identity required for sign-off' });
       }
+      // Column limits of signoff_records (phase 32, role 64, signoff_by 128).
+      if ((body.scope?.length ?? 0) > 32 || (body.targetEnvironment?.length ?? 0) > 64 || signedBy.length > 128) {
+        return reply.status(400).send({ message: 'scope must be at most 32 characters and targetEnvironment at most 64' });
+      }
       const targetEnv = body.targetEnvironment || 'pilot-staging';
-      const scope = body.scope || 'CCTV Pilot Rollout Wave 1';
-      const notes = body.notes || 'Pre-flight and UAT checks accepted.';
-      const passed = body.checklistPassed !== false;
+      const scope = body.scope || 'CCTV Pilot Wave 1';
+      const notes = body.notes || '';
+      // Only an explicit true counts as a passed checklist.
+      const passed = body.checklistPassed === true;
 
       const record = await recordSignoff(signedBy, targetEnv, scope, notes, passed);
       return reply.status(201).send(record);

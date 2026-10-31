@@ -166,7 +166,7 @@ export default function ImageServiceSettings() {
     <div className="p-6 max-w-4xl">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.settings.title')}
+          iSmart CCTV · {t('imageService.settings.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.settings.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.settings.subtitle')}</p>
@@ -187,13 +187,13 @@ export default function ImageServiceSettings() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>Email {t('imageService.settings.alertEmail')}</label>
+            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.imageServiceSettings.email')}{' '}{t('imageService.settings.alertEmail')}</label>
             <input value={alertEmail} onChange={e => setAlertEmail(e.target.value)}
               placeholder="admin@example.com"
               className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
           </div>
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>Webhook URL</label>
+            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.imageServiceSettings.webhookUrl')}</label>
             <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)}
               placeholder="https://hooks.example.com/alerts"
               className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
@@ -253,7 +253,7 @@ export default function ImageServiceSettings() {
             <span className={`ml-2 font-medium ${themeConfig.text.primary}`}>{alertsArr.length}</span>
           </div>
           <div>
-            <span className={themeConfig.text.secondary}>API Key:</span>
+            <span className={themeConfig.text.secondary}>{t('ui.imageServiceSettings.apiKey')}</span>
             <span className={`ml-2 font-mono text-xs ${themeConfig.text.primary}`}>
               {showApiKey ? 'sk-••••••••••••••••' : '••••••••••••••••'}
               <button onClick={() => setShowApiKey(!showApiKey)} className="ml-1 align-middle">

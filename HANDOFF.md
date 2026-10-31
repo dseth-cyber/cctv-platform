@@ -26,7 +26,7 @@
 
 ## งานล่าสุด (2026-10-31) — ตรวจรับ R1 ใน container
 
-สถานะ: R1.1–R1.7, R1.9–R1.11 = `[A]`; R1.8 = `[x]` (ยังไม่ได้เปิด UI ในเบราว์เซอร์). R1 commit `4b4412d` push แล้วที่ `fix/audit-remediation`; การแก้รอบนี้ยังไม่ commit. ไม่ได้แตะ Server ใด
+สถานะ: R1.1–R1.7, R1.9–R1.11 = `[A]`; R1.8 = `[x]` (แก้ข้อความรับรองตายตัวแล้ว ตรวจ API ใน container แล้ว ยังไม่ได้เปิด UI ในเบราว์เซอร์). R1 commit `4b4412d` push แล้วที่ `fix/audit-remediation`; การแก้รอบนี้ยังไม่ commit. ไม่ได้แตะ Server ใด
 
 สภาพแวดล้อมที่ใช้ (Dev บนเครื่องนี้เท่านั้น):
 - compose project `cctv-platform` — volume `cctv-platform_postgres-data` สร้างใหม่ (DB ว่าง → migrate โดย `image-api-migrate` → seed) ไม่เกี่ยวกับ volume `image-service_*` ของระบบอื่น
@@ -46,8 +46,25 @@
 2. `POST /audit-logs/bulk-delete` ใช้แค่ `audit-log:read` → เปลี่ยนเป็น `audit-log:delete` ใน [audit.controller.ts](image-api/src/modules/audit/audit.controller.ts) และปุ่มใน [AuditLogViewer.tsx](web-app/src/pages/image-service/AuditLogViewer.tsx) (ตอนนี้มีแค่ admin ที่ได้ เพราะมี `*`)
 3. [media-auth.controller.ts](image-api/src/modules/media/media-auth.controller.ts): `action=publish` อนุญาตทุก IP ทั้งที่คอมเมนต์บอก localhost → จำกัดเฉพาะ loopback (กล้องเป็น pull ผ่าน `source:` จึงไม่มี publisher ภายนอก) + test 2 ตัวใน [media-webhook.test.ts](image-api/src/modules/media/media-webhook.test.ts)
 4. [seal-rtsp-credentials.ts](image-api/prisma/seal-rtsp-credentials.ts) import จาก `src/` ซึ่งไม่มีใน runtime image → โหลด `dist/` ก่อนแล้ว fallback `src/`
+5. **Login จากเบราว์เซอร์ไม่ได้** (UI ขึ้น "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" แต่ API ตอบ 500 "Not allowed by CORS"): compose default `CORS_ALLOWED_ORIGINS` ว่าง → ตั้ง default เป็น `http://localhost:${WEB_HTTP_PORT}`,`https://localhost:${WEB_HTTPS_PORT}` ใน [docker-compose.yml](docker-compose.yml); ผู้ใช้ login ผ่านเบราว์เซอร์ได้แล้ว (2026-10-31). origin ที่ไม่อนุญาตยังได้ 500 แทน 403 (R2)
+6. เปลี่ยนชื่อระบบ "Image Service" → "iSmart CCTV" (ตามที่ผู้ใช้ขอ) ใน web-app 35 ไฟล์ (title, manifest, login, sidebar, header ทุกหน้า, i18n 5 ภาษา) และ default `system_name`/`system_description` ใน [system-config.service.ts](image-api/src/modules/system-config/system-config.service.ts); คง "Legacy Image Service" ใน Release Center (หมายถึงระบบเดิม). path `/image-service/*` และ i18n key ไม่เปลี่ยน; footer ยังเป็น `system_copyright` "© 2026 Chiotron"
 
 หลังแก้: `image-api` tsc exit 0, vitest 16 files / 79 passed; `web-app` tsc exit 0; rebuild image แล้วรัน acceptance ซ้ำ 21/21
+
+i18n ครบ 5 ภาษา (2026-10-31, ตามที่ผู้ใช้ขอ "ตรวจสอบทุกหน้า" — แปลทุกหน้ารวมหน้าโรงงาน, ไม่ต้องให้เจ้าของภาษาตรวจ):
+- ก่อนแก้: ข้อความ hardcode ~900 จุดใน 44 ไฟล์ (หน้า CCTV แทบทั้งหมดเป็นอังกฤษ, App shell เป็นไทย), cn/jp/mm ขาด 183–185 key, th/en ขาด 13 key, มี key ที่โค้ดอ้างแต่ไม่มีจริง 2 ตัว (`imageService.enterAssignedToOther`, `common.date`)
+- หลังแก้: locale ทั้ง 5 ไฟล์มี 3,459 key เท่ากัน, อ้าง `ui.*` 868 จุดไม่มี key หาย, `tsc` + `npm run build` ผ่าน, container web-app rebuild แล้ว
+- key ใหม่อยู่ใต้ `ui.<ชื่อไฟล์>.*`; ที่เหลือ hardcode (~78) ตั้งใจไม่แปล: ชื่อระบบ/ค่า fallback จาก system config, คำสั่ง shell ใน runbook, CSS keyframes, placeholder ทางเทคนิค (WORKGROUP, token ตัวอย่าง), รหัสภาษา TH/EN/CN/MM/JP, คำยืนยัน `DELETE`, ค่า status ที่ใช้เปรียบเทียบ (Launched/Planned), ชื่อธีมใน ThemeContext ที่ไม่ได้แสดงผล
+- เครื่องมือที่ใช้ (นอก repo, scratchpad): audit + codemod ด้วย TypeScript AST — ไม่แตะ string ที่เป็นเงื่อนไขเปรียบเทียบ, ใส่ `useTranslation()` ให้ component ที่ยังไม่มี
+- ยังไม่ได้ตรวจด้วยตา: เปิดแต่ละหน้าใน 5 ภาษาบนเบราว์เซอร์ (ประโยคบางจุดถูกแยกเป็นท่อนรอบตัวเลข เช่น "DVR/NVRs (" {n} "ch)" อาจอ่านไม่ลื่นในบางภาษา)
+- พบระหว่างแปล: Release Center มีข้อความรับรองตายตัวที่ไม่ได้มาจากผลตรวจจริง → แก้แล้ว (ดูหัวข้อ R1.8 ด้านล่าง)
+
+R1.8 Release Center — ผูกข้อความรับรองกับผลจริง (2026-10-31):
+- [release.service.ts](image-api/src/modules/release/release.service.ts): isolation ผ่านเฉพาะเมื่อตั้ง `CCTV_ISOLATION_VERIFIED=true` (เดิมผ่านถ้าไม่ได้ตั้งเป็น `false`), `isolationVerified` มาจากผลตรวจ (เดิม `true` ตายตัว); `ready` ต้องผ่านทุกข้อ (เดิม score ≥ 80 ก็ ready); ลบ sign-off seed "System QA Lead"; บันทึก DB ไม่ได้ → throw (เดิมเก็บใน memory แล้วตอบ 201); แถวเก่าที่ไม่มี flag → `checklistPassed=false`
+- [release.controller.ts](image-api/src/modules/release/release.controller.ts): `checklistPassed` ต้องเป็น `true` ชัดเจน; ตรวจความยาว scope ≤ 32 / targetEnvironment ≤ 64 → 400. พบว่า scope ค่าเริ่มต้นเดิม (45 ตัว) เกิน `VarChar(32)` ทุก sign-off จาก UI จึงไม่เคยลง DB จริง
+- [CctvReleaseCenter.tsx](web-app/src/pages/cctv/CctvReleaseCenter.tsx): ทุก badge/หัวข้อ/assurance แสดงจากผล preflight; UAT เริ่มว่าง; ลบคำอธิบายรายข้อที่ไม่ตรงกับ criteria ของ server; มีคำเตือนเมื่อ checklist ไม่ครบ; ประวัติแสดง "checklist ไม่ผ่าน" ตามจริง; notes เริ่มว่าง
+- ตรวจใน container: preflight = 67% `action_required` (isolation warning, MediaMTX API warning จริง); scope ยาว → 400; sign-off ไม่ส่ง flag → 201 `checklistPassed=false`; list ไม่มี record ปลอม. Dev DB มีแถวทดสอบ "R1.8 verify" 1 แถว
+- ข้อสังเกต: preflight เรียก MediaMTX API ที่ `127.0.0.1:9997` ภายใน container image-api จึงเป็น warning เสมอ — ต้องตั้ง `MEDIAMTX_HOST`/`MEDIAMTX_API_PORT` ใน compose ให้ชี้ service `mediamtx` (ยังไม่แก้)
 
 ข้อสังเกตที่ยังไม่แก้:
 - clip ขอ 30s ได้ไฟล์ 60s (ทั้ง segment) แต่ DB เก็บ `durationSeconds=30` และ `hasPreBuffer=true` แม้ pre-buffer 0 → R3.5

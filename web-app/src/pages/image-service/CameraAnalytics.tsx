@@ -290,7 +290,7 @@ export default function CameraAnalytics() {
   const eventExportColumns = [
     { key: 'no', label: '#' },
     { key: 'date', label: t('imageService.analytics.duration') },
-    { key: 'eventType', label: 'Event' },
+    { key: 'eventType', label: t('ui.cameraAnalytics.event') },
     { key: 'reason', label: t('imageService.analytics.reason') },
     { key: 'changedBy', label: t('imageService.analytics.changedBy') },
     { key: 'duration', label: t('imageService.analytics.duration') },
@@ -311,7 +311,7 @@ export default function CameraAnalytics() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
           <p className={`text-xs font-medium mb-0.5 uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.analytics.title')}
+            iSmart CCTV · {t('imageService.analytics.title')}
           </p>
           <h2 className={`text-2xl font-bold ${themeConfig.text.primary}`}>
             {t('imageService.analytics.title')}
@@ -406,7 +406,7 @@ export default function CameraAnalytics() {
             title={`${t('imageService.analytics.title')} — ${selectedCameraName}`}
             sections={[
               { title: t('imageService.analytics.title'), columns: [
-                { key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' },
+                { key: 'metric', label: t('ui.cameraAnalytics.metric') }, { key: 'value', label: t('ui.cameraAnalytics.value') },
               ], data: analytics ? [
                 { metric: t('imageService.analytics.availability'), value: `${analytics.availability}%` },
                 { metric: t('imageService.analytics.slaTarget'), value: `${analytics.slaTarget}% — ${analytics.slaMet ? '✅' : '❌'}` },
@@ -418,7 +418,7 @@ export default function CameraAnalytics() {
                 { metric: t('imageService.analytics.estimatedLostImages'), value: String(analytics.estimatedLostImages) },
               ] : [] },
               ...(analytics ? [{ title: `${t('imageService.analytics.uptime')} / ${t('imageService.analytics.downtime')}`, columns: [
-                { key: 'metric', label: 'Metric' }, { key: 'seconds', label: t('imageService.analytics.duration') }, { key: 'pct', label: '%' },
+                { key: 'metric', label: t('ui.cameraAnalytics.metric') }, { key: 'seconds', label: t('imageService.analytics.duration') }, { key: 'pct', label: '%' },
               ], data: [
                 { metric: t('imageService.analytics.uptime'), seconds: `${Math.round(analytics.uptime.seconds / 3600)} ${t('imageService.analytics.hours')}`, pct: `${analytics.uptime.percent}%` },
                 { metric: t('imageService.analytics.downtime'), seconds: `${Math.round(analytics.downtime.seconds / 3600)} ${t('imageService.analytics.hours')}`, pct: `${analytics.downtime.percent}%` },
@@ -899,7 +899,7 @@ export default function CameraAnalytics() {
                       <tr className={themeConfig.tableHeader}>
                         <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>#</th>
                         <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>{t('imageService.analytics.duration')}</th>
-                        <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>Event</th>
+                        <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>{t('ui.cameraAnalytics.event')}</th>
                         <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>{t('imageService.analytics.reason')}</th>
                         <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>{t('imageService.analytics.changedBy')}</th>
                         <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>{t('imageService.analytics.duration')}</th>
@@ -994,13 +994,13 @@ export default function CameraAnalytics() {
                       <thead>
                         <tr className={themeConfig.tableHeader}>
                           <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
-                            Camera
+                            {t('ui.cameraAnalytics.camera')}
                           </th>
                           <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
                             {t('imageService.analytics.availability')}
                           </th>
                           <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
-                            SLA
+                            {t('ui.cameraAnalytics.sla')}
                           </th>
                           <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
                             {t('imageService.analytics.mtbf')}

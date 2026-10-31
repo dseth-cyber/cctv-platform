@@ -30,7 +30,7 @@ export default function StorageProfilesPage() {
     mutationFn: (id: string) => imageServiceApi.deleteStorageProfile(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storage-profiles'] })
-      toast.success('Profile deleted')
+      toast.success(t('ui.storageProfilesPage.profileDeleted'))
       setDeleteTarget(null)
     },
     onError: (err: any) => { if (!err?._handled) toast.error(err?.response?.data?.message || t('common.error')); },
@@ -51,7 +51,7 @@ export default function StorageProfilesPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.storageProfiles.title')}
+            iSmart CCTV · {t('imageService.storageProfiles.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.storageProfiles.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.storageProfiles.subtitle')}</p>
@@ -141,7 +141,7 @@ export default function StorageProfilesPage() {
 
       <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t('common.deleteConfirm')}>
         <div className="p-1 space-y-4">
-          <p className={`text-sm ${themeConfig.text.secondary}`}>Are you sure you want to delete this profile?</p>
+          <p className={`text-sm ${themeConfig.text.secondary}`}>{t('ui.storageProfilesPage.areYouSureYouWantTo')}</p>
           <p className={`text-sm font-medium ${themeConfig.text.primary}`}>{deleteTarget?.nameEn}</p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
@@ -176,7 +176,7 @@ function StorageProfileFormModal({ isOpen, onClose, editTarget, providers }: { i
     mutationFn: (data: any) => imageServiceApi.createStorageProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storage-profiles'] })
-      toast.success('Profile created')
+      toast.success(t('ui.storageProfilesPage.profileCreated'))
       onClose()
     },
     onError: (err: any) => { if (!err?._handled) toast.error(err?.response?.data?.message || t('common.error')); },
@@ -187,7 +187,7 @@ function StorageProfileFormModal({ isOpen, onClose, editTarget, providers }: { i
     mutationFn: ({ id, data }: { id: string; data: any }) => imageServiceApi.updateStorageProfile(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storage-profiles'] })
-      toast.success('Profile updated')
+      toast.success(t('ui.storageProfilesPage.profileUpdated'))
       onClose()
     },
     onError: (err: any) => { if (!err?._handled) toast.error(err?.response?.data?.message || t('common.error')); },
@@ -195,7 +195,7 @@ function StorageProfileFormModal({ isOpen, onClose, editTarget, providers }: { i
   })
 
   const handleSubmit = async () => {
-    if (!code.trim() || !nameEn.trim()) { toast.error('Code and Name (EN) are required'); return }
+    if (!code.trim() || !nameEn.trim()) { toast.error(t('ui.storageProfilesPage.codeAndNameEnAreRequired')); return }
     setSubmitting(true)
     const payload = {
       code: code.trim(), nameTh, nameEn: nameEn.trim(), nameCn, nameMm, nameJp,

@@ -18,6 +18,7 @@ const DAY_NAMES_TH = ['อา','จ','อ','พ','พฤ','ศ','ส']
 const DAY_NAMES_EN = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
 export function DateTimePicker({ value, onChange, placeholder, className }: DateTimePickerProps) {
+  const { t } = useTranslation()
   const { i18n } = useTranslation()
   const { themeConfig } = useTheme()
   const isTH = i18n.language === 'th'
@@ -97,7 +98,7 @@ export function DateTimePicker({ value, onChange, placeholder, className }: Date
       <button type="button" ref={btnRef} onClick={() => setOpen(!open)}
         className={`w-full px-3 py-2 rounded-md text-sm text-left flex items-center justify-between border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} ${className ?? ''}`}>
         <span className={selDate ? themeConfig.text.primary : themeConfig.text.secondary}>
-          {displayValue() || placeholder || 'วว/ดด/ปปปป  ชม:นน'}
+          {displayValue() || placeholder || t('ui.dateTimePicker.ddMmYyyyHhMm')}
         </span>
         <div className="flex items-center gap-1">
           {selDate && (
@@ -165,7 +166,7 @@ export function DateTimePicker({ value, onChange, placeholder, className }: Date
               className="w-12 text-center bg-white/10 border border-white/20 rounded px-1 py-1 text-white text-sm" />
             <button type="button" onClick={setNow}
               className="ml-auto text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 px-2 py-1 rounded">
-              ตอนนี้
+              {t('ui.dateTimePicker.now')}
             </button>
             {selDate && (
               <button type="button" onClick={() => setOpen(false)}

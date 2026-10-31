@@ -786,7 +786,7 @@ export default function ImageServiceSearch() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
         <div className="shrink-0">
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.search.title')}
+            iSmart CCTV · {t('imageService.search.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.search.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.search.subtitle')}</p>
@@ -973,9 +973,9 @@ export default function ImageServiceSearch() {
               setPage(1);
             }}
               className="px-3 py-2 rounded-md text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors h-[38px] flex items-center justify-center gap-1.5"
-              title="Clear all filters"
+              title={t('ui.imageServiceSearch.clearAllFilters')}
             >
-              <X size={13} /> {t('imageService.search.clearFilter') || 'Clear'}
+              <X size={13} /> {t('imageService.search.clearFilter') || t('ui.imageServiceSearch.clear')}
             </button>
           )}
           {hasPermission(user, 'search:delete') && showFilter('bulkDelete') && (
@@ -1110,7 +1110,7 @@ export default function ImageServiceSearch() {
               <div className="flex items-center justify-center gap-1.5 flex-wrap">
                 <button disabled={page <= 1} onClick={() => setPage(1)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
-                  « {t('common.first') || 'หน้าแรก'}
+                  « {t('common.first') || t('common.first')}
                 </button>
                 <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                   className={`px-3 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
@@ -1133,7 +1133,7 @@ export default function ImageServiceSearch() {
                 </button>
                 <button disabled={page >= totalPages} onClick={() => setPage(totalPages || 1)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
-                  {t('common.last') || 'หน้าสุด'} »
+                  {t('common.last') || t('ui.imageServiceSearch.lastPage')} »
                 </button>
               </div>
             )}
@@ -1166,7 +1166,7 @@ export default function ImageServiceSearch() {
                     <FolderOpen size={11} /> {parseFilePath(detail.originalFilename).subFolder}
                   </p>
                 )}
-                <p className={`text-xs ${themeConfig.text.secondary}`}>ID: {detail.id}</p>
+                <p className={`text-xs ${themeConfig.text.secondary}`}>{t('ui.imageServiceSearch.id')}{' '}{detail.id}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${IMAGE_STATUS_COLORS[detail.status]}`}>{t('common.' + detail.status) ?? detail.status}</span>
                   {detail.locked && (
@@ -1352,7 +1352,7 @@ export default function ImageServiceSearch() {
             <AlertTriangle size={18} className={`${bulkDeleteMode === 'files_only' ? 'text-red-400' : 'text-amber-400'} flex-shrink-0 mt-0.5`} />
             <p className={`text-xs ${themeConfig.text.secondary}`}>
               {bulkDeleteMode === 'files_only'
-                ? 'คำเตือน: การลบไฟล์ดิบ/ไฟล์ผลลัพธ์จะลบออกจากระบบจัดเก็บข้อมูล (MinIO/SeaweedFS) ถาวรทันทีเพื่อคืนพื้นที่จัดเก็บ และไม่สามารถกู้คืนได้!'
+                ? t('ui.imageServiceSearch.warningDeletingRawOutputFilesRemoves')
                 : t('imageService.search.bulkDeleteSoftNote')}
             </p>
           </div>
@@ -1560,7 +1560,7 @@ export default function ImageServiceSearch() {
                 value={trashQ}
                 onChange={e => setTrashQ(e.target.value)}
                 className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 h-[38px]`}
-                placeholder="Search file name..."
+                placeholder={t('ui.imageServiceSearch.searchFileName')}
               />
             </div>
             <div className="w-48">
@@ -1570,16 +1570,16 @@ export default function ImageServiceSearch() {
               <SearchableSelect
                 value={trashCameraId}
                 onChange={v => setTrashCameraId(v)}
-                placeholder="All cameras"
+                placeholder={t('ui.imageServiceSearch.allCameras')}
                 options={[
-                  { value: '', label: 'All cameras' },
+                  { value: '', label: t('ui.imageServiceSearch.allCameras') },
                   ...((cameras as any).data ?? cameras).map((c: any) => ({ value: c.id, label: c.name }))
                 ]}
               />
             </div>
             <div className="w-36">
               <label className={`block text-[10px] font-semibold uppercase tracking-wider mb-1 ${themeConfig.text.secondary}`}>
-                Start Date (ลบตั้งแต่)
+                {t('ui.imageServiceSearch.startDateDeleteFrom')}
               </label>
               <input
                 type="date"
@@ -1590,7 +1590,7 @@ export default function ImageServiceSearch() {
             </div>
             <div className="w-36">
               <label className={`block text-[10px] font-semibold uppercase tracking-wider mb-1 ${themeConfig.text.secondary}`}>
-                End Date (ลบถึง)
+                {t('ui.imageServiceSearch.endDateDeleteUntil')}
               </label>
               <input
                 type="date"
@@ -1608,9 +1608,9 @@ export default function ImageServiceSearch() {
                   setTrashEndDate('');
                 }}
                 className={`px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} hover:bg-white/5 text-gray-300 transition-colors h-[38px] flex items-center justify-center`}
-                title="Clear filters"
+                title={t('ui.imageServiceSearch.clearFilters')}
               >
-                Clear
+                {t('ui.imageServiceSearch.clear')}
               </button>
             )}
           </div>
@@ -1629,7 +1629,7 @@ export default function ImageServiceSearch() {
                   onClick={handleRestoreSelectedTrash}
                   className="px-3 py-1.5 rounded bg-green-600 hover:bg-green-700 text-white font-medium flex items-center gap-1.5 transition-colors disabled:opacity-40"
                 >
-                  <Undo2 size={12} /> {t('imageService.search.restore') || 'Restore'}
+                  <Undo2 size={12} /> {t('imageService.search.restore') || t('ui.imageServiceSearch.restore')}
                 </button>
                 {hasPermission(user, 'search:delete') && (
                   <button
@@ -1640,7 +1640,7 @@ export default function ImageServiceSearch() {
                     }}
                     className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium flex items-center gap-1.5 transition-colors disabled:opacity-40"
                   >
-                    <Trash2 size={12} /> {t('imageService.search.deletePermanently') || 'Delete Permanently'}
+                    <Trash2 size={12} /> {t('imageService.search.deletePermanently') || t('ui.imageServiceSearch.deletePermanently')}
                   </button>
                 )}
               </div>
@@ -1653,7 +1653,7 @@ export default function ImageServiceSearch() {
               <div className="flex items-start gap-2">
                 <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <p className={`text-xs ${themeConfig.text.secondary}`}>
-                  ยืนยันลบรูปภาพที่เลือก {trashSelected.size} รายการแบบถาวร? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                  {t('ui.imageServiceSearch.confirmDeletingTheSelected')}{' '}{trashSelected.size}{' '}{t('ui.imageServiceSearch.imagesPermanentlyThisCannotBeUndone')}
                 </p>
               </div>
               <input
@@ -1671,7 +1671,7 @@ export default function ImageServiceSearch() {
                 </button>
                 <button onClick={handleDeleteSelectedTrashPermanently} disabled={!bulkDeleteTrashPassword}
                   className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 flex items-center gap-1.5">
-                  <Trash2 size={12} /> {t('imageService.search.deletePermanently') || 'ลบถาวร'}
+                  <Trash2 size={12} /> {t('imageService.search.deletePermanently') || t('ui.imageServiceSearch.deletePermanently2')}
                 </button>
               </div>
             </div>

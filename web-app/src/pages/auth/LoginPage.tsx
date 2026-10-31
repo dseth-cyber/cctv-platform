@@ -32,8 +32,8 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
   })
   
   const configMap = configs ?? {}
-  const appName = configMap.system_name?.value ?? 'Image Service'
-  const appDescription = configMap.system_description?.value ?? 'Enterprise Image Management System'
+  const appName = configMap.system_name?.value ?? 'iSmart CCTV'
+  const appDescription = configMap.system_description?.value ?? 'Enterprise CCTV Management System'
   const appVersion = configMap.system_version?.value ?? '1.0.0'
   const appCopyright = configMap.system_copyright?.value ?? '© 2026 Chiotron. All rights reserved.'
 
@@ -74,7 +74,7 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
       {/* Header section with stacked logo and description */}
       <div className="flex flex-col items-center justify-center mb-6">
         {logoBase64 ? (
-          <img src={logoBase64} alt="Logo" className="h-20 w-auto object-contain mb-4" />
+          <img src={logoBase64} alt={t('ui.loginPage.logo')} className="h-20 w-auto object-contain mb-4" />
         ) : (
           <Camera size={56} className={`${themeConfig.primary} mb-4`} />
         )}
@@ -167,7 +167,7 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
       <div className={`mt-8 text-center text-xs space-x-1.5 ${themeConfig.text.secondary}`}>
         <span>{appCopyright}</span>
         <span>|</span>
-        <span>Version {appVersion}</span>
+        <span>{t('ui.loginPage.version')}{' '}{appVersion}</span>
       </div>
     </div>
   )

@@ -134,12 +134,12 @@ export const MediaNodeManagement: React.FC = () => {
     mutationFn: ({ sourceId, targetId }: { sourceId: string; targetId?: string }) =>
       imageServiceApi.failoverMediaNode(sourceId, targetId || undefined),
     onSuccess: (res: any) => {
-      toast.success(`อพยพช่องสัญญาณสำเร็จ ย้ายกล้อง ${res.migratedCount} ตัวไปยัง ${res.targetNodeName}`);
+      toast.success(t('ui.mediaNodeManagement.failoverCompleteMovedCamerasTo', { migratedCount: res.migratedCount, targetNodeName: res.targetNodeName }));
       setIsFailoverModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['media-nodes-list'] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'ไม่สามารถทำ Failover ได้');
+      toast.error(err?.response?.data?.message || t('ui.mediaNodeManagement.failoverFailed'));
     },
   });
 
@@ -150,12 +150,12 @@ export const MediaNodeManagement: React.FC = () => {
       return imageServiceApi.createMediaNode(data);
     },
     onSuccess: () => {
-      toast.success(editingNode ? 'อัปเดตโหนดเรียบร้อย' : 'ลงทะเบียนโหนดมีเดียสำเร็จ');
+      toast.success(editingNode ? t('ui.mediaNodeManagement.nodeUpdated') : t('ui.mediaNodeManagement.mediaNodeRegistered'));
       setIsNodeModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['media-nodes-list'] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'บันทึกไม่สำเร็จ');
+      toast.error(err?.response?.data?.message || t('ui.mediaNodeManagement.saveFailed'));
     },
   });
 
@@ -163,7 +163,7 @@ export const MediaNodeManagement: React.FC = () => {
   const deleteNodeMutation = useMutation({
     mutationFn: (id: string) => imageServiceApi.deleteMediaNode(id),
     onSuccess: () => {
-      toast.success('ลบโหนดมีเดียเรียบร้อย');
+      toast.success(t('ui.mediaNodeManagement.mediaNodeDeleted'));
       queryClient.invalidateQueries({ queryKey: ['media-nodes-list'] });
     },
   });
@@ -247,7 +247,7 @@ export const MediaNodeManagement: React.FC = () => {
     } catch (err: any) {
       setIceTestRunning(false);
       setIceStatus('warn');
-      toast.error('ไม่สามารถรัน WebRTC ICE Diagnostic บนเบราว์เซอร์นี้ได้');
+      toast.error(t('ui.mediaNodeManagement.cannotRunWebRTCIceDiagnosticsIn'));
     }
   };
 
@@ -267,14 +267,14 @@ export const MediaNodeManagement: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white">
-                Multi-Node Media Plane, Scale & WFH
+                {t('ui.mediaNodeManagement.multiNodeMediaPlaneScaleWfh')}
               </h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                Phase 5: Multi-Node Architecture
+                {t('ui.mediaNodeManagement.phase5MultiNodeArchitecture')}
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              บริหารคลัสเตอร์โหนดมีเดียแบบกระจายตัว กระจายโหลดตามไซต์อาคาร และจัดการการเข้าถึง WFH ผ่าน VPN/STUN
+              {t('ui.mediaNodeManagement.manageADistributedMediaNodeCluster')}
             </p>
           </div>
         </div>
@@ -288,7 +288,7 @@ export const MediaNodeManagement: React.FC = () => {
             }`}
           >
             <Layers size={14} />
-            <span>โหนดคลัสเตอร์ ({nodes.length})</span>
+            <span>{t('ui.mediaNodeManagement.clusterNodes')}{nodes.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('benchmark')}
@@ -297,7 +297,7 @@ export const MediaNodeManagement: React.FC = () => {
             }`}
           >
             <Sliders size={14} />
-            <span>คำนวณโหลด & Capacity Sizing</span>
+            <span>{t('ui.mediaNodeManagement.loadCapacitySizing')}</span>
           </button>
           <button
             onClick={() => setActiveTab('wfh')}
@@ -306,7 +306,7 @@ export const MediaNodeManagement: React.FC = () => {
             }`}
           >
             <Globe size={14} />
-            <span>WFH & WebRTC STUN/TURN</span>
+            <span>{t('ui.mediaNodeManagement.wfhWebRTCStunTurn')}</span>
           </button>
         </div>
       </div>
@@ -317,11 +317,11 @@ export const MediaNodeManagement: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">โหนดมีเดียที่ใช้งาน</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">{t('ui.mediaNodeManagement.activeMediaNodes')}</span>
               <span className="text-2xl font-bold font-mono text-white mt-1 block">
                 {nodes.filter(n => n.status === 'online').length} / {nodes.length}
               </span>
-              <span className="text-[11px] text-emerald-400 font-medium">Online & Healthy</span>
+              <span className="text-[11px] text-emerald-400 font-medium">{t('ui.mediaNodeManagement.onlineHealthy')}</span>
             </div>
             <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
               <Server size={22} />
@@ -330,12 +330,12 @@ export const MediaNodeManagement: React.FC = () => {
 
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">ช่องสัญญาณกล้องรวม</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">{t('ui.mediaNodeManagement.totalCameraChannels')}</span>
               <span className="text-2xl font-bold font-mono text-cyan-400 mt-1 block">
                 {totalChannels} / {totalCapacity}
               </span>
               <span className="text-[11px] text-slate-400">
-                ความจุรองรับ {totalCapacity > 0 ? Math.round((totalChannels / totalCapacity) * 100) : 0}%
+                {t('ui.mediaNodeManagement.capacity')}{' '}{totalCapacity > 0 ? Math.round((totalChannels / totalCapacity) * 100) : 0}%
               </span>
             </div>
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -345,12 +345,12 @@ export const MediaNodeManagement: React.FC = () => {
 
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">แบนด์วิดท์ Ingress ขาเข้า</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">{t('ui.mediaNodeManagement.ingressBandwidth')}</span>
               <span className="text-2xl font-bold font-mono text-amber-400 mt-1 block">
-                {totalIngressMbps.toFixed(1)} Mbps
+                {totalIngressMbps.toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps')}
               </span>
               <span className="text-[11px] text-slate-400">
-                ~{(totalIngressMbps / 8).toFixed(1)} MB/s เขียนลงดิสก์
+                ~{(totalIngressMbps / 8).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbSDiskWrite')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -360,9 +360,9 @@ export const MediaNodeManagement: React.FC = () => {
 
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">สถาปัตยกรรม & WFH</span>
-              <span className="text-base font-bold text-white mt-1 block">Zero-Transcode Remux</span>
-              <span className="text-[11px] text-emerald-400 font-medium">WebRTC WHEP + VPN Ready</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">{t('ui.mediaNodeManagement.architectureWfh')}</span>
+              <span className="text-base font-bold text-white mt-1 block">{t('ui.mediaNodeManagement.zeroTranscodeRemux')}</span>
+              <span className="text-[11px] text-emerald-400 font-medium">{t('ui.mediaNodeManagement.webRTCWhepVpnReady')}</span>
             </div>
             <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
               <Shield size={22} />
@@ -375,9 +375,9 @@ export const MediaNodeManagement: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white">Media Nodes Cluster Topology</h2>
+                <h2 className="text-base font-bold text-white">{t('ui.mediaNodeManagement.mediaNodesClusterTopology')}</h2>
                 <p className="text-xs text-slate-400">
-                  โหนดประมวลผลมีเดียแบบแยกกระจายตามไซต์อาคาร บันทึก fMP4 ลงไดรฟ์โลคอลและสตรีมสดผ่าน WebRTC WHEP
+                  {t('ui.mediaNodeManagement.mediaNodesDistributedPerSiteRecording')}
                 </p>
               </div>
               <button
@@ -385,7 +385,7 @@ export const MediaNodeManagement: React.FC = () => {
                 className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all flex items-center gap-1.5 shadow-md shadow-cyan-500/20"
               >
                 <Plus size={14} />
-                <span>ลงทะเบียน Media Node ใหม่</span>
+                <span>{t('ui.mediaNodeManagement.registerNewMediaNode')}</span>
               </button>
             </div>
 
@@ -402,12 +402,12 @@ export const MediaNodeManagement: React.FC = () => {
                         <span className="font-bold text-base text-white">{node.name}</span>
                         {node.isDefault && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                            Primary / Default
+                            {t('ui.mediaNodeManagement.primaryDefault')}
                           </span>
                         )}
                       </div>
                       <span className="text-xs text-slate-400">
-                        ไซต์: {node.site?.name || 'All Sites / Central'} • ภูมิภาค: {node.region || 'default'}
+                        {t('ui.mediaNodeManagement.site')}{' '}{node.site?.name || t('ui.mediaNodeManagement.allSitesCentral')}{' '}{t('ui.mediaNodeManagement.region')}{' '}{node.region || 'default'}
                       </span>
                     </div>
 
@@ -430,9 +430,9 @@ export const MediaNodeManagement: React.FC = () => {
                   {/* Channel Load Progress */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
-                      <span className="text-slate-400 font-medium">ช่องสัญญาณสตรีม</span>
+                      <span className="text-slate-400 font-medium">{t('ui.mediaNodeManagement.streamChannels')}</span>
                       <span className="font-mono font-bold text-white">
-                        {node.currentLoadChannels || node.assignedCamerasCount} / {node.capacityChannels} ช่อง ({node.utilizationPercent}%)
+                        {node.currentLoadChannels || node.assignedCamerasCount} / {node.capacityChannels}{' '}{t('ui.mediaNodeManagement.ch')}{node.utilizationPercent}%)
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-950 overflow-hidden border border-slate-800">
@@ -448,19 +448,19 @@ export const MediaNodeManagement: React.FC = () => {
                   {/* Resource Utilization Gauges */}
                   <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-400 block">CPU Load</span>
+                      <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.cpuLoad')}</span>
                       <span className="font-mono font-bold text-slate-200">
                         {node.cpuPercent ? `${node.cpuPercent.toFixed(1)}%` : '12.5%'}
                       </span>
                     </div>
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-400 block">RAM Load</span>
+                      <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.ramLoad')}</span>
                       <span className="font-mono font-bold text-slate-200">
                         {node.ramPercent ? `${node.ramPercent.toFixed(1)}%` : '24.0%'}
                       </span>
                     </div>
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-400 block">Disk Space</span>
+                      <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.diskSpace')}</span>
                       <span className="font-mono font-bold text-slate-200">
                         {node.diskPercent ? `${node.diskPercent.toFixed(1)}%` : '41.2%'}
                       </span>
@@ -469,9 +469,9 @@ export const MediaNodeManagement: React.FC = () => {
 
                   {/* Network Ingress & Egress */}
                   <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-slate-950/50 border border-slate-800/80">
-                    <span className="text-slate-400">Ingress / Egress:</span>
+                    <span className="text-slate-400">{t('ui.mediaNodeManagement.ingressEgress')}</span>
                     <span className="font-mono text-cyan-400 font-semibold">
-                      ↓ {(node.networkIngressMbps || 4.8).toFixed(1)} Mbps • ↑ {(node.networkEgressMbps || 1.2).toFixed(1)} Mbps
+                      ↓ {(node.networkIngressMbps || 4.8).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps2')}{' '}{(node.networkEgressMbps || 1.2).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps')}
                     </span>
                   </div>
 
@@ -481,15 +481,15 @@ export const MediaNodeManagement: React.FC = () => {
                       <button
                         onClick={() => handleOpenFailoverModal(node)}
                         className="px-2.5 py-1 rounded-lg font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-300 hover:bg-purple-500/20 transition-all flex items-center gap-1"
-                        title="อพยพย้ายกล้องไปยังโหนดสำรองทันที"
+                        title={t('ui.mediaNodeManagement.moveCamerasToAStandbyNode')}
                       >
                         <ArrowRightLeft size={13} />
-                        <span>Failover</span>
+                        <span>{t('ui.mediaNodeManagement.failover')}</span>
                       </button>
                       <button
                         onClick={() => handleOpenEditModal(node)}
                         className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
-                        title="แก้ไขโหนด"
+                        title={t('ui.mediaNodeManagement.editNode')}
                       >
                         <Edit size={13} />
                       </button>
@@ -498,12 +498,12 @@ export const MediaNodeManagement: React.FC = () => {
                     {!node.isDefault && (
                       <button
                         onClick={() => {
-                          if (confirm(`ต้องการลบโหนด ${node.name} หรือไม่?`)) {
+                          if (confirm(t('ui.mediaNodeManagement.deleteNode', { name: node.name }))) {
                             deleteNodeMutation.mutate(node.id);
                           }
                         }}
                         className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-all"
-                        title="ลบโหนด"
+                        title={t('ui.mediaNodeManagement.deleteNode2')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -522,16 +522,16 @@ export const MediaNodeManagement: React.FC = () => {
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
                   <Sliders size={18} className="text-cyan-400" />
-                  <span>CCTV Capacity Planning & Scale Sizing Calculator</span>
+                  <span>{t('ui.mediaNodeManagement.cctvCapacityPlanningScaleSizingCalculator')}</span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  คำนวณการใช้ทรัพยากรจริงทีละระดับ 10, 50, 200, 500, 1000 ช่องสัญญาณ เพื่อจัดสรรฮาร์ดแวร์ แบนด์วิดท์ NIC และขนาดความจุ Hard Disk
+                  {t('ui.mediaNodeManagement.estimateResourcesAt')}
                 </p>
               </div>
 
               {/* Tier Quick Select */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-slate-400 font-semibold mr-1">ระดับสเกลแนะนำ:</span>
+                <span className="text-xs text-slate-400 font-semibold mr-1">{t('ui.mediaNodeManagement.suggestedScale')}</span>
                 {[10, 50, 200, 500, 1000].map(tier => (
                   <button
                     key={tier}
@@ -542,7 +542,7 @@ export const MediaNodeManagement: React.FC = () => {
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    {tier} ช่องสัญญาณ
+                    {tier}{' '}{t('ui.mediaNodeManagement.channels')}
                   </button>
                 ))}
               </div>
@@ -550,40 +550,40 @@ export const MediaNodeManagement: React.FC = () => {
               {/* Codec & Architecture Options */}
               <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-semibold">Video Codec:</span>
+                  <span className="text-slate-400 font-semibold">{t('ui.mediaNodeManagement.videoCodec')}</span>
                   <div className="inline-flex rounded-lg border border-slate-700 p-0.5 bg-slate-900">
                     <button
                       onClick={() => { setCodec('h264'); setMainBitrateKbps(2048); }}
                       className={`px-2.5 py-1 rounded text-xs font-semibold transition ${codec === 'h264' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'}`}
                     >
-                      H.264 (2.0 Mbps)
+                      {t('ui.mediaNodeManagement.h26420Mbps')}
                     </button>
                     <button
                       onClick={() => { setCodec('h265'); setMainBitrateKbps(1200); }}
                       className={`px-2.5 py-1 rounded text-xs font-semibold transition ${codec === 'h265' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'}`}
                     >
-                      H.265 (1.2 Mbps)
+                      {t('ui.mediaNodeManagement.h26512Mbps')}
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-semibold">Storage Architecture:</span>
+                  <span className="text-slate-400 font-semibold">{t('ui.mediaNodeManagement.storageArchitecture')}</span>
                   <select
                     value={raidType}
                     onChange={(e: any) => setRaidType(e.target.value)}
                     className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs focus:outline-none cursor-pointer"
                   >
-                    <option value="raid5">RAID-5 (+20% parity)</option>
-                    <option value="raid6">RAID-6 (+25% dual parity)</option>
-                    <option value="raid10">RAID-10 (+50% mirror)</option>
-                    <option value="raid0">JBOD / RAID-0 (No overhead)</option>
+                    <option value="raid5">{t('ui.mediaNodeManagement.raid520Parity')}</option>
+                    <option value="raid6">{t('ui.mediaNodeManagement.raid625DualParity')}</option>
+                    <option value="raid10">{t('ui.mediaNodeManagement.raid1050Mirror')}</option>
+                    <option value="raid0">{t('ui.mediaNodeManagement.jbodRaid0NoOverhead')}</option>
                   </select>
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-300">
-                  <span className="text-slate-400 font-semibold">Free-Space Headroom:</span>
-                  <span className="font-mono font-bold text-amber-400">20% buffer</span>
+                  <span className="text-slate-400 font-semibold">{t('ui.mediaNodeManagement.freeSpaceHeadroom')}</span>
+                  <span className="font-mono font-bold text-amber-400">{t('ui.mediaNodeManagement.n20Buffer')}</span>
                 </div>
               </div>
 
@@ -591,8 +591,8 @@ export const MediaNodeManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5 pt-2">
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-medium">จำนวนกล้อง:</span>
-                    <span className="font-mono font-bold text-cyan-400">{channelsCount} ช่อง</span>
+                    <span className="text-slate-400 font-medium">{t('ui.mediaNodeManagement.cameras')}</span>
+                    <span className="font-mono font-bold text-cyan-400">{channelsCount}{' '}{t('ui.mediaNodeManagement.ch2')}</span>
                   </div>
                   <input
                     type="range"
@@ -607,8 +607,8 @@ export const MediaNodeManagement: React.FC = () => {
 
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-medium">Main Stream Bitrate:</span>
-                    <span className="font-mono font-bold text-cyan-400">{(mainBitrateKbps / 1024).toFixed(1)} Mbps</span>
+                    <span className="text-slate-400 font-medium">{t('ui.mediaNodeManagement.mainStreamBitrate')}</span>
+                    <span className="font-mono font-bold text-cyan-400">{(mainBitrateKbps / 1024).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps')}</span>
                   </div>
                   <input
                     type="range"
@@ -623,8 +623,8 @@ export const MediaNodeManagement: React.FC = () => {
 
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-medium">ผู้ดูสดพร้อมกัน (Viewers):</span>
-                    <span className="font-mono font-bold text-cyan-400">{concurrentViewers} คน / ช่อง</span>
+                    <span className="text-slate-400 font-medium">{t('ui.mediaNodeManagement.concurrentLiveViewers')}</span>
+                    <span className="font-mono font-bold text-cyan-400">{concurrentViewers}{' '}{t('ui.mediaNodeManagement.perChannel')}</span>
                   </div>
                   <input
                     type="range"
@@ -639,8 +639,8 @@ export const MediaNodeManagement: React.FC = () => {
 
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-medium">ระยะจัดเก็บ (Retention):</span>
-                    <span className="font-mono font-bold text-cyan-400">{retentionDays} วัน</span>
+                    <span className="text-slate-400 font-medium">{t('ui.mediaNodeManagement.retention')}</span>
+                    <span className="font-mono font-bold text-cyan-400">{retentionDays}{' '}{t('ui.mediaNodeManagement.days')}</span>
                   </div>
                   <input
                     type="range"
@@ -661,24 +661,24 @@ export const MediaNodeManagement: React.FC = () => {
                   <div className="bg-slate-950 p-5 rounded-2xl border border-cyan-500/20 space-y-3">
                     <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
                       <Network size={16} />
-                      <span>เครือข่าย & แบนด์วิดท์ (Network)</span>
+                      <span>{t('ui.mediaNodeManagement.networkBandwidth')}</span>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">Ingress ขาเข้ารวม:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.ingress.bitrateMbps} Mbps ({benchmarkData.ingress.bitrateGbps} Gbps)</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.totalIngress')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.ingress.bitrateMbps}{' '}{t('ui.mediaNodeManagement.mbps3')}{benchmarkData.ingress.bitrateGbps}{' '}{t('ui.mediaNodeManagement.gbps')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">Egress ขาออกผู้ดูรวม:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.egress.bitrateMbps} Mbps ({benchmarkData.egress.bitrateGbps} Gbps)</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.totalViewerEgress')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.egress.bitrateMbps}{' '}{t('ui.mediaNodeManagement.mbps3')}{benchmarkData.egress.bitrateGbps}{' '}{t('ui.mediaNodeManagement.gbps')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">การ์ดแลนคลัสเตอร์ (NIC รวม):</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.clusterNicTotal')}</span>
                         <span className="font-semibold text-emerald-400">{benchmarkData.ingress.requiredNicSpeed}</span>
                       </div>
                       <div className="flex justify-between py-1">
-                        <span className="text-slate-400">การ์ดแลนต่อโหนด (Per-Node NIC):</span>
-                        <span className="font-semibold text-cyan-300">{benchmarkData.ingress.perNodeNicSpeed || '1 Gbps'}</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.perNodeNic')}</span>
+                        <span className="font-semibold text-cyan-300">{benchmarkData.ingress.perNodeNicSpeed || t('ui.mediaNodeManagement.n1Gbps')}</span>
                       </div>
                     </div>
                   </div>
@@ -687,24 +687,24 @@ export const MediaNodeManagement: React.FC = () => {
                   <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/20 space-y-3">
                     <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
                       <HardDrive size={16} />
-                      <span>พื้นที่จัดเก็บ ({retentionDays} วัน • {codec.toUpperCase()})</span>
+                      <span>{t('ui.mediaNodeManagement.storage')}{retentionDays}{' '}{t('ui.mediaNodeManagement.days2')}{' '}{codec.toUpperCase()})</span>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">พื้นที่สุทธิ (Net Video):</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.storage.netRetentionTotalTb || benchmarkData.storage.retentionTotalTb} TB</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.netVideo')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.storage.netRetentionTotalTb || benchmarkData.storage.retentionTotalTb}{' '}{t('ui.mediaNodeManagement.tb')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">รวม Buffer ว่าง 20% (Usable):</span>
-                        <span className="font-mono font-bold text-amber-300">{benchmarkData.storage.usableStorageWithHeadroomTb || benchmarkData.storage.retentionTotalTb} TB</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.usableIncl20Headroom')}</span>
+                        <span className="font-mono font-bold text-amber-300">{benchmarkData.storage.usableStorageWithHeadroomTb || benchmarkData.storage.retentionTotalTb}{' '}{t('ui.mediaNodeManagement.tb')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">ฮาร์ดดิสก์จริงรวม ({raidType.toUpperCase()}):</span>
-                        <span className="font-mono font-bold text-amber-400 text-sm">{benchmarkData.storage.rawDiskRequiredTb || benchmarkData.storage.retentionTotalTb} TB</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.rawDiskTotal')}{raidType.toUpperCase()}):</span>
+                        <span className="font-mono font-bold text-amber-400 text-sm">{benchmarkData.storage.rawDiskRequiredTb || benchmarkData.storage.retentionTotalTb}{' '}{t('ui.mediaNodeManagement.tb')}</span>
                       </div>
                       <div className="flex justify-between py-1">
-                        <span className="text-slate-400">อัตราเขียนดิสก์ (IO Throughput):</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.storage.diskWriteMBps} MB/s</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.diskWriteThroughput')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.storage.diskWriteMBps}{' '}{t('ui.mediaNodeManagement.mbS')}</span>
                       </div>
                     </div>
                   </div>
@@ -713,23 +713,23 @@ export const MediaNodeManagement: React.FC = () => {
                   <div className="bg-slate-950 p-5 rounded-2xl border border-purple-500/20 space-y-3">
                     <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
                       <Cpu size={16} />
-                      <span>ฮาร์ดแวร์แนะนำ (Cluster Sizing)</span>
+                      <span>{t('ui.mediaNodeManagement.recommendedHardware')}</span>
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">จำนวน Media Nodes:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedMediaNodes} เครื่อง ({benchmarkData.infrastructure.perNodeChannels || 100} ช่อง/เครื่อง)</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.mediaNodes')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedMediaNodes}{' '}{t('ui.mediaNodeManagement.nodes')}{benchmarkData.infrastructure.perNodeChannels || 100}{' '}{t('ui.mediaNodeManagement.chNode')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">RAM ขั้นต่ำต่อโหนด:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedRamPerNodeGB} GB</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.minRamPerNode')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedRamPerNodeGB}{' '}{t('ui.mediaNodeManagement.gb')}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-900">
-                        <span className="text-slate-400">CPU Cores ต่อโหนด:</span>
-                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedCpuCoresPerNode} Cores</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.cpuCoresPerNode')}</span>
+                        <span className="font-mono font-bold text-white">{benchmarkData.infrastructure.recommendedCpuCoresPerNode}{' '}{t('ui.mediaNodeManagement.cores')}</span>
                       </div>
                       <div className="flex justify-between py-1">
-                        <span className="text-slate-400">Storage Strategy:</span>
+                        <span className="text-slate-400">{t('ui.mediaNodeManagement.storageStrategy')}</span>
                         <span className="text-[11px] text-slate-300 font-mono truncate">{benchmarkData.infrastructure.storageStrategy}</span>
                       </div>
                     </div>
@@ -748,10 +748,10 @@ export const MediaNodeManagement: React.FC = () => {
                 <div>
                   <h2 className="text-base font-bold text-white flex items-center gap-2">
                     <Globe size={18} className="text-cyan-400" />
-                    <span>WFH & WebRTC STUN/TURN Diagnostics</span>
+                    <span>{t('ui.mediaNodeManagement.wfhWebRTCStunTurnDiagnostics')}</span>
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    ทดสอบการเจาะผ่าน NAT และตรวจความพร้อมของ WebRTC ICE Candidate สำหรับผู้ใช้งานนอกออฟฟิศ/WFH
+                    {t('ui.mediaNodeManagement.testNatTraversalAndWebRTCIce')}
                   </p>
                 </div>
                 <button
@@ -760,7 +760,7 @@ export const MediaNodeManagement: React.FC = () => {
                   className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all flex items-center gap-1.5 shadow-md shadow-cyan-500/20"
                 >
                   <RefreshCw size={14} className={iceTestRunning ? 'animate-spin' : ''} />
-                  <span>{iceTestRunning ? 'กำลังทดสอบ ICE...' : 'เริ่มทดสอบ ICE Candidate สด'}</span>
+                  <span>{iceTestRunning ? t('ui.mediaNodeManagement.testingIce') : t('ui.mediaNodeManagement.runLiveIceCandidateTest')}</span>
                 </button>
               </div>
 
@@ -768,10 +768,9 @@ export const MediaNodeManagement: React.FC = () => {
               <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
                 <AlertTriangle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="font-bold">ข้อกำหนดความปลอดภัยและการส่งต่อ WebRTC ข้ามเครือข่าย:</div>
+                  <div className="font-bold">{t('ui.mediaNodeManagement.securityAndCrossNetworkWebRTCRequirements')}</div>
                   <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                    บริการ HTTP Tunnel ทั่วไป (เช่น Cloudflare Tunnel) ไม่สามารถส่งต่อแพ็กเก็ต UDP ของ WebRTC WHEP ได้โดยตรง
-                    หากผู้ใช้งานปฏิบัติงานจากภายนอก (WFH) ต้องเชื่อมต่อผ่าน Enterprise VPN (เช่น WireGuard / OpenVPN TUN UDP) หรือใช้เซิร์ฟเวอร์ STUN/TURN ที่ได้รับอนุมัติเท่านั้น
+                    {t('ui.mediaNodeManagement.genericHttpTunnelsEGCloudflare')}
                   </p>
                 </div>
               </div>
@@ -780,7 +779,7 @@ export const MediaNodeManagement: React.FC = () => {
               {wfhConfig && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <span className="font-bold text-cyan-400 block">STUN Servers (NAT Discovery):</span>
+                    <span className="font-bold text-cyan-400 block">{t('ui.mediaNodeManagement.stunServersNatDiscovery')}</span>
                     <div className="space-y-1 text-slate-300 font-mono text-[11px]">
                       {wfhConfig.stunServers.map((s: any, idx: number) => (
                         <div key={idx} className="p-1.5 rounded bg-slate-900 border border-slate-800">
@@ -791,7 +790,7 @@ export const MediaNodeManagement: React.FC = () => {
                   </div>
 
                   <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <span className="font-bold text-purple-400 block">TURN Relay Servers (Fallback):</span>
+                    <span className="font-bold text-purple-400 block">{t('ui.mediaNodeManagement.turnRelayServersFallback')}</span>
                     <div className="space-y-1 text-slate-300 font-mono text-[11px]">
                       {wfhConfig.turnServers.map((s: any, idx: number) => (
                         <div key={idx} className="p-1.5 rounded bg-slate-900 border border-slate-800">
@@ -806,17 +805,17 @@ export const MediaNodeManagement: React.FC = () => {
               {/* Live Test Results Console */}
               <div className="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-300">ผลการสำรวจ ICE Candidates บนเบราว์เซอร์นี้:</span>
+                  <span className="font-bold text-slate-300">{t('ui.mediaNodeManagement.iceCandidatesFoundInThisBrowser')}</span>
                   {iceStatus === 'success' && (
                     <span className="text-emerald-400 font-bold flex items-center gap-1">
                       <CheckCircle2 size={13} />
-                      STUN / Public IP Discovery ผ่านสมบูรณ์
+                      {t('ui.mediaNodeManagement.stunPublicIpDiscoverySucceeded')}
                     </span>
                   )}
                   {iceStatus === 'warn' && (
                     <span className="text-amber-400 font-bold flex items-center gap-1">
                       <AlertTriangle size={13} />
-                      พบเฉพาะ Host Candidate (ต้องใช้ VPN หรือ TURN)
+                      {t('ui.mediaNodeManagement.hostCandidatesOnlyVpnOrTurn')}
                     </span>
                   )}
                 </div>
@@ -824,7 +823,7 @@ export const MediaNodeManagement: React.FC = () => {
                 <div className="h-44 overflow-y-auto bg-slate-900 rounded-lg p-3 font-mono text-[11px] text-slate-300 space-y-1 border border-slate-800">
                   {iceCandidates.length === 0 ? (
                     <span className="text-slate-500">
-                      กดปุ่ม "เริ่มทดสอบ ICE Candidate สด" ด้านบนเพื่อวัดความสามารถในการส่งสตรีมข้ามเครือข่าย
+                      {t('ui.mediaNodeManagement.pressRunLiveIceCandidateTest')}
                     </span>
                   ) : (
                     iceCandidates.map((c, idx) => (
@@ -846,16 +845,16 @@ export const MediaNodeManagement: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center gap-2 text-purple-400 font-bold border-b border-slate-800 pb-3">
               <ArrowRightLeft size={20} />
-              <h3 className="text-base text-white">ย้ายช่องสัญญาณฉุกเฉิน (MediaNode Failover)</h3>
+              <h3 className="text-base text-white">{t('ui.mediaNodeManagement.emergencyChannelFailoverMediaNode')}</h3>
             </div>
 
             <div className="space-y-3 text-xs">
               <p className="text-slate-300 leading-relaxed">
-                ระบบจะทำการอพยพกล้องทั้งหมดจาก <span className="font-bold text-white">{failoverSourceNode.name}</span> ไปยังโหนดปลายทางทันทีเพื่อป้องกันสัญญาณภาพดับระหว่างซ่อมบำรุง
+                {t('ui.mediaNodeManagement.allCamerasWillBeMovedFrom')}{' '}<span className="font-bold text-white">{failoverSourceNode.name}</span>{' '}{t('ui.mediaNodeManagement.toTheTargetNodeImmediatelyTo')}
               </p>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">เลือกโหนดปลายทางรับช่วงต่อ:</label>
+                <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.selectTargetNode')}</label>
                 <select
                   value={failoverTargetId}
                   onChange={(e) => setFailoverTargetId(e.target.value)}
@@ -865,7 +864,7 @@ export const MediaNodeManagement: React.FC = () => {
                     .filter(n => n.id !== failoverSourceNode.id && n.status === 'online')
                     .map(n => (
                       <option key={n.id} value={n.id} className="bg-slate-900 text-white">
-                        {n.name} ({n.currentLoadChannels || n.assignedCamerasCount}/{n.capacityChannels} ช่อง)
+                        {n.name} ({n.currentLoadChannels || n.assignedCamerasCount}/{n.capacityChannels}{' '}{t('ui.mediaNodeManagement.ch3')}
                       </option>
                     ))}
                 </select>
@@ -878,7 +877,7 @@ export const MediaNodeManagement: React.FC = () => {
                 onClick={() => setIsFailoverModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300"
               >
-                ยกเลิก
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -891,7 +890,7 @@ export const MediaNodeManagement: React.FC = () => {
                 disabled={failoverMutation.isPending}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-all flex items-center gap-1.5"
               >
-                {failoverMutation.isPending ? 'กำลังอพยพ...' : 'ยืนยันการทำ Failover'}
+                {failoverMutation.isPending ? t('ui.mediaNodeManagement.migrating') : t('ui.mediaNodeManagement.confirmFailover')}
               </button>
             </div>
           </div>
@@ -905,32 +904,32 @@ export const MediaNodeManagement: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2 font-bold text-white">
                 <Server size={18} className="text-cyan-400" />
-                <span>{editingNode ? 'แก้ไขโหนดมีเดีย' : 'ลงทะเบียน Media Node ใหม่'}</span>
+                <span>{editingNode ? t('ui.mediaNodeManagement.editMediaNode') : t('ui.mediaNodeManagement.registerNewMediaNode')}</span>
               </div>
               <button onClick={() => setIsNodeModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">ชื่อโหนด (Unique Node Name):</label>
+                <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.nodeNameUnique')}</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="เช่น mediamtx-site-a"
+                  placeholder={t('ui.mediaNodeManagement.eGMediamtxSiteA')}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">ไซต์ประจำการ (Site):</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.site')}</label>
                   <select
                     value={formSiteId}
                     onChange={(e) => setFormSiteId(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="">ทุกไซต์ / Central Node</option>
+                    <option value="">{t('ui.mediaNodeManagement.allSitesCentralNode')}</option>
                     {sites.map((s: any) => (
                       <option key={s.id} value={s.id} className="bg-slate-900 text-white">
                         {s.name}
@@ -939,7 +938,7 @@ export const MediaNodeManagement: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">ขีดความจุช่องสัญญาณ (Capacity):</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.channelCapacity')}</label>
                   <input
                     type="number"
                     value={formCapacity}
@@ -950,7 +949,7 @@ export const MediaNodeManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">WebRTC WHEP Base URL:</label>
+                <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.webRTCWhepBaseUrl')}</label>
                 <input
                   type="text"
                   value={formWebrtcUrl}
@@ -962,7 +961,7 @@ export const MediaNodeManagement: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">RTSP Base URL:</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.rtspBaseUrl')}</label>
                   <input
                     type="text"
                     value={formRtspUrl}
@@ -972,7 +971,7 @@ export const MediaNodeManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">HLS Base URL:</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.mediaNodeManagement.hlsBaseUrl')}</label>
                   <input
                     type="text"
                     value={formHlsUrl}
@@ -990,7 +989,7 @@ export const MediaNodeManagement: React.FC = () => {
                   onChange={(e) => setFormIsDefault(e.target.checked)}
                   className="rounded border-slate-700 text-cyan-500 focus:ring-0"
                 />
-                <span className="text-slate-300 font-medium">ตั้งเป็นโหนดเริ่มต้น (Default Primary Node)</span>
+                <span className="text-slate-300 font-medium">{t('ui.mediaNodeManagement.setAsDefaultPrimaryNode')}</span>
               </label>
             </div>
 
@@ -1000,7 +999,7 @@ export const MediaNodeManagement: React.FC = () => {
                 onClick={() => setIsNodeModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300"
               >
-                ยกเลิก
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1019,7 +1018,7 @@ export const MediaNodeManagement: React.FC = () => {
                 disabled={saveNodeMutation.isPending}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all shadow-md shadow-cyan-500/20"
               >
-                {saveNodeMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกโหนด'}
+                {saveNodeMutation.isPending ? t('common.saving') : t('ui.mediaNodeManagement.saveNode')}
               </button>
             </div>
           </div>

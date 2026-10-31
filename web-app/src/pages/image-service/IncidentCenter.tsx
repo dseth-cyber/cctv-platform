@@ -313,7 +313,7 @@ export default function IncidentCenter() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
           <p className={`text-xs font-medium mb-0.5 uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {ic('title')}
+            iSmart CCTV · {ic('title')}
           </p>
           <h2 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{ic('title')}</h2>
           <p className={`text-sm ${themeConfig.text.secondary}`}>{ic('subtitle')}</p>
@@ -768,12 +768,12 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
     const newStatus = isMaint ? 'active' : 'maintenance'
     try {
       await imageServiceApi.updateCamera(incident.cameraId, { status: newStatus })
-      toast.success(newStatus === 'maintenance' ? 'Camera switched to Maintenance Mode (Alerts suppressed)' : 'Camera restored to Active Mode')
+      toast.success(newStatus === 'maintenance' ? t('ui.incidentCenter.cameraSwitchedToMaintenanceModeAlerts') : t('ui.incidentCenter.cameraRestoredToActiveMode'))
       refetch()
       queryClient.invalidateQueries({ queryKey: ['cctv-cameras-all'] })
       queryClient.invalidateQueries({ queryKey: ['cctv-dashboard-summary'] })
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update camera status')
+      toast.error(err?.message || t('ui.incidentCenter.failedToUpdateCameraStatus'))
     }
   }
 
@@ -793,11 +793,11 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
         if (h) host = h
         if (p) port = parseInt(p, 10)
       }
-      if (!host) throw new Error('No IP configured for camera')
+      if (!host) throw new Error(t('ui.incidentCenter.noIpConfiguredForCamera'))
       const res = await imageServiceApi.probeDevice({ ipAddress: host, rtspPort: port })
       setProbeResult(res)
     } catch (err: any) {
-      toast.error(err?.message || 'Probe failed')
+      toast.error(err?.message || t('ui.incidentCenter.probeFailed'))
     } finally {
       setProbeLoading(false)
     }
@@ -806,12 +806,12 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
   const handleSnooze = async (hours: number) => {
     try {
       await imageServiceApi.snoozeAlert(incidentId, hours)
-      toast.success(`Notifications snoozed for ${hours}h`)
+      toast.success(t('ui.incidentCenter.notificationsSnoozedForH', { hours }))
       setSnoozeOpen(false)
       refetch()
     } catch (err: any) {
       await imageServiceApi.updateIncidentWorkflow(incidentId, { acknowledge: true })
-      toast.success(`Incident acknowledged and snoozed for ${hours}h`)
+      toast.success(t('ui.incidentCenter.incidentAcknowledgedAndSnoozedForH', { hours }))
       setSnoozeOpen(false)
       refetch()
     }
@@ -855,7 +855,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Radio size={14} className="text-cyan-400" />
-                CCTV Fast Actions:
+                {t('ui.incidentCenter.cctvFastActions')}
               </span>
               <button
                 type="button"
@@ -867,7 +867,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                 }`}
               >
                 <Play size={13} />
-                {showLiveStream ? 'Hide Live Stream' : 'Watch Live Stream'}
+                {showLiveStream ? t('ui.incidentCenter.hideLiveStream') : t('ui.incidentCenter.watchLiveStream')}
               </button>
 
               <button
@@ -877,7 +877,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 flex items-center gap-1.5 transition-colors"
               >
                 <RefreshCw size={13} className={probeLoading ? 'animate-spin' : ''} />
-                {probeLoading ? 'Testing Socket...' : 'Probe Socket (554)'}
+                {probeLoading ? t('ui.incidentCenter.testingSocket') : t('ui.incidentCenter.probeSocket')}
               </button>
 
               {(() => {
@@ -886,10 +886,10 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                   <Link
                     to={`/image-service/playback?cameraId=${incident.cameraId}&date=${bkk.date}&time=${bkk.time}`}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 flex items-center gap-1.5 transition-colors"
-                    title="เปิดดูวิดีโอย้อนหลัง 24 ชั่วโมง ณ วินาทีที่เกิดเหตุ (เวลาประเทศไทย Asia/Bangkok)"
+                    title={t('ui.incidentCenter.open24HourPlaybackAtThe')}
                   >
                     <Film size={13} />
-                    <span>Jump to Playback</span>
+                    <span>{t('ui.incidentCenter.jumpToPlayback')}</span>
                   </Link>
                 );
               })()}
@@ -904,10 +904,10 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                     : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
                 }`}
-                title="Suppress automated offline alerts during servicing"
+                title={t('ui.incidentCenter.suppressAutomatedOfflineAlertsDuringServicing')}
               >
                 <Wrench size={13} />
-                {incident.camera?.status === 'maintenance' ? 'Exit Maintenance' : 'Set Maintenance Mode'}
+                {incident.camera?.status === 'maintenance' ? t('ui.incidentCenter.exitMaintenance') : t('ui.incidentCenter.setMaintenanceMode')}
               </button>
 
               <div className="relative">
@@ -917,7 +917,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                   className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 flex items-center gap-1.5 transition-colors"
                 >
                   <BellOff size={13} />
-                  Snooze Alerts
+                  {t('ui.incidentCenter.snoozeAlerts')}
                 </button>
                 {snoozeOpen && (
                   <div className="absolute right-0 bottom-full mb-1 w-36 bg-slate-900 border border-white/15 rounded-xl shadow-2xl p-1 z-30 space-y-0.5">
@@ -928,7 +928,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
                         onClick={() => handleSnooze(hrs)}
                         className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:bg-white/10 transition-colors"
                       >
-                        Snooze {hrs} {hrs === 1 ? 'Hour' : 'Hours'}
+                        {t('ui.incidentCenter.snooze')}{' '}{hrs} {hrs === 1 ? t('ui.incidentCenter.hour') : t('ui.incidentCenter.hours')}
                       </button>
                     ))}
                   </div>
@@ -959,7 +959,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <div className="rounded-xl overflow-hidden bg-black border border-white/20 aspect-video shadow-2xl relative">
               <WhepPlayer
                 streamUrl={`/mediamtx/webrtc/${incident.camera?.streamPath || incident.cameraId}/whep`}
-                cameraName={incident.camera?.name || 'Camera'}
+                cameraName={incident.camera?.name || t('ui.incidentCenter.camera')}
                 streamProfile="main"
                 autoPlay={true}
               />
@@ -1002,7 +1002,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <Field label={ic('correctiveAction')} value={incident.correctiveAction} />
             <Field label={ic('preventiveAction')} value={incident.preventiveAction} />
             <Field label={ic('colOpened')} value={incident.openedAt ? `${formatDateTime(incident.openedAt, i18n.language)} (${incident.openedBy || '—'})` : null} />
-            <Field label="Closed" value={incident.closedAt ? `${formatDateTime(incident.closedAt, i18n.language)} (${incident.closedBy || '—'})` : null} />
+            <Field label={t('ui.incidentCenter.closed')} value={incident.closedAt ? `${formatDateTime(incident.closedAt, i18n.language)} (${incident.closedBy || '—'})` : null} />
             {incident.status === 'open' && canUpdateWorkflow ? (
               <div>
                 <p className={`text-[11px] uppercase tracking-wide ${themeConfig.text.secondary}`}>{ic('colOwner')}</p>
@@ -1050,7 +1050,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
           {/* Attachments */}
           {attachments.length > 0 && (
             <div>
-              <p className={`text-[11px] uppercase tracking-wide mb-2 ${themeConfig.text.secondary}`}>Attachments</p>
+              <p className={`text-[11px] uppercase tracking-wide mb-2 ${themeConfig.text.secondary}`}>{t('ui.incidentCenter.attachments')}</p>
               <div className="flex flex-wrap gap-2">
                 {attachments.map((a: any, idx: number) => {
                   const filename = a.filename || (typeof a === 'string' ? a.split('/').pop() : null)

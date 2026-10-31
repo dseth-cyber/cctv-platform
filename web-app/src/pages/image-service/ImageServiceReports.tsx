@@ -258,7 +258,7 @@ export default function ImageServiceReports() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
           <p className={`text-xs font-medium mb-0.5 uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.reports.title', 'รายงานข้อมูลกล้อง')}
+            iSmart CCTV · {t('imageService.reports.title', 'รายงานข้อมูลกล้อง')}
           </p>
           <h2 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.reports.title', 'รายงานข้อมูลกล้อง')}</h2>
           <p className={`text-sm ${themeConfig.text.secondary}`}>

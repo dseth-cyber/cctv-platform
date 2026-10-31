@@ -295,14 +295,14 @@ export const CctvPlayback: React.FC = () => {
     onSuccess: (result: any) => {
       toast.success(
         result.hasPreBuffer
-          ? 'ส่งออกคลิปเหตุการณ์สำเร็จ (Pre-buffer สมบูรณ์)'
-          : 'ส่งออกคลิปเหตุการณ์สำเร็จ (หมายเหตุ: ไม่มีข้อมูล Pre-buffer ใน Rolling Storage)'
+          ? t('ui.cctvPlayback.eventClipExportedPreBufferComplete')
+          : t('ui.cctvPlayback.eventClipExportedNoteNoPre')
       );
       setIsExportModalOpen(false);
       refetchClips();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'ไม่สามารถส่งออกคลิปได้');
+      toast.error(err?.response?.data?.message || t('ui.cctvPlayback.failedToExportClip'));
     },
   });
 
@@ -311,7 +311,7 @@ export const CctvPlayback: React.FC = () => {
     mutationFn: ({ clipId, hold }: { clipId: string; hold: boolean }) =>
       imageServiceApi.toggleClipLegalHold(clipId, hold),
     onSuccess: () => {
-      toast.success('อัปเดตนโยบาย Legal Hold เรียบร้อย');
+      toast.success(t('ui.cctvPlayback.legalHoldUpdated'));
       refetchClips();
     },
   });
@@ -320,7 +320,7 @@ export const CctvPlayback: React.FC = () => {
   const seedDevMutation = useMutation({
     mutationFn: () => imageServiceApi.seedDevRecordings(selectedCameraId, selectedDate),
     onSuccess: (res: any) => {
-      toast.success(`สร้างข้อมูลจำลองการบันทึกสำเร็จ (${res.count} ช่วงเวลา)`);
+      toast.success(t('ui.cctvPlayback.syntheticRecordingsCreatedSegments', { count: res.count }));
       refetchTimeline();
     },
   });
@@ -384,18 +384,18 @@ export const CctvPlayback: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white">
-                CCTV Playback & Scrubber Timeline
+                {t('ui.cctvPlayback.cctvPlaybackScrubberTimeline')}
               </h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                Phase 4: Direct fMP4 Remux
+                {t('ui.cctvPlayback.phase4DirectFMP4Remux')}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1" title="Timezone display enforced to Asia/Bangkok (UTC+7)">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1" title={t('ui.cctvPlayback.timezoneDisplayEnforcedToAsiaBangkok')}>
                 <Clock size={10} />
-                <span>Asia/Bangkok (UTC+7)</span>
+                <span>{t('ui.cctvPlayback.asiaBangkokUtc')}</span>
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              ระบบตรวจสอบวิดีโอย้อนหลัง 24 ชั่วโมง แยกบันทึกจากโหนดมีเดียแบบ Pass-through ไม่กิน CPU API กลาง
+              {t('ui.cctvPlayback.reviewTheLast24HoursOf')}
             </p>
           </div>
         </div>
@@ -404,7 +404,7 @@ export const CctvPlayback: React.FC = () => {
         <div className="flex items-center gap-3">
           {/* Camera Picker */}
           <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
-            <span className="text-xs text-slate-400 font-medium">กล้อง:</span>
+            <span className="text-xs text-slate-400 font-medium">{t('ui.cctvPlayback.camera')}</span>
             <select
               value={selectedCameraId}
               onChange={(e) => setSelectedCameraId(e.target.value)}
@@ -412,7 +412,7 @@ export const CctvPlayback: React.FC = () => {
             >
               {cameras.map((c: any) => (
                 <option key={c.id} value={c.id} className="bg-slate-900 text-white">
-                  {c.name} {c.site?.name ? `(${c.site.name})` : ''} - CH{c.channelNumber || 1}
+                  {c.name} {c.site?.name ? `(${c.site.name})` : ''}{' '}{t('ui.cctvPlayback.ch')}{c.channelNumber || 1}
                 </option>
               ))}
             </select>
@@ -438,7 +438,7 @@ export const CctvPlayback: React.FC = () => {
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            วันนี้
+            {t('ui.cctvPlayback.today')}
           </button>
 
           {/* Live Switch Button */}
@@ -447,7 +447,7 @@ export const CctvPlayback: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
           >
             <Radio size={14} className="animate-pulse" />
-            <span>สลับไปดูสด (Live)</span>
+            <span>{t('ui.cctvPlayback.switchToLive')}</span>
           </Link>
         </div>
       </div>
@@ -467,30 +467,30 @@ export const CctvPlayback: React.FC = () => {
                   <FileVideo size={48} className={isPlaying ? 'animate-pulse text-cyan-400' : 'text-slate-500'} />
                 </div>
                 <div className="text-lg font-bold text-white tracking-wide">
-                  {selectedCamera?.name || 'Camera Feed'}
+                  {selectedCamera?.name || t('ui.cctvPlayback.cameraFeed')}
                 </div>
                 <div className="text-xs text-slate-400 flex items-center justify-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" />
-                  <span>Media Node Playback Stream (fMP4 Remuxed Segment)</span>
+                  <span>{t('ui.cctvPlayback.mediaNodePlaybackStreamFMP4Remuxed')}</span>
                   <span className="text-slate-600">•</span>
-                  <span>1080p @ 25fps</span>
+                  <span>{t('ui.cctvPlayback.n1080p25fps')}</span>
                 </div>
               </div>
             ) : (
               <div className="text-center p-6 space-y-2">
                 <XCircle size={44} className="mx-auto text-amber-500/80 mb-2" />
                 <h3 className="text-base font-semibold text-slate-200">
-                  {currentStatus.gap ? 'ช่วงเวลานี้ไม่มีสัญญาณบันทึก (Data Gap)' : 'ไม่มีข้อมูลการบันทึกในเวลานี้'}
+                  {currentStatus.gap ? t('ui.cctvPlayback.noRecordingInThisPeriodData') : t('ui.cctvPlayback.noRecordingDataAtThisTime')}
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  {currentStatus.gap?.reason || 'อุปกรณ์อาจปิดเครื่อง ขาดการเชื่อมต่อสาย LAN หรือกล้องถูกตั้งเป็นโหมดบำรุงรักษา'}
+                  {currentStatus.gap?.reason || t('ui.cctvPlayback.theDeviceMayBeOffThe')}
                 </p>
                 <button
                   onClick={() => seedDevMutation.mutate()}
                   disabled={seedDevMutation.isPending}
                   className="mt-3 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all"
                 >
-                  {seedDevMutation.isPending ? 'กำลังสร้างข้อมูล...' : '⚡ จำลองข้อมูลบันทึก Dev (Auto-Seed)'}
+                  {seedDevMutation.isPending ? t('ui.cctvPlayback.generatingData') : t('ui.cctvPlayback.seedSyntheticRecordingsDev')}
                 </button>
               </div>
             )}
@@ -505,7 +505,7 @@ export const CctvPlayback: React.FC = () => {
                 {selectedDate} {formatSeconds(currentTimeSec)}
               </span>
               <span className="text-slate-500">|</span>
-              <span className="text-slate-300">Asia/Bangkok (UTC+7)</span>
+              <span className="text-slate-300">{t('ui.cctvPlayback.asiaBangkokUtc')}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -518,7 +518,7 @@ export const CctvPlayback: React.FC = () => {
 
               <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-slate-300 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                <span className="font-mono uppercase">{isPlaying ? `PLAYING ${playbackSpeed}x` : 'PAUSED'}</span>
+                <span className="font-mono uppercase">{isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed }) : 'PAUSED'}</span>
               </div>
             </div>
           </div>
@@ -532,10 +532,10 @@ export const CctvPlayback: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-rose-200">
-                    ตรวจพบเหตุการณ์: {currentStatus.incident.reason} ({currentStatus.incident.incidentNumber})
+                    {t('ui.cctvPlayback.eventDetected')}{' '}{currentStatus.incident.reason} ({currentStatus.incident.incidentNumber})
                   </div>
                   <div className="text-[11px] text-rose-300/80">
-                    {currentStatus.incident.description || 'เกิดเหตุสัญญาณผิดปกติหรือเหตุการณ์ด้านความปลอดภัย'}
+                    {currentStatus.incident.description || t('ui.cctvPlayback.signalAnomalyOrSecurityEvent')}
                   </div>
                 </div>
               </div>
@@ -544,7 +544,7 @@ export const CctvPlayback: React.FC = () => {
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500 hover:bg-rose-400 text-slate-950 transition-all flex items-center gap-1.5 shadow-md"
               >
                 <Download size={14} />
-                <span>ตัดคลิปหลักฐานทันที</span>
+                <span>{t('ui.cctvPlayback.exportEvidenceClipNow')}</span>
               </button>
             </div>
           )}
@@ -557,14 +557,14 @@ export const CctvPlayback: React.FC = () => {
             <button
               onClick={() => setCurrentTimeSec(prev => Math.max(0, prev - 60))}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
-              title="-1 นาที"
+              title={t('ui.cctvPlayback.n1Min')}
             >
               <Rewind size={16} />
             </button>
             <button
               onClick={() => setCurrentTimeSec(prev => Math.max(0, prev - 10))}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all text-xs font-bold"
-              title="-10 วินาที"
+              title={t('ui.cctvPlayback.n10S')}
             >
               -10s
             </button>
@@ -584,14 +584,14 @@ export const CctvPlayback: React.FC = () => {
             <button
               onClick={() => setCurrentTimeSec(prev => Math.min(86399, prev + 10))}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all text-xs font-bold"
-              title="+10 วินาที"
+              title={t('ui.cctvPlayback.n10S2')}
             >
               +10s
             </button>
             <button
               onClick={() => setCurrentTimeSec(prev => Math.min(86399, prev + 60))}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
-              title="+1 นาที"
+              title={t('ui.cctvPlayback.n1Min2')}
             >
               <FastForward size={16} />
             </button>
@@ -602,17 +602,17 @@ export const CctvPlayback: React.FC = () => {
             <button
               onClick={() => handleJumpIncident('prev')}
               className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1"
-              title="กระโดดไปเหตุการณ์ก่อนหน้า"
+              title={t('ui.cctvPlayback.jumpToPreviousEvent')}
             >
               <ChevronLeft size={14} />
-              <span>เหตุการณ์ก่อน</span>
+              <span>{t('ui.cctvPlayback.prevEvent')}</span>
             </button>
             <button
               onClick={() => handleJumpIncident('next')}
               className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1"
-              title="กระโดดไปเหตุการณ์ถัดไป"
+              title={t('ui.cctvPlayback.jumpToNextEvent')}
             >
-              <span>เหตุการณ์ถัดไป</span>
+              <span>{t('ui.cctvPlayback.nextEvent')}</span>
               <ChevronRight size={14} />
             </button>
           </div>
@@ -620,7 +620,7 @@ export const CctvPlayback: React.FC = () => {
           {/* Center: Current Scrubbed Time Badge */}
           <div className="flex items-center gap-3">
             <div className="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl text-center">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">เวลาที่กำลังเล่น</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">{t('ui.cctvPlayback.playbackTime')}</span>
               <span className="font-mono text-base font-bold text-cyan-400">
                 {formatSeconds(currentTimeSec)}
               </span>
@@ -631,14 +631,14 @@ export const CctvPlayback: React.FC = () => {
           <div className="flex items-center gap-3">
             {/* Speed Selector */}
             <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs">
-              <span className="text-slate-400">ความเร็ว:</span>
+              <span className="text-slate-400">{t('ui.cctvPlayback.speed')}</span>
               <select
                 value={playbackSpeed}
                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                 className="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer"
               >
                 <option value={0.5} className="bg-slate-900 text-white">0.5x</option>
-                <option value={1} className="bg-slate-900 text-white">1.0x (ปกติ)</option>
+                <option value={1} className="bg-slate-900 text-white">{t('ui.cctvPlayback.n10xNormal')}</option>
                 <option value={2} className="bg-slate-900 text-white">2.0x</option>
                 <option value={4} className="bg-slate-900 text-white">4.0x</option>
                 <option value={8} className="bg-slate-900 text-white">8.0x</option>
@@ -652,7 +652,7 @@ export const CctvPlayback: React.FC = () => {
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all shadow-md shadow-cyan-500/20"
             >
               <Download size={15} />
-              <span>ตัดคลิปหลักฐาน (Export Clip)</span>
+              <span>{t('ui.cctvPlayback.exportClip')}</span>
             </button>
           </div>
         </div>
@@ -664,20 +664,20 @@ export const CctvPlayback: React.FC = () => {
             <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Clock size={16} className="text-cyan-400" />
-                <span>24-Hour Scrubber Timeline</span>
+                <span>{t('ui.cctvPlayback.n24HourScrubberTimeline')}</span>
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" />
-                  <span>บันทึกปกติ (Continuous)</span>
+                  <span>{t('ui.cctvPlayback.continuousRecording')}</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded bg-rose-500 inline-block" />
-                  <span>ตรวจพบ Incident</span>
+                  <span>{t('ui.cctvPlayback.incidentDetected')}</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded bg-slate-800 border border-slate-700 inline-block" />
-                  <span>สัญญาณขาด (Gap)</span>
+                  <span>{t('ui.cctvPlayback.signalGap')}</span>
                 </span>
               </div>
             </div>
@@ -742,7 +742,7 @@ export const CctvPlayback: React.FC = () => {
                     key={idx}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     className="absolute top-1 bottom-1 bg-gradient-to-r from-emerald-600/90 to-teal-500/90 rounded-md shadow-sm border border-emerald-400/30 group-hover:opacity-90 transition-opacity"
-                    title={`บันทึกต่อเนื่อง: ${formatSeconds(s)} - ${formatSeconds(e)} (${Math.round(block.durationSeconds / 60)} นาที)`}
+                    title={t('ui.cctvPlayback.continuousMin', { v0: formatSeconds(s), v1: formatSeconds(e), v2: Math.round(block.durationSeconds / 60) })}
                   />
                 );
               })}
@@ -766,7 +766,7 @@ export const CctvPlayback: React.FC = () => {
                     }}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     className="absolute top-0 bottom-0 bg-rose-500/80 border-x border-rose-300 z-10 cursor-pointer hover:bg-rose-400 flex items-center justify-center transition-all"
-                    title={`เหตุการณ์: ${inc.incidentNumber} (${inc.reason}) เวลา ${formatSeconds(s)}`}
+                    title={t('ui.cctvPlayback.eventAt', { incidentNumber: inc.incidentNumber, reason: inc.reason, v2: formatSeconds(s) })}
                   >
                     <AlertTriangle size={12} className="text-white drop-shadow" />
                   </div>
@@ -803,30 +803,30 @@ export const CctvPlayback: React.FC = () => {
             <div className="flex items-center gap-2">
               <Shield size={18} className="text-cyan-400" />
               <h3 className="text-sm font-bold text-white">
-                คลังคลิปเหตุการณ์และหลักฐาน (Evidence Archive & Legal Hold)
+                {t('ui.cctvPlayback.evidenceArchiveLegalHold')}
               </h3>
             </div>
             <span className="text-xs text-slate-400">
-              คลิปทั้งหมด {clips.length} รายการ (จัดเก็บบน Media Storage)
+              {t('ui.cctvPlayback.totalClips')}{' '}{clips.length}{' '}{t('ui.cctvPlayback.itemsStoredOnMediaStorage')}
             </span>
           </div>
 
           {clips.length === 0 ? (
             <div className="py-8 text-center text-slate-500 text-xs">
-              ยังไม่มีการตัดคลิปหลักฐานสำหรับกล้องนี้ ท่านสามารถคลิก "ตัดคลิปหลักฐาน (Export Clip)" ด้านบนเพื่อเริ่มจัดเก็บ
+              {t('ui.cctvPlayback.noEvidenceClipsForThisCamera')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
-                    <th className="py-2.5 px-3">ชื่อคลิปหลักฐาน</th>
-                    <th className="py-2.5 px-3">ช่วงเวลาเหตุการณ์</th>
-                    <th className="py-2.5 px-3">ความยาว</th>
-                    <th className="py-2.5 px-3">สถานะ Pre-Buffer</th>
-                    <th className="py-2.5 px-3">ขนาดไฟล์</th>
-                    <th className="py-2.5 px-3">Legal Hold</th>
-                    <th className="py-2.5 px-3 text-right">การจัดการ</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.evidenceClipTitle')}</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.eventWindow')}</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.duration')}</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.preBufferStatus')}</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.fileSize')}</th>
+                    <th className="py-2.5 px-3">{t('ui.cctvPlayback.legalHold')}</th>
+                    <th className="py-2.5 px-3 text-right">{t('ui.cctvPlayback.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -839,7 +839,7 @@ export const CctvPlayback: React.FC = () => {
                         </div>
                         {clip.incident && (
                           <span className="text-[10px] text-rose-400 font-normal block mt-0.5">
-                            เชื่อมกับ {clip.incident.incidentNumber} ({clip.incident.reason})
+                            {t('ui.cctvPlayback.linkedTo')}{' '}{clip.incident.incidentNumber} ({clip.incident.reason})
                           </span>
                         )}
                       </td>
@@ -848,23 +848,23 @@ export const CctvPlayback: React.FC = () => {
                         {new Date(clip.endTime).toLocaleTimeString('th-TH')}
                       </td>
                       <td className="py-3 px-3 font-semibold text-slate-200">
-                        {Math.round(clip.durationSeconds)} วินาที
+                        {Math.round(clip.durationSeconds)}{' '}{t('ui.cctvPlayback.s')}
                       </td>
                       <td className="py-3 px-3">
                         {clip.hasPreBuffer ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                             <CheckCircle2 size={11} />
-                            Pre-Buffer ({clip.preBufferSeconds}s) ครบ
+                            {t('ui.cctvPlayback.preBuffer')}{clip.preBufferSeconds}{t('ui.cctvPlayback.sComplete')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400">
                             <Info size={11} />
-                            ไม่มีช่วงก่อนเหตุ (No Pre-buffer)
+                            {t('ui.cctvPlayback.noPreBuffer')}
                           </span>
                         )}
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-400">
-                        {clip.fileSizeBytes ? `${(Number(clip.fileSizeBytes) / (1024 * 1024)).toFixed(1)} MB` : '-'}
+                        {clip.fileSizeBytes ? t('ui.cctvPlayback.mb', { v0: (Number(clip.fileSizeBytes) / (1024 * 1024)).toFixed(1) }) : '-'}
                       </td>
                       <td className="py-3 px-3">
                         <button
@@ -874,10 +874,10 @@ export const CctvPlayback: React.FC = () => {
                               ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
                           }`}
-                          title="Legal Hold ป้องกันไม่ให้นโยบาย Retention ลบคลิปอัตโนมัติ"
+                          title={t('ui.cctvPlayback.legalHoldStopsTheRetentionPolicy')}
                         >
                           <Shield size={12} />
-                          <span>{clip.legalHold ? 'Legal Hold เปิด' : 'ปิด Hold'}</span>
+                          <span>{clip.legalHold ? t('ui.cctvPlayback.legalHoldOn') : t('ui.cctvPlayback.releaseHold')}</span>
                         </button>
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -887,13 +887,13 @@ export const CctvPlayback: React.FC = () => {
                           onClick={(e) => {
                             if (!clip.downloadUrl) {
                               e.preventDefault();
-                              toast.info('ระบบจัดเตรียมไฟล์ MP4 บนมีเดียโหนดเรียบร้อย');
+                              toast.info(t('ui.cctvPlayback.mp4FileIsReadyOnThe'));
                             }
                           }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 transition-all"
                         >
                           <Download size={13} />
-                          <span>ดาวน์โหลด</span>
+                          <span>{t('ui.cctvPlayback.download')}</span>
                         </a>
                       </td>
                     </tr>
@@ -912,7 +912,7 @@ export const CctvPlayback: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Film size={20} className="text-cyan-400" />
-                <h3 className="text-base font-bold text-white">ตัดคลิปวิดีโอหลักฐาน (Export Event Clip)</h3>
+                <h3 className="text-base font-bold text-white">{t('ui.cctvPlayback.exportEventClip')}</h3>
               </div>
               <button
                 onClick={() => setIsExportModalOpen(false)}
@@ -924,7 +924,7 @@ export const CctvPlayback: React.FC = () => {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">ชื่อคลิปหลักฐาน:</label>
+                <label className="block text-slate-400 mb-1 font-semibold">{t('ui.cctvPlayback.evidenceClipTitle2')}</label>
                 <input
                   type="text"
                   value={clipTitle}
@@ -935,29 +935,29 @@ export const CctvPlayback: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Pre-Buffer (ก่อนเกิดเหตุ):</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.cctvPlayback.preBufferBeforeEvent')}</label>
                   <select
                     value={preBufferSec}
                     onChange={(e) => setPreBufferSec(Number(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value={10}>10 วินาที</option>
-                    <option value={30}>30 วินาที (แนะนำ)</option>
-                    <option value={60}>60 วินาที</option>
-                    <option value={120}>120 วินาที</option>
+                    <option value={10}>{t('ui.cctvPlayback.n10Seconds')}</option>
+                    <option value={30}>{t('ui.cctvPlayback.n30SecondsRecommended')}</option>
+                    <option value={60}>{t('ui.cctvPlayback.n60Seconds')}</option>
+                    <option value={120}>{t('ui.cctvPlayback.n120Seconds')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Post-Buffer (หลังเกิดเหตุ):</label>
+                  <label className="block text-slate-400 mb-1 font-semibold">{t('ui.cctvPlayback.postBufferAfterEvent')}</label>
                   <select
                     value={postBufferSec}
                     onChange={(e) => setPostBufferSec(Number(e.target.value))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value={30}>30 วินาที</option>
-                    <option value={60}>60 วินาที (แนะนำ)</option>
-                    <option value={120}>120 วินาที</option>
-                    <option value={300}>5 นาที</option>
+                    <option value={30}>{t('ui.cctvPlayback.n30Seconds')}</option>
+                    <option value={60}>{t('ui.cctvPlayback.n60SecondsRecommended')}</option>
+                    <option value={120}>{t('ui.cctvPlayback.n120Seconds')}</option>
+                    <option value={300}>{t('ui.cctvPlayback.n5Minutes')}</option>
                   </select>
                 </div>
               </div>
@@ -966,11 +966,10 @@ export const CctvPlayback: React.FC = () => {
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 space-y-1">
                 <div className="flex items-center gap-1.5 text-cyan-400 font-semibold">
                   <Info size={14} />
-                  <span>เกณฑ์ตรวจสอบ Rolling Buffer:</span>
+                  <span>{t('ui.cctvPlayback.rollingBufferCheck')}</span>
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  ระบบจะดึงช่วงเวลาก่อนเกิดเหตุจาก Rolling Buffer บน Media Node อัตโนมัติ หากไม่มีไฟล์ก่อนเกิดเหตุ
-                  ระบบจะบันทึกสถานะว่า <span className="text-amber-400">"ไม่มีช่วงก่อนเหตุ (No Pre-buffer)"</span> ตามข้อกำหนด
+                  {t('ui.cctvPlayback.thePreEventWindowIsTaken')}{' '}<span className="text-amber-400">{t('ui.cctvPlayback.noPreBuffer2')}</span>{' '}{t('ui.cctvPlayback.asRequired')}
                 </p>
               </div>
 
@@ -983,9 +982,9 @@ export const CctvPlayback: React.FC = () => {
                   className="mt-0.5 rounded border-slate-700 text-purple-500 focus:ring-0"
                 />
                 <div>
-                  <div className="font-semibold text-purple-300">เปิดใช้งาน Legal Hold (คุ้มครองถาวร)</div>
+                  <div className="font-semibold text-purple-300">{t('ui.cctvPlayback.enableLegalHoldPermanentProtection')}</div>
                   <div className="text-[11px] text-purple-400/80">
-                    ป้องกันไม่ให้ระบบหมุนเวียนลบไฟล์อัตโนมัติ (Retention Sweeper) ลบคลิปนี้จนกว่าผู้มีอำนาจจะปลดออก
+                    {t('ui.cctvPlayback.preventsTheRetentionSweeperFromRemoving')}
                   </div>
                 </div>
               </label>
@@ -997,7 +996,7 @@ export const CctvPlayback: React.FC = () => {
                 onClick={() => setIsExportModalOpen(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300"
               >
-                ยกเลิก
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1005,7 +1004,7 @@ export const CctvPlayback: React.FC = () => {
                 disabled={exportClipMutation.isPending}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
               >
-                {exportClipMutation.isPending ? 'กำลังประมวลผลคลิป...' : 'ยืนยันและส่งออกคลิป'}
+                {exportClipMutation.isPending ? t('ui.cctvPlayback.processingClip') : t('ui.cctvPlayback.confirmExportClip')}
               </button>
             </div>
           </div>

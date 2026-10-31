@@ -1063,7 +1063,7 @@ export default function ImageServiceCameras() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.cameras.title')}
+            iSmart CCTV · {t('imageService.cameras.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.cameras.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.subtitle')}</p>
@@ -1074,7 +1074,7 @@ export default function ImageServiceCameras() {
           sections={[
             { title: t('imageService.cameras.title'), columns: cameraExportColumns, data: cameraExportData },
             { title: t('imageService.cameras.cameraInfo'), columns: [
-              { key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' },
+              { key: 'label', label: t('ui.imageServiceCameras.metric') }, { key: 'value', label: t('ui.imageServiceCameras.value') },
             ], data: (() => {
               const total = sorted.length;
               const active = sorted.filter((c: any) => c.status === 'active').length;
@@ -1354,7 +1354,7 @@ export default function ImageServiceCameras() {
             <div className="flex items-center justify-center gap-1.5 flex-wrap">
               <button disabled={page <= 1} onClick={() => setPage(1)}
                 className={`px-2.5 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
-                « {t('common.first') || 'หน้าแรก'}
+                « {t('common.first') || t('common.first')}
               </button>
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                 className={`px-3 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
@@ -1377,7 +1377,7 @@ export default function ImageServiceCameras() {
               </button>
               <button disabled={page >= totalPages} onClick={() => setPage(totalPages)}
                 className={`px-2.5 py-1.5 rounded-lg text-xs border ${themeConfig.inputBorder} ${themeConfig.text.primary} disabled:opacity-30`}>
-                {t('common.last') || 'หน้าสุดท้าย'} »
+                {t('common.last') || t('common.last')} »
               </button>
             </div>
           )}
@@ -1765,12 +1765,12 @@ export default function ImageServiceCameras() {
                 value={trashQ}
                 onChange={e => setTrashQ(e.target.value)}
                 className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 h-[38px]`}
-                placeholder="Search name / IP..."
+                placeholder={t('ui.imageServiceCameras.searchNameIp')}
               />
             </div>
             <div className="w-36">
               <label className={`block text-[10px] font-semibold uppercase tracking-wider mb-1 ${themeConfig.text.secondary}`}>
-                Start Date (ลบตั้งแต่)
+                {t('ui.imageServiceCameras.startDateDeleteFrom')}
               </label>
               <input
                 type="date"
@@ -1781,7 +1781,7 @@ export default function ImageServiceCameras() {
             </div>
             <div className="w-36">
               <label className={`block text-[10px] font-semibold uppercase tracking-wider mb-1 ${themeConfig.text.secondary}`}>
-                End Date (ลบถึง)
+                {t('ui.imageServiceCameras.endDateDeleteUntil')}
               </label>
               <input
                 type="date"
@@ -1794,9 +1794,9 @@ export default function ImageServiceCameras() {
               <button
                 onClick={() => { setTrashQ(''); setTrashStartDate(''); setTrashEndDate(''); }}
                 className={`px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} hover:bg-white/5 text-gray-300 transition-colors h-[38px] flex items-center justify-center`}
-                title="Clear filters"
+                title={t('ui.imageServiceCameras.clearFilters')}
               >
-                Clear
+                {t('ui.imageServiceCameras.clear')}
               </button>
             )}
           </div>
@@ -1805,7 +1805,7 @@ export default function ImageServiceCameras() {
           {trashSelected.size > 0 && (
             <div className="flex items-center justify-between p-2.5 bg-cyan-950/40 border border-cyan-800/40 rounded-lg text-xs text-cyan-200">
               <div className="flex items-center gap-2">
-                <span className="font-medium">{trashSelected.size} รายการ</span>
+                <span className="font-medium">{trashSelected.size}{' '}{t('common.records')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1834,7 +1834,7 @@ export default function ImageServiceCameras() {
               <div className="flex items-start gap-2">
                 <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <p className={`text-xs ${themeConfig.text.secondary}`}>
-                  ยืนยันลบกล้องที่เลือก {trashSelected.size} รายการแบบถาวร? รูปภาพที่เคยประมวลผลจะยังถูกเก็บไว้แต่จะตัดการเชื่อมโยงกับกล้อง การกระทำนี้ไม่สามารถย้อนกลับได้
+                  {t('ui.imageServiceCameras.confirmDeletingTheSelected')}{' '}{trashSelected.size}{' '}{t('ui.imageServiceCameras.camerasPermanentlyPreviouslyProcessedImagesAre')}
                 </p>
               </div>
               <input
@@ -2195,7 +2195,7 @@ export default function ImageServiceCameras() {
                               value={statusForm.assignedToOther}
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusForm((p: any) => ({ ...p, assignedToOther: e.target.value }))}
                               className={`w-full px-3 py-2 rounded-md text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`}
-                              placeholder={t('imageService.enterAssignedToOther')}
+                              placeholder={t('imageService.incidents.enterAssignedToOther')}
                             />
                           )}
                         </>

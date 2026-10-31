@@ -2,6 +2,7 @@ import { useState, forwardRef } from 'react'
 import type { InputHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
+import { useTranslation } from 'react-i18next'
 type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
 /** A password <input> with a show/hide eye-icon toggle. Pass className/style exactly as
@@ -11,6 +12,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(fu
   { className = '', ...props },
   ref,
 ) {
+  const { t } = useTranslation()
   const [show, setShow] = useState(false)
 
   return (
@@ -21,7 +23,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(fu
         tabIndex={-1}
         onClick={() => setShow((s) => !s)}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
-        aria-label={show ? 'Hide password' : 'Show password'}
+        aria-label={show ? t('ui.passwordInput.hidePassword') : t('ui.passwordInput.showPassword')}
       >
         {show ? <EyeOff size={15} /> : <Eye size={15} />}
       </button>

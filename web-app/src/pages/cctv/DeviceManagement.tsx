@@ -33,7 +33,9 @@ import {
 } from 'lucide-react';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 
+import { useTranslation } from 'react-i18next';
 export default function DeviceManagement() {
+  const { t } = useTranslation()
   const { themeConfig } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -101,12 +103,12 @@ export default function DeviceManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
-      toast.success('Device added successfully');
+      toast.success(t('ui.deviceManagement.deviceAddedSuccessfully'));
       setIsModalOpen(false);
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to create device');
+      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToCreateDevice'));
     },
   });
 
@@ -114,12 +116,12 @@ export default function DeviceManagement() {
     mutationFn: ({ id, data }: { id: string; data: any }) => imageServiceApi.updateDevice(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
-      toast.success('Device updated');
+      toast.success(t('ui.deviceManagement.deviceUpdated'));
       setIsModalOpen(false);
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to update device');
+      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToUpdateDevice'));
     },
   });
 
@@ -127,11 +129,11 @@ export default function DeviceManagement() {
     mutationFn: (id: string) => imageServiceApi.deleteDevice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
-      toast.success('Device removed');
+      toast.success(t('ui.deviceManagement.deviceRemoved'));
       setDeleteTarget(null);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to delete device');
+      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToDeleteDevice'));
     },
   });
 
@@ -140,10 +142,10 @@ export default function DeviceManagement() {
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
-      toast.success(`Provisioned ${res.provisionedCount} camera channels`);
+      toast.success(t('ui.deviceManagement.provisionedCameraChannels', { provisionedCount: res.provisionedCount }));
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to provision channels');
+      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToProvisionChannels'));
     },
   });
 
@@ -153,16 +155,16 @@ export default function DeviceManagement() {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
       setBulkImportResult(res);
-      toast.success(`Bulk import completed: ${res.createdCount} devices created, ${res.provisionedCamerasCount} channels provisioned`);
+      toast.success(t('ui.deviceManagement.bulkImportCompletedDevicesCreatedChannels', { createdCount: res.createdCount, provisionedCamerasCount: res.provisionedCamerasCount }));
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Bulk import failed');
+      toast.error(err?.response?.data?.message || t('ui.deviceManagement.bulkImportFailed'));
     },
   });
 
   const handleProbeDevice = async () => {
     if (!formData.ipAddress) {
-      toast.error('Please enter an IP address to test');
+      toast.error(t('ui.deviceManagement.pleaseEnterAnIpAddressTo'));
       return;
     }
     setProbeState({ loading: true, result: null, error: null });
@@ -348,16 +350,16 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-cyan-950 text-cyan-400 border border-cyan-800">
-              CCTV Platform
+              {t('ui.deviceManagement.cctvPlatform')}
             </span>
-            <span className="text-xs text-slate-400">· Phase 1 Foundation</span>
+            <span className="text-xs text-slate-400">{t('ui.deviceManagement.phase1Foundation')}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-100 mt-1 flex items-center gap-2">
             <HardDrive className="w-6 h-6 text-cyan-400" />
-            Device Management (DVR / NVR / IP Cam)
+            {t('ui.deviceManagement.deviceManagementDvrNvrIpCam')}
           </h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            Manage recording units, configure vendor RTSP profiles, and auto-provision camera channels
+            {t('ui.deviceManagement.manageRecordingUnitsConfigureVendorRtsp')}
           </p>
         </div>
 
@@ -371,15 +373,15 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             className="flex items-center gap-1.5 border border-slate-700 hover:border-cyan-500"
           >
             <UploadCloud className="w-4 h-4 text-cyan-400" />
-            Bulk Import (CSV)
+            {t('ui.deviceManagement.bulkImportCsv')}
           </Button>
           <Button variant="secondary" onClick={() => refetch()} className="flex items-center gap-1.5">
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {t('ui.deviceManagement.refresh')}
           </Button>
           <Button onClick={openAddModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
             <Plus className="w-4 h-4" />
-            Add Device
+            {t('ui.deviceManagement.addDevice')}
           </Button>
         </div>
       </div>
@@ -388,7 +390,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Total Devices</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.deviceManagement.totalDevices')}</p>
             <p className="text-2xl font-bold text-slate-100 mt-1">{devices.length}</p>
           </div>
           <div className="p-3 bg-cyan-950/70 border border-cyan-800/50 rounded-lg text-cyan-400">
@@ -398,8 +400,8 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Total Channel Capacity</p>
-            <p className="text-2xl font-bold text-slate-100 mt-1">{totalChannelsCount} Ch</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.deviceManagement.totalChannelCapacity')}</p>
+            <p className="text-2xl font-bold text-slate-100 mt-1">{totalChannelsCount}{' '}{t('ui.deviceManagement.ch')}</p>
           </div>
           <div className="p-3 bg-indigo-950/70 border border-indigo-800/50 rounded-lg text-indigo-400">
             <Layers className="w-5 h-5" />
@@ -408,8 +410,8 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">Active Cameras</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalProvisionedCount} Cams</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.deviceManagement.activeCameras')}</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalProvisionedCount}{' '}{t('ui.deviceManagement.cams')}</p>
           </div>
           <div className="p-3 bg-emerald-950/70 border border-emerald-800/50 rounded-lg text-emerald-400">
             <Camera className="w-5 h-5" />
@@ -418,10 +420,10 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-slate-400">MediaMTX Gateway</p>
+            <p className="text-xs font-medium text-slate-400">{t('ui.deviceManagement.mediaMTXGateway')}</p>
             <p className="text-sm font-semibold text-cyan-400 mt-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              On-Demand WHEP
+              {t('ui.deviceManagement.onDemandWhep')}
             </p>
           </div>
           <div className="p-3 bg-amber-950/70 border border-amber-800/50 rounded-lg text-amber-400">
@@ -436,7 +438,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by name, IP, brand, S/N..."
+            placeholder={t('ui.deviceManagement.searchByNameIpBrandS')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
@@ -444,7 +446,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-slate-400 font-medium">Type:</span>
+          <span className="text-xs text-slate-400 font-medium">{t('ui.deviceManagement.type')}</span>
           {['all', 'dvr', 'nvr', 'ip_camera'].map((type) => (
             <button
               key={type}
@@ -455,7 +457,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
               }`}
             >
-              {type === 'all' ? 'All Types' : type.replace('_', ' ').toUpperCase()}
+              {type === 'all' ? t('ui.deviceManagement.allTypes') : type.replace('_', ' ').toUpperCase()}
             </button>
           ))}
         </div>
@@ -468,12 +470,12 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
         ) : filteredDevices.length === 0 ? (
           <div className="py-16 text-center text-slate-400">
             <Server className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-            <p className="text-base font-semibold text-slate-300">No CCTV devices found</p>
+            <p className="text-base font-semibold text-slate-300">{t('ui.deviceManagement.noCctvDevicesFound')}</p>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Add your first DVR, NVR, or IP camera to start streaming through MediaMTX
+              {t('ui.deviceManagement.addYourFirstDvrNvrOr')}
             </p>
             <Button onClick={openAddModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
-              <Plus className="w-4 h-4 mr-1" /> Add Device
+              <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.deviceManagement.addDevice')}
             </Button>
           </div>
         ) : (
@@ -518,11 +520,11 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-400">
-                          <span className="font-mono text-cyan-300">IP: {dev.ipAddress}:{dev.rtspPort}</span>
-                          <span>HTTP: {dev.httpPort || 80}</span>
-                          {dev.onvifPort && <span>ONVIF: {dev.onvifPort}</span>}
+                          <span className="font-mono text-cyan-300">{t('ui.deviceManagement.ip')}{' '}{dev.ipAddress}:{dev.rtspPort}</span>
+                          <span>{t('ui.deviceManagement.http')}{' '}{dev.httpPort || 80}</span>
+                          {dev.onvifPort && <span>{t('ui.deviceManagement.onvif')}{' '}{dev.onvifPort}</span>}
                           {dev.serialNumber && <span>S/N: {dev.serialNumber}</span>}
-                          {dev.site && <span className="text-slate-300">Site: {dev.site.name}</span>}
+                          {dev.site && <span className="text-slate-300">{t('ui.deviceManagement.site')}{' '}{dev.site.name}</span>}
                         </div>
                       </div>
                     </div>
@@ -533,7 +535,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                         <div className="flex items-center gap-1.5 justify-end">
                           <Camera className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-xs font-semibold text-slate-200">
-                            {dev.cameraCount || 0} / {dev.totalChannels} Channels
+                            {dev.cameraCount || 0} / {dev.totalChannels}{' '}{t('ui.deviceManagement.channels')}
                           </span>
                         </div>
                         {hasUnprovisionedChannels && (
@@ -551,14 +553,14 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                           disabled={provisionMutation.isPending}
                           className="text-xs py-1 px-2.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-800/50"
                         >
-                          Auto-Provision
+                          {t('ui.deviceManagement.autoProvision')}
                         </Button>
                       )}
 
                       <button
                         onClick={() => openEditModal(dev)}
                         className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                        title="Edit device"
+                        title={t('ui.deviceManagement.editDevice')}
                       >
                         <Edit className="w-4 h-4" />
                       </button>
@@ -566,7 +568,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                       <button
                         onClick={() => setDeleteTarget(dev)}
                         className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                        title="Delete device"
+                        title={t('ui.deviceManagement.deleteDevice')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -579,10 +581,10 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                          Provisioned Camera Channels
+                          {t('ui.deviceManagement.provisionedCameraChannels2')}
                         </h4>
                         <span className="text-xs text-slate-500">
-                          Click channel to launch low-latency WebRTC live stream
+                          {t('ui.deviceManagement.clickChannelToLaunchLowLatency')}
                         </span>
                       </div>
 
@@ -592,13 +594,13 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                               <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-                              Live Preview: {previewCamera.name}
+                              {t('ui.deviceManagement.livePreview')}{' '}{previewCamera.name}
                             </span>
                             <button
                               onClick={() => setPreviewCamera(null)}
                               className="text-xs text-slate-400 hover:text-slate-200"
                             >
-                              Close Preview ✕
+                              {t('ui.deviceManagement.closePreview')}
                             </button>
                           </div>
                           {streamInfo?.webrtcWhepUrl ? (
@@ -609,7 +611,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                             />
                           ) : (
                             <div className="py-8 text-center text-xs text-slate-400">
-                              {isLoadingStream ? 'Fetching MediaMTX Stream URL...' : 'No RTSP stream URL configured for this channel.'}
+                              {isLoadingStream ? t('ui.deviceManagement.fetchingMediaMTXStreamUrl') : t('ui.deviceManagement.noRtspStreamUrlConfiguredFor')}
                             </div>
                           )}
                         </div>
@@ -640,7 +642,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                               }`}
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-mono text-slate-400">CH {ch}</span>
+                                <span className="text-[10px] font-mono text-slate-400">{t('ui.deviceManagement.ch2')}{' '}{ch}</span>
                                 {isProvisioned ? (
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                 ) : (
@@ -648,7 +650,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                                 )}
                               </div>
                               <p className="text-xs font-semibold text-slate-200 truncate">
-                                {isProvisioned ? `Cam ${ch}` : 'Empty'}
+                                {isProvisioned ? t('ui.deviceManagement.cam', { ch }) : t('ui.deviceManagement.empty')}
                               </p>
                             </div>
                           );
@@ -667,16 +669,16 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingDevice ? 'Edit Recording Device' : 'Add Recording Device (DVR / NVR / IP Cam)'}
+        title={editingDevice ? t('ui.deviceManagement.editRecordingDevice') : t('ui.deviceManagement.addRecordingDeviceDvrNvrIp')}
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-slate-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Device Name *</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.deviceName')}</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Main Gate DVR, Warehouse NVR"
+                placeholder={t('ui.deviceManagement.eGMainGateDvrWarehouse')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -684,40 +686,40 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Device Type</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.deviceType')}</label>
               <select
                 value={formData.deviceType}
                 onChange={(e) => setFormData({ ...formData, deviceType: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value="dvr">DVR (Digital Video Recorder - Coaxial/BNC)</option>
-                <option value="nvr">NVR (Network Video Recorder - IP/PoE)</option>
-                <option value="ip_camera">Stand-alone IP Camera</option>
-                <option value="other">Other / Hybrid</option>
+                <option value="dvr">{t('ui.deviceManagement.dvrDigitalVideoRecorderCoaxialBnc')}</option>
+                <option value="nvr">{t('ui.deviceManagement.nvrNetworkVideoRecorderIpPoE')}</option>
+                <option value="ip_camera">{t('ui.deviceManagement.standAloneIpCamera')}</option>
+                <option value="other">{t('ui.deviceManagement.otherHybrid')}</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Vendor / Brand</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.vendorBrand')}</label>
               <select
                 value={formData.brand}
                 onChange={(e) => handleTemplateSelect(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value="Hikvision">Hikvision / HiLook</option>
-                <option value="Dahua">Dahua / IMOU</option>
-                <option value="Uniview">Uniview (UNV)</option>
-                <option value="Generic">Generic / Other RTSP</option>
+                <option value="Hikvision">{t('ui.deviceManagement.hikvisionHiLook')}</option>
+                <option value="Dahua">{t('ui.deviceManagement.dahuaImou')}</option>
+                <option value="Uniview">{t('ui.deviceManagement.univiewUnv')}</option>
+                <option value="Generic">{t('ui.deviceManagement.genericOtherRtsp')}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Model</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.model')}</label>
               <input
                 type="text"
-                placeholder="e.g. DS-7216HQHI-K1"
+                placeholder={t('ui.deviceManagement.eGDs7216hqhiK')}
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -725,18 +727,18 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Total Channels</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.totalChannels')}</label>
               <select
                 value={formData.totalChannels}
                 onChange={(e) => setFormData({ ...formData, totalChannels: parseInt(e.target.value, 10) })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value={1}>1 Channel</option>
-                <option value={4}>4 Channels</option>
-                <option value={8}>8 Channels</option>
-                <option value={16}>16 Channels</option>
-                <option value={32}>32 Channels</option>
-                <option value={64}>64 Channels</option>
+                <option value={1}>{t('ui.deviceManagement.n1Channel')}</option>
+                <option value={4}>{t('ui.deviceManagement.n4Channels')}</option>
+                <option value={8}>{t('ui.deviceManagement.n8Channels')}</option>
+                <option value={16}>{t('ui.deviceManagement.n16Channels')}</option>
+                <option value={32}>{t('ui.deviceManagement.n32Channels')}</option>
+                <option value={64}>{t('ui.deviceManagement.n64Channels')}</option>
               </select>
             </div>
           </div>
@@ -744,7 +746,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-1">
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-slate-300">IP Address *</label>
+                <label className="block text-xs font-medium text-slate-300">{t('ui.deviceManagement.ipAddress')}</label>
                 <button
                   type="button"
                   onClick={handleProbeDevice}
@@ -756,7 +758,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   ) : (
                     <Wifi className="w-3 h-3" />
                   )}
-                  Test Connection
+                  {t('ui.deviceManagement.testConnection')}
                 </button>
               </div>
               <input
@@ -770,7 +772,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">RTSP Port</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.rtspPort')}</label>
               <input
                 type="number"
                 value={formData.rtspPort}
@@ -780,7 +782,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">HTTP Port</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.httpPort')}</label>
               <input
                 type="number"
                 value={formData.httpPort}
@@ -794,7 +796,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
           {probeState.loading && (
             <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-xs text-cyan-300 flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-              <span>Probing RTSP ({formData.rtspPort}) & HTTP ({formData.httpPort}) on {formData.ipAddress}...</span>
+              <span>{t('ui.deviceManagement.probingRtsp')}{formData.rtspPort}{t('ui.deviceManagement.http2')}{formData.httpPort}{t('ui.deviceManagement.on')}{' '}{formData.ipAddress}...</span>
             </div>
           )}
 
@@ -817,9 +819,9 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   <WifiOff className="w-4 h-4 text-rose-400 shrink-0" />
                 )}
                 <span>
-                  RTSP: {probeState.result.reachability.rtsp.reachable ? `Online (${probeState.result.reachability.rtsp.latencyMs}ms)` : 'Unreachable'}
+                  {t('ui.deviceManagement.rtsp')}{' '}{probeState.result.reachability.rtsp.reachable ? t('ui.deviceManagement.onlineMs', { latencyMs: probeState.result.reachability.rtsp.latencyMs }) : t('ui.deviceManagement.unreachable')}
                   {' · '}
-                  HTTP: {probeState.result.reachability.http.reachable ? `Online (${probeState.result.reachability.http.latencyMs}ms)` : 'Unreachable'}
+                  {t('ui.deviceManagement.http')}{' '}{probeState.result.reachability.http.reachable ? t('ui.deviceManagement.onlineMs', { latencyMs: probeState.result.reachability.http.latencyMs }) : t('ui.deviceManagement.unreachable')}
                 </span>
               </div>
               <span className="font-semibold uppercase tracking-wider text-[10px]">
@@ -850,7 +852,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             return (
               <div className="p-2 bg-slate-950 border border-slate-800/80 rounded-lg text-[11px] font-mono text-slate-400 flex items-center justify-between">
                 <span className="truncate">
-                  Vendor Stream URL (Ch 1): <span className="text-cyan-300">{preview}</span>
+                  {t('ui.deviceManagement.vendorStreamUrlCh')}{' '}<span className="text-cyan-300">{preview}</span>
                 </span>
               </div>
             );
@@ -858,7 +860,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Username</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.username')}</label>
               <input
                 type="text"
                 placeholder="admin"
@@ -870,7 +872,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                Password {editingDevice && '(Leave blank to keep unchanged)'}
+                {t('common.password')}{' '}{editingDevice && t('ui.deviceManagement.leaveBlankToKeepUnchanged')}
               </label>
               <input
                 type="password"
@@ -892,21 +894,21 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                 className="rounded border-slate-700 bg-slate-950 text-cyan-600 focus:ring-0"
               />
               <label htmlFor="autoCreate" className="text-xs text-slate-300 font-medium cursor-pointer">
-                Auto-generate camera channels for this device immediately (Channels 1 to {formData.totalChannels})
+                {t('ui.deviceManagement.autoGenerateCameraChannelsForThis')}{' '}{formData.totalChannels})
               </label>
             </div>
           )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
               className="bg-cyan-600 hover:bg-cyan-500 text-white"
             >
-              {editingDevice ? 'Save Changes' : 'Create Device'}
+              {editingDevice ? t('ui.deviceManagement.saveChanges') : t('ui.deviceManagement.createDevice')}
             </Button>
           </div>
         </form>
@@ -916,30 +918,30 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
       <Modal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        title="Confirm Delete Device"
+        title={t('ui.deviceManagement.confirmDeleteDevice')}
       >
         <div className="space-y-4 text-slate-200">
           <p className="text-sm">
-            Are you sure you want to delete <span className="font-bold text-cyan-400">{deleteTarget?.name}</span>?
+            {t('ui.deviceManagement.areYouSureYouWantTo')}{' '}<span className="font-bold text-cyan-400">{deleteTarget?.name}</span>?
           </p>
           {deleteTarget?.cameraCount > 0 && (
             <div className="p-3 bg-amber-950/60 border border-amber-800 rounded-lg text-amber-300 text-xs flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                This device currently has {deleteTarget.cameraCount} linked cameras. You must reassign or remove the cameras before deleting this device.
+                {t('ui.deviceManagement.thisDeviceCurrentlyHas')}{' '}{deleteTarget.cameraCount}{' '}{t('ui.deviceManagement.linkedCamerasYouMustReassignOr')}
               </span>
             </div>
           )}
           <div className="flex justify-end gap-3 pt-3">
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               disabled={deleteMutation.isPending || deleteTarget?.cameraCount > 0}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               className="bg-rose-600 hover:bg-rose-500 text-white"
             >
-              Confirm Delete
+              {t('common.deleteConfirm')}
             </Button>
           </div>
         </div>
@@ -954,7 +956,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
           setBulkParseErrors([]);
           setBulkInputText('');
         }}
-        title="Bulk Import Devices (DVR / NVR / IP Cam)"
+        title={t('ui.deviceManagement.bulkImportDevicesDvrNvrIp')}
       >
         <div className="space-y-4 text-slate-200">
           {bulkImportResult ? (
@@ -962,20 +964,20 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
               <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 text-emerald-400 font-semibold">
                   <CheckCircle className="w-5 h-5" />
-                  <span>Bulk Import Complete</span>
+                  <span>{t('ui.deviceManagement.bulkImportComplete')}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
                     <p className="text-xl font-bold text-slate-100">{bulkImportResult.createdCount}</p>
-                    <p className="text-[11px] text-slate-400">Devices Created</p>
+                    <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.devicesCreated')}</p>
                   </div>
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
                     <p className="text-xl font-bold text-cyan-400">{bulkImportResult.provisionedCamerasCount}</p>
-                    <p className="text-[11px] text-slate-400">Channels Provisioned</p>
+                    <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.channelsProvisioned')}</p>
                   </div>
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
                     <p className="text-xl font-bold text-amber-400">{bulkImportResult.skippedCount}</p>
-                    <p className="text-[11px] text-slate-400">Skipped (Duplicate)</p>
+                    <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.skippedDuplicate')}</p>
                   </div>
                 </div>
                 {bulkImportResult.results?.length > 0 && (
@@ -1014,7 +1016,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   }}
                   className="bg-cyan-600 hover:bg-cyan-500 text-white"
                 >
-                  Done
+                  {t('ui.deviceManagement.done')}
                 </Button>
               </div>
             </div>
@@ -1022,7 +1024,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
             <div className="space-y-4">
               <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-between text-xs">
                 <div>
-                  <p className="font-semibold text-slate-200">CSV Template Format</p>
+                  <p className="font-semibold text-slate-200">{t('ui.deviceManagement.csvTemplateFormat')}</p>
                   <p className="text-slate-400 text-[11px]">
                     name, ipAddress, brand, deviceType, totalChannels, username, password, rtspPort, httpPort, autoCreateCameras
                   </p>
@@ -1032,21 +1034,21 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                     type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(sampleCsv);
-                      toast.success('Sample CSV copied to clipboard');
+                      toast.success(t('ui.deviceManagement.sampleCsvCopiedToClipboard'));
                     }}
                     className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 font-medium text-xs flex items-center gap-1 transition"
                   >
-                    <Download className="w-3.5 h-3.5" /> Copy Sample
+                    <Download className="w-3.5 h-3.5" />{' '}{t('ui.deviceManagement.copySample')}
                   </button>
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-slate-300">Paste CSV Data or Upload .csv File</label>
+                  <label className="text-xs font-medium text-slate-300">{t('ui.deviceManagement.pasteCsvDataOrUploadCsv')}</label>
                   <label className="text-xs text-cyan-400 hover:underline cursor-pointer flex items-center gap-1">
                     <UploadCloud className="w-3.5 h-3.5" />
-                    Upload File
+                    {t('ui.deviceManagement.uploadFile')}
                     <input
                       type="file"
                       accept=".csv,text/csv"
@@ -1073,7 +1075,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                     setBulkInputText(e.target.value);
                     parseCsv(e.target.value);
                   }}
-                  placeholder="Paste CSV rows here..."
+                  placeholder={t('ui.deviceManagement.pasteCsvRowsHere')}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
@@ -1081,7 +1083,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
               {bulkParseErrors.length > 0 && (
                 <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-lg text-xs text-rose-300 space-y-1">
                   <div className="flex items-center gap-1 font-semibold">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Syntax or Validation Warnings:
+                    <AlertTriangle className="w-3.5 h-3.5" />{' '}{t('ui.deviceManagement.syntaxOrValidationWarnings')}
                   </div>
                   {bulkParseErrors.map((err, idx) => (
                     <p key={idx}>· {err}</p>
@@ -1092,20 +1094,20 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
               {bulkParsedData.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-300">
-                    <span className="font-semibold">Preview: {bulkParsedData.length} Devices to import</span>
+                    <span className="font-semibold">{t('ui.deviceManagement.preview')}{' '}{bulkParsedData.length}{' '}{t('ui.deviceManagement.devicesToImport')}</span>
                     <span className="text-slate-400">
-                      Total capacity: {bulkParsedData.reduce((s, d) => s + d.totalChannels, 0)} channels
+                      {t('ui.deviceManagement.totalCapacity')}{' '}{bulkParsedData.reduce((s, d) => s + d.totalChannels, 0)} channels
                     </span>
                   </div>
                   <div className="max-h-40 overflow-y-auto border border-slate-800 rounded-lg">
                     <table className="w-full text-[11px] text-left text-slate-300">
                       <thead className="bg-slate-900 text-slate-400 font-semibold sticky top-0">
                         <tr>
-                          <th className="p-2">Name</th>
-                          <th className="p-2">IP Address</th>
-                          <th className="p-2">Brand</th>
-                          <th className="p-2">Channels</th>
-                          <th className="p-2">Auto-create</th>
+                          <th className="p-2">{t('common.name')}</th>
+                          <th className="p-2">{t('ui.deviceManagement.ipAddress2')}</th>
+                          <th className="p-2">{t('ui.deviceManagement.brand')}</th>
+                          <th className="p-2">{t('ui.deviceManagement.channels')}</th>
+                          <th className="p-2">{t('ui.deviceManagement.autoCreate')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
@@ -1125,7 +1127,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                                     : 'bg-slate-800 text-slate-400'
                                 }`}
                               >
-                                {d.autoCreateCameras ? 'Yes' : 'No'}
+                                {d.autoCreateCameras ? t('common.yes') : t('common.no')}
                               </span>
                             </td>
                           </tr>
@@ -1138,7 +1140,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
                 <Button variant="secondary" onClick={() => setIsBulkModalOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   disabled={bulkImportMutation.isPending || bulkParsedData.length === 0}
@@ -1146,7 +1148,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   className="bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5"
                 >
                   {bulkImportMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Import {bulkParsedData.length} Devices
+                  {t('ui.deviceManagement.import')}{' '}{bulkParsedData.length}{' '}{t('ui.deviceManagement.devices')}
                 </Button>
               </div>
             </div>

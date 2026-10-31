@@ -229,7 +229,7 @@ export default function ImageServiceStorage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-            Image Service · {t('imageService.storage.title')}
+            iSmart CCTV · {t('imageService.storage.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.storage.title')}</h1>
           <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.storage.subtitle')}</p>
@@ -264,7 +264,7 @@ export default function ImageServiceStorage() {
             title={t('imageService.storage.title')}
             sections={[
               { title: t('imageService.storage.title'), columns: [
-                { key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' },
+                { key: 'label', label: t('ui.imageServiceStorage.metric') }, { key: 'value', label: t('ui.imageServiceStorage.value') },
               ], data: statsCards.map(s => ({ label: s.label, value: s.value })) },
               { title: t('imageService.storage.byFileType'), columns: [
                 { key: 'name', label: t('imageService.storage.byFileType') },
@@ -281,7 +281,7 @@ export default function ImageServiceStorage() {
                 { key: 'images', label: t('imageService.overview.totalImages') },
               ], data: growthData },
               ...(forecast ? [{ title: t('imageService.storage.forecast'), columns: [
-                { key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' },
+                { key: 'label', label: t('ui.imageServiceStorage.metric') }, { key: 'value', label: t('ui.imageServiceStorage.value') },
               ], data: [
                 { label: t('imageService.storage.usage'), value: `${forecast.usagePercent?.toFixed(1)}%` },
                 { label: t('imageService.storage.dailyGrowth'), value: `${formatBytes(forecast.dailyGrowthRate)}/day` },

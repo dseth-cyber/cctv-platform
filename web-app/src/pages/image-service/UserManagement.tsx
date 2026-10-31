@@ -544,10 +544,10 @@ export default function UserManagement() {
     try {
       if (roleModal.item) {
         await imageServiceApi.updateRole(roleModal.item.id, roleForm)
-        toast.success(t('common.saveSuccess') || 'Role updated successfully')
+        toast.success(t('common.saveSuccess') || t('ui.userManagement.roleUpdatedSuccessfully'))
       } else {
         await imageServiceApi.createRole(roleForm)
-        toast.success(t('common.saveSuccess') || 'Role created successfully')
+        toast.success(t('common.saveSuccess') || t('ui.userManagement.roleCreatedSuccessfully'))
       }
       setRoleModal({ open: false })
       queryClient.invalidateQueries({ queryKey: ['roles'] })
@@ -559,7 +559,7 @@ export default function UserManagement() {
   const handleDeleteRole = async (id: string) => {
     try {
       await imageServiceApi.deleteRole(id)
-      toast.success(t('common.saveSuccess') || 'Role deleted successfully')
+      toast.success(t('common.saveSuccess') || t('ui.userManagement.roleDeletedSuccessfully'))
       queryClient.invalidateQueries({ queryKey: ['roles'] })
     } catch (e: any) {
       if (!e?._handled) toast.error(translateBackendError(e.response?.data?.message, i18n.language) || t('common.error'))
@@ -637,7 +637,7 @@ export default function UserManagement() {
       {/* Title block */}
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.users.title')}
+          iSmart CCTV · {t('imageService.users.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.users.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.users.subtitle')}</p>
@@ -652,7 +652,7 @@ export default function UserManagement() {
           }`}
         >
           <Users size={16} />
-          {t('imageService.users.title') || 'Users'}
+          {t('imageService.users.title') || t('ui.userManagement.users')}
         </button>
         <button
           onClick={() => setActiveTab('roles')}
@@ -661,7 +661,7 @@ export default function UserManagement() {
           }`}
         >
           <ShieldAlert size={16} />
-          {t('imageService.users.tabs.roles') || 'Roles & Permissions'}
+          {t('imageService.users.tabs.roles') || t('ui.userManagement.rolesPermissions')}
         </button>
         <button
           onClick={() => { setActiveTab('activity'); setSelectedActivityUser(null) }}
@@ -670,7 +670,7 @@ export default function UserManagement() {
           }`}
         >
           <Activity size={16} />
-          {t('imageService.users.tabs.activity') || 'Activity Stats'}
+          {t('imageService.users.tabs.activity') || t('ui.userManagement.activityStats')}
         </button>
       </div>
 
@@ -815,11 +815,11 @@ export default function UserManagement() {
         <>
           <div className={`${themeConfig.card} rounded-lg p-4 mb-5 flex items-center justify-between`}>
             <span className={`text-xs ${themeConfig.text.secondary}`}>
-              {t('imageService.users.totalRoles', { count: rolesList.length }) || `Total: ${rolesList.length} Roles`}
+              {t('imageService.users.totalRoles', { count: rolesList.length }) || t('ui.userManagement.totalRoles', { length: rolesList.length })}
             </span>
             {hasPermission(user, 'users:create') && (
               <Button onClick={openCreateRole}>
-                <Plus size={15} className="mr-1.5" /> {t('imageService.users.roles.newRole') || 'Add New Role'}
+                <Plus size={15} className="mr-1.5" /> {t('imageService.users.roles.newRole') || t('ui.userManagement.addNewRole')}
               </Button>
             )}
           </div>
@@ -830,11 +830,11 @@ export default function UserManagement() {
                 <thead className={themeConfig.tableHeader}>
                   <tr>
                     <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>#</th>
-                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.roles.roleCode') || 'Role Code'}</th>
-                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.role') || 'Role Name'}</th>
-                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.retention.description') || 'Description'}</th>
-                    <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.roles.assignedUsers') || 'Assigned Users'}</th>
-                    <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.status') || 'Status'}</th>
+                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.roles.roleCode') || t('ui.userManagement.roleCode')}</th>
+                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.role') || t('ui.userManagement.roleName')}</th>
+                    <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.retention.description') || t('ui.userManagement.description')}</th>
+                    <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.roles.assignedUsers') || t('ui.userManagement.assignedUsers')}</th>
+                    <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.status') || t('ui.userManagement.status')}</th>
                     <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('common.actions')}</th>
                   </tr>
                 </thead>
@@ -986,7 +986,7 @@ export default function UserManagement() {
                           <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.loginTime')}</th>
                           <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.logoutTime')}</th>
                           <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.users.duration')}</th>
-                          <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>IP</th>
+                          <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('ui.userManagement.ip')}</th>
                         </tr>
                       </thead>
                       <tbody className={`divide-y ${themeConfig.tableDivide}`}>
@@ -1139,7 +1139,7 @@ export default function UserManagement() {
             <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.users.email')}</label>
             <input value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))}
               className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-            <p className="text-[11px] text-gray-400 mt-1">ต้องเป็นรูปแบบอีเมลที่ถูกต้อง (เช่น example@domain.com)</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('ui.userManagement.mustBeAValidEmailAddress')}</p>
           </div>
           <div>
             <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.users.password')}</label>
@@ -1148,7 +1148,7 @@ export default function UserManagement() {
               className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             <PasswordStrengthMeter password={userForm.password} />
             <p className="text-[11px] text-gray-400 mt-1">
-              {userModal.item ? 'ปล่อยว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน' : 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 10 ตัวอักษร และไม่ใช่รหัสผ่านที่เดาง่าย'}
+              {userModal.item ? t('ui.userManagement.leaveBlankToKeepTheCurrent') : t('ui.userManagement.theNewPasswordMustBeAt')}
             </p>
           </div>
           <div>
@@ -1162,7 +1162,7 @@ export default function UserManagement() {
             <div className="flex items-center gap-1.5 mb-1.5">
               <Key size={14} className="text-cyan-400" />
               <label className={`block text-sm font-medium ${themeConfig.text.primary}`}>
-                {t('imageService.users.roles.extraPermissions') || 'Additional / Override Permissions'}
+                {t('imageService.users.roles.extraPermissions') || t('ui.userManagement.additionalOverridePermissions')}
               </label>
             </div>
             
@@ -1194,7 +1194,7 @@ export default function UserManagement() {
                               <span className={themeConfig.text.primary}>{permLabel}</span>
                               {isInherited && (
                                 <span className="text-[10px] text-cyan-400 italic font-semibold">
-                                  ({t('imageService.users.roles.fromRole') || 'Inherited from Role'})
+                                  ({t('imageService.users.roles.fromRole') || t('ui.userManagement.inheritedFromRole')})
                                 </span>
                               )}
                             </div>
@@ -1219,24 +1219,24 @@ export default function UserManagement() {
 
       {/* Role Create/Edit Modal */}
       <Modal isOpen={roleModal.open} onClose={() => setRoleModal({ open: false })} size="2xl"
-        title={roleModal.item ? t('imageService.users.roles.editRole') || 'Edit Role' : t('imageService.users.roles.newRole') || 'New Role'}>
+        title={roleModal.item ? t('imageService.users.roles.editRole') || t('ui.userManagement.editRole') : t('imageService.users.roles.newRole') || t('ui.userManagement.newRole')}>
         <div className="space-y-4 p-1">
           <div>
-            <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.users.roles.roleCode') || 'Role Code'}</label>
+            <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.users.roles.roleCode') || t('ui.userManagement.roleCode')}</label>
             <input value={roleForm.code} onChange={e => setRoleForm(f => ({ ...f, code: e.target.value }))}
-              placeholder="e.g. operator"
+              placeholder={t('ui.userManagement.eGOperator')}
               disabled={!!roleModal.item}
               className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 disabled:opacity-50 font-mono`} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.nameLabel', { lang: 'TH' }) || 'Name (TH)'}</label>
+              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.nameLabel', { lang: 'TH' }) || t('ui.userManagement.nameTh')}</label>
               <input value={roleForm.nameTh} onChange={e => setRoleForm(f => ({ ...f, nameTh: e.target.value }))}
                 className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.nameLabel', { lang: 'EN' }) || 'Name (EN)'}</label>
+              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.nameLabel', { lang: 'EN' }) || t('ui.userManagement.nameEn')}</label>
               <input value={roleForm.nameEn} onChange={e => setRoleForm(f => ({ ...f, nameEn: e.target.value }))}
                 className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
@@ -1266,7 +1266,7 @@ export default function UserManagement() {
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.retention.description') || 'Description'}</label>
+            <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.retention.description') || t('ui.userManagement.description')}</label>
             <textarea value={roleForm.description} onChange={e => setRoleForm(f => ({ ...f, description: e.target.value }))}
               rows={2}
               className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
@@ -1274,7 +1274,7 @@ export default function UserManagement() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formSortOrder') || 'Sort Order'}</label>
+              <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formSortOrder') || t('ui.userManagement.sortOrder')}</label>
               <input type="number" value={roleForm.sortOrder} onChange={e => setRoleForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
                 className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
@@ -1282,7 +1282,7 @@ export default function UserManagement() {
               <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
                 <input type="checkbox" checked={roleForm.isActive} onChange={e => setRoleForm(f => ({ ...f, isActive: e.target.checked }))}
                   className="rounded border-white/30 bg-white/10 text-cyan-500 focus:ring-cyan-500/50" />
-                <span className={themeConfig.text.primary}>{t('imageService.masterdataManagement.formActive') || 'Active'}</span>
+                <span className={themeConfig.text.primary}>{t('imageService.masterdataManagement.formActive') || t('common.active')}</span>
               </label>
             </div>
           </div>
@@ -1292,7 +1292,7 @@ export default function UserManagement() {
             <div className="flex items-center gap-1.5 mb-1.5">
               <Layout size={14} className="text-cyan-400" />
               <label className={`block text-sm font-medium ${themeConfig.text.primary}`}>
-                {t('imageService.users.roles.permissions') || 'Default Permissions'}
+                {t('imageService.users.roles.permissions') || t('ui.userManagement.defaultPermissions')}
               </label>
             </div>
             
@@ -1300,7 +1300,7 @@ export default function UserManagement() {
               <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 p-3 rounded-lg flex items-start gap-2">
                 <Info size={16} className="mt-0.5 flex-shrink-0" />
                 <p className="text-xs">
-                  {t('imageService.users.roles.adminBypass') || 'Administrator role automatically possesses all permissions (*) and bypasses RBAC access controls. Specific permission overrides are not required.'}
+                  {t('imageService.users.roles.adminBypass') || t('ui.userManagement.administratorRoleAutomaticallyPossessesAllPermis')}
                 </p>
               </div>
             ) : (

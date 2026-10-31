@@ -333,7 +333,7 @@ export default function ImageServiceRoadmap() {
     <div className="p-6">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
-          Image Service · {t('imageService.roadmap.title')}
+          iSmart CCTV · {t('imageService.roadmap.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>
           {t('imageService.roadmap.title')}
@@ -507,7 +507,7 @@ export default function ImageServiceRoadmap() {
 
         <div className="flex justify-between items-center mb-3">
           <span className={`text-xs ${themeConfig.text.secondary}`}>
-            แสดง {filteredPhases.length} จาก {PHASES.length} เฟสงาน
+            {t('ui.imageServiceRoadmap.showing')}{' '}{filteredPhases.length}{' '}{t('common.of')}{' '}{PHASES.length}{' '}{t('ui.imageServiceRoadmap.phases')}
           </span>
           <div className="flex gap-2">
             <button onClick={expandAll} className="px-2 py-1 rounded text-xs text-cyan-400 hover:bg-cyan-500/10 transition-colors">

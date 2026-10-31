@@ -35,6 +35,7 @@ import {
   Eye,
 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 type GridLayout = '1x1' | '2x2' | '3x3' | '4x4';
 
 interface GridCell {
@@ -54,6 +55,7 @@ interface SavedPreset {
 }
 
 export default function LiveGrid() {
+  const { t } = useTranslation()
   const { themeConfig } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -413,24 +415,24 @@ export default function LiveGrid() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Radio className="w-5 h-5 text-emerald-400 animate-pulse" />
-            <h1 className="text-base font-bold tracking-tight text-slate-100">CCTV Live Wall</h1>
+            <h1 className="text-base font-bold tracking-tight text-slate-100">{t('ui.liveGrid.cctvLiveWall')}</h1>
           </div>
 
           {/* Camera Scale Metrics */}
           <div className="hidden lg:flex items-center gap-2 text-xs font-mono bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
-            <span className="text-slate-400">Total:</span>
+            <span className="text-slate-400">{t('ui.liveGrid.total')}</span>
             <span className="font-bold text-slate-200">{cameras.length}</span>
             <span className="text-slate-600">|</span>
             <span className="text-emerald-400 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {onlineCount} Online
+              {onlineCount}{' '}{t('ui.liveGrid.online')}
             </span>
             {offlineCount > 0 && (
               <>
                 <span className="text-slate-600">|</span>
                 <span className="text-rose-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                  {offlineCount} Offline
+                  {offlineCount}{' '}{t('ui.liveGrid.offline')}
                 </span>
               </>
             )}
@@ -451,16 +453,16 @@ export default function LiveGrid() {
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
-              title={isTourActive ? 'Pause Auto-Tour' : 'Start Auto-Tour sequence'}
+              title={isTourActive ? t('ui.liveGrid.pauseAutoTour') : t('ui.liveGrid.startAutoTourSequence')}
             >
               {isTourActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              <span>Tour {isTourActive ? `(${tourCountdown}s)` : 'Patrol'}</span>
+              <span>{t('ui.liveGrid.tour')}{' '}{isTourActive ? `(${tourCountdown}s)` : t('ui.liveGrid.patrol')}</span>
             </button>
 
             <button
               onClick={handlePrevTourPage}
               className="p-1 text-slate-400 hover:text-slate-200 rounded"
-              title="Previous camera page"
+              title={t('ui.liveGrid.previousCameraPage')}
             >
               <SkipBack className="w-3.5 h-3.5" />
             </button>
@@ -472,7 +474,7 @@ export default function LiveGrid() {
             <button
               onClick={handleNextTourPage}
               className="p-1 text-slate-400 hover:text-slate-200 rounded"
-              title="Next camera page"
+              title={t('ui.liveGrid.nextCameraPage')}
             >
               <SkipForward className="w-3.5 h-3.5" />
             </button>
@@ -486,7 +488,7 @@ export default function LiveGrid() {
                 setTourCountdown(val);
               }}
               className="bg-slate-900 border border-slate-800 text-[10px] text-slate-400 rounded px-1.5 py-0.5 focus:outline-none"
-              title="Tour cycle interval"
+              title={t('ui.liveGrid.tourCycleInterval')}
             >
               <option value={10}>10s</option>
               <option value={15}>15s</option>
@@ -505,7 +507,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 layout === '1x1' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="1x1 (Single Camera)"
+              title={t('ui.liveGrid.n1x1SingleCamera')}
             >
               <Square className="w-4 h-4" />
             </button>
@@ -514,7 +516,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 layout === '2x2' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="2x2 (4 Cameras)"
+              title={t('ui.liveGrid.n2x24Cameras')}
             >
               <Grid2X2 className="w-4 h-4" />
             </button>
@@ -523,7 +525,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 layout === '3x3' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="3x3 (9 Cameras - Auto Sub-stream)"
+              title={t('ui.liveGrid.n3x39CamerasAutoSubStream')}
             >
               <Grid3X3 className="w-4 h-4" />
             </button>
@@ -532,7 +534,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 layout === '4x4' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="4x4 (16 Cameras - Auto Sub-stream)"
+              title={t('ui.liveGrid.n4x416CamerasAutoSubStream')}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -544,10 +546,10 @@ export default function LiveGrid() {
           <button
             onClick={() => setPresetModalOpen(true)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1.5 transition"
-            title="Manage Presets"
+            title={t('ui.liveGrid.managePresets')}
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">Presets</span>
+            <span className="hidden md:inline">{t('ui.liveGrid.presets')}</span>
             {savedPresets.length > 0 && (
               <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 text-[10px] flex items-center justify-center font-mono">
                 {savedPresets.length}
@@ -565,14 +567,14 @@ export default function LiveGrid() {
             }`}
           >
             <Camera className="w-4 h-4" />
-            <span>Select Cameras</span>
+            <span>{t('ui.liveGrid.selectCameras')}</span>
           </button>
 
           {/* Fullscreen Video Wall */}
           <button
             onClick={handleToggleWallFullscreen}
             className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
-            title={isWallFullscreen ? 'Exit Fullscreen Wall' : 'Fullscreen Video Wall'}
+            title={isWallFullscreen ? t('ui.liveGrid.exitFullscreenWall') : t('ui.liveGrid.fullscreenVideoWall')}
           >
             {isWallFullscreen ? (
               <Minimize2 className="w-4 h-4" />
@@ -614,7 +616,7 @@ export default function LiveGrid() {
                     <div className="w-full h-full relative">
                       <WhepPlayer
                         streamUrl={cell.streamUrl}
-                        cameraName={cell.cameraName || `Slot ${cell.slotIndex + 1}`}
+                        cameraName={cell.cameraName || t('ui.liveGrid.slot', { v0: cell.slotIndex + 1 })}
                         streamProfile={cell.streamProfile}
                         hasSubStream={cell.hasSubStream}
                         onToggleProfile={(next) =>
@@ -627,7 +629,7 @@ export default function LiveGrid() {
                         <button
                           onClick={(e) => clearSlot(cell.slotIndex, e)}
                           className="p-1 bg-slate-900/80 hover:bg-rose-900/90 text-slate-300 hover:text-white rounded backdrop-blur transition"
-                          title="Close Camera"
+                          title={t('ui.liveGrid.closeCamera')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -642,9 +644,9 @@ export default function LiveGrid() {
                       className="w-full h-full flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 transition hover:bg-slate-800/40"
                     >
                       <Plus className="w-8 h-8 mb-1 stroke-1 text-slate-600" />
-                      <span className="text-xs font-semibold">Assign Camera</span>
+                      <span className="text-xs font-semibold">{t('ui.liveGrid.assignCamera')}</span>
                       <span className="text-[10px] text-slate-600 mt-0.5">
-                        Slot #{cell.slotIndex + 1}
+                        {t('ui.liveGrid.slot2')}{cell.slotIndex + 1}
                       </span>
                     </div>
                   )}
@@ -659,9 +661,9 @@ export default function LiveGrid() {
           <aside className="w-88 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 z-40 transition-all">
             <div className="p-3 border-b border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-slate-200">Camera Directory</h3>
+                <h3 className="text-sm font-semibold text-slate-200">{t('ui.liveGrid.cameraDirectory')}</h3>
                 <p className="text-[11px] text-cyan-400">
-                  Assigning to Slot #{activeSlot + 1} ({filteredCameras.length} available)
+                  {t('ui.liveGrid.assigningToSlot')}{activeSlot + 1} ({filteredCameras.length}{' '}{t('ui.liveGrid.available')}
                 </p>
               </div>
               <button
@@ -678,7 +680,7 @@ export default function LiveGrid() {
                 <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Search by name, IP, channel..."
+                  placeholder={t('ui.liveGrid.searchByNameIpChannel')}
                   value={cameraSearch}
                   onChange={(e) => setCameraSearch(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
@@ -695,7 +697,7 @@ export default function LiveGrid() {
                         : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
                     }`}
                   >
-                    All Sites ({cameras.length})
+                    {t('ui.liveGrid.allSites')}{cameras.length})
                   </button>
                   {sites.map((s: any) => {
                     const siteCamCount = cameras.filter((c: any) => c.siteId === s.id).length;
@@ -722,8 +724,8 @@ export default function LiveGrid() {
               {/* Dev Test Streams */}
               <div className="p-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 space-y-1.5">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
-                  <span>Dev Synthetic Streams</span>
-                  <span className="text-[9px] text-slate-500">Built-in</span>
+                  <span>{t('ui.liveGrid.devSyntheticStreams')}</span>
+                  <span className="text-[9px] text-slate-500">{t('ui.liveGrid.builtIn')}</span>
                 </div>
                 <div
                   onClick={() => {
@@ -737,7 +739,7 @@ export default function LiveGrid() {
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-cyan-200 font-medium">Dev Sim 1 (Color Grid)</span>
+                    <span className="text-cyan-200 font-medium">{t('ui.liveGrid.devSim1ColorGrid')}</span>
                   </div>
                   <Plus className="w-3.5 h-3.5 text-cyan-400" />
                 </div>
@@ -753,7 +755,7 @@ export default function LiveGrid() {
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-cyan-200 font-medium">Dev Sim 2 (SMPTE Bars)</span>
+                    <span className="text-cyan-200 font-medium">{t('ui.liveGrid.devSim2SmpteBars')}</span>
                   </div>
                   <Plus className="w-3.5 h-3.5 text-cyan-400" />
                 </div>
@@ -763,7 +765,7 @@ export default function LiveGrid() {
               {devices.length > 0 && (
                 <div className="space-y-1">
                   <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    DVR / NVR Devices ({devices.length})
+                    {t('ui.liveGrid.dvrNvrDevices')}{devices.length})
                   </div>
                   {devices.map((dev: any) => {
                     const devCams = filteredCameras.filter((c: any) => c.deviceId === dev.id);
@@ -779,16 +781,16 @@ export default function LiveGrid() {
                             <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
                             <span className="text-xs font-semibold text-slate-200">{dev.name}</span>
                             <span className="text-[10px] text-slate-500 font-mono">
-                              ({devCams.length} ch)
+                              ({devCams.length}{' '}{t('ui.liveGrid.ch')}
                             </span>
                           </div>
                           {devCams.length > 0 && (
                             <button
                               onClick={() => handleDisplayGroupInGrid(devCams)}
                               className="px-2 py-0.5 rounded bg-slate-800 hover:bg-cyan-600 hover:text-white text-[10px] text-slate-300 font-medium transition"
-                              title="Display all channels in current grid"
+                              title={t('ui.liveGrid.displayAllChannelsInCurrentGrid')}
                             >
-                              Display All
+                              {t('ui.liveGrid.displayAll')}
                             </button>
                           )}
                         </div>
@@ -827,7 +829,7 @@ export default function LiveGrid() {
               {/* All Individual Cameras List */}
               <div className="space-y-1 pt-2">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                  <span>All Cameras</span>
+                  <span>{t('ui.liveGrid.allCameras')}</span>
                   <span className="font-mono text-slate-500">{filteredCameras.length}</span>
                 </div>
 
@@ -857,7 +859,7 @@ export default function LiveGrid() {
                         </span>
                         {cam.rtspUrlSub && (
                           <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/40">
-                            Dual
+                            {t('ui.liveGrid.dual')}
                           </span>
                         )}
                       </div>
@@ -878,7 +880,7 @@ export default function LiveGrid() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Bookmark className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-slate-100">Live Grid Presets</h3>
+                <h3 className="text-sm font-bold text-slate-100">{t('ui.liveGrid.liveGridPresets')}</h3>
               </div>
               <button
                 onClick={() => setPresetModalOpen(false)}
@@ -891,12 +893,12 @@ export default function LiveGrid() {
             {/* Save Current as New Preset */}
             <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
               <span className="text-xs font-semibold text-slate-300">
-                Save Current Wall ({layout} Layout)
+                {t('ui.liveGrid.saveCurrentWall')}{layout}{' '}{t('ui.liveGrid.layout')}
               </span>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. Main Lobby & Entrance"
+                  placeholder={t('ui.liveGrid.eGMainLobbyEntrance')}
                   value={presetNameInput}
                   onChange={(e) => setPresetNameInput(e.target.value)}
                   className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
@@ -907,16 +909,16 @@ export default function LiveGrid() {
                   className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg flex items-center gap-1 transition"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  <span>Save</span>
+                  <span>{t('common.save')}</span>
                 </button>
               </div>
             </div>
 
             {/* Existing Presets List */}
             <div className="space-y-2 max-h-60 overflow-auto">
-              <span className="text-xs font-semibold text-slate-400">Saved Presets</span>
+              <span className="text-xs font-semibold text-slate-400">{t('ui.liveGrid.savedPresets')}</span>
               {savedPresets.length === 0 ? (
-                <p className="text-xs text-slate-600 text-center py-4">No saved presets yet.</p>
+                <p className="text-xs text-slate-600 text-center py-4">{t('ui.liveGrid.noSavedPresetsYet')}</p>
               ) : (
                 savedPresets.map((p) => (
                   <div
@@ -932,7 +934,7 @@ export default function LiveGrid() {
                         </span>
                       </div>
                       <span className="text-[10px] text-slate-500">
-                        {p.slots.length} cameras configured
+                        {p.slots.length}{' '}{t('ui.liveGrid.camerasConfigured')}
                       </span>
                     </div>
 
@@ -940,7 +942,7 @@ export default function LiveGrid() {
                       <button
                         onClick={(e) => handleDeletePreset(p.id, e)}
                         className="p-1 text-slate-500 hover:text-rose-400 transition"
-                        title="Delete Preset"
+                        title={t('ui.liveGrid.deletePreset')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
