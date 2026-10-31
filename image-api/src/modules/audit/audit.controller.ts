@@ -57,5 +57,5 @@ async function bulkDeleteHandler(request: FastifyRequest, reply: FastifyReply) {
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
   app.get('/', { preHandler: [app.authenticate, requirePermission('audit-log:read')] }, searchHandler);
   app.get('/bulk-delete-preview', { preHandler: [app.authenticate, requirePermission('audit-log:read')] }, bulkDeletePreviewHandler);
-  app.post('/bulk-delete', { preHandler: [app.authenticate, requirePermission('audit-log:read')] }, bulkDeleteHandler);
+  app.post('/bulk-delete', { preHandler: [app.authenticate, requirePermission('audit-log:delete')] }, bulkDeleteHandler);
 }

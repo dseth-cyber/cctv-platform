@@ -8,7 +8,11 @@
  *   npx tsx prisma/seal-rtsp-credentials.ts --apply    # write
  */
 import { PrismaClient } from '@prisma/client';
-import { sealRtspUrl } from '../src/lib/rtsp-credentials.js';
+
+// The runtime image ships dist/ only; a dev checkout has src/
+const { sealRtspUrl } = await import('../dist/lib/rtsp-credentials.js').catch(
+  () => import('../src/lib/rtsp-credentials.js'),
+);
 
 const apply = process.argv.includes('--apply');
 const prisma = new PrismaClient();

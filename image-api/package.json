@@ -47,7 +47,6 @@
     "@fastify/static": "^10.1.7",
     "deepmerge-ts": "^8.0.0",
     "tinypool": "^2.2.0",
-    "stream-json": "^3.7.0",
     "decode-uri-component": "^0.5.1"
   }
 }

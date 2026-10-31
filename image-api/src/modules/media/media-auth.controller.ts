@@ -20,6 +20,10 @@ interface StreamStatusBody {
   status?: 'ready' | 'not_ready';
 }
 
+function isLoopback(ip: string | undefined): boolean {
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
 /**
  * Controller for MediaMTX HTTP webhook authentication and stream status events.
  * Enforces media stream access control and real-time health webhook integration.
@@ -31,13 +35,19 @@ export async function mediaAuthRoutes(app: FastifyInstance) {
 
     const cleanPath = path.replace(/^\/+/, '');
 
-    // 1. Allow Dev test synthetic streams without token
-    if (cleanPath.startsWith('sim/')) {
-      return reply.status(200).send({ status: 'OK', allowed: true });
+    // 1. Cameras are pulled by MediaMTX (path `source:`), so the only legitimate publisher is a
+    // process inside the MediaMTX container (the sim/ test generators). Anyone else publishing
+    // could replace a camera's live feed.
+    if (action === 'publish') {
+      if (isLoopback(ip)) {
+        return reply.status(200).send({ status: 'OK', allowed: true });
+      }
+      logger.warn({ path: cleanPath, ip }, 'Media publish rejected (non-loopback publisher)');
+      return reply.status(401).send({ status: 'Unauthorized', allowed: false });
     }
 
-    // 2. Allow publishers from localhost or internal container network
-    if (action === 'publish') {
+    // 2. Allow Dev test synthetic streams without token
+    if (cleanPath.startsWith('sim/')) {
       return reply.status(200).send({ status: 'OK', allowed: true });
     }
 

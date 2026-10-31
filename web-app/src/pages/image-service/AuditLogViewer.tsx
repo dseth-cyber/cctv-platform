@@ -294,7 +294,7 @@ export default function AuditLogViewer() {
               ...Object.keys(ENTITY_LABEL_KEY).map(e => ({ value: e, label: t(ENTITY_LABEL_KEY[e]) })),
             ]} />
         </div>
-        {hasPermission(user, 'audit-log:read') && (
+        {hasPermission(user, 'audit-log:delete') && (
           <button onClick={handleOpenBulkDelete}
             className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">
             <Trash2 size={13} /> {t('imageService.auditLog.bulkDelete')}

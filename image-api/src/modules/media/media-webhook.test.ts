@@ -95,6 +95,22 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
     });
   });
 
+  describe('Publish authorization [R1.3]', () => {
+    const publish = (ip: string, path = 'camera_gate1') =>
+      app.inject({ method: 'POST', url: '/api/v1/media/auth', payload: { action: 'publish', path, ip } });
+
+    it('allows publishing from inside the MediaMTX container (loopback)', async () => {
+      expect((await publish('127.0.0.1')).statusCode).toBe(200);
+      expect((await publish('::1', 'sim/ch1')).statusCode).toBe(200);
+    });
+
+    it('rejects publishing from any other address, including sim/ paths', async () => {
+      expect((await publish('172.18.0.5')).statusCode).toBe(401);
+      expect((await publish('192.168.1.50', 'sim/ch1')).statusCode).toBe(401);
+      expect((await publish('')).statusCode).toBe(401);
+    });
+  });
+
   describe('Real-time State Transitions & Flapping Suppression', () => {
     const mockCamera = {
       id: 'cam-uuid-001',

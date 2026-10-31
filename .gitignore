@@ -44,3 +44,6 @@ camera-*.json
 # Verification & test report outputs
 *-verification-report.json
 
+
+# MediaMTX recordings and exported clips (video data, never commit)
+mediamtx/recordings/

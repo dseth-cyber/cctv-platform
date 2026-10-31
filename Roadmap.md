@@ -12,16 +12,22 @@
 
 เกณฑ์ผ่าน: ไม่มี API ใดคืน credential plaintext, ทุก write endpoint มี `requirePermission`, export ไม่รายงาน `COMPLETED` เมื่อไม่มีวิดีโอจริง, retention ไม่ลบถาวรและไม่ลบไฟล์ที่ติด Legal Hold แม้ถูกเปิดระหว่าง cleanup, ตัววัดดิสก์วัด mount เดียวกับที่ MediaMTX บันทึก
 
-- [x] R1.1 เข้ารหัส `rtspUrl`/`rtspUrlSub` ที่มี credential ก่อนเก็บ DB และ redact ใน API response ทุกจุด (camera list/detail/create/update, device detail)
-- [x] R1.2 ไม่คืน SMB password ที่ถอดรหัสแล้วให้ผู้ใช้ทั่วไป (เฉพาะ service role `system` ของ factory worker) และ mask `device.passwordEncrypted` ใน include
-- [x] R1.3 เพิ่ม `requirePermission` ให้ `POST /release/signoff`, `POST /media-nodes/:id/heartbeat`, `GET /cameras/`, `GET /cameras/incidents/options` และใช้ผู้ลงนามจาก session ไม่ใช่จาก body
-- [x] R1.4 ปิด `POST /recordings/seed-dev` เว้นแต่ `SEED_SYNTHETIC_RECORDINGS=true` และไม่ใช่ production
-- [x] R1.5 Export: ตัด fallback หัวไฟล์ MP4 ปลอมและ fallback copy เมื่อไม่มี ffmpeg → สถานะ `FAILED` พร้อมเหตุผล
-- [x] R1.6 Retention/Eviction: ย้ายไฟล์ไป quarantine (กู้คืนได้) แทน `unlink`, claim แบบ atomic `updateMany where legalHold=false` ก่อนย้าย, นับพื้นที่คืนเฉพาะไฟล์ที่ย้ายจริง
-- [x] R1.7 Mount `./mediamtx/recordings` เข้า `image-api` ที่ path เดียวกับ MediaMTX และตั้ง `RECORDINGS_DIR`
+- [A] R1.1 เข้ารหัส `rtspUrl`/`rtspUrlSub` ที่มี credential ก่อนเก็บ DB และ redact ใน API response ทุกจุด (camera list/detail/create/update, device detail)
+- [A] R1.2 ไม่คืน SMB password ที่ถอดรหัสแล้วให้ผู้ใช้ทั่วไป (เฉพาะ service role `system` ของ factory worker) และ mask `device.passwordEncrypted` ใน include
+- [A] R1.3 เพิ่ม `requirePermission` ให้ `POST /release/signoff`, `POST /media-nodes/:id/heartbeat`, `GET /cameras/`, `GET /cameras/incidents/options` และใช้ผู้ลงนามจาก session ไม่ใช่จาก body
+- [A] R1.4 ปิด `POST /recordings/seed-dev` เว้นแต่ `SEED_SYNTHETIC_RECORDINGS=true` และไม่ใช่ production
+- [A] R1.5 Export: ตัด fallback หัวไฟล์ MP4 ปลอมและ fallback copy เมื่อไม่มี ffmpeg → สถานะ `FAILED` พร้อมเหตุผล
+- [A] R1.6 Retention/Eviction: ย้ายไฟล์ไป quarantine (กู้คืนได้) แทน `unlink`, claim แบบ atomic `updateMany where legalHold=false` ก่อนย้าย, นับพื้นที่คืนเฉพาะไฟล์ที่ย้ายจริง
+- [A] R1.7 Mount `./mediamtx/recordings` เข้า `image-api` ที่ path เดียวกับ MediaMTX และตั้ง `RECORDINGS_DIR`
 - [x] R1.8 ผล DR drill ใน Release Center ต้องมาจากการตรวจจริง หรือแสดงชัดว่าเป็น simulation (ห้ามข้อความ SUCCESS ตายตัว)
+- [A] R1.9 `POST /audit-logs/bulk-delete` ต้องใช้ `audit-log:delete` (เดิมใช้แค่ `audit-log:read` — ผู้มีสิทธิ์อ่านลบ audit log ได้) และซ่อนปุ่มใน UI ตามสิทธิ์เดียวกัน
+- [A] R1.10 MediaMTX auth: `publish` อนุญาตเฉพาะ loopback (ตัวสร้างสตรีม sim ใน container MediaMTX) — เดิมอนุญาตทุก IP ทำให้ใครเข้าถึง RTSP ได้ก็ publish ทับสตรีมกล้องได้
+- [A] R1.11 image-api container crash ตอนเริ่ม: override `stream-json@^3.7.0` (ENH-05) ทำให้ `minio` import `stream-json/jsonl/Parser.js` ไม่เจอบน Linux (case-sensitive) — เอา override ออก, `minio` ใช้ `stream-json@1.9.1` แบบ nested (advisory ของ 1.x อยู่ใน filters/Assembler ซึ่ง `minio` และแอปไม่ได้เรียก; แอปไม่ใช้ `listenBucketNotification`)
 
-ความคืบหน้า R1 (2026-10-30): โค้ดครบ 8 ข้อ + unit test (`image-api` 16 files / 77 tests ผ่าน, `tsc` ผ่านทั้งสองฝั่ง, `web-app` build ผ่าน) — **ยังไม่ `[A]`** เพราะยังไม่ได้ rebuild/รัน container จริง ต้องตรวจ: (1) รัน `prisma/seal-rtsp-credentials.ts` dry-run แล้ว `--apply` บน Dev DB ที่มี backup, (2) `docker compose up` แล้วยืนยันว่า webhook สถานะกล้องได้ 200 ไม่ใช่ 401 (MediaMTX ต้องขยาย `$MEDIA_WEBHOOK_SECRET` ใน `runOnReady` ได้), (3) export กับ segment จริงใน container ที่มี ffmpeg, (4) watermark monitor เห็นดิสก์ของ `/recordings`, (5) ทดสอบ UI แก้ไขกล้องที่ได้ค่า redact กลับไป
+ความคืบหน้า R1 (2026-10-30): โค้ดครบ 8 ข้อ + unit test (`image-api` 16 files / 77 tests ผ่าน, `tsc` ผ่านทั้งสองฝั่ง, `web-app` build ผ่าน)
+
+ตรวจรับใน container (2026-10-31, Dev stack ใหม่ DB ว่าง + seed): acceptance script 21/21 ผ่าน — webhook ไม่มี secret 401 / มี secret 200; สร้างกล้องแล้ว response ไม่มี RTSP/SMB password, DB เก็บ ciphertext, viewer เห็น URL ที่ redact; PATCH ด้วยค่า redact/`********` ไม่ทับ credential เดิม; `seed-dev` 403; viewer sign-off 403; backfill dry-run → `--apply` (มี `pg_dump` ก่อน) ปิด plaintext 2 แถว, รันซ้ำ 0 แถว; MediaMTX บันทึก fMP4 จริงจาก `sim/ch1` → export `COMPLETED` เป็น MP4 h264 720p + aac, SHA-256 ตรงกับไฟล์, ดาวน์โหลด 200, ไม่มี `.partial` ค้าง; ช่วงเวลาที่ไม่มีไฟล์ → `FAILED`; watermark monitor อ่าน `/recordings` ได้ 88.6% → alert warning จริง ไม่ย้ายไฟล์ (cleanup ปิด). ที่ยังไม่ได้ตรวจ: เปิด UI จริงในเบราว์เซอร์ (R1.8 คงเป็น `[x]`), cleanup เปิดจริงกับ quarantine ข้าม filesystem
+ข้อสังเกตจากการตรวจ: clip ที่ขอ 30 วินาทีได้ไฟล์ 60 วินาที (ทั้ง segment) แต่ DB บันทึก `durationSeconds=30` — ต้องแก้พร้อม R3.5; segment ต้อง insert `camera_recordings` เองเพราะยังไม่มี indexer (R3.1); web-app ต้องมี `ssl/server.crt` (`ssl/generate-cert.sh`) ไม่งั้น nginx crash; seed ยังตั้งรหัสผ่าน default `admin123` ฯลฯ (Dev เท่านั้น)
 เพิ่มเติมที่พบระหว่างทำ R1: Release Center เดิมสร้าง preflight "95% ready" และ sign-off ปลอมเมื่อ API ล้มเหลว (แก้แล้ว), image-api image ไม่มี ffmpeg (เพิ่มแล้ว), compose ไม่ส่ง `MEDIA_WEBHOOK_SECRET` (เพิ่มแล้ว), `decrypt()` ตีความค่าที่มี `:` 2 ตัวเป็น ciphertext (แก้ใน rtsp-credentials แล้ว; SMB password ยังใช้ `decrypt()` ตรง — ย้ายไป R2), `CctvReleaseCenter.tsx` ไม่ใช้ i18n (R2), snapshot ไม่มี watermark (R3.4), export ยังรวมทั้ง segment ไม่ตัดตามช่วงเวลา (R3.5), toggle Legal Hold บน segment ที่อยู่ใน quarantine ยังไม่กู้ไฟล์กลับ (R3)
 
 ### Phase R2 — ถอดส่วนโรงงานที่ยัง active

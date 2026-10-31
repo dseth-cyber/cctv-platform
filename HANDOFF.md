@@ -1,6 +1,6 @@
 # CCTV Platform — HANDOFF (Dev Only)
 
-อัปเดต: 2026-10-30 | งานล่าสุด: ตรวจโค้ดซ้ำ + Remediation Phase R1 (Security & Data Integrity) — **Prototype: ยังไม่พร้อม Pilot/Production** (ดู Roadmap ส่วน "Remediation หลังตรวจซ้ำ")
+อัปเดต: 2026-10-31 | งานล่าสุด: ตรวจรับ R1 ใน container (21/21 ผ่าน) + แก้ปัญหาที่พบระหว่างตรวจ — **Prototype: ยังไม่พร้อม Pilot/Production** (ดู Roadmap ส่วน "Remediation หลังตรวจซ้ำ")
 
 ## อ่านก่อนเริ่มงาน
 
@@ -24,9 +24,40 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
-## งานล่าสุด (2026-10-30) — ตรวจซ้ำ + Remediation R1 (โค้ดเสร็จ, ยังไม่ตรวจรับ)
+## งานล่าสุด (2026-10-31) — ตรวจรับ R1 ใน container
 
-สถานะ: R1.1–R1.8 = `[x]` ทำโค้ด + unit test แล้ว, **ยังไม่ `[A]`** (ไม่ได้ rebuild/รัน container, ไม่ได้รัน migration/backfill, ไม่ได้แตะ Server ใด, ยังไม่ commit)
+สถานะ: R1.1–R1.7, R1.9–R1.11 = `[A]`; R1.8 = `[x]` (ยังไม่ได้เปิด UI ในเบราว์เซอร์). R1 commit `4b4412d` push แล้วที่ `fix/audit-remediation`; การแก้รอบนี้ยังไม่ commit. ไม่ได้แตะ Server ใด
+
+สภาพแวดล้อมที่ใช้ (Dev บนเครื่องนี้เท่านั้น):
+- compose project `cctv-platform` — volume `cctv-platform_postgres-data` สร้างใหม่ (DB ว่าง → migrate โดย `image-api-migrate` → seed) ไม่เกี่ยวกับ volume `image-service_*` ของระบบอื่น
+- เครื่องนี้มี postgres/redis ของ host จองพอร์ต 5432/6379 และ container อื่นใช้ 8080 → ใช้ override ชั่วคราว (นอก repo) ที่ `ports: !reset []` ให้ postgres/redis และ `WEB_HTTP_PORT=8090`
+- `ssl/server.crt|key` สร้างด้วย openssl (self-signed, gitignored) — ไม่มีไฟล์นี้ nginx ของ web-app crash loop
+
+ผลตรวจ (acceptance script 21/21 ผ่าน + ตรวจด้วยมือ):
+- webhook `stream-status`: ไม่มี secret 401, มี secret 200 (compose ส่ง `MEDIA_WEBHOOK_SECRET` ถึงทั้งสองฝั่งแล้ว)
+- credential: create response ไม่มี RTSP/SMB password, DB เก็บ ciphertext, viewer list/detail เห็น `rtsp://********@...`, PATCH ด้วยค่า redact + `********` → ciphertext เดิมไม่เปลี่ยนและถอดกลับได้ URL เดิม, SMB password ไม่ถูกทับ
+- backfill: ใส่แถว legacy plaintext 3 แถว → `pg_dump` ก่อน → dry-run "Would seal 2 of 4" (ไม่เขียน) → `--apply` "Sealed 2 of 4" plaintext เหลือ 0, แถวไม่มี credential ไม่ถูกแตะ → รันซ้ำ "Sealed 0 of 4"
+- export: MediaMTX บันทึก fMP4 จาก `sim/ch1` ลง `./mediamtx/recordings` จริง → export `COMPLETED`, `ffprobe` = MP4 h264 1280x720 + aac 60s, SHA-256 ตรงกับ chain of custody, download 200 `video/mp4`, ไม่มี `.partial` ค้าง; ช่วงที่ไม่มีไฟล์ → `FAILED` "No recorded video found on disk..."
+- disk monitor: `/recordings` (D: จริง) 88.6% → status `warning` + alert จริง, ไม่ย้ายไฟล์; sweeper `enabled:false`
+- permission: `seed-dev` 403, viewer sign-off 403, operator `bulk-delete` 403, publish จาก container อื่น → MediaMTX ตอบ 401
+
+พบและแก้ระหว่างตรวจ:
+1. **image-api ใน container crash ตอน start** (มีมาตั้งแต่ ENH-05 `c757bb2`): override `stream-json@^3.7.0` ทำให้ `minio` import `stream-json/jsonl/Parser.js` ไม่เจอ (v3 ใช้ชื่อไฟล์ตัวเล็ก; Windows ไม่แยกตัวพิมพ์จึงไม่เห็นตอน dev) → ลบ override ใน [package.json](image-api/package.json); `minio` ได้ `stream-json@1.9.1` แบบ nested. `npm audit --omit=dev` 5 → 7 (moderate เพิ่ม 2 = `stream-json` และ `minio` ที่อ้างถึงมัน) — advisory อยู่ใน filters/Assembler ที่ไม่ถูกเรียก, `minio` ใช้แค่ `jsonl/Parser` ใน `listenBucketNotification` ซึ่งแอปไม่ใช้. ข้อสรุป: ข้ออ้าง "ผ่าน container" ของ 2026-10-27 เป็นไปไม่ได้ด้วย lockfile นั้น
+2. `POST /audit-logs/bulk-delete` ใช้แค่ `audit-log:read` → เปลี่ยนเป็น `audit-log:delete` ใน [audit.controller.ts](image-api/src/modules/audit/audit.controller.ts) และปุ่มใน [AuditLogViewer.tsx](web-app/src/pages/image-service/AuditLogViewer.tsx) (ตอนนี้มีแค่ admin ที่ได้ เพราะมี `*`)
+3. [media-auth.controller.ts](image-api/src/modules/media/media-auth.controller.ts): `action=publish` อนุญาตทุก IP ทั้งที่คอมเมนต์บอก localhost → จำกัดเฉพาะ loopback (กล้องเป็น pull ผ่าน `source:` จึงไม่มี publisher ภายนอก) + test 2 ตัวใน [media-webhook.test.ts](image-api/src/modules/media/media-webhook.test.ts)
+4. [seal-rtsp-credentials.ts](image-api/prisma/seal-rtsp-credentials.ts) import จาก `src/` ซึ่งไม่มีใน runtime image → โหลด `dist/` ก่อนแล้ว fallback `src/`
+
+หลังแก้: `image-api` tsc exit 0, vitest 16 files / 79 passed; `web-app` tsc exit 0; rebuild image แล้วรัน acceptance ซ้ำ 21/21
+
+ข้อสังเกตที่ยังไม่แก้:
+- clip ขอ 30s ได้ไฟล์ 60s (ทั้ง segment) แต่ DB เก็บ `durationSeconds=30` และ `hasPreBuffer=true` แม้ pre-buffer 0 → R3.5
+- segment ต้อง insert `camera_recordings` เอง (ไม่มี indexer) → R3.1
+- seed ตั้งรหัสผ่าน default (`admin123` ฯลฯ) — ใช้ได้เฉพาะ Dev
+- ยังไม่ได้ตรวจ: UI ในเบราว์เซอร์, cleanup เปิดจริงกับ quarantine คนละ filesystem (EXDEV path)
+
+## งานก่อนหน้า (2026-10-30) — ตรวจซ้ำ + Remediation R1 (โค้ดเสร็จ)
+
+สถานะตอนนั้น: R1.1–R1.8 = `[x]` ทำโค้ด + unit test แล้ว (ตรวจรับใน container 2026-10-31 ด้านบน)
 
 ทดสอบจริงบนเครื่อง Dev (2026-10-30):
 - `image-api`: `npx tsc --noEmit` exit 0; `npx vitest run` → 16 files, 77 passed, 0 failed
@@ -45,7 +76,7 @@
 9. เอกสาร: Roadmap เพิ่ม Phase R1–R4 + นิยาม `[x]`/`[A]`; AGENTS.md เพิ่มข้อห้าม fallback ปลอม, credential, cleanup และการใช้คำ Production-Hardened
 
 ยังไม่ทดสอบ / งานถัดไป:
-- ตรวจรับ R1 ใน container ตามรายการใน Roadmap ส่วน "ความคืบหน้า R1": webhook ได้ 200, export จริง, statfs ของ `/recordings`, backfill credential, UI แก้ไขกล้อง/อุปกรณ์ที่ได้ค่า redact กลับไป
+- ~~ตรวจรับ R1 ใน container~~ → ทำแล้ว 2026-10-31 (ด้านบน)
 - `pilot-wave1-verification-report.json` มี password ตัวอย่าง และ pilot script บันทึก password ลง report — แก้ใน R4.1
 - ถัดไป: R2 (ถอดส่วนโรงงาน) → R3 (recording index/playback จริง) → R4 (ตรวจรับกับกล้องจริง)
 
