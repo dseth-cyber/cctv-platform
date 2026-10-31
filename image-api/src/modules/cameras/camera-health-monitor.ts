@@ -7,6 +7,7 @@ import { getAllConfigs } from '../system-config/system-config.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
 import { probeCameraHealth } from './camera-probe.service.js';
+import { MediaMtxService } from '../media/mediamtx.service.js';
 
 let cronTask: ScheduledTask | null = null;
 
@@ -248,6 +249,7 @@ export async function checkCameraHealth(): Promise<void> {
       status: true,
       ipAddress: true,
       rtspUrl: true,
+      streamPath: true,
       smbSharePath: true,
       smbUsername: true,
       smbPasswordEncrypted: true,
@@ -259,6 +261,11 @@ export async function checkCameraHealth(): Promise<void> {
     },
   });
 
+  // A path MediaMTX reports as ready is receiving video right now: the strongest evidence a camera is up.
+  const readyPaths = new Set(
+    (await MediaMtxService.getLivePaths()).filter((p: any) => p?.ready).map((p: any) => String(p.name)),
+  );
+
   for (const cam of cameras) {
     // Maintenance mode suppression: if camera is in maintenance, skip offline alert and incident
     if (cam.status === 'maintenance') {
@@ -266,7 +273,8 @@ export async function checkCameraHealth(): Promise<void> {
     }
 
     // Actively probe the camera's network/RTSP/SMB target
-    const probeResult = await probeCameraHealth(cam);
+    const streamReady = !!cam.streamPath && readyPaths.has(cam.streamPath.replace(/^\/+/, ''));
+    const probeResult = streamReady ? { reachable: true, latencyMs: 0 } : await probeCameraHealth(cam);
     const isProbeSuccess = probeResult.reachable;
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
@@ -586,8 +594,22 @@ export async function handleStreamStatusEvent(
   const cleanPath = (streamPath || '').replace(/^\/+/, '');
   const basePath = cleanPath.replace(/_sub$/, '');
 
-  // 1. If dev simulated stream without a DB camera, acknowledge
-  if (cleanPath.startsWith('sim/')) {
+  // 1. Resolve camera by streamPath or id (a camera may also be mapped to a sim/ test stream)
+  const idCandidate = cleanPath.replace(/^camera_/, '').replace(/_sub$/, '');
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idCandidate);
+  let camera = await prisma.camera.findFirst({
+    where: {
+      OR: [
+        { streamPath: cleanPath },
+        { streamPath: basePath },
+        // id is a uuid column; a non-uuid value would make the query throw.
+        ...(isUuid ? [{ id: idCandidate }] : []),
+      ],
+    },
+  });
+
+  // 2. Dev simulated stream with no camera mapped to it: acknowledge only
+  if (!camera && cleanPath.startsWith('sim/')) {
     logger.debug({ streamPath: cleanPath, status }, 'MediaMTX simulated stream event acknowledged');
     return {
       success: true,
@@ -595,17 +617,6 @@ export async function handleStreamStatusEvent(
       message: `Simulated dev stream "${cleanPath}" acknowledged as ${status}`,
     };
   }
-
-  // 2. Resolve camera by streamPath or id
-  let camera = await prisma.camera.findFirst({
-    where: {
-      OR: [
-        { streamPath: cleanPath },
-        { streamPath: basePath },
-        { id: cleanPath.replace(/^camera_/, '').replace(/_sub$/, '') },
-      ],
-    },
-  });
 
   if (!camera) {
     // Fallback scan: check synthetic path camera_${camera.id.replace(/-/g, '').substring(0, 12)}

@@ -157,6 +157,27 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       operationalSince: new Date(Date.now() - 3600000),
     };
 
+    it('updates a camera mapped to a sim/ test stream instead of only acknowledging it', async () => {
+      mockPrisma.camera.findFirst.mockResolvedValueOnce({ ...mockCamera, streamPath: 'sim/ch1' });
+      mockPrisma.camera.update.mockResolvedValueOnce({ ...mockCamera, operationalStatus: 'offline' });
+      mockPrisma.cameraEvent.create.mockResolvedValueOnce({ id: 2 });
+      mockPrisma.alert.findFirst.mockResolvedValueOnce(null);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/stream-status',
+        headers: { 'x-media-webhook-secret': SECRET },
+        payload: { path: 'sim/ch1', status: 'not_ready' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().message).not.toMatch(/Simulated/);
+      // The non-uuid path must not be used as an id (the uuid column would make Prisma throw).
+      const calls = mockPrisma.camera.findFirst.mock.calls;
+      const where = calls[calls.length - 1][0].where;
+      expect(where.OR).toEqual([{ streamPath: 'sim/ch1' }, { streamPath: 'sim/ch1' }]);
+    });
+
     it('transitions camera to OFFLINE instantly when status is not_ready', async () => {
       mockPrisma.camera.findFirst.mockResolvedValueOnce(mockCamera);
       mockPrisma.camera.update.mockResolvedValueOnce({

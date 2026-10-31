@@ -53,10 +53,10 @@ pathDefaults:
   recordPartDuration: 1s
   recordSegmentDuration: 60s
   # Event-Driven Real-time Camera Health Webhook (< 3s Detection) [ENH-01]
-  runOnReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
-  runOnNotReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"not_ready\"}" http://image-api:3001/api/v1/media/events/stream-status || true'
+  runOnReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"ready\"}" http://image-api:3001/api/v1/media/events/stream-status'
+  runOnNotReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"not_ready\"}" http://image-api:3001/api/v1/media/events/stream-status'
   # Recording index [R3.1]: report every finished segment to image-api
-  runOnRecordSegmentComplete: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"segmentPath\":\"$MTX_SEGMENT_PATH\"}" http://image-api:3001/api/v1/media/events/segment-complete || true'
+  runOnRecordSegmentComplete: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"segmentPath\":\"$MTX_SEGMENT_PATH\"}" http://image-api:3001/api/v1/media/events/segment-complete'
 
 
 # ── Stream Paths ───────────────────────────────────────────────
