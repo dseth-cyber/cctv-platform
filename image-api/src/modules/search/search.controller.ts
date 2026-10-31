@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getPrisma } from '../../lib/prisma.js';
+import { config } from '../../config/index.js';
 
 async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
   const { q } = request.query as { q: string };
@@ -13,11 +14,14 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
       select: { id: true, name: true, status: true, ipAddress: true },
       take: 5,
     }),
-    prisma.image.findMany({
-      where: { originalFilename: { contains: q, mode: 'insensitive' }, status: { not: 'deleted' } },
-      select: { id: true, originalFilename: true, status: true },
-      take: 5,
-    }),
+    // Factory images are only searched while the factory modules are enabled [R2.2].
+    config.factoryModulesEnabled
+      ? prisma.image.findMany({
+          where: { originalFilename: { contains: q, mode: 'insensitive' }, status: { not: 'deleted' } },
+          select: { id: true, originalFilename: true, status: true },
+          take: 5,
+        })
+      : Promise.resolve([]),
     prisma.alert.findMany({
       where: { OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
       select: { id: true, title: true, severity: true },

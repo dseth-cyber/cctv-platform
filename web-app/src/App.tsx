@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTheme, themes } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useFeatures } from '@/hooks/useFeatures'
 import { useToast } from '@/contexts/ToastContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { imageServiceApi } from '@/services/imageServiceApi'
@@ -99,17 +100,17 @@ const navItems = [
   { path: '/image-service/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
   { path: '/image-service/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
   { path: '/image-service/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
-  { path: '/image-service/search', labelKey: 'nav.search', icon: Image, permission: 'search:read' },
-  { path: '/image-service/processing', labelKey: 'nav.processing', icon: Activity, permission: 'processing:read' },
-  { path: '/image-service/storage', labelKey: 'nav.storage', icon: HardDrive, permission: 'storage:read' },
+  { path: '/image-service/search', factory: true, labelKey: 'nav.search', icon: Image, permission: 'search:read' },
+  { path: '/image-service/processing', factory: true, labelKey: 'nav.processing', icon: Activity, permission: 'processing:read' },
+  { path: '/image-service/storage', factory: true, labelKey: 'nav.storage', icon: HardDrive, permission: 'storage:read' },
   { path: '/image-service/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
   { path: '/image-service/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
   { path: '/image-service/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
   { path: '/image-service/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
   { path: '/image-service/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
-  { path: '/image-service/storage-profiles', labelKey: 'nav.storageProfiles', icon: Layers, permission: 'storage:read' },
-  { path: '/image-service/logs', labelKey: 'nav.logs', icon: FileText, permission: 'logs:read' },
-  { path: '/image-service/dead-letter', labelKey: 'nav.deadLetter', icon: AlertTriangle, permission: 'dead-letter:read' },
+  { path: '/image-service/storage-profiles', factory: true, labelKey: 'nav.storageProfiles', icon: Layers, permission: 'storage:read' },
+  { path: '/image-service/logs', factory: true, labelKey: 'nav.logs', icon: FileText, permission: 'logs:read' },
+  { path: '/image-service/dead-letter', factory: true, labelKey: 'nav.deadLetter', icon: AlertTriangle, permission: 'dead-letter:read' },
   { path: '/image-service/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
   { path: '/image-service/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
   { path: '/image-service/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
@@ -515,7 +516,8 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
   )
 }
 
-type NavItem = { path: string; labelKey: string; icon: any; permission: string }
+// `factory`: part of the factory image pipeline, shown only when the server enables it [R2.2].
+type NavItem = { path: string; labelKey: string; icon: any; permission: string; factory?: boolean }
 
 // Hook: returns nav items ordered by a per-user saved order, with reorder handlers
 function useSidebarOrder(username: string | undefined, items: NavItem[]) {
@@ -587,7 +589,11 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
   updateHiddenMenuItems: (hiddenMenuItems: string[]) => Promise<void>
 }) {
   const { theme } = useTheme()
-  const visibleNav = useMemo(() => navItems.filter(item => hasPermission(user, item.permission)), [navItems, user])
+  const { factoryModules } = useFeatures()
+  const visibleNav = useMemo(
+    () => navItems.filter(item => hasPermission(user, item.permission) && (!item.factory || factoryModules)),
+    [navItems, user, factoryModules],
+  )
   const { ordered, reorder, reset } = useSidebarOrder(user?.username, visibleNav)
   const [reorderMode, setReorderMode] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -1001,6 +1007,7 @@ export default function App() {
   const { t, i18n } = useTranslation()
   const { themeConfig, theme, setTheme } = useTheme()
   const { isAuthenticated, user, logout, updateHiddenMenuItems } = useAuth()
+  const { factoryModules } = useFeatures()
   const toast = useToast()
   const location = useLocation()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
@@ -1094,9 +1101,11 @@ export default function App() {
         </div>
         <div className="flex items-center gap-1">
           {/* Processing indicator */}
-          <div className="hidden sm:flex">
-            <NavProcessing />
-          </div>
+          {factoryModules && (
+            <div className="hidden sm:flex">
+              <NavProcessing />
+            </div>
+          )}
           {/* Search */}
           <div className="hidden md:block">
             <NavSearch />
@@ -1162,7 +1171,7 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <QueueHealthBanner />
+          {factoryModules && <QueueHealthBanner />}
           <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" /></div>}>
           <Routes>
             <Route path="/image-service/overview" element={
@@ -1208,25 +1217,25 @@ export default function App() {
               hasPermission(user, 'cameras:read') ? <CameraTemplates /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/search" element={
-              hasPermission(user, 'search:read') ? <ImageServiceSearch /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'search:read') ? <ImageServiceSearch /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/processing" element={
-              hasPermission(user, 'processing:read') ? <ImageServiceProcessingMonitor /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'processing:read') ? <ImageServiceProcessingMonitor /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/storage" element={
-              hasPermission(user, 'storage:read') ? <ImageServiceStorage /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'storage:read') ? <ImageServiceStorage /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/storage-providers" element={
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/storage-profiles" element={
-              hasPermission(user, 'storage:read') ? <StorageProfilesPage /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'storage:read') ? <StorageProfilesPage /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/logs" element={
-              hasPermission(user, 'logs:read') ? <ImageServiceProcessingLogs /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'logs:read') ? <ImageServiceProcessingLogs /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/dead-letter" element={
-              hasPermission(user, 'dead-letter:read') ? <DeadLetterQueue /> : <UnauthorizedPage />
+              !factoryModules ? <Navigate to="/image-service/overview" replace /> : hasPermission(user, 'dead-letter:read') ? <DeadLetterQueue /> : <UnauthorizedPage />
             } />
             <Route path="/image-service/audit-log" element={
               hasPermission(user, 'audit-log:read') ? <AuditLogViewer /> : <UnauthorizedPage />

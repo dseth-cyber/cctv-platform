@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
+import { useFeatures } from '@/hooks/useFeatures'
 import {
   Microscope, Camera, Database, Server, Activity, CheckCircle2, Clock, Kanban,
   ArrowRight, HardDrive, Shield, Wifi, Bug, Lock, FileText, Cpu, Palette, Layout,
@@ -257,6 +258,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function ImageServiceRoadmap() {
+  const { factoryModules } = useFeatures()
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set())
@@ -283,6 +285,7 @@ export default function ImageServiceRoadmap() {
   const { data: storage } = useQuery({
     queryKey: ['storage-summary'],
     queryFn: () => imageServiceApi.getStorageSummary(),
+    enabled: factoryModules,
     staleTime: 1000 * 60 * 2,
   })
 

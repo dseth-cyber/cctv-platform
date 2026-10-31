@@ -67,6 +67,10 @@ export const config = {
 
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:5173',
 
+  // [R2.2] Factory image pipeline (images, processing logs/DLQ, SMB, image storage, storage profiles,
+  // migrations). Off unless explicitly enabled; the code stays in place until it is archived.
+  factoryModulesEnabled: process.env.FACTORY_MODULES_ENABLED === 'true',
+
   cctv: {
     maxConcurrentExports: parseInt(process.env.MAX_CONCURRENT_EXPORTS ?? '2', 10),
     diskWarningThresholdPct: parseInt(process.env.DISK_WARNING_THRESHOLD_PCT ?? '85', 10),

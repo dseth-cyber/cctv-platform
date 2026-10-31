@@ -4,6 +4,10 @@ const BASE = '/image-service/api/v1';
 
 export function createImageServiceApi(api: any) {
   return {
+    // Server feature switches [R2.2]
+    getFeatures: (): Promise<{ factoryModules: boolean }> =>
+      api.get(`${BASE}/features`).then((r: any) => r.data),
+
     // Overview / Dashboard
     getOverview: (timebase?: 'capture' | 'ingestion') =>
       api.get(`${BASE}/processing-logs/stats`, { params: timebase ? { timebase } : {} }).then((r: any) => r.data),

@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
+import { useFeatures } from '@/hooks/useFeatures'
 import { formatDateTime } from '@/utils/dateUtils';
 import { ArrowLeft, Camera, Wifi, WifiOff, AlertTriangle, Wrench,
   RefreshCw, Edit, Trash2, HardDrive, Clock } from 'lucide-react';
@@ -18,6 +19,7 @@ const CAMERA_STATUS_STYLES: Record<string, { bg: string; icon: any }> = {
 };
 
 export default function ImageServiceCameraDetail() {
+  const { factoryModules } = useFeatures()
   const { t, i18n } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
@@ -35,7 +37,7 @@ export default function ImageServiceCameraDetail() {
   const { data: images = [] } = useQuery({
     queryKey: ['camera-images', id],
     queryFn: () => imageServiceApi.getImages({ cameraId: id, limit: 20 }),
-    enabled: !!id,
+    enabled: !!id && factoryModules,
   });
 
   const handleScan = async () => {

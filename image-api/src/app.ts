@@ -142,7 +142,6 @@ export async function buildApp() {
   await app.register(
     async (api) => {
       await api.register(authRoutes, { prefix: '/api/v1/auth' });
-      await api.register(imageRoutes, { prefix: '/api/v1/images' });
       await api.register(cameraRoutes, { prefix: '/api/v1/cameras' });
       await api.register(deviceRoutes, { prefix: '/api/v1/devices' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
@@ -152,11 +151,9 @@ export async function buildApp() {
       await api.register(cameraTemplateRoutes, { prefix: '/api/v1/camera-templates' });
       await api.register(retentionRoutes, { prefix: '/api/v1/retention-policies' });
       await api.register(healthRoutes, { prefix: '/api/v1/health' });
-      await api.register(storageRoutes, { prefix: '/api/v1/storage' });
       await api.register(alertRoutes, { prefix: '/api/v1/alerts' });
       await api.register(userRoutes, { prefix: '/api/v1/users' });
       await api.register(roleRoutes, { prefix: '/api/v1/roles' });
-      await api.register(processingLogRoutes, { prefix: '/api/v1/processing-logs' });
       await api.register(alertRuleRoutes, { prefix: '/api/v1/alert-rules' });
       await api.register(systemSettingsRoutes, { prefix: '/api/v1/settings' });
       await api.register(telegramUserRoutes, { prefix: '/api/v1/telegram-users' });
@@ -165,16 +162,27 @@ export async function buildApp() {
       await api.register(systemConfigRoutes, { prefix: '/api/v1/system-config' });
       await api.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
       await api.register(backupRoutes, { prefix: '/api/v1/backup' });
-      await api.register(smbRoutes, { prefix: '/api/v1' });
       await api.register(adminRoutes, { prefix: '/api/v1/admin' });
       await api.register(storageProviderRoutes, { prefix: '/api/v1/storage-providers' });
       await api.register(storageLifecycleRoutes, { prefix: '/api/v1/storage-providers' });
-      await api.register(storageProfileRoutes, { prefix: '/api/v1/storage-profiles' });
-      await api.register(migrationRoutes, { prefix: '/api/v1/migrations' });
-      await api.register(workerUploadRoutes, { prefix: '/api/v1/images' });
       await api.register(metricsRoutes, { prefix: '/api/v1/metrics' });
       await api.register(searchRoutes, { prefix: '/api/v1/search' });
       await api.register(releaseRoutes, { prefix: '/api/v1/release' });
+
+      // [R2.2] Factory image pipeline: registered only when FACTORY_MODULES_ENABLED=true.
+      if (config.factoryModulesEnabled) {
+        await api.register(imageRoutes, { prefix: '/api/v1/images' });
+        await api.register(workerUploadRoutes, { prefix: '/api/v1/images' });
+        await api.register(processingLogRoutes, { prefix: '/api/v1/processing-logs' });
+        await api.register(storageRoutes, { prefix: '/api/v1/storage' });
+        await api.register(storageProfileRoutes, { prefix: '/api/v1/storage-profiles' });
+        await api.register(smbRoutes, { prefix: '/api/v1' });
+        await api.register(migrationRoutes, { prefix: '/api/v1/migrations' });
+      }
+
+      api.get('/api/v1/features', { preHandler: [app.authenticate] }, async () => ({
+        factoryModules: config.factoryModulesEnabled,
+      }));
     },
   );
 
@@ -203,8 +211,10 @@ export async function startApp() {
   const app = await buildApp();
 
   startRetentionSweeper();
-  startDlqReprocessor();
-  startOrphanSweeper();
+  if (config.factoryModulesEnabled) {
+    startDlqReprocessor();
+    startOrphanSweeper();
+  }
   startBackupScheduler();
   startMetricCollector();
   startCameraHealthMonitor();

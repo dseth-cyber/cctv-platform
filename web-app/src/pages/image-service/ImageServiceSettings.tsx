@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
+import { useFeatures } from '@/hooks/useFeatures'
 import {
   Save, RotateCcw, Eye, EyeOff, RefreshCw, Bell,
   Shield, Database, Server, Plus, Trash2, MessageCircle, Pencil,
@@ -26,6 +27,7 @@ function saveSettings(settings: Record<string, unknown>) {
 }
 
 export default function ImageServiceSettings() {
+  const { factoryModules } = useFeatures()
   const { t, i18n } = useTranslation();
   const { themeConfig, theme, setTheme } = useTheme();
   const toast = useToast();
@@ -44,6 +46,7 @@ export default function ImageServiceSettings() {
   const { data: overview } = useQuery({
     queryKey: ['image-service-overview'],
     queryFn: () => imageServiceApi.getOverview(),
+    enabled: factoryModules,
     staleTime: 1000 * 60 * 5,
   });
 

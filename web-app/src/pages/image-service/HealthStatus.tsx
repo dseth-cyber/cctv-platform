@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
+import { useFeatures } from '@/hooks/useFeatures'
 import {
   HeartPulse, Database, HardDrive, Server, Cpu, Activity, CheckCircle, XCircle,
   Camera, Clock, Layers, AlertTriangle, Play, Shield, Video, Radio, Wifi, WifiOff,
@@ -50,6 +51,7 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
 }
 
 export default function HealthStatus() {
+  const { factoryModules } = useFeatures()
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
 
@@ -63,6 +65,7 @@ export default function HealthStatus() {
   const { data: overview } = useQuery({
     queryKey: ['image-service-overview-health'],
     queryFn: () => imageServiceApi.getOverview(),
+    enabled: factoryModules,
     staleTime: 1000 * 30,
   })
 
@@ -328,14 +331,14 @@ export default function HealthStatus() {
 
 const VERIFY_ENDPOINTS = [
   { name: 'Auth Session', path: '/auth/me' },
-  { name: 'Overview', path: '/processing-logs/stats' },
+  { name: 'Overview', path: '/processing-logs/stats', factory: true },
   { name: 'Cameras', path: '/cameras' },
-  { name: 'Images', path: '/images?limit=1' },
-  { name: 'Processing Logs', path: '/processing-logs?limit=1' },
-  { name: 'Storage Summary', path: '/storage/summary' },
-  { name: 'Storage Forecast', path: '/storage/forecast' },
+  { name: 'Images', path: '/images?limit=1', factory: true },
+  { name: 'Processing Logs', path: '/processing-logs?limit=1', factory: true },
+  { name: 'Storage Summary', path: '/storage/summary', factory: true },
+  { name: 'Storage Forecast', path: '/storage/forecast', factory: true },
   { name: 'Storage Providers', path: '/storage-providers' },
-  { name: 'Storage Profiles', path: '/storage-profiles' },
+  { name: 'Storage Profiles', path: '/storage-profiles', factory: true },
   { name: 'Backup Status', path: '/backup/status' },
   { name: 'Retention', path: '/retention-policies' },
   { name: 'Alerts', path: '/alerts' },
@@ -348,8 +351,8 @@ const VERIFY_ENDPOINTS = [
   { name: 'Roles', path: '/roles' },
   { name: 'Audit Logs', path: '/audit-logs' },
   { name: 'Health', path: '/health', noAuth: true },
-  { name: 'DLQ', path: '/processing-logs/dlq/summary' },
-  { name: 'Trends', path: '/processing-logs/trends?period=7d' },
+  { name: 'DLQ', path: '/processing-logs/dlq/summary', factory: true },
+  { name: 'Trends', path: '/processing-logs/trends?period=7d', factory: true },
   { name: 'Metrics', path: '/metrics' },
   { name: 'CCTV Devices', path: '/devices' },
   { name: 'CCTV Sites', path: '/sites' },
@@ -359,6 +362,9 @@ const VERIFY_ENDPOINTS = [
 
 function VerificationCard() {
   const { t } = useTranslation()
+  const { factoryModules } = useFeatures()
+  // Factory endpoints are not registered while the factory modules are off [R2.2].
+  const endpoints = (VERIFY_ENDPOINTS as any[]).filter(ep => factoryModules || !ep.factory)
   const { themeConfig } = useTheme()
   const [results, setResults] = useState<Array<{ name: string; ok: boolean; ms: number; error?: string }>>([])
   const [running, setRunning] = useState(false)
@@ -369,7 +375,7 @@ function VerificationCard() {
     const token = localStorage.getItem('accessToken')
     const base = '/image-service/api/v1'
     const newResults: typeof results = []
-    for (const ep of (VERIFY_ENDPOINTS as any[])) {
+    for (const ep of endpoints) {
       const start = Date.now()
       try {
         if (ep.method === 'POST') {
@@ -385,7 +391,7 @@ function VerificationCard() {
       setResults([...newResults])
     }
     setLastRun(new Date().toLocaleString()); setRunning(false)
-  }, [])
+  }, [endpoints])
 
   const pass = results.filter(r => r.ok).length
   const fail = results.filter(r => !r.ok).length
@@ -407,7 +413,7 @@ function VerificationCard() {
         <div className="flex items-center gap-3">
           {lastRun && <span className={`text-xs ${themeConfig.text.secondary}`}>{lastRun}</span>}
           <Button size="sm" onClick={runVerification} disabled={running}>
-            <Play size={12} className="mr-1" />{running ? `${total}/${VERIFY_ENDPOINTS.length}...` : t('imageService.health.runVerification')}
+            <Play size={12} className="mr-1" />{running ? `${total}/${endpoints.length}...` : t('imageService.health.runVerification')}
           </Button>
         </div>
       </div>
