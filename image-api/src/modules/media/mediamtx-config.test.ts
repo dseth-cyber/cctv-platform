@@ -25,4 +25,10 @@ describe('MediaMTX Configuration Validator', () => {
     const parsed = YAML.parse(content);
     expect(parsed.authHTTPAddress).toBe('http://image-api:3001/api/v1/media/auth');
   });
+
+  it('never lets MediaMTX delete recordings itself (retention and Legal Hold own deletion)', () => {
+    const parsed = YAML.parse(fs.readFileSync(configPath, 'utf8'));
+    // MediaMTX defaults recordDeleteAfter to 1d, which silently removed held and quarantined segments.
+    expect(parsed.pathDefaults.recordDeleteAfter).toBe('0s');
+  });
 });

@@ -176,6 +176,34 @@ function moveFile(src: string, dest: string): void {
   }
 }
 
+export type RestoreOutcome = 'restored' | 'not_archived' | 'not_in_quarantine' | 'outside_root' | 'error';
+
+/**
+ * Moves an archived segment back from quarantine to its original path and un-archives the row.
+ * Used when a Legal Hold is placed on a segment that cleanup already moved away.
+ */
+export async function restoreRecordingFromQuarantine(
+  rec: { id: string; filePath: string | null; isArchived: boolean },
+  dirs: RecordingCleanupDirs = getRecordingCleanupDirs(),
+): Promise<RestoreOutcome> {
+  if (!rec.isArchived) return 'not_archived';
+  if (!rec.filePath) return 'not_in_quarantine';
+  const original = path.resolve(rec.filePath);
+  const rel = path.relative(dirs.recordingsDir, original);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return 'outside_root';
+  const quarantined = path.join(dirs.quarantineDir, rel);
+  if (!fs.existsSync(quarantined)) return 'not_in_quarantine';
+  try {
+    moveFile(quarantined, original);
+  } catch (err) {
+    logger.error({ err, recordingId: rec.id, quarantinePath: quarantined }, 'Failed to restore recording from quarantine');
+    return 'error';
+  }
+  await getPrisma().cameraRecording.updateMany({ where: { id: rec.id }, data: { isArchived: false } });
+  logger.info({ recordingId: rec.id, filePath: original }, 'Recording restored from quarantine for Legal Hold');
+  return 'restored';
+}
+
 export type QuarantineOutcome = 'moved' | 'missing_file' | 'skipped_legal_hold' | 'skipped_outside_root' | 'error';
 
 /**

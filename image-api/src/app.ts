@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { ForbiddenError } from './lib/errors.js';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -56,12 +57,19 @@ import { startOrphanSweeper, stopOrphanSweeper } from './modules/processing-logs
 import { startMetricCollector, stopMetricCollector } from './modules/provider-metrics/provider-metric-collector.js';
 import { startCameraHealthMonitor, stopCameraHealthMonitor } from './modules/cameras/camera-health-monitor.js';
 import { startRecordingReconciler, stopRecordingReconciler } from './modules/recordings/segment-indexer.js';
+import { startCameraPathSync, stopCameraPathSync } from './modules/media/path-sync.js';
 import { startTelegramBot, stopTelegramBot } from './modules/telegram-bot/telegram-bot.service.js';
 import { startSystemCleanup, stopSystemCleanup } from './modules/system-cleanup/system-cleanup.controller.js';
 import { workerUploadRoutes } from './modules/images/worker-upload.controller.js';
 import { metricsRoutes } from './modules/metrics/metrics.controller.js';
 import { storageRouter } from './lib/storage/storage-router.js';
 import { getPrisma } from './lib/prisma.js';
+
+/** Allows requests without an Origin and origins in CORS_ALLOWED_ORIGINS; others get 403 (was 500). */
+export function corsOriginCheck(origin: string | undefined, cb: (err: Error | null, allow: boolean) => void): void {
+  if (!origin || config.corsAllowedOrigins.includes(origin)) return cb(null, true);
+  cb(new ForbiddenError('Origin not allowed by CORS'), false);
+}
 
 export async function buildApp() {
   const app = Fastify({
@@ -85,10 +93,7 @@ export async function buildApp() {
     // so this only gates direct cross-origin browser callers. Configure via
     // CORS_ALLOWED_ORIGINS (comma-separated); empty means no browser origin is allowed
     // (non-browser callers, which send no Origin header, are unaffected either way).
-    origin: (origin, cb) => {
-      if (!origin || config.corsAllowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error('Not allowed by CORS'), false);
-    },
+    origin: corsOriginCheck,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
@@ -219,6 +224,7 @@ export async function startApp() {
   startMetricCollector();
   startCameraHealthMonitor();
   startRecordingReconciler();
+  startCameraPathSync();
   startSystemCleanup();
   startTelegramBot();
 
@@ -254,6 +260,7 @@ export async function startApp() {
     stopMetricCollector();
     stopCameraHealthMonitor();
     stopRecordingReconciler();
+    stopCameraPathSync();
     stopSystemCleanup();
     stopTelegramBot();
     await app.close();

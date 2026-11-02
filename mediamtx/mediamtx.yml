@@ -52,6 +52,9 @@ pathDefaults:
   recordFormat: fmp4
   recordPartDuration: 1s
   recordSegmentDuration: 60s
+  # Never let MediaMTX delete recordings itself (its default is 1d): it would bypass the retention
+  # policy, Legal Hold and quarantine. image-api retention is the only thing that removes segments.
+  recordDeleteAfter: 0s
   # Event-Driven Real-time Camera Health Webhook (< 3s Detection) [ENH-01]
   runOnReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"ready\"}" http://image-api:3001/api/v1/media/events/stream-status'
   runOnNotReady: 'wget -q -O - --header "Content-Type: application/json" --header "x-media-webhook-secret: $MEDIA_WEBHOOK_SECRET" --post-data "{\"path\":\"$MTX_PATH\",\"status\":\"not_ready\"}" http://image-api:3001/api/v1/media/events/stream-status'

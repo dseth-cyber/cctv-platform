@@ -6,6 +6,7 @@ import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
 import { ValidationError } from '../../lib/errors.js';
 import { defaultExportQueue, findGaps } from './export-queue.js';
+import { restoreRecordingFromQuarantine } from '../retention-sweeper/retention-sweeper.service.js';
 
 export interface RecordingCoverage {
   windowSeconds: number;
@@ -511,13 +512,17 @@ export class RecordingsService {
    */
   static async toggleSegmentLegalHold(recordingId: string, legalHold: boolean) {
     const prisma = getPrisma();
+    // The hold is written first, so a cleanup run in between can no longer claim the segment.
     const updated = await prisma.cameraRecording.update({
       where: { id: recordingId },
       data: { legalHold },
     });
+    // A segment cleanup already moved to quarantine goes back to its place when it is put on hold.
+    const restore = legalHold && updated.isArchived ? await restoreRecordingFromQuarantine(updated) : undefined;
     return {
       id: updated.id,
       legalHold: updated.legalHold,
+      ...(restore ? { restoredFromQuarantine: restore === 'restored', restoreOutcome: restore } : {}),
     };
   }
 

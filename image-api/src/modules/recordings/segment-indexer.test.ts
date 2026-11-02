@@ -9,7 +9,10 @@ vi.mock('node:child_process', () => ({
 }));
 
 import { getPrisma } from '../../lib/prisma.js';
-import { indexSegment, parseSegmentStart, reconcileRecordings, resolveSegmentPath } from './segment-indexer.js';
+import { findMissingRecordingFiles, indexSegment, parseSegmentStart, reconcileRecordings, resolveSegmentPath } from './segment-indexer.js';
+import { createAlert } from '../alerts/alerts.service.js';
+
+vi.mock('../alerts/alerts.service.js', () => ({ createAlert: vi.fn().mockResolvedValue({}) }));
 
 describe('Recording segment indexer [R3.1]', () => {
   let dir: string;
@@ -100,5 +103,22 @@ describe('Recording segment indexer [R3.1]', () => {
 
     expect(summary).toEqual({ scanned: 1, indexed: 1, failed: 0 });
     expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('raises a critical alert for indexed segments whose file is gone', async () => {
+    const present = writeSegment('cam1', '2026-10-31_01-00-00.mp4');
+    vi.mocked(getPrisma).mockReturnValue({
+      cameraRecording: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'ok', cameraId: 'c', filePath: present, legalHold: false, startTime: new Date() },
+          { id: 'gone', cameraId: 'c', filePath: path.join(dir, 'cam1', 'deleted.mp4'), legalHold: true, startTime: new Date() },
+        ]),
+      },
+    } as any);
+
+    expect(await findMissingRecordingFiles()).toEqual({ checked: 2, missing: 1 });
+    expect(vi.mocked(createAlert)).toHaveBeenCalledWith(
+      expect.objectContaining({ alertType: 'retention_violation', severity: 'critical', details: expect.objectContaining({ missing: 1, onHold: 1 }) }),
+    );
   });
 });

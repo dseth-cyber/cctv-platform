@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
+import { createAlert } from '../alerts/alerts.service.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -136,10 +137,51 @@ export async function reconcileRecordings(recordingsDir = getRecordingsDir()) {
   return summary;
 }
 
+/**
+ * Finds indexed, non-archived segments whose file is no longer on disk. Only retention (quarantine)
+ * may remove recordings, so any such file was deleted outside the system — e.g. by a MediaMTX
+ * recordDeleteAfter setting or by hand — and is raised as a critical alert, never ignored.
+ */
+export async function findMissingRecordingFiles() {
+  const prisma = getPrisma();
+  const rows = await prisma.cameraRecording.findMany({
+    where: { isArchived: false },
+    select: { id: true, cameraId: true, filePath: true, legalHold: true, startTime: true },
+  });
+  const missing = rows.filter((r) => !r.filePath || !fs.existsSync(r.filePath));
+  if (missing.length > 0) {
+    const onHold = missing.filter((r) => r.legalHold).length;
+    logger.error({ missing: missing.length, onHold }, 'Indexed recording files are missing from disk');
+    await createAlert({
+      alertType: 'retention_violation',
+      severity: 'critical',
+      source: 'recording_index_audit',
+      title: 'Recording files missing from disk',
+      message: `${missing.length} indexed recording segment(s) are no longer on disk (${onHold} under Legal Hold). They were removed outside the retention process.`,
+      details: {
+        missing: missing.length,
+        onHold,
+        sample: missing.slice(0, 20).map((r) => ({ id: r.id, cameraId: r.cameraId, filePath: r.filePath, startTime: r.startTime })),
+      },
+      skipDedup: false,
+    });
+  }
+  return { checked: rows.length, missing: missing.length };
+}
+
 let reconcileTimer: NodeJS.Timeout | null = null;
+const MISSING_FILE_CHECK_EVERY = 12; // with the 5-minute reconcile: about hourly
 
 export function startRecordingReconciler(intervalMs = Number(process.env.RECORDING_RECONCILE_INTERVAL_MS || 300_000)) {
-  const run = () => reconcileRecordings().catch((err) => logger.error({ err }, 'Recording index reconcile failed'));
+  let runs = 0;
+  const run = async () => {
+    try {
+      await reconcileRecordings();
+      if (runs++ % MISSING_FILE_CHECK_EVERY === 0) await findMissingRecordingFiles();
+    } catch (err) {
+      logger.error({ err }, 'Recording index reconcile failed');
+    }
+  };
   run();
   if (intervalMs > 0) reconcileTimer = setInterval(run, intervalMs);
 }

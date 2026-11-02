@@ -24,6 +24,18 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-02) — งานที่ทำได้โดยไม่ต้องรออุปกรณ์
+
+**พบปัญหาข้อมูลหาย (สำคัญ):** MediaMTX ใช้ค่า default `recordDeleteAfter: 1d` (ไม่ได้ตั้งใน mediamtx.yml) จึงลบ segment ที่เก่ากว่า 1 วันเองโดยไม่ผ่าน retention, Legal Hold หรือ quarantine — รวมถึงไฟล์ใน `.quarantine` (ตรง pattern `%path`). บน Dev หายไป 32 segment ของวันที่ 31 ต.ค. (1 ตัวอยู่ใต้ Legal Hold, 1 ตัวคือไฟล์ quarantine จากการทดสอบ R4.2) — กู้คืนไม่ได้ (ไม่มี backup ของไฟล์ recording). แถวใน index ยังอยู่และถูก alert ไว้. แก้: `recordDeleteAfter: 0s` (ตรวจผ่าน MediaMTX API แล้ว) + test กันถอยกลับ + audit ทุกชั่วโมงหาแถวที่ไฟล์หาย → alert `retention_violation` critical
+
+**พบ: กล้องไม่ถูกบันทึกถ้าไม่มีคนเปิดดู** — path ของกล้องลงทะเบียนกับ MediaMTX เฉพาะตอนเรียก `GET /cameras/:id/stream` และหายเมื่อ MediaMTX restart. แก้: `media/path-sync.ts` sync ทุก 60 วินาที (ลงทะเบียนกล้องที่ enabled + มี RTSP, ถอด path ของกล้องที่ปิด/ลบ, ไม่แตะ `sim/*`). ตรวจ: กล้อง `pathsync-test` (ดึง `sim/ch2` ผ่าน RTSP) บันทึกต่อเนื่องโดยไม่มีคนดู; restart MediaMTX → path หาย → sync ลงทะเบียนคืนใน 43 วินาที และบันทึกต่อ
+
+- Legal Hold บน segment ที่อยู่ใน quarantine → ย้ายไฟล์กลับและ `isArchived=false` (`restoredFromQuarantine` ใน response; ถ้าไฟล์ไม่อยู่แล้วตอบ `not_in_quarantine` ตามจริง)
+- CORS origin ที่ไม่อนุญาต → 403 (เดิม 500); ตรวจผ่าน nginx แล้ว
+- Export หลายชั่วโมง: สร้าง segment ทดสอบ 2 ชม. (120 ไฟล์ 60s, เว้นช่วงขาด 10 นาที) ที่ `sim/longtest` + กล้อง `longtest-cam`; export ทั้งช่วง 2h10m → 7202.6s (= วิดีโอที่มีจริง), gap 1 ช่วงใน chain, ใช้ 12 วินาที, หน่วยความจำ API คงที่ ~59 MB, ดาวน์โหลด 158 MB ผ่าน nginx SHA ตรง
+- ปิดกล้องทดสอบ R1 3 ตัวที่ชี้ IP ปลอม (`enabled=false`, ย้อนได้) เพื่อไม่ให้ MediaMTX ต่อไม่สำเร็จวนตลอด
+- Dev: หลัง recreate container image-api ต้อง `docker restart cctv-web-app` (nginx จำ IP เดิม → 502)
+
 ## งานล่าสุด (2026-10-31, รอบ 2) — R2, R3, R4.2
 
 Commits บน `fix/audit-remediation`: `b3f27f0` (MediaMTX API + isolation), `22441fa` (R3), `4590736` (R2.1/R2.2), `a867987` (R2.4) และ commit R4.2 ตามหลัง. สถานะรายข้ออยู่ใน Roadmap
@@ -87,11 +99,10 @@ R1.8 Release Center — ผูกข้อความรับรองกั�
 - ตรวจใน container: preflight = 67% `action_required` (isolation warning, MediaMTX API warning จริง); scope ยาว → 400; sign-off ไม่ส่ง flag → 201 `checklistPassed=false`; list ไม่มี record ปลอม. Dev DB มีแถวทดสอบ "R1.8 verify" 1 แถว
 - ข้อสังเกต: preflight เรียก MediaMTX API ที่ `127.0.0.1:9997` ภายใน container image-api จึงเป็น warning เสมอ — ต้องตั้ง `MEDIAMTX_HOST`/`MEDIAMTX_API_PORT` ใน compose ให้ชี้ service `mediamtx` (ยังไม่แก้)
 
-ข้อสังเกตที่ยังไม่แก้:
-- clip ขอ 30s ได้ไฟล์ 60s (ทั้ง segment) แต่ DB เก็บ `durationSeconds=30` และ `hasPreBuffer=true` แม้ pre-buffer 0 → R3.5
-- segment ต้อง insert `camera_recordings` เอง (ไม่มี indexer) → R3.1
-- seed ตั้งรหัสผ่าน default (`admin123` ฯลฯ) — ใช้ได้เฉพาะ Dev
-- ยังไม่ได้ตรวจ: UI ในเบราว์เซอร์, cleanup เปิดจริงกับ quarantine คนละ filesystem (EXDEV path)
+ข้อสังเกตที่ยังไม่แก้ (ปรับ 2026-11-02):
+- seed ตั้งรหัสผ่าน default (`admin123` ฯลฯ) และ secret ใน compose เป็นค่า Dev — ต้องเปลี่ยนก่อนขึ้นเครื่องจริง
+- `npm audit` image-api: zod (high, ต้องขึ้น v4), minio/stream-json, @fastify/swagger-ui/glob/minimatch (moderate) — ทุกตัวแก้ได้ด้วย major upgrade เท่านั้น ยังไม่ทำ
+- (แก้แล้ว) clip ยาวเกินที่ขอ → R3.5; ไม่มี indexer → R3.1
 
 ## งานก่อนหน้า (2026-10-30) — ตรวจซ้ำ + Remediation R1 (โค้ดเสร็จ)
 
