@@ -67,6 +67,18 @@ export const updateCameraSchema = z.object({
   connection: cameraConnectionSchema.optional(),
 });
 
+// Find the stream URL pattern a camera answers to. On edit, cameraId lets a blank password reuse
+// the stored one.
+export const detectStreamSchema = z.object({
+  ipAddress: z.string().min(1).max(45),
+  username: z.string().max(128).default(''),
+  password: z.string().max(256).optional(),
+  brand: z.string().max(32).optional(),
+  port: z.number().int().min(1).max(65535).optional(),
+  channel: z.number().int().min(1).max(256).optional(),
+  cameraId: z.guid().optional(),
+});
+
 export const cameraQuerySchema = z.object({
   status: z.enum(['active', 'inactive', 'error', 'maintenance']).optional(),
   enabled: z.coerce.boolean().optional(),

@@ -21,6 +21,9 @@ export function createImageServiceApi(api: any) {
 
     createCamera: (data: Record<string, unknown>) =>
       api.post(`${BASE}/cameras`, data).then((r: any) => r.data),
+    // Opens the stream to find brand/port/channel (and checks the login); see stream-detect.service.ts.
+    detectCameraStream: (data: { ipAddress: string; username: string; password?: string; brand?: string; port?: number; channel?: number; cameraId?: string }) =>
+      api.post(`${BASE}/cameras/detect-stream`, data, { timeout: 90_000 }).then((r: any) => r.data),
 
     updateCamera: (id: string, data: Record<string, unknown>) =>
       api.patch(`${BASE}/cameras/${id}`, data).then((r: any) => r.data),

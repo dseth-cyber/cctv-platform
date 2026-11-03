@@ -1,11 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { createCameraSchema, updateCameraSchema, cameraQuerySchema } from './cameras.schema.js';
+import { createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
+import { detectCameraStream } from './stream-detect.service.js';
+import { getPrisma } from '../../lib/prisma.js';
 import * as camerasService from './cameras.service.js';
 import * as cameraAnalytics from './camera-analytics.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { requirePermission } from '../../middleware/rbac.js';
-import { openRtspUrl } from '../../lib/rtsp-credentials.js';
+import { openRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js';
 import { getRedisClient } from '../../lib/redis.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { createAlert } from '../alerts/alerts.service.js';
@@ -729,6 +731,17 @@ async function clearAllIncidentsHandler(request: FastifyRequest, reply: FastifyR
   return reply.send({ success: true, count: result.count });
 }
 
+async function detectStreamHandler(request: FastifyRequest, reply: FastifyReply) {
+  const input = detectStreamSchema.parse(request.body);
+  let password = input.password || null;
+  if (!password && input.cameraId) {
+    const camera = await getPrisma().camera.findUnique({ where: { id: input.cameraId }, select: { rtspUrl: true } });
+    password = extractRtspPassword(camera?.rtspUrl);
+  }
+  const result = await detectCameraStream({ ...input, password });
+  return reply.send(result);
+}
+
 export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     '/',
@@ -799,6 +812,11 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/incidents/:id/related',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     relatedIncidentsHandler,
+  );
+  app.post(
+    '/detect-stream',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    detectStreamHandler,
   );
   app.post(
     '/incidents/:id/work-order',

@@ -39,7 +39,7 @@ const emptyForm = () => ({
   slaTargetPercent: '',
   // Simple setup: the server builds the RTSP URLs from these. 'manual' = type the full URLs.
   connMode: 'simple' as 'simple' | 'manual',
-  brand: 'Hikvision', rtspPort: '554', channel: '1', username: 'admin', password: '',
+  brand: 'auto', rtspPort: '554', channel: '1', username: 'admin', password: '',
 });
 
 // Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
@@ -93,14 +93,18 @@ export default function ImageServiceCameras() {
   const [sortCol, setSortCol] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<{ open: boolean; item?: any | null }>({ open: false });
-  const [form, setForm] = useState(emptyForm());
-  const [probe, setProbe] = useState<{ state: 'idle' | 'running' | 'ok' | 'fail'; latencyMs?: number }>({ state: 'idle' });
+  const [formState, setForm] = useState(emptyForm());
+  const form = formState;
+  // Result of POST /cameras/detect-stream for the connection fields as they were when it ran.
+  const [detect, setDetect] = useState<{ state: 'idle' | 'running' | 'found' | 'auth_failed' | 'unreachable' | 'not_found'; key?: string; video?: any }>({ state: 'idle' });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const { data: brandTemplates = [] } = useQuery({
     queryKey: ['device-templates'],
     queryFn: () => imageServiceApi.getDeviceTemplates(),
     staleTime: Infinity,
   });
   const brandTemplate = (brandTemplates as any[]).find((b: any) => b.brand === form.brand);
+  const connKey = [form.ipAddress.trim(), form.username.trim(), form.password, form.brand, form.rtspPort, form.channel].join('|');
   const [submitting, setSubmitting] = useState(false);
 
   // Delete camera state
@@ -233,7 +237,8 @@ export default function ImageServiceCameras() {
     if (defaultRetention) {
       formInit.retentionPolicyId = defaultRetention.id;
     }
-    setProbe({ state: 'idle' });
+    setDetect({ state: 'idle' });
+    setShowAdvanced(false);
     setForm(formInit);
     setModal({ open: true, item: null });
   };
@@ -247,13 +252,14 @@ export default function ImageServiceCameras() {
       templateId: item.templateId ?? '',
       slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
       connMode: (conn || !item.rtspUrl ? 'simple' : 'manual') as 'simple' | 'manual',
-      brand: conn?.brand ?? 'Hikvision', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
+      brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
     };
   };
 
   const openEdit = (item: any) => {
-    setProbe({ state: 'idle' });
+    setDetect({ state: 'idle' });
+    setShowAdvanced(false);
     setForm(formFromCamera(item));
     setModal({ open: true, item });
   };
@@ -273,6 +279,7 @@ export default function ImageServiceCameras() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let form = formState;
     // A new camera needs a stream source; on edit a redacted URL means "unchanged".
     const simple = form.connMode === 'simple';
     if (!form.name || !form.retentionPolicyId || (!simple && !modal.item && !form.rtspUrl)) {
@@ -284,6 +291,13 @@ export default function ImageServiceCameras() {
     // A new camera (including a clone) has no stored password to fall back on.
     if (simple && !modal.item && form.username.trim() && !form.password) {
       toast.warning(t('imageService.cameras.conn.passwordRequired')); return;
+    }
+    // "Auto" has to be resolved to a real brand by opening the stream; a brand picked by hand is
+    // saved as-is (e.g. a camera that is not on the network yet).
+    if (simple && form.brand === 'auto') {
+      const detected = detect.state === 'found' && detect.key === connKey ? form : await runDetect();
+      if (!detected) return;
+      form = detected;
     }
     const isNameDuplicate = cameras.some((c: any) => c.id !== modal.item?.id && c.name.trim().toLowerCase() === form.name.trim().toLowerCase());
     if (isNameDuplicate) {
@@ -344,14 +358,33 @@ export default function ImageServiceCameras() {
     finally { setSubmitting(false); }
   };
 
-  const runProbe = async () => {
-    if (!form.ipAddress.trim()) { toast.warning(t('imageService.cameras.conn.ipRequired')); return; }
-    setProbe({ state: 'running' });
+  /** Finds brand/port/channel by opening the stream; returns the form values to save with, or null. */
+  const runDetect = async (): Promise<typeof form | null> => {
+    if (!form.ipAddress.trim()) { toast.warning(t('imageService.cameras.conn.ipRequired')); return null; }
+    setDetect({ state: 'running' });
     try {
-      const r = await imageServiceApi.probeDevice({ ipAddress: form.ipAddress.trim(), rtspPort: parseInt(form.rtspPort, 10) || 554 });
-      setProbe(r?.rtspOpen ? { state: 'ok', latencyMs: r.latencyMs } : { state: 'fail' });
-    } catch {
-      setProbe({ state: 'fail' });
+      const r = await imageServiceApi.detectCameraStream({
+        ipAddress: form.ipAddress.trim(),
+        username: form.username.trim(),
+        ...(form.password ? { password: form.password } : {}),
+        brand: form.brand,
+        port: parseInt(form.rtspPort, 10) || 554,
+        channel: parseInt(form.channel, 10) || 1,
+        ...(modal.item ? { cameraId: modal.item.id } : {}),
+      });
+      if (r?.status !== 'found') {
+        setDetect({ state: r?.status ?? 'not_found' });
+        if (r?.status === 'not_found') setShowAdvanced(true);
+        return null;
+      }
+      const next = { ...form, brand: r.brand, rtspPort: String(r.port), channel: String(r.channel) };
+      setForm(next);
+      setDetect({ state: 'found', video: r.video, key: [next.ipAddress.trim(), next.username.trim(), next.password, next.brand, next.rtspPort, next.channel].join('|') });
+      return next;
+    } catch (e: any) {
+      setDetect({ state: 'idle' });
+      if (!e?._handled) toast.error(t('common.error'));
+      return null;
     }
   };
 
@@ -1172,24 +1205,6 @@ export default function ImageServiceCameras() {
             </div>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.description')}{cameraStar('description')}
-              </label>
-              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                rows={2}
-                placeholder={t('imageService.cameras.descriptionPlaceholder')}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-            </div>
-            <div className="col-span-2">
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.template')}{cameraStar('templateId')}
-              </label>
-              <SearchableSelect value={form.templateId} onChange={handleTemplateChange}
-                placeholder={t('imageService.cameras.templateNone')}
-                options={[{ value: '', label: t('imageService.cameras.templateNone') }, ...(templates as any[]).filter((tp: any) => tp.isActive).map((tp: any) => ({ value: tp.id, label: tp.isDefault ? `${tp.name} ★` : tp.name }))]} />
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.templateHint')}</p>
-            </div>
-            <div className="col-span-2">
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                 {t('imageService.cameras.ipAddress')}{cameraStar('ipAddress')}
               </label>
               <input value={form.ipAddress} onChange={e => setForm(p => ({ ...p, ipAddress: e.target.value }))}
@@ -1204,54 +1219,67 @@ export default function ImageServiceCameras() {
                 </p>
               )}
             </div>
-            {form.connMode === 'simple' ? (
+            {form.connMode === 'simple' && (
               <>
-                <div className="col-span-2">
-                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.brand')}</label>
-                  <SearchableSelect value={form.brand} showSearch={false}
-                    onChange={v => { setProbe({ state: 'idle' }); setForm(p => ({ ...p, brand: v })); }}
-                    options={(brandTemplates as any[]).map((b: any) => ({ value: b.brand, label: b.label }))} />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.port')}</label>
-                  <input type="number" min={1} max={65535} value={form.rtspPort}
-                    onChange={e => { setProbe({ state: 'idle' }); setForm(p => ({ ...p, rtspPort: e.target.value })); }}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.channel')}</label>
-                  <input type="number" min={1} max={256} value={form.channel}
-                    onChange={e => setForm(p => ({ ...p, channel: e.target.value }))}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-                </div>
-                <p className={`col-span-2 -mt-2 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.channelHint')}</p>
                 <div>
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.username')}</label>
                   <input value={form.username} autoComplete="off"
-                    onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
+                    onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, username: e.target.value })); }}
                     className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.password')}</label>
                   <input type="password" value={form.password} autoComplete="new-password"
                     placeholder={modal.item ? t('imageService.cameras.conn.passwordKeep') : ''}
-                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, password: e.target.value })); }}
                     className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <div className="col-span-2">
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" onClick={runProbe} disabled={probe.state === 'running'}>
-                      {probe.state === 'running' ? t('imageService.cameras.conn.testing') : t('imageService.cameras.conn.test')}
-                    </Button>
-                    {probe.state === 'ok' && (
-                      <span className="text-xs text-emerald-400">{t('imageService.cameras.conn.testOk', { port: form.rtspPort, ms: probe.latencyMs ?? 0 })}</span>
-                    )}
-                    {probe.state === 'fail' && (
-                      <span className="text-xs text-red-400">{t('imageService.cameras.conn.testFail', { ip: form.ipAddress, port: form.rtspPort })}</span>
-                    )}
-                  </div>
-                  <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.testNote')}</p>
+                  <Button type="button" variant="secondary" onClick={() => { void runDetect(); }} disabled={detect.state === 'running'}>
+                    {detect.state === 'running' ? t('imageService.cameras.conn.testing') : t('imageService.cameras.conn.test')}
+                  </Button>
+                  {detect.state === 'found' && detect.key === connKey && (
+                    <p className="text-xs text-emerald-400 mt-1.5">
+                      {t('imageService.cameras.conn.found', { brand: (brandTemplates as any[]).find((b: any) => b.brand === form.brand)?.label ?? form.brand })}
+                      {detect.video?.width ? ` · ${String(detect.video.codec ?? '').toUpperCase()} ${detect.video.width}×${detect.video.height}` : ''}
+                    </p>
+                  )}
+                  {detect.state === 'auth_failed' && <p className="text-xs text-red-400 mt-1.5">{t('imageService.cameras.conn.authFailed')}</p>}
+                  {detect.state === 'unreachable' && <p className="text-xs text-red-400 mt-1.5">{t('imageService.cameras.conn.unreachable', { ip: form.ipAddress })}</p>}
+                  {detect.state === 'not_found' && <p className="text-xs text-amber-400 mt-1.5">{t('imageService.cameras.conn.notFound')}</p>}
+                  {detect.state === 'idle' && <p className={`text-[11px] mt-1.5 ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.detectHint')}</p>}
                 </div>
+              </>
+            )}
+            <button type="button" className="col-span-2 flex items-center gap-1 text-left text-xs text-cyan-400 hover:underline"
+              onClick={() => setShowAdvanced(v => !v)}>
+              {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />} {t('imageService.cameras.conn.advanced')}
+            </button>
+          </div>
+
+          {showAdvanced && (
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            {form.connMode === 'simple' ? (
+              <>
+                <div className="col-span-2">
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.brand')}</label>
+                  <SearchableSelect value={form.brand} showSearch={false}
+                    onChange={v => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, brand: v })); }}
+                    options={[{ value: 'auto', label: t('imageService.cameras.conn.brandAuto') }, ...(brandTemplates as any[]).map((b: any) => ({ value: b.brand, label: b.label }))]} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.port')}</label>
+                  <input type="number" min={1} max={65535} value={form.rtspPort}
+                    onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, rtspPort: e.target.value })); }}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.channel')}</label>
+                  <input type="number" min={1} max={256} value={form.channel}
+                    onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, channel: e.target.value })); }}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <p className={`col-span-2 -mt-2 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.portHint')}</p>
                 {form.ipAddress && brandTemplate && (
                   <div className="col-span-2">
                     <p className={`text-xs mb-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.preview')}</p>
@@ -1294,6 +1322,24 @@ export default function ImageServiceCameras() {
             )}
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
+                {t('imageService.cameras.description')}{cameraStar('description')}
+              </label>
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                rows={2}
+                placeholder={t('imageService.cameras.descriptionPlaceholder')}
+                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+            </div>
+            <div className="col-span-2">
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
+                {t('imageService.cameras.template')}{cameraStar('templateId')}
+              </label>
+              <SearchableSelect value={form.templateId} onChange={handleTemplateChange}
+                placeholder={t('imageService.cameras.templateNone')}
+                options={[{ value: '', label: t('imageService.cameras.templateNone') }, ...(templates as any[]).filter((tp: any) => tp.isActive).map((tp: any) => ({ value: tp.id, label: tp.isDefault ? `${tp.name} ★` : tp.name }))]} />
+              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.templateHint')}</p>
+            </div>
+            <div className="col-span-2">
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                 {t('ui.imageServiceCameras.streamPath')}{cameraStar('streamPath')}
               </label>
               <input value={form.streamPath} onChange={e => setForm(p => ({ ...p, streamPath: e.target.value }))}
@@ -1320,6 +1366,7 @@ export default function ImageServiceCameras() {
                 options={policies.map((p: any) => ({ value: p.id, label: p.isDefault ? `${p.name} ★` : p.name }))} />
             </div>
           </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
             <Button variant="secondary" type="button" onClick={() => setModal({ open: false })}>{t('common.cancel')}</Button>
