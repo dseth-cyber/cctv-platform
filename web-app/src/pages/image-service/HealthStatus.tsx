@@ -299,7 +299,7 @@ const VERIFY_ENDPOINTS = [
   { name: 'Retention', path: '/retention-policies' },
   { name: 'Alerts', path: '/alerts' },
   { name: 'Alert Rules', path: '/alert-rules' },
-  { name: 'Masterdata', path: '/masterdata?type=camera_type' },
+  { name: 'Masterdata', path: '/masterdata?type=camera_status' },
   { name: 'API Keys', path: '/api-keys' },
   { name: 'Telegram', path: '/settings/telegram' },
   { name: 'System Config', path: '/system-config', noAuth: true },

@@ -34,8 +34,6 @@ export const seaweedfsConfigSchema = s3ConfigSchema;
 
 export const providerConfigSchema = z.union([s3ConfigSchema, localDiskConfigSchema, smbConfigSchema, nfsConfigSchema, seaweedfsConfigSchema]);
 
-const backpressureStrategyEnum = z.enum(['stop_polling', 'continue_polling']);
-
 export const createProviderSchema = z.object({
   name: z.string().min(1).max(128),
   type: providerTypeSchema,
@@ -44,12 +42,6 @@ export const createProviderSchema = z.object({
   priority: z.coerce.number().int().min(0).optional().default(0),
   description: z.string().optional(),
   capacityBytes: z.coerce.number().int().nonnegative().optional(),
-  pressureWarningPercent: z.coerce.number().min(0).max(100).optional().default(75),
-  pressureStartPercent: z.coerce.number().min(0).max(100).optional().default(90),
-  pressureStopPercent: z.coerce.number().min(0).max(100).optional().default(80),
-  pressureCriticalPercent: z.coerce.number().min(0).max(100).optional().default(95),
-  pressureEmergencyPercent: z.coerce.number().min(0).max(100).optional().default(98),
-  backpressureStrategy: backpressureStrategyEnum.optional().default('continue_polling'),
 });
 
 export const updateProviderSchema = z.object({
@@ -60,12 +52,6 @@ export const updateProviderSchema = z.object({
   description: z.string().optional(),
   isActive: z.coerce.boolean().optional(),
   capacityBytes: z.coerce.number().int().nonnegative().nullable().optional(),
-  pressureWarningPercent: z.coerce.number().min(0).max(100).optional(),
-  pressureStartPercent: z.coerce.number().min(0).max(100).optional(),
-  pressureStopPercent: z.coerce.number().min(0).max(100).optional(),
-  pressureCriticalPercent: z.coerce.number().min(0).max(100).optional(),
-  pressureEmergencyPercent: z.coerce.number().min(0).max(100).optional(),
-  backpressureStrategy: backpressureStrategyEnum.optional(),
 });
 
 export type CreateProviderInput = z.infer<typeof createProviderSchema>;

@@ -24,6 +24,16 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 4) — เก็บกวาดของจากระบบเดิม
+
+- Storage Provider: ลบช่อง pressure/backpressure (schema, API, ฟอร์ม, locale) และ enum `backpressure_strategy` / `storage_pressure_state`
+- Masterdata: เหลือเฉพาะ type ที่ CCTV ใช้ (camera_status, incident_reason, incident_root_cause, incident_resolution); ลบแถวประเภทโรงงาน (camera_type, capture_mode, image_category, defect_type, inspection_type, image_viewpoint ฯลฯ) ทั้งใน seed และ DB; ตัดแท็บในหน้า Masterdata
+- SQL `prisma/sql/2026-11-03_cleanup_legacy_leftovers.sql`; Dev DB migrate แล้ว (backup: `C:\Users\SC34111\AppData\Local\Temp\claude\d--Qwen-DVR\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_leftovers_cleanup.dump`, 29 ตาราง)
+- Web: ลบ `types/image-service.ts` (ไม่มีใครใช้), ฟิลด์ภาพใน required-fields catalog (cameraTemplate processing, storageProfile), case ภาพในหน้า Reports; locale ลบ 19 section ที่ไม่มีโค้ดใช้เลย (docs, executive, shifts, migrations, storageProfiles, processingLogs, deadLetter, ui.imageServiceSearch ฯลฯ) + common.clearData* + แท็บ masterdata เดิม
+- AGENTS.md: ส่วน legacy เปลี่ยนเป็น "Conventions" — ตัดกฎเฉพาะระบบภาพ (image_files, Kafka image event, BullMQ, SMB/scan-worker fixes); กฎ recording cleanup อัปเดตตามนโยบายที่อนุมัติ 2026-11-03 (มี `deleteRecordingPermanently()` แล้ว)
+- ตรวจ: tsc API/web, vitest 95 passed, web build; ใน container: masterdata เหลือ 4 type, คอลัมน์ pressure 0, enum 0, provider list/patch 200, masterdata camera_type → 400, endpoint หลัก 200, bundle ไม่มี key เดิม
+- ยังเหลือ: locale ~380 key ที่ไม่ได้ใช้กระจายอยู่ใน section ที่ยังใช้บางส่วน (เช่น imageService.search/overview/storage) — ไม่ลบเพราะเสี่ยงกับ key ที่ประกอบแบบ dynamic; incident_reason ยังมี smb_unreachable / worker_down (ไม่ลบเพื่อไม่ให้ incident เก่าขาด label)
+
 ## งานล่าสุด (2026-11-03, รอบ 3) — แก้ 502 หลัง restart API และ 500 จาก id ผิดรูปแบบ
 
 - nginx (`web-app/nginx.conf`): `resolver 127.0.0.11 valid=10s` + `upstream ... server <name>:<port> resolve` สำหรับ image-api และ mediamtx (webrtc/playback/hls) — ไม่ต้อง `docker restart cctv-web-app` หลัง recreate API แล้ว

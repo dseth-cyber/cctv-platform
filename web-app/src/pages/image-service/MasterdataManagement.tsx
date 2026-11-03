@@ -8,22 +8,13 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 
-type TabType = 'camera_type' | 'camera_status' | 'capture_mode' | 'image_category' | 'defect_type' | 'inspection_type' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'customer' | 'job_type' | 'production_line' | 'image_viewpoint';
+type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution';
 
 const TABS: { key: TabType; labelKey: string }[] = [
-  { key: 'camera_type', labelKey: 'imageService.masterdataManagement.tabCameraType' },
   { key: 'camera_status', labelKey: 'imageService.masterdataManagement.tabCameraStatus' },
-  { key: 'capture_mode', labelKey: 'imageService.masterdataManagement.tabCaptureMode' },
-  { key: 'image_category', labelKey: 'imageService.masterdataManagement.tabImageCategory' },
-  { key: 'defect_type', labelKey: 'imageService.masterdataManagement.tabDefectType' },
-  { key: 'inspection_type', labelKey: 'imageService.masterdataManagement.tabInspectionType' },
   { key: 'incident_reason', labelKey: 'imageService.masterdataManagement.tabIncidentReason' },
   { key: 'incident_root_cause', labelKey: 'imageService.masterdataManagement.tabIncidentRootCause' },
   { key: 'incident_resolution', labelKey: 'imageService.masterdataManagement.tabIncidentResolution' },
-  { key: 'customer', labelKey: 'imageService.masterdataManagement.tabCustomer' },
-  { key: 'job_type', labelKey: 'imageService.masterdataManagement.tabJobType' },
-  { key: 'production_line', labelKey: 'imageService.masterdataManagement.tabProductionLine' },
-  { key: 'image_viewpoint', labelKey: 'imageService.masterdataManagement.tabImageViewpoint' },
 ];
 
 const LANG_FIELDS = ['nameTh', 'nameEn', 'nameCn', 'nameMm', 'nameJp'] as const;
@@ -40,7 +31,7 @@ export default function MasterdataManagement() {
 
   const [searchParams] = useSearchParams();
   const initialTab = TABS.some((tb) => tb.key === searchParams.get('type'))
-    ? (searchParams.get('type') as TabType) : 'camera_type';
+    ? (searchParams.get('type') as TabType) : 'camera_status';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [modal, setModal] = useState<{ open: boolean; editing?: any }>({ open: false });
   const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false });
@@ -126,7 +117,7 @@ export default function MasterdataManagement() {
 
       <div className={`${themeConfig.card} rounded-lg overflow-hidden`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-          <span className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t(TABS.find(t => t.key === activeTab)?.labelKey ?? 'imageService.masterdataManagement.tabCameraType')}</span>
+          <span className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t(TABS.find(t => t.key === activeTab)?.labelKey ?? 'imageService.masterdataManagement.tabCameraStatus')}</span>
           <Button onClick={openNew} size="sm"><Plus size={14} className="mr-1" /> {t('imageService.masterdataManagement.add')}</Button>
         </div>
         <div className="overflow-x-auto">
@@ -218,14 +209,6 @@ export default function MasterdataManagement() {
                   className="rounded border-gray-600 text-cyan-500 focus:ring-cyan-500/50" />
                 <span className={`text-sm ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formActive')}</span>
               </label>
-              {activeTab === 'camera_type' && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.isDefault}
-                    onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
-                    className="rounded border-gray-600 text-cyan-500 focus:ring-cyan-500/50" />
-                  <span className={`text-sm ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formDefault')}</span>
-                </label>
-              )}
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

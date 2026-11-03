@@ -2,8 +2,7 @@ import { getPrisma } from './prisma.js';
 import { getAllConfigs } from '../modules/system-config/system-config.service.js';
 
 // Single source of truth for "how much storage is used / how much is there" across every
-// card and every automated decision in the app (Overview, Executive, storage-pressure
-// auto-cleanup trigger). Always derived from each active storage provider's own latest
+// card and every automated decision in the app (Overview, Executive). Always derived from each active storage provider's own latest
 // self-reported metric (collected every 15 min from the real backend — SeaweedFS's own
 // /status, S3 bucket listing, etc.), never from summing image_files.file_size_bytes in
 // Postgres. A raw Postgres sum can silently overcount: a delete that removes the object

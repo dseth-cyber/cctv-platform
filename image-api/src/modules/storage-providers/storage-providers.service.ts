@@ -108,12 +108,6 @@ export async function createProvider(input: CreateProviderInput) {
       priority: input.priority ?? 0,
       description: input.description,
       capacityBytes: input.capacityBytes != null ? BigInt(input.capacityBytes) : null,
-      pressureWarningPercent: input.pressureWarningPercent ?? 75,
-      pressureStartPercent: input.pressureStartPercent ?? 90,
-      pressureStopPercent: input.pressureStopPercent ?? 80,
-      pressureCriticalPercent: input.pressureCriticalPercent ?? 95,
-      pressureEmergencyPercent: input.pressureEmergencyPercent ?? 98,
-      backpressureStrategy: input.backpressureStrategy ?? 'continue_polling',
     },
   });
 
@@ -161,12 +155,6 @@ export async function updateProvider(id: string, input: UpdateProviderInput) {
   if (input.description !== undefined) data.description = input.description;
   if (input.isActive !== undefined) data.isActive = input.isActive;
   if (input.capacityBytes !== undefined) data.capacityBytes = input.capacityBytes != null ? BigInt(input.capacityBytes) : null;
-  if (input.pressureWarningPercent !== undefined) data.pressureWarningPercent = input.pressureWarningPercent;
-  if (input.pressureStartPercent !== undefined) data.pressureStartPercent = input.pressureStartPercent;
-  if (input.pressureStopPercent !== undefined) data.pressureStopPercent = input.pressureStopPercent;
-  if (input.pressureCriticalPercent !== undefined) data.pressureCriticalPercent = input.pressureCriticalPercent;
-  if (input.pressureEmergencyPercent !== undefined) data.pressureEmergencyPercent = input.pressureEmergencyPercent;
-  if (input.backpressureStrategy !== undefined) data.backpressureStrategy = input.backpressureStrategy;
 
   if (input.isDefault === true) {
     data.isDefault = true;

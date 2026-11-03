@@ -75,24 +75,6 @@ enum CameraOperationalStatus {
   @@map("camera_operational_status")
 }
 
-// P26 — Intelligent Data Lifecycle & Storage Governance
-enum BackpressureStrategy {
-  stop_polling
-  continue_polling
-
-  @@map("backpressure_strategy")
-}
-
-enum StoragePressureState {
-  normal
-  warning
-  pressure
-  critical
-  emergency
-
-  @@map("storage_pressure_state")
-}
-
 enum AlertSeverity {
   info
   warning
@@ -227,19 +209,6 @@ model StorageProvider {
   updatedAt     DateTime     @updatedAt @map("updated_at")
   deletedAt     DateTime?    @map("deleted_at")
 
-  // P26 — Storage Pressure thresholds (% used). Hysteresis: cleanup starts at
-  // pressureStartPercent, keeps running until usage drops to pressureStopPercent.
-  pressureWarningPercent   Float                @default(75) @map("pressure_warning_percent")
-  pressureStartPercent     Float                @default(90) @map("pressure_start_percent")
-  pressureStopPercent      Float                @default(80) @map("pressure_stop_percent")
-  pressureCriticalPercent  Float                @default(95) @map("pressure_critical_percent")
-  pressureEmergencyPercent Float                @default(98) @map("pressure_emergency_percent")
-  backpressureStrategy     BackpressureStrategy @default(continue_polling) @map("backpressure_strategy")
-  // Last debounced state, cached here so the UI/API has a value even if Redis is cold.
-  // The pressure-monitor cron is the source of truth during runtime (via Redis).
-  currentPressureState     StoragePressureState @default(normal) @map("current_pressure_state")
-  currentPressureSince     DateTime?            @map("current_pressure_since")
-
   metrics     StorageProviderMetric[]
 
   @@map("storage_providers")
@@ -263,10 +232,6 @@ model StorageProviderMetric {
   @@map("storage_provider_metrics")
 }
 
-// P26 — one row per Cleanup Planner/Executor invocation (auto, manual, or emergency).
-// Doubles as the audit trail and the source of KPI data (duration, recovered space,
-// emergency count, etc) — kept separate from CameraEvent/AuditLog since this is a
-// different domain (storage lifecycle, not camera health or generic user actions).
 model CameraTemplate {
   id                  String   @id @default(uuid()) @db.Uuid
   name                String   @db.VarChar(128)

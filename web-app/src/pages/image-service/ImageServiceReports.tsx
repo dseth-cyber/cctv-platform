@@ -195,24 +195,13 @@ export default function ImageServiceReports() {
         return t(`imageService.cameras.${val}`, CAMERA_STATUS_LABELS[val] || val);
       case 'topReason':
         return t(`imageService.incidents.reasons.${val}`, val);
-      case 'convertToPng':
-      case 'keepSmaller':
-      case 'generateThumbnail':
-        if (val === null) return t('imageService.cameras.inherit', 'Inherit');
-        return val ? t('common.yes', 'Yes') : t('common.no', 'No');
-      case 'acceptedExtensions':
-        return Array.isArray(val) ? val.join(', ') : String(val);
       case 'lastPolledAt':
-      case 'lastImageAt':
       case 'createdAt':
       case 'updatedAt':
         return formatDateTime(val, i18n.language);
-      case 'totalImagesCount':
       case 'cameraAgeDays':
       case 'incidentCount':
         return Number(val).toLocaleString();
-      case 'averageImagesPerDay':
-        return Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
       default:
         return String(val);
     }

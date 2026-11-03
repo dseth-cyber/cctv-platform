@@ -94,20 +94,7 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
         fields: [
           f('name', true),
           f('description'),
-          f('captureMode'),
-          f('pollIntervalSeconds'),
           f('retentionPolicyId'),
-        ],
-      },
-      {
-        labelKey: 'imageService.requiredFields.groupProcessing',
-        fields: [
-          f('acceptedExtensions'),
-          f('convertToPng'),
-          f('keepSmaller'),
-          f('generateThumbnail'),
-          f('thumbnailSize'),
-          f('compressionQuality'),
         ],
       },
     ],
@@ -134,31 +121,6 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
           f('bucket'),
           f('basePath'),
           f('share'),
-        ],
-      },
-    ],
-  },
-  {
-    entity: 'storageProfile',
-    labelKey: 'imageService.requiredFields.storageProfile',
-    groups: [
-      {
-        labelKey: 'imageService.requiredFields.groupGeneral',
-        fields: [
-          f('code', true),
-          f('providerId', true),
-          f('description'),
-          f('routingRules'),
-        ],
-      },
-      {
-        labelKey: 'imageService.requiredFields.groupNames',
-        fields: [
-          f('nameTh', true),
-          f('nameEn', true),
-          f('nameCn', true),
-          f('nameMm', true),
-          f('nameJp', true),
         ],
       },
     ],

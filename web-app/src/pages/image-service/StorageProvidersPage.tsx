@@ -280,12 +280,6 @@ function StorageProviderFormModal({ isOpen, onClose, editTarget }: { isOpen: boo
   const [isDefault, setIsDefault] = useState(editTarget?.isDefault || false)
   const [priority, setPriority] = useState(editTarget?.priority?.toString() || '0')
   const [capacityGb, setCapacityGb] = useState(editTarget?.capacityBytes ? (Number(editTarget.capacityBytes) / 1024 / 1024 / 1024).toString() : '')
-  const [pressureWarningPercent, setPressureWarningPercent] = useState(editTarget?.pressureWarningPercent?.toString() ?? '75')
-  const [pressureStartPercent, setPressureStartPercent] = useState(editTarget?.pressureStartPercent?.toString() ?? '90')
-  const [pressureStopPercent, setPressureStopPercent] = useState(editTarget?.pressureStopPercent?.toString() ?? '80')
-  const [pressureCriticalPercent, setPressureCriticalPercent] = useState(editTarget?.pressureCriticalPercent?.toString() ?? '95')
-  const [pressureEmergencyPercent, setPressureEmergencyPercent] = useState(editTarget?.pressureEmergencyPercent?.toString() ?? '98')
-  const [backpressureStrategy, setBackpressureStrategy] = useState(editTarget?.backpressureStrategy ?? 'continue_polling')
   const [submitting, setSubmitting] = useState(false)
   const [detectedCapacity, setDetectedCapacity] = useState<{ totalBytes: number; freeBytes: number } | null>(null)
 
@@ -349,12 +343,6 @@ function StorageProviderFormModal({ isOpen, onClose, editTarget }: { isOpen: boo
     const payload = {
       name: name.trim(), type, config, description: description.trim() || undefined, isDefault,
       priority: parseInt(priority, 10) || 0, capacityBytes: capBytes,
-      pressureWarningPercent: parseFloat(pressureWarningPercent) || 75,
-      pressureStartPercent: parseFloat(pressureStartPercent) || 90,
-      pressureStopPercent: parseFloat(pressureStopPercent) || 80,
-      pressureCriticalPercent: parseFloat(pressureCriticalPercent) || 95,
-      pressureEmergencyPercent: parseFloat(pressureEmergencyPercent) || 98,
-      backpressureStrategy,
     }
     if (isEdit) {
       updateMutation.mutate({ id: editTarget.id, data: payload })
@@ -541,46 +529,6 @@ function StorageProviderFormModal({ isOpen, onClose, editTarget }: { isOpen: boo
                 className="rounded border-white/30 bg-white/10" />
               <span className="text-sm text-white">{t('imageService.storageProviders.isDefault')}</span>
             </label>
-          </div>
-        </div>
-        <div className="pt-2 border-t border-white/10">
-          <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${themeConfig.text.secondary}`}>
-            {t('imageService.storageProviders.pressure.sectionTitle')}
-          </p>
-          <p className={`text-xs mb-3 ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.pressure.sectionDesc')}</p>
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.warningThreshold')}</label>
-              <input type="number" min={0} max={100} value={pressureWarningPercent} onChange={e => setPressureWarningPercent(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.startThreshold')}</label>
-              <input type="number" min={0} max={100} value={pressureStartPercent} onChange={e => setPressureStartPercent(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.stopThreshold')}</label>
-              <input type="number" min={0} max={100} value={pressureStopPercent} onChange={e => setPressureStopPercent(e.target.value)} className={inputClass} />
-              <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.pressure.stopHint')}</p>
-            </div>
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.criticalThreshold')}</label>
-              <input type="number" min={0} max={100} value={pressureCriticalPercent} onChange={e => setPressureCriticalPercent(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.emergencyThreshold')}</label>
-              <input type="number" min={0} max={100} value={pressureEmergencyPercent} onChange={e => setPressureEmergencyPercent(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>{t('imageService.storageProviders.pressure.backpressureStrategy')}</label>
-              <SearchableSelect
-                value={backpressureStrategy}
-                onChange={setBackpressureStrategy}
-                options={[
-                  { value: 'continue_polling', label: t('imageService.storageProviders.pressure.continuePolling') },
-                  { value: 'stop_polling', label: t('imageService.storageProviders.pressure.stopPolling') },
-                ]}
-              />
-            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2 border-t border-white/10">

@@ -535,70 +535,7 @@
       "capacityDetecting": "Detecting...",
       "capacityDetectUnsupported": "Couldn't detect real capacity right now (volume server unreachable, or not supported for this provider type).",
       "capacityDetectedResult": "Detected: {{total}}GB total ({{free}}GB free)",
-      "capacityUseDetected": "Use this value",
-      "pressure": {
-        "title": "Storage Pressure",
-        "normal": "Normal",
-        "warning": "Warning",
-        "pressure": "Pressure",
-        "critical": "Critical",
-        "emergency": "Emergency",
-        "sectionTitle": "Storage Pressure Thresholds",
-        "sectionDesc": "Configure usage % thresholds that trigger alerts and automatic cleanup.",
-        "warningThreshold": "Warning Threshold (%)",
-        "startThreshold": "Start Cleanup (%)",
-        "stopThreshold": "Stop Cleanup (%)",
-        "stopHint": "Cleanup continues until usage drops to this level",
-        "criticalThreshold": "Critical Threshold (%)",
-        "emergencyThreshold": "Emergency Threshold (%)",
-        "backpressureStrategy": "Backpressure Strategy",
-        "continuePolling": "Continue Polling (default)",
-        "stopPolling": "Stop Polling"
-      },
-      "cleanup": {
-        "title": "Storage Cleanup",
-        "modeManual": "Manual Cleanup",
-        "modeEmergency": "Emergency Cleanup",
-        "emergencyWarning": "Emergency mode may also remove data from cameras set to Manual mode, if permitted by their policy. Please review the preview before proceeding.",
-        "currentUsage": "Current Usage",
-        "afterCleanup": "After Cleanup",
-        "filesToDelete": "Files to Delete",
-        "spaceToFree": "Space to Free",
-        "byFileType": "By File Type",
-        "affectedCameras": "Affected Cameras ({{count}})",
-        "noCandidates": "No files need to be deleted right now",
-        "passwordConfirm": "Enter your password to confirm cleanup",
-        "passwordPlaceholder": "Your password",
-        "passwordError": "Incorrect password, or the action could not be completed",
-        "executeManual": "Clean Up Now",
-        "executeEmergency": "Confirm Emergency Cleanup",
-        "executeSuccess": "Cleanup completed: {{count}} files ({{size}} GB)"
-      }
-    },
-    "migrations": {
-      "title": "Migration Jobs",
-      "subtitle": "Migrate files between storage providers",
-      "newMigration": "New Migration",
-      "sourceProvider": "Source Provider",
-      "targetProvider": "Target Provider",
-      "fileType": "File Type (optional)",
-      "allTypes": "All File Types",
-      "status": "Status",
-      "pending": "Pending",
-      "running": "Running",
-      "completed": "Completed",
-      "failed": "Failed",
-      "cancelled": "Cancelled",
-      "totalFiles": "Total Files",
-      "migratedFiles": "Migrated Files",
-      "progress": "Progress",
-      "startMigration": "Start Migration",
-      "cancelJob": "Cancel Job",
-      "createJob": "Create Migration Job",
-      "noJobs": "No migration jobs yet",
-      "created": "Migration job created",
-      "started": "Migration started",
-      "cancelledMsg": "Migration cancelled"
+      "capacityUseDetected": "Use this value"
     },
     "cameraTemplates": {
       "title": "Camera Templates",
@@ -626,32 +563,6 @@
       "updated": "Template updated",
       "deleted": "Template deleted",
       "deleteConfirm": "Are you sure you want to delete this template?"
-    },
-    "storageProfiles": {
-      "title": "Storage Profiles",
-      "subtitle": "Policy-based routing to storage backends",
-      "notWiredWarning": "Note: profiles created on this page currently have no effect on real file storage — every new file is still always saved to whichever single Storage Provider is marked as default. File-type-based routing is planned for a future phase (P48).",
-      "newProfile": "New Profile",
-      "editProfile": "Edit Profile",
-      "code": "Code",
-      "name": "Name",
-      "nameTh": "Name (TH)",
-      "nameEn": "Name (EN)",
-      "nameCn": "Name (CN)",
-      "nameMm": "Name (MM)",
-      "nameJp": "Name (JP)",
-      "provider": "Provider",
-      "rules": "Rules",
-      "ruleCount": "{{count}} rule(s)",
-      "sortOrder": "Sort Order",
-      "status": "Status",
-      "isActive": "Active",
-      "description": "Description",
-      "noProfiles": "No storage profiles configured",
-      "deleteConfirm": "Are you sure you want to delete this profile?",
-      "created": "Profile created",
-      "updated": "Profile updated",
-      "deleted": "Profile deleted"
     },
     "retention": {
       "title": "Retention Policies",
@@ -708,68 +619,6 @@
       "bulkDeleteWrongPassword": "Incorrect password",
       "bulkDeleteWarning": "This deletion cannot be undone or recovered",
       "days": "days"
-    },
-    "processingLogs": {
-      "title": "Processing Logs",
-      "subtitle": "View image processing history",
-      "allJobs": "All Jobs",
-      "jobType": "Job Type",
-      "status": "Status",
-      "imageId": "Image ID",
-      "workerId": "Worker",
-      "queuedAt": "Queued At",
-      "startedAt": "Started At",
-      "completedAt": "Completed At",
-      "duration": "Duration",
-      "errorMessage": "Error Message",
-      "retry": "Retry",
-      "retrySuccess": "Job re-queued successfully",
-      "noLogs": "No processing logs found",
-      "allTypes": "All Types",
-      "allStatuses": "All Statuses",
-      "statusQueued": "Queued",
-      "statusRunning": "Running",
-      "statusCompleted": "Completed",
-      "statusFailed": "Failed",
-      "statusRetrying": "Retrying",
-      "statusDeadLetter": "Dead Letter",
-      "typeSync": "Sync",
-      "typeConvert": "Convert",
-      "typeThumbnail": "Thumbnail",
-      "typeChecksum": "Checksum",
-      "typeArchive": "Archive",
-      "typeDelete": "Delete",
-      "seconds": "s",
-      "bulkDelete": "Delete by Age",
-      "bulkDeleteTitle": "Delete Processing Logs",
-      "bulkDeleteDays": "Delete logs older than",
-      "bulkDeletePreview": "Will delete {{count}} records before {{date}}",
-      "bulkDeleteConfirm": "Please confirm your password to proceed",
-      "bulkDeletePassword": "Your password",
-      "bulkDeleteSuccess": "Successfully deleted {{count}} records",
-      "bulkDeleteWrongPassword": "Incorrect password",
-      "bulkDeleteWarning": "This action cannot be undone",
-      "days": "days"
-    },
-    "deadLetter": {
-      "title": "Dead Letter Queue",
-      "subtitle": "Monitor and manage failed processing jobs",
-      "total": "Total Dead Letters",
-      "byJobType": "Job Types",
-      "oldest": "Oldest",
-      "maxRetries": "Max Retries",
-      "jobTypeBreakdown": "Job Type Breakdown",
-      "allTypes": "All Types",
-      "retryAll": "Retry All",
-      "rejectAll": "Reject All",
-      "jobType": "Job Type",
-      "image": "Image",
-      "error": "Error",
-      "retries": "Retries",
-      "queuedAt": "Queued At",
-      "retry": "Retry",
-      "reject": "Reject",
-      "noDeadLetters": "No dead letters — all jobs processed successfully"
     },
     "auditLog": {
       "title": "Audit Log",
@@ -995,152 +844,6 @@
       "passwordTooWeak": "This password is too common/easily guessed — choose a less predictable one",
       "noAccount": "Don't have an account? Register here"
     },
-    "executive": {
-      "title": "Executive View",
-      "subtitle": "Every image stored in the system is one defective part — all statistics are based on real capture time (when the part was produced)",
-      "defectsToday": "Defects Today",
-      "defectsPeriod": "Defects in Selected Period",
-      "vsPrevious": "vs previous period",
-      "machinesWithDefects": "Machines with Defects",
-      "avgPerMachine": "Avg per machine",
-      "topMachine": "Highest-Defect Machine",
-      "pieces": "pcs",
-      "defects": "Defects",
-      "rankingTitle": "Machines with the Most Defects",
-      "trendTitle": "Daily Defect Trend",
-      "tableTitle": "Details by Machine",
-      "rank": "Rank",
-      "machine": "Machine / Camera",
-      "share": "Share",
-      "vsAvg": "vs Average",
-      "vsAvgHint": "Compared to the average across machines with defects in the same period — above 1.5× deserves investigation",
-      "noData": "No defects found in the selected period",
-      "anomalyTitle": "Machines with abnormal defect levels",
-      "anomalyHint": "Defects at least 1.5× above the average of machines with defects in the same period",
-      "critical": "Critical",
-      "warning": "Warning",
-      "inspect": "Inspect",
-      "period": {
-        "1d": "Today",
-        "7d": "7 days",
-        "14d": "14 days",
-        "30d": "30 days",
-        "3m": "3 months",
-        "6m": "6 months",
-        "9m": "9 months",
-        "12m": "12 months",
-        "24m": "24 months"
-      },
-      "cameraStatusTitle": "Camera Status (realtime)",
-      "camerasUnit": "cameras",
-      "noCameraData": "No camera status data",
-      "rankingHint": "×N compares against the average of machines with defects — above ×1.5 deserves investigation",
-      "byCustomerTitle": "Defects by Customer",
-      "byCustomerHint": "Attributed from capture time to production runs — shows machines used and responsible team",
-      "teamByShift": "By shift (P50)",
-      "unattributedRuns": "No production run covering",
-      "topCausesTitle": "Top Machine-Problem Causes",
-      "topCausesHint": "From camera/machine incidents in the selected period — includes downtime",
-      "stillOpen": "still open",
-      "hoursUnit": "hrs",
-      "paretoHint": "Up to this machine = 80% of all defects — fixing this group first pays off most (80/20 rule)",
-      "cumShare": "Cumulative share",
-      "heatmapTitle": "When defects concentrate (hour × day)",
-      "heatmapHint": "Darker = more defects — based on real capture time; spots recurring problem slots/shifts",
-      "mttrTitle": "Machine trouble hours per month (Downtime / MTTR)",
-      "mttrHint": "Total problem hours per month — a falling trend means faster repairs / fewer failures",
-      "downtime": "Downtime",
-      "incidentsUnit": "incidents",
-      "noIncidents": "No machine incidents",
-      "dowSun": "Su",
-      "dowMon": "Mo",
-      "dowTue": "Tu",
-      "dowWed": "We",
-      "dowThu": "Th",
-      "dowFri": "Fr",
-      "dowSat": "Sa",
-      "dailyAvgImages": "Avg Images/Day",
-      "defectsPerDay": "Avg Defects/Day",
-      "dailyAvgStorage": "Avg Storage/Day (GB)",
-      "dailyAvgStorageHint": "Average storage added per day over the selected period",
-      "dailyVolumeTitle": "Daily Image Volume",
-      "dailyVolumeHint": "Number of images captured into the system per day",
-      "imagesUnit": "images",
-      "noAnomalies": "🛡️ All machines normal — no machine with abnormally high defects (>1.5× average)",
-      "byShiftTitle": "Defects by Shift / Responsible Team",
-      "byShiftHint": "Attributed from capture time and the roster — handover and unstaffed periods are separated and not counted to any team",
-      "attributed": "Attributed",
-      "handover": "Shift handover",
-      "unassigned": "Unstaffed",
-      "noRoster": "📅 No shift roster configured yet (P50)",
-      "slaTitle": "SLA Availability per Machine",
-      "slaHint": "Compares actual camera availability % against the SLA target for the selected period (excludes planned maintenance)",
-      "slaTarget": "Target",
-      "storageForecastTitle": "Storage Forecast",
-      "storageForecastHint": "Supports decisions on procuring more storage/hardware",
-      "retentionWindowLabel": "Current capacity retains images for",
-      "retentionWindowHint": "at the current storage usage rate",
-      "storageDaysLeft": "Storage full in",
-      "storageRunOutBy": "Estimated full by",
-      "insightsTitle": "Recommendations for management",
-      "insightsHint": "Derived from fixed rules — every figure is computed from real data and can be traced back",
-      "insightsNone": "Nothing needing attention in this period",
-      "insightsLimitations": "Data limitations"
-    },
-    "shifts": {
-      "title": "Shifts & Accountability",
-      "subtitle": "Manage shifts, technician teams and responsibility — defects are attributed to shifts automatically from capture time",
-      "tabRoster": "Roster",
-      "tabDefinitions": "Shift Definitions",
-      "tabTeams": "Teams",
-      "newShift": "Add Shift",
-      "editShift": "Edit Shift",
-      "code": "Code",
-      "name": "Name",
-      "time": "Time",
-      "handover": "Handover (min)",
-      "startTime": "Start",
-      "endTime": "End",
-      "color": "Color",
-      "handoverHint": "Handover = start/end minutes of a shift excluded from any team's KPI, for fairness",
-      "noShifts": "No shift definitions yet",
-      "newTeam": "Add Team",
-      "editTeam": "Edit Team",
-      "supervisor": "Supervisor",
-      "members": "Members",
-      "noTeams": "No teams yet",
-      "assignTeam": "Assign Team",
-      "shift": "Shift",
-      "thisWeek": "This week",
-      "autoGenerate": "Auto-generate",
-      "needSetup": "Please create shift definitions and teams first before building a roster",
-      "retroFlag": "Retroactively edited",
-      "retroLegend": "Shield icon = roster edited after its own date (audit-logged)",
-      "autoLegend": "auto-generated",
-      "retroWarn": "This entry was edited retroactively and recorded in the Audit Log",
-      "clear": "Clear assignment",
-      "from": "From",
-      "to": "To",
-      "rotation": "Rotation",
-      "rotWeekly": "Weekly",
-      "rotDaily": "Daily",
-      "rotNone": "None (fixed)",
-      "includeShifts": "Shifts to fill",
-      "rotateTeams": "Teams to rotate (in order)",
-      "overwrite": "Overwrite existing entries",
-      "generate": "Generate",
-      "generated": "Generated {{n}} roster rows",
-      "generateHint": "Teams rotate across shifts round-robin by the chosen cadence; edit individual days afterward",
-      "dow": {
-        "0": "Mon",
-        "1": "Tue",
-        "2": "Wed",
-        "3": "Thu",
-        "4": "Fri",
-        "5": "Sat",
-        "6": "Sun"
-      }
-    },
     "nav": {
       "imageService": "iSmart CCTV",
       "overview": "Overview",
@@ -1274,28 +977,6 @@
       "confirmDeleteOne": "Delete incident {{num}}? Its attached evidence photos will be permanently removed too.",
       "clearIncidentsButton": "Clear Incident History"
     },
-    "knowledgeArticles": {
-      "title": "Troubleshooting Articles",
-      "addArticle": "Add Article",
-      "editArticle": "Edit Article",
-      "searchPlaceholder": "Search articles by title, symptoms, or resolution...",
-      "noArticles": "No articles yet",
-      "fieldTitle": "Title",
-      "fieldSymptoms": "Symptoms",
-      "fieldCause": "Cause",
-      "fieldResolution": "Resolution",
-      "fieldVerification": "Verification Steps",
-      "fieldTags": "Tags",
-      "fieldTagsHint": "Comma-separated, e.g. camera, SMB, network",
-      "fieldReasonLink": "Link to Reason",
-      "fieldRootCauseLink": "Link to Root Cause",
-      "validationRequired": "Please fill in title, symptoms, and resolution",
-      "createSuccess": "Article created successfully",
-      "updateSuccess": "Article updated successfully",
-      "deleteSuccess": "Article deleted successfully",
-      "deleteConfirmTitle": "Confirm Delete Article",
-      "deleteConfirmBody": "Are you sure you want to delete this article:"
-    },
     "sopChecklists": {
       "title": "SOP Checklist",
       "addChecklist": "Add Checklist",
@@ -1333,10 +1014,6 @@
     "masterdataManagement": {
       "title": "Masterdata Management",
       "subtitle": "Manage reference data entities for the iSmart CCTV",
-      "tabCameraType": "Camera Type",
-      "tabImageCategory": "Image Category",
-      "tabDefectType": "Defect Type",
-      "tabInspectionType": "Inspection Type",
       "tabIncidentReason": "Incident Reason",
       "tabIncidentRootCause": "Root Cause",
       "tabIncidentResolution": "Resolution",
@@ -1351,12 +1028,7 @@
       "formActive": "Active",
       "formDefault": "Default",
       "nameLabel": "Name ({{lang}})",
-      "tabCameraStatus": "Camera Status",
-      "tabCaptureMode": "Capture Mode",
-      "tabCustomer": "Customer",
-      "tabJobType": "Job Type",
-      "tabProductionLine": "Production Line",
-      "tabImageViewpoint": "Image Viewpoint"
+      "tabCameraStatus": "Camera Status"
     },
     "telegramBot": {
       "title": "Telegram Bot Settings",
@@ -2682,292 +2354,6 @@
       "colCreated": "Created At",
       "colUpdated": "Last Updated At"
     },
-    "docs": {
-      "title": "Product Documentation",
-      "subtitle": "Enterprise-grade developer portal, architecture breakdown, deployment instructions, and specifications.",
-      "menu": {
-        "gettingStarted": "Getting Started",
-        "architecture": "Architecture",
-        "deployment": "Deployment Guide",
-        "apiReference": "API Reference",
-        "eventCatalog": "Event Catalog",
-        "pluginSdk": "Plugin / Worker SDK",
-        "databaseSchema": "Database Schema",
-        "storageProviders": "Storage Providers",
-        "troubleshooting": "Troubleshooting",
-        "bestPractices": "Best Practices",
-        "releaseNotes": "Release Notes",
-        "roadmap": "Roadmap",
-        "userGuide": "User Guide & Graphs",
-        "aboutProgram": "About",
-        "systemRequirements": "System Requirements"
-      },
-      "gettingStarted": {
-        "title": "Getting Started",
-        "p1": "Welcome to the iSmart CCTV Documentation Portal. The iSmart CCTV is an enterprise-grade platform designed for automated capturing, processing, archiving, and monitoring of high-resolution camera feeds inside manufacturing execution systems (MES) and enterprise resource planning (ERP) environments.",
-        "noteTitle": "Architecture Snapshot",
-        "noteBody": "The system runs decoupled using workers communicating via a Redis BullMQ message queue. Cameras upload images to network SMB folders, which are pulled, converted, indexed, and pushed to S3 object storage safely.",
-        "preTitle": "System Prerequisites",
-        "preItem1": "Docker Engine v20.10+ & Docker Compose v2.0+",
-        "preItem2": "PostgreSQL v15+ (Database storage)",
-        "preItem3": "Redis v7.0+ (Job Queueing)",
-        "preItem4": "Network access to target camera shares (SMB/CIFS protocol)",
-        "dockerTitle": "Quick Start via Docker",
-        "dockerBody": "Run the docker container commands to fetch the workspace codebase and spin up:",
-        "dockerWarning": "Default superuser account is admin with password admin123. Change these credentials immediately upon deployment.",
-        "scaleTitle": "Scaling & Performance Optimization Tips (Optional)",
-        "scaleBody": "If the number of cameras increases in the future and you need to process images faster, you can scale easily via Docker Compose without modifying any code:",
-        "scaleStep1": "1. Scale Image Processing Workers (Scale Workers):",
-        "scaleStep1Desc": "*This utilizes the remaining CPU headroom (~50%) and increases throughput to 3 - 4 images per second immediately.*",
-        "scaleStep2": "2. Use Solid State Drives (SSD/NVMe) for Temporary Storage:",
-        "scaleStep2Desc": "Since the pipeline performs active file writes and uploads, deploying the app on SSD eliminates disk I/O latency bottlenecks."
-      },
-      "architecture": {
-        "title": "System Architecture",
-        "p1": "The iSmart CCTV follows a microservices pattern designed to process thousands of high-resolution industrial images per hour without throttling.",
-        "flowTitle": "Data Flow Pipeline",
-        "flow1Title": "1. Polling Phase (Sync Worker)",
-        "flow1Body": "The Sync Worker polls cameras via SMB protocol. It scans for new TIFF/RAW files since the last checkpoint, downloads them to temporary storage, and posts job metadata to the Redis Queue.",
-        "flow2Title": "2. Processing Phase (Processing Worker)",
-        "flow2Body": "The processing workers pull jobs asynchronously. They calculate the SHA-256 hash (preventing duplicate processing), extract image dimensions/EXIF metadata, convert RAW images to PNG, and save highly compressed thumbnails.",
-        "flow3Title": "3. Storage & Database Indexing",
-        "flow3Body": "Files are uploaded to a configured Storage Provider (SeaweedFS, MinIO, or Local Directory). Simultaneously, metadata indices are written back to PostgreSQL via the API server and emit Webhook/WebSockets.",
-        "warnTitle": "Scale Thresholds",
-        "warnBody": "For heavy loads, configure multiple replicas of the image-processing-worker to achieve high parallelization and load balance.",
-        "scanTitle": "How the camera folder scan works",
-        "scanBody": "The system looks for new files on each camera's SMB share every polling interval (15 seconds by default, configurable per camera). How it works:\n\n• It walks every subfolder to the deepest level, supporting up to 50 levels of nesting (real cameras currently use 3, e.g. ImageArchive / camera_1 / 0021 / file), so nothing is missed however the folders are organised.\n\n• To avoid wasted work, the system remembers each folder's last-modified time. If a folder has not changed, listing its files again is skipped for that cycle — no new file can have appeared in it.\n\n• That skip applies only to bottom-level folders that hold files. Folders containing subfolders are always walked, because SMB does not update a parent folder's timestamp when a file is added deeper down.\n\n• Every 20 cycles (about 5 minutes) the system re-lists everything from scratch, ignoring what it remembered, as a safety net.\n\n• Files written within the last 10 seconds are held back so the camera can finish writing them, and are picked up on the next cycle.\n\nResult: a scan cycle went from roughly 9 seconds to about 1 second with a large drop in CPU use, while still finding every file.",
-        "scanOverwriteTitle": "Cameras that overwrite their own files",
-        "scanOverwriteBody": "Some cameras are configured to delete their oldest images and overwrite them once their disk fills. This does not affect the system: deleting a file also changes that folder's last-modified time, so the system re-reads the folder and recounts automatically.\n\nWhat matters instead is how long you have before a file is overwritten. The system measures this automatically from the age of the oldest file still on the camera and shows it on the Camera Availability page. If it drops below the configured threshold (adjustable in System Settings) an alert is raised immediately — because an image not fetched before it is overwritten is lost permanently and cannot be recovered."
-      },
-      "deployment": {
-        "title": "Deployment Guide",
-        "p1": "Recommended deployment instructions for VM and production servers.",
-        "composeTitle": "Docker Compose Sample Configuration",
-        "composeSub": "Save the following content to a docker-compose.yml file and configure environment variables:",
-        "sslTitle": "SSL/HTTPS Production Setup",
-        "sslBody": "To guarantee secure transmission of SMB credentials and API keys in enterprise production networks, HTTPS is enforced. Generates certificates using:"
-      },
-      "apiReference": {
-        "title": "API Reference",
-        "p1": "All write operations inside the API require Authentication and the corresponding Module Role Permission. Include the Bearer token in the header.",
-        "createTitle": "Create Camera Endpoint",
-        "createSub": "Create a new camera and configure its network share via REST endpoint:",
-        "primaryTitle": "Primary API Endpoints",
-        "thMethod": "Method",
-        "thPath": "Path",
-        "thPermission": "Required Permission"
-      },
-      "eventCatalog": {
-        "title": "Event Catalog",
-        "p1": "The iSmart CCTV publishes events to Webhooks, WebSockets, and Kafka when operations complete. Integrators can subscribe to these topics to build custom notifications.",
-        "triggerTitle": "Event: image.processed",
-        "triggerSub": "Triggered automatically when a worker finishes checksum calculation, conversion, and uploads to storage successfully:",
-        "signingTitle": "Webhook Signing",
-        "signingBody": "To guarantee payloads have not been modified, Webhook headers include X-Image-Service-Signature using a pre-shared secret key hash (HMAC-SHA256)."
-      },
-      "pluginSdk": {
-        "title": "Worker & Plugin SDK",
-        "p1": "The Image Processing Worker can be customized to perform real-time AI inspections, object detection, or face blurring on images before archiving.",
-        "hookTitle": "Python Worker Hook Sample",
-        "hookSub": "Implement a function inside the worker codebase to process downloaded files:",
-        "tipTitle": "Did you know?",
-        "tipBody": "The plugin SDK runs on lightweight worker instances. Scale them horizontally to avoid interference with the main web portal response times."
-      },
-      "databaseSchema": {
-        "title": "Database Schema",
-        "p1": "The database schema uses PostgreSQL. Below is the main model representation in the Prisma configuration format:",
-        "prismaTitle": "Camera Prisma Configuration",
-        "entitiesTitle": "Core Entities List",
-        "entityCamera": "Camera: Camera details, SMB paths, status.",
-        "entityImage": "ImageFile: Image records, size, status, file references.",
-        "entityPolicy": "RetentionPolicy: Storage settings, soft-delete rules.",
-        "entityAudit": "AuditLog: System actions, IPs, user modifications history."
-      },
-      "storageProviders": {
-        "title": "Storage Providers",
-        "p1": "iSmart CCTV supports multiple storage backends. Change providers dynamically from the UI settings.",
-        "localTitle": "Local Disk",
-        "localBody": "Simple file mounts. Best for local development and direct VM hosting.",
-        "minioTitle": "MinIO (S3 Compatible)",
-        "minioBody": "Enterprise standard object storage. Supports cloud hosting and cluster nodes.",
-        "seaweedTitle": "SeaweedFS",
-        "seaweedBody": "Ultra-fast distributed storage optimized for billions of small images."
-      },
-      "troubleshooting": {
-        "title": "Troubleshooting",
-        "p1": "Quick diagnostic steps for operational issues.",
-        "cameraTitle": "Camera goes Offline/Error status",
-        "cameraSteps": "1. Verify the physical camera IP is pingable from the host machine VM.\n2. Test the connection in the Camera Settings dialog to verify SMB credentials.\n3. Ensure user account passwords are correct and have not expired in active directory.",
-        "queueTitle": "BullMQ queue length is piling up",
-        "queueBody": "If the queue wait list is growing rapidly, check processing worker container logs or scale workers.",
-        "missingFilesTitle": "Suspect the system missed some images?",
-        "missingFilesSteps": "1. Open Camera Availability and check the camera-side buffer — how many days of files the camera still holds. A low value means files risk being overwritten before the system fetches them.\n2. Compare the file count on the camera against the image count in the system. Report an unexpected gap to your administrator.\n3. The system already re-lists every file every 5 minutes. If you have just added files yourself, wait at least 5 minutes before concluding anything was missed.\n4. Check that the camera is still reachable on the Cameras page, and look for \"no new images\" entries in its event history.\n5. If files really were missed, ask an administrator to trigger a full rescan."
-      },
-      "bestPractices": {
-        "title": "Best Practices",
-        "p1": "Operational recommendations for production environments.",
-        "securityTitle": "Security & Encryption",
-        "securityItem1": "Change default secrets (JWT_SECRET, ENCRYPTION_KEY) before staging.",
-        "securityItem2": "Restrict backend access using firewalls; only allow scrapers on the metrics endpoint.",
-        "securityItem3": "Establish separate API keys for external applications; do not share JWT tokens."
-      },
-      "releaseNotes": {
-        "title": "Release Notes",
-        "p1": "Version details and changelog logs.",
-        "v110Title": "v1.1.0 (Current)",
-        "v110Body": "- Added 5-language internationalization support.\n- Integrated system verification end-to-end API checking tool.\n- Added camera soft-delete recycle bin mechanism with password confirmation logs.",
-        "v100Title": "v1.0.0",
-        "v100Body": "- Initial production build release with SMB polling, worker queue management, and SeaweedFS/MinIO options."
-      },
-      "roadmap": {
-        "title": "Product Roadmap",
-        "p1": "Upcoming development plan details aligned with core development phases:",
-        "phase1Title": "Phase 1: Advanced AI Inspections (Q3 2026)",
-        "phase1Body": "Integrate real-time anomaly detection, pattern matching, and OCR hooks directly into processing workers.",
-        "phase2Title": "Phase 2: Predictive Camera Diagnostics (Q4 2026)",
-        "phase2Body": "Leverage AI anomaly scoring to predict camera lens degradation, focus errors, or connectivity drops.",
-        "phase3Title": "Phase 3: Deep ERP Integration (Q1 2027)",
-        "phase3Body": "Fully synchronize metadata indexes directly into standard SAP/Oracle MES tracking lots systems."
-      },
-      "userGuide": {
-        "title": "User & Dashboard Guide",
-        "p1": "Detailed guide to understanding metrics, system settings, and data visualizations across the dashboards.",
-        "analyticsTitle": "1. Interpreting Camera Health Metrics",
-        "analyticsBody": "Details of the metrics and analysis criteria for camera health:\n\n• Availability\n  - Definition: The ratio of active camera operational time compared to total time in the period.\n  - Recommendation: Should be greater than or equal to 99.5% (SLA Target).\n  - Indication: Values below the target suggest frequent camera dropouts.\n\n• MTBF (Mean Time Between Failures)\n  - Definition: Average operational time between connection drops or errors (in hours).\n  - Recommendation: The higher the better (ideally greater than 168 hours or 7 days).\n  - Indication: Represents hardware and networking connection stability.\n\n• MTTR (Mean Time To Repair)\n  - Definition: Average repair or reconnect time since camera goes offline (in minutes).\n  - Recommendation: The lower the better (ideally less than 15 minutes).\n  - Indication: Represents the responsiveness of technician repairs or auto-reconnect loops.\n\n• Health Score\n  - Definition: A weighted index out of 100 calculated from Availability, MTBF, MTTR, and failure counts.\n  - Recommendation:\n    - 80 - 100: Excellent/Good (Green)\n    - 50 - 79: Warning (Yellow)\n    - Below 50: Critical (Red)\n\n• Estimated Missed Images\n  - Definition: The estimated count of image files lost during camera downtime.\n  - Formula: Average images taken per hour when active * Total hours offline.\n  - Indication: Helps Quality Assurance (QA) assess the scale of manufacturing data gaps.",
-        "monitorTitle": "2. Job Status & Type Chart Modes",
-        "monitorBody": "In the Processing Monitor page, you can toggle between two modes in the top-right corner of the Job Status card:\n\n• Real-time Mode (Last 20)\n  - Purpose: Acts as a live heart rate monitor showing status metrics for only the last 20 jobs.\n  - Indication: Best used to verify current throughput and immediately identify active ingestion errors.\n\n• Cumulative Mode\n  - Purpose: Shows total aggregate counts of all processing jobs recorded in the database.\n  - Indication: Best used for historical reporting and long-term system load diagnostics.",
-        "storageGuide": {
-          "introTitle": "3. Storage Provider Setup Guide (Overview)",
-          "introBody": "The system supports several storage backends. The 3 most common cases are Local Disk, MinIO (S3 Compatible), and SeaweedFS. Configure them under \"Settings > Storage Providers\".\n\nBasic steps (apply to every type):\n1. Go to the Storage Providers page and click \"New Provider\".\n2. Enter a Provider Name - required, and must be unique among existing providers.\n3. Choose a Provider Type: Local File System, S3 Compatible, SeaweedFS (S3-compatible), SMB Share, or NFS Export.\n4. Fill in the fields specific to that type (see the next pages for each case).\n5. Click Test Connection to verify it before relying on it in production.\n6. Check Is Default if this should become the system's default provider (the previous default is automatically unset).\n\nNote: which provider a given image file lands on is decided by the system's Default Provider, or by whichever Storage Profile is linked to a provider (configured under the Storage Profiles menu) - it is not tied directly to a camera or a retention policy.",
-          "localTitle": "Case 1: Local Disk",
-          "localBody": "Best for testing the system, or when the server machine already has enough disk space.\n\nSetup steps:\n1. Set Provider Type to \"Local File System\".\n2. Fill in the Root Directory (basePath), e.g. /data/images - this is a path on the machine (or container) running image-api.\n   - The folder is created automatically if it doesn't exist yet, but the OS user running image-api must have write permission to that location.\n3. Max Capacity (GB) is optional - the system auto-detects the remaining disk space. Fill it in only if you want to override that value.\n4. Click Test Connection - this only checks write permission on the folder, it does not perform a full end-to-end read/write test.\n\nCaveat: if you change basePath later, files already stored under the old path are not moved automatically.",
-          "minioTitle": "Case 2: MinIO (S3 Compatible)",
-          "minioBody": "Best for systems that need to scale out and want enterprise-grade storage security.\n\nSetup steps:\n1. Set Provider Type to \"S3 Compatible\".\n2. Fill in Endpoint, e.g. minio (hostname only, no http:// or port).\n3. Fill in Port - default is 9000.\n4. Fill in Bucket, e.g. images - this bucket must already exist in MinIO beforehand; the system does not create it automatically (Test Connection will fail if the bucket doesn't exist yet).\n5. Fill in the MinIO Access Key and Secret Key.\n6. Check Use SSL if HTTPS is enabled on the MinIO side.\n7. Enter Max Capacity (GB) manually - MinIO capacity cannot be auto-detected, so this value is required for the usage % calculation and low-space alerts.\n8. Click Test Connection to confirm the connection and that the bucket is visible.\n\nNote: the Region field shown in the form currently has no effect on the backend - filling it in or leaving it blank makes no difference.",
-          "seaweedTitle": "Case 3: SeaweedFS",
-          "seaweedBody": "Best for systems with a huge number of small image files that need high speed and efficient storage usage.\n\nSetup steps:\n1. Set Provider Type to \"SeaweedFS (S3-compatible)\" - the system connects through SeaweedFS Filer's S3 Gateway, using the exact same fields as MinIO.\n2. Fill in Endpoint, e.g. seaweedfs-filer.\n3. Fill in Port - the conventional value is 8333 (just a suggested placeholder, not enforced).\n4. Fill in Bucket, Access Key, and Secret Key the same way as MinIO - the bucket must also be created on the SeaweedFS side beforehand.\n5. Enter Max Capacity (GB) manually, since it also cannot be auto-detected like MinIO.\n6. Click Test Connection to confirm.\n\nNote: technically SeaweedFS is implemented with the exact same code path as MinIO in this system - only the endpoint/port differ.",
-          "caveatsTitle": "Important Caveats & Limitations",
-          "caveatsBody": "1. Secrets are not encrypted\n   Access Key, Secret Key, and Password for every provider are stored as plaintext in the database, and the API returns the raw values (including pre-filling them into the Edit form). Any user with storage:read permission can see all credentials. Restrict access to this page to trusted admins only.\n\n2. Test Connection does not check everything\n   - Local: only checks write permission on the folder, not a full end-to-end read/write test.\n   - MinIO/SeaweedFS: only checks whether the bucket exists.\n\n3. A provider that already has files cannot be deleted, and there is currently no UI screen to migrate files off it\n   Plan your storage provider choice carefully upfront, since changing it later is difficult.\n\n4. The \"Required Fields Settings\" page for Storage Provider currently has no real effect on the form\n   Today the create/edit Storage Provider form only requires the Name field - checking other fields as required on the Required Fields Settings page has no effect on this form.\n\n5. File destination is decided only via Global Default + Storage Profile\n   Fine-grained rules (e.g. \"this camera always stores to this provider\") are not yet supported through the UI, even though the underlying data model supports it."
-        },
-        "dataLifecycle": {
-          "title": "4. Intelligent Data Lifecycle & Storage Governance (P26)",
-          "body": "Intelligent Data Lifecycle & Storage Governance prevents unexpected storage-full incidents and reduces manual admin workload. Configure it under \"Retention Policy\" and \"Storage Providers\".\n\nKey benefits:\n• Prevents uncontrolled storage-full situations - the system alerts and/or automatically cleans up before reaching a critical point.\n• Supports different policies side by side in one system - some cameras must never delete data, others can auto-delete when space runs low.\n• Always preview results before anything is actually deleted (Simulate/Dry Run) - no surprise deletions.\n• Protects important images from accidental deletion via Image Lock.\n\nStorage Pressure has 5 levels, tracked per Storage Provider:\n1. Normal - usage is below the warning threshold, everything runs as usual.\n2. Warning - exceeds the warning threshold (default 75%). The system alerts via Alert Management and Telegram, but does not touch any data yet.\n3. Pressure - exceeds the cleanup-start threshold (default 90%). The system starts auto-cleaning data for cameras configured to allow it, until usage drops to the stop threshold (default 80%).\n4. Critical - exceeds the critical threshold (default 95%).\n5. Emergency - exceeds the emergency threshold (default 98%). If the provider's strategy is set to \"Stop Polling\", the system temporarily stops pulling images from cameras using this provider to prevent further damage.\n\nNote: the system debounces state changes to prevent rapid flapping - a new state must be observed for 2 consecutive checks before it's confirmed.\n\nHow to configure the % thresholds (on the Storage Providers page > Edit):\n• Warning / Start Cleanup / Stop Cleanup / Critical / Emergency thresholds - adjustable independently per provider.\n• Backpressure Strategy - choose between \"Continue Polling\" (default, safer for production lines that must keep running) and \"Stop Polling\" (safer for the storage itself).\n\nWhat should Max Capacity be set to (especially important if the system runs on a Virtual Machine):\nA provider's \"Max Capacity (GB)\" should reflect the disk size actually visible from the machine running the system, not the host hardware's spec sheet - for example, if this runs on Proxmox, the system only ever sees the Virtual Disk size Proxmox allocated to this VM, never the physical SSD size on the Proxmox host itself. The most accurate way to check real free space is to run `df -h` on the machine hosting the system before configuring this value.\n\nImportant: the system has two separate \"total storage capacity\" settings that are not linked to each other:\n1. Settings > Storage Limits > Total Storage Capacity - a single global value used only for dashboard forecasting, unrelated to the P26 engine.\n2. Storage Providers > Edit > Max Capacity (GB) - the per-provider value actually used by P26 to compute usage % and drive automatic cleanup.\n\nIf multiple Storage Providers share the same underlying physical disk (e.g. every container runs on the same VM, all sharing one disk), never set the combined Max Capacity of all providers higher than the real free space available - each provider calculates its % independently and has no awareness that it's sharing a disk with the others. Overstating capacity makes every provider look like it has plenty of room even as the real, shared disk approaches full.\n\n5 cleanup modes (configured on the Retention Policy page > Edit):\n1. Retention Only - the default. Best for factories that must never delete data (e.g. pharma, food, automotive). When storage fills up, the system stops accepting new images and alerts instead of deleting anything.\n2. Retention + Watermark - recommended for most factories. Retains data normally, but once storage hits the threshold, expired data is deleted first, then the oldest remaining data, until enough space is freed.\n3. Circular Storage - DVR-style. Automatically deletes the oldest data when storage fills up, ignoring retention days entirely. Best for Vision AI/CCTV temporary caches.\n4. Read Only - never deletes anything. When storage becomes critical, the system only stops processing and alerts. Best for audit/compliance data.\n5. Manual Only - no automatic deletion at all; an administrator must trigger cleanup manually from the Storage Providers page.\n\nHow to use Simulate before a real cleanup:\nOn the Storage Providers page, click the sparkle (Cleanup) icon next to a provider. The system immediately previews how many files/GB would be deleted and which cameras are affected, broken down by file type (Thumbnail/Processed/Raw) - nothing is deleted at this stage. You must confirm with your password again to actually delete.\n\nEmergency Cleanup:\nUse this when storage is genuinely critical and you need to clean up beyond what the normal policy allows. This mode may also include cameras set to Manual mode, if that policy has \"Allow inclusion in Emergency Cleanup\" checked. Always review the preview carefully before confirming.\n\nImage Lock:\nProtects important images from ever being deleted (e.g. customer complaint evidence, audit images). Lock an image from the Search page > open image details > Lock Image, with an optional reason. A locked image is never selected by the automatic cleanup engine, regardless of cleanup mode.\n\nAdding new storage without editing code (Local Disk / USB / NAS):\nThe system already bind-mounts the host/VM's /mnt folder into the containers in advance, at path /mnt/host-storage. So whenever a new disk (extra SSD/USB/NAS) is mounted on the real machine under /mnt/xxx, it becomes visible from the web UI immediately — no need to edit docker-compose or rebuild the system. Steps:\n1. Mount the new disk on the VM as a path under /mnt, e.g. /mnt/storage-8tb\n2. Run `sudo chown -R 1001:1001 /mnt/storage-8tb` on the VM (always required — a newly mounted disk defaults to root ownership, which the container cannot write to)\n3. On the Storage Providers page > New > type Local File System > Root Directory, enter /mnt/host-storage/storage-8tb\n\nFor NAS via SMB/NFS: the share/export must always be mounted as a real path on the VM first (e.g. via `mount.cifs`), then that mounted path must be entered in the provider form's \"Mount Path\" field. Filling in only Username/Password/Share Path without a Mount Path will make real file uploads fail, since the system does not speak the SMB/NFS protocol directly itself.\n\nCurrent limitation of Storage Profiles:\nThe \"Storage Profiles\" page lets you create rules to route files to a provider based on file type (e.g. raw→NAS, thumbnail→SSD), but these rules currently have no effect on real file storage — every new file is still always saved to whichever single Storage Provider is marked as default. This will be wired into the real pipeline in a future phase (P48 — Storage Profile Routing Engine).\n\nCurrent scope (Phase A): there is no KPI/statistics dashboard for cleanup runs yet, and Local Buffer is not supported when storage is full (only Stop Polling / Continue Polling are available). Moving data to long-term archive storage (Archive Tier) is planned for a future phase."
-        },
-        "overviewDashboard": {
-          "title": "5. Overview Dashboard",
-          "body": "The Overview page is the first screen you see when opening iSmart CCTV — it summarizes the whole system's status on one screen, using widgets you can drag and resize.\n\nHow to customize the layout:\nClick \"Edit Layout\" in the top-right corner to drag/resize each widget (drag from the dotted-grip icon in the widget's top-right corner). Your arrangement is remembered in your own browser only — it doesn't affect other users. Click \"Reset Layout\" to go back to the default. Administrators additionally see a \"Set as Default Layout\" button, which saves the current layout as the default for every user who hasn't customized their own yet.\n\nWidgets on this page:\n1. Executive Trends - compares today's image count against the all-time total, and the current period's trend against the previous period, with daily image and daily storage trend charts.\n2. Stats - 4 headline numbers: total images, active cameras (active/total), storage used (used/total), and processing rate (images/hour).\n3. Recent Activity - an area chart of images ingested per day over recent history.\n4. Storage Growth - a bar chart of storage added per period (in GB).\n5. Throughput History - a 24-hour area chart of completed processing jobs per hour, useful for seeing which times of day carry the heaviest/lightest load.\n6. Average Throughput - a large number showing the average rate, switchable between per-minute/per-hour/per-day, computed from the last 24 hours of cumulative totals.\n7. Camera Status - a pie chart of the Active/Maintenance/Inactive/Error camera breakdown.\n8. Images by Camera - a horizontal bar chart of image counts per camera, useful for spotting cameras with abnormally high volume.\n9. Storage by File Type - a donut chart broken down by Raw/Processed/Thumbnail.\n10. Queue Length - job counts in the processing queue: Wait, Active, Failed, Delayed. If Failed is abnormally high, check the Dead Letter Queue page next.\n11. Postgres Stats - TPS (transactions/sec), active connections, locks, and deadlocks. If deadlocks are above 0, the number flashes red as a warning and should be investigated.\n12. Provider Stats - each Storage Provider with a usage % bar (green under 70%, amber 70-85%, red above 85%) and a Default badge.\n\nExporting data:\nClick the Export button in the top-right to export every widget's data on this page as a single file (Excel/PDF) at once.\n\nReading tip: if Queue Failed stays high, or Postgres Deadlocks is frequently non-zero, check the Dead Letter Queue and Processing Logs pages next, respectively."
-        },
-        "searchGuide": {
-          "title": "6. Search",
-          "body": "The Search page is where you search, inspect, download, and manage every image file the system has ingested.\n\nSearching and filtering:\n• The search box - searches by filename.\n• Camera dropdown - filter to a single camera (or \"All cameras\").\n• The \"Filter\" button - opens additional filters: Status (Pending/Queued/Processing/Completed/Failed/Deleted/Archived), date range (from-to), and Tag search (Key/Value).\n• Click any column header to sort (Camera Name, Filename, Status, File Size, Captured Date).\n\nTable columns:\nCamera name, filename (with subfolder if any, and a lock icon if the image is locked), status, source (\"Camera\" = a file matching the camera's date-time filename pattern from a real scan, \"Special\" = a file that doesn't match that pattern, e.g. manually uploaded or specially imported), original file size, processed file size, capture date.\n\nBulk actions:\n• Check multiple rows and click \"Reprocess Selected\" to re-queue several files for processing at once.\n• \"Bulk Delete\" button [requires the search:delete permission] - pick a number of days (7/14/30/60/90/120/240/365). The system always previews how many files would be deleted first. A password confirmation is required before deleting for real (this delete is a soft delete — files move to the Trash Bin, they are not permanently deleted immediately).\n\nTrash Bin:\nDeleted files (whether deleted one at a time or via Bulk Delete) always land in the \"Trash Bin\" first — they don't disappear immediately. Open it from the \"Trash Bin\" button in the top-right.\n• Restore a single file, or Restore All.\n• \"Empty Trash\" [requires the search:delete permission] - requires a password confirmation; this is a genuine permanent delete and cannot be undone.\n\nImage details (click the eye icon):\n• View the thumbnail preview and full metadata (pixel dimensions, bit depth, color space, compression, file size, SHA256 checksum, capture/processed dates).\n• Download individual files by type (Raw/Processed/Thumbnail).\n• Add/remove tags (key-value) to label the image.\n• Image Lock - prevents the automatic cleanup engine (P26) from ever selecting this image for deletion. An optional reason can be recorded. Can be unlocked at any time.\n• Reprocess or delete the image directly from the detail view.\n\nTip: if you see an abnormal number of \"Failed\" statuses, check the Dead Letter Queue page next to see why processing failed."
-        },
-        "camerasGuide": {
-          "title": "7. Cameras",
-          "body": "The Cameras page is where you add/edit/delete cameras, trigger a manual scan, and change a camera's status (which automatically ties into the Incident system).\n\nCamera table:\nShows camera name, IP address, camera type, retention policy, status (with a small dot indicating real connectivity, separate from the business status), last scan time, total images, date added, and creator. Click any column header to sort. Click a camera's name to open its detail page (camera-specific charts/stats).\n\nOperational Status dot vs. Business Status:\nThe small colored dot next to the status badge shows the \"technical reality\" of whether the camera is actually reachable right now (green = online, blinking red = offline, blinking amber = recovering, gray = unknown) — separate from the colored status badge (Active/Maintenance/Inactive/Error), which is the status an administrator sets manually. A camera can be \"Active\" (business status) while its dot is red (actually unreachable right now).\n\nChanging camera status = automatically creates an Incident:\nClicking the status badge (if you have edit permission) opens a status-change dialog. Changing to any status other than Active requires a reason, plus additional fields (problem description, priority, impact, assignee, observers, up to 3 attached evidence photos, estimated fix date). The system automatically creates an Incident on the \"Incident Center\" page. Changing back to Active instead opens a \"Resolution\" dialog asking for root cause / fix / preventive action.\n\nManual scan (Scan Now):\n• The \"Scan Now\" button in the top-right - tells the system to scan every camera immediately, without waiting for the normal automatic scan cycle.\n• The scan icon (circular arrow) on each row - triggers an immediate scan for just that camera.\n\nAdd/Edit camera form:\n• Template - select a template to inherit default image-processing settings (convert to PNG, thumbnail size, compression quality, etc.), so you don't have to configure each camera individually.\n• IP Address, SMB Share Path - the address and path of the camera/device sharing images via SMB.\n• \"Test Connection\" button - checks that the SMB connection actually works before saving.\n• \"Browse\" button - opens a real SMB share/folder browser so you can pick a path without typing it manually.\n• Camera type, capture mode (Periodic/On Demand/Continuous), poll interval (seconds), SLA target (%) - compared against real uptime in reports.\n• Username/Password for SMB.\n• Retention Policy - required.\n• A collapsible \"Per-camera overrides\" section - overrides template values for this camera only, e.g. accepted file extensions, whether to convert to PNG, thumbnail size, compression quality. Leave blank / select \"Inherit\" to use the template's value instead.\n\nDeleting a camera:\nAlways requires a password confirmation. Deleted cameras go to the \"Camera Trash\" first — they don't disappear immediately. Restore them from the \"Camera Trash\" button in the top-right, or permanently empty the trash (requires another password confirmation).\n\nTip: if a camera's dot keeps showing red (offline) even though its business status is Active, check that camera's network/SMB connection, and review the Incidents the system automatically created on the Incident Center page."
-        },
-        "incidentCenterGuide": {
-          "title": "8. Incident Center",
-          "body": "This page collects every Incident created by camera status changes (see topic 7) in one place. It has 2 tabs: \"List\" and \"Knowledge\".\n\nList tab:\nFilter by search text, camera, reason, root cause, status (open/resolved), and priority (Critical/High/Medium/Low). Click any column header to sort. The MTTR (Mean Time To Repair) column shows how long a resolved incident took; for still-open incidents it instead shows elapsed time (Ongoing).\n\nIncident details (click a row):\n• Basic info: camera, reason, root cause with a \"confidence\" badge (High/Medium/Low, if auto-analyzed by the system), and detection source (Manual = someone changed the status themselves / Auto = the system detected it automatically).\n• Evidence photos attached at status-change time (click to zoom).\n• Work Order - create a maintenance work order directly from this incident, and update its status (Open/In Progress/Completed) in the same place.\n• SOP Checklist - if a checklist is linked to this incident's reason, the system displays it here for step-by-step checking off, with a history of who checked what and when (\"History\").\n• Timeline - merges the camera's real connectivity events (online/offline/recovering) during the time the incident was open with the incident's own open/close times into a single timeline, useful for seeing how many times the camera dropped while the problem was unresolved.\n• Related Incidents - other incidents related to this one (e.g. same camera / same reason); click to switch straight to them.\n• Related Knowledge Articles - the system automatically suggests articles based on this incident's reason/root cause.\n• Workflow - assign an owner, change the work stage (Unassigned/Assigned/In Progress/Waiting Parts/Waiting Vendor), and click \"Acknowledge\" to record who picked up the incident and when.\n\nKnowledge tab:\nPick a period (7 days/30 days/90 days/all), then view summary stats — total incidents, open, resolved, average MTTR — plus charts for top recurring problems, top root causes, top resolutions used, and a table of the cameras with the most incidents (click a camera to jump straight to the filtered List tab).\n\nKnowledge Articles:\nCreate/edit/delete articles documenting how to fix a problem (symptoms, cause, resolution, verification steps), with tags, linked to a reason/root cause code so the system can auto-suggest them on matching incidents' detail pages. Search articles from the search box at the top.\n\nSOP Checklists:\nCreate/edit/delete standard-procedure checklists for each reason code (type one step per line). When a new incident matches that reason, the system pulls in the checklist on the detail page for the owner to check off in order.\n\nClear all Incident history [requires the cameras:delete permission]:\nThe \"Clear Incidents\" button in the top-right — choose a scope (delete everything, or only records older than X years). Requires a password confirmation. Warning: this delete is immediate and permanent, including every attached evidence photo on disk — it cannot be undone.\n\nTip: use the Knowledge tab to see which camera/reason recurs most often, then write a Knowledge Article or set up an SOP Checklist ahead of time — it helps the team resolve the same problem faster next time."
-        },
-        "alertManagementGuide": {
-          "title": "9. Alert Management",
-          "body": "This page is where you view, manage, and clear the history of alerts actually raised by the system. Configuring \"Alert Rules\" themselves — enabling/disabling each alert type, the cooldown period between repeated alerts, notification channels — lives on the separate \"Settings\" page, not here.\n\nFiltering:\n• Severity - Critical, Warning, Info\n• Status - Open / Resolved / All\n\nTable: shows severity, alert title, source, and time raised. Click any column header to sort. On mobile, this switches to a card list instead of a table for easier reading on small screens.\n\nActions per alert (click the eye icon for full details):\n• The detail view shows the full alert message, type, and acknowledged/resolved timestamps.\n• Acknowledge - records that someone has seen this alert. This does not mean the underlying problem is fixed.\n• Resolve - closes this alert as handled.\n\nClear All:\nThe \"Clear All\" button in the top-right always requires a password confirmation. Warning: this permanently deletes every unresolved alert from the system — it cannot be undone.\n\nTip: titles and messages for certain technical alerts (e.g. raw SMB errors like NT_STATUS_BAD_NETWORK_NAME) are automatically translated into plain, readable language instead of showing the raw error code directly."
-        },
-        "cameraAnalyticsGuide": {
-          "title": "10. Camera Analytics",
-          "body": "This page shows in-depth SLA/uptime statistics for a single camera at a time, separate from the \"Camera Reports\" page (topic 11), which is a raw data table.\n\nSelecting a camera and period:\nUse the left/right arrow buttons or the search box at the top to switch cameras. Pick an analysis period (7/14/30/60/90 days).\n\nWidgets on this page (drag/resize just like the Overview page — see topic 5):\n1. Availability (%) - the percentage of time the camera was actually online over the selected period, measured against that camera's SLA target.\n2. MTBF (Mean Time Between Failures) - average time between each time the camera drops; higher is better (a more stable camera).\n3. MTTR (Mean Time To Repair) - average time it takes to fix each problem; lower is better.\n4. Health Score - an overall health rating (Excellent/Good/Warning/Critical) computed from multiple factors combined.\n5. Uptime/Downtime/Maintenance breakdown - a pie chart of time spent online/offline/under maintenance (maintenance time is excluded from the SLA calculation).\n6. Estimated Lost Images - an estimate of how many images should have been captured but weren't during offline periods, compared against images actually captured.\n7. Offline Events count - along with a full breakdown of total online/offline/maintenance time.\n8. Timeline - a continuous status bar across the selected period (green = online, amber = maintenance, red = offline); hover any segment for details.\n9. Event History - a table logging every status change, with reason, who changed it, and how long the camera stayed in that state.\n10. Camera Comparison - a bar chart comparing Availability and Health Score across every camera in the system at once, useful for spotting the worst-performing camera relative to the rest.\n\nLayout customization and Export work exactly like the Overview page (drag/resize widgets, save as default for admins, export every widget at once).\n\nTip: start from the Camera Comparison chart (the last widget) to find the camera with the lowest availability in the system, then switch to that camera for a deep dive."
-        },
-        "cameraReportsGuide": {
-          "title": "11. Camera Reports",
-          "body": "This page is a fully customizable spreadsheet-style report builder for camera data, used to pull data on every camera at once and export it as a file — different from the \"Camera Analytics\" page (topic 10), which focuses on charts/in-depth stats for one camera at a time.\n\nColumn customization:\nClick the Sliders icon in the top-right to open the table settings panel. There are over 25 selectable columns, e.g. camera name, status, IP, total images, average images/day, camera age (days), incident count, primary technician, most common problem time of day, top problem reason, last image time, last scan time, technical config values (SMB path/domain/user, poll interval, timezone, capture mode, accepted file extensions, image-processing settings), and created/updated dates.\n• Check/uncheck to show/hide each column.\n• Drag columns to reorder them.\n• \"Select All\"/\"Clear All\" buttons toggle every column at once.\nYour column configuration is remembered in your own browser only — it doesn't affect other users.\n\nSearching and filtering:\nSearch by camera name or IP, filter by status (Online/Maintenance/Error/Offline). Click any column header to sort by that column. Above the table, a summary shows how many columns are currently visible and how many cameras match the current filters.\n\nExport: exports only the currently visible columns (in the order you arranged them) as an Excel/PDF file.\n\nTip: use this page when you need a tabular summary report of every camera (e.g. to send to management, or to audit the configuration of many cameras at once), and use \"Camera Analytics\" when you need to dig into one camera's SLA chart in detail."
-        },
-        "cameraTemplatesGuide": {
-          "title": "12. Camera Templates",
-          "body": "A Camera Template is a set of default image-processing settings that individual cameras can select instead of being configured one by one (see topic 7 — the Cameras page has a \"Template\" field for this).\n\nTable: shows template name (starred if it's the default template), accepted file extensions, whether it converts to PNG, whether it generates thumbnails, how many cameras currently use this template, and whether it's active.\n\nFields in the create/edit form:\n• Name, description, sort order.\n• Accepted Extensions - select multiple extensions (tif/tiff/ptif/ptiff/jpg/jpeg/png/bmp); determines which file types the Sync Worker picks up from cameras using this template.\n• Convert to PNG, Keep Smaller (keep the smaller of the original vs. converted file), Generate Thumbnail.\n• Thumbnail size (pixels), compression quality (0-100), poll interval (seconds).\n• Capture mode (Periodic/On Demand/Continuous), a default Retention Policy.\n• \"Set as Default\" - this template is automatically pre-selected whenever a new camera is added.\n• \"Active\" - inactive templates no longer appear as an option when adding/editing cameras, but cameras already using one are unaffected.\n\nDeleting a template: shows a confirmation dialog but does not require a password (unlike deleting cameras/images/incidents). Always check the \"Cameras\" column before deleting — if any cameras still use this template, move them to a different template first.\n\nImportant tip: the settings a camera inherits from its template are a live reference, not a one-time copy taken when the camera was created — if you edit a template's values later, every camera currently using that template (and that hasn't set its own per-camera override) picks up the new values immediately, starting with the next image it processes, with no need to touch each camera individually. If a specific camera needs a permanently different value, set an override for it directly on the Cameras page."
-        },
-        "storageProfilesGuide": {
-          "title": "13. Storage Profiles",
-          "body": "This page manages \"Storage Profiles\" — a label bound to a single Storage Provider, intended for a future feature that would let you route files to different storage based on file type (e.g. raw→NAS, thumbnail→SSD). Right now it has no effect on where files are actually stored (a yellow warning banner on this page says so) — every new file is still always saved to whichever single Storage Provider is marked as default. Real routing is planned for phase P48 — Storage Profile Routing Engine (see the Roadmap page).\n\nTable: shows Code, name (English), the bound Provider (with its type), the number of routing rules (currently always 0, since there is no UI yet to configure real rules), sort order, and active/inactive status.\n\nFields in the create/edit form:\n• Code - a unique identifier.\n• Provider - select the Storage Provider this profile is bound to (only active providers are listed).\n• Name in 5 languages (EN/TH/CN/MM/JP).\n• Description, sort order.\n• Active/inactive (isActive).\n\nDeleting: shows a confirmation dialog but does not require a password.\n\nTip: if you have no near-term plan to use Storage Profile Routing, you don't need to create any profiles on this page at all — the system works fine controlled purely through Storage Providers (Storage Providers page, the \"Default\"/isDefault setting)."
-        },
-        "retentionGuide": {
-          "title": "14. Retention Policy",
-          "body": "This page defines how long the system should keep each type of image before it becomes eligible for deletion. Every camera (topic 7) or camera template (topic 12) must always be bound to one policy.\n\nEach card shows: policy name, cleanup mode (color-coded by mode), Raw/Processed/Thumbnail retention periods (days), Archive on/off status, and how many cameras currently use this policy (if any).\n\nFields in the create/edit form:\n• Policy name, description.\n• Raw / Processed / Thumbnail retention (days) - set independently per file type, since Raw files are usually the largest and are therefore often kept for a shorter time than the much smaller Thumbnails.\n• Enable Archive - when on, reveals extra fields: number of days before Raw files move to archive, and the target storage class (Hot/Warm/Cold). Note: the full Archive Tier feature is still under development (see phase P27 on the Roadmap page) — the values set here just pre-provision the structure for it.\n• Cleanup Mode - 5 modes (Retention Only/Retention+Watermark/Circular/Read Only/Manual), fully explained in topic 4 (P26). The system shows a short description under the selector every time you change modes.\n• \"Allow inclusion in Emergency Cleanup\" - off by default, even when the mode is set to Manual. Checking this lets Emergency Cleanup (on the Storage Providers page) pull cameras using this policy into consideration for deletion, but only in a genuine emergency.\n\nDeleting a policy: the system refuses to delete it (with a warning message) if any cameras still use it — move all of them to a different policy first.\n\nTip: if you're unsure which mode to pick, start with \"Retention Only\" (the default — the safest, with no automatic deletion), then switch to \"Retention + Watermark\" later once you're ready to let the system manage space automatically (see topic 4 for the full details of each mode)."
-        },
-        "auditLogGuide": {
-          "title": "15. Audit Log",
-          "body": "This page records every significant action taken across the entire system as a permanent audit trail, covering almost every page in this guide — creating/editing/deleting images, cameras, retention policies, storage providers, users, permissions, API keys, camera templates, SOP checklists, knowledge articles, master data, system settings, and every bulk delete/clear-all feature covered in earlier topics.\n\nFiltering: filter by action type and entity type.\n\nTable columns:\n• Time, user (shows \"System\" for actions the system performed automatically on its own).\n• Action - shown as a color-coded badge: red = delete, green = create, blue = everything else (update/view/download, etc.).\n• Entity type and entity ID.\n• Description - certain action types (e.g. camera status changes, camera create/update/delete) are automatically translated into readable sentences instead of the raw system text.\n• The IP address of whoever performed the action.\n\nClick any column header to sort by it.\n\nBulk-deleting records by age [requires the audit-log:read permission]:\nPick a number of days (7-365). The system always previews how many records would be deleted first. A password confirmation is required before deleting for real. Warning: this is an immediate, permanent delete with no recovery (unlike the soft-delete Trash Bin used for images/cameras).\n\nTip: this page is the authoritative source for answering \"who did what, and when\" in the system. It's useful for investigating unusual events or for organizational compliance/audit requirements — think carefully about an appropriate retention window before using Bulk Delete, since it is permanent."
-        },
-        "backupGuide": {
-          "title": "16. Backup",
-          "body": "This page runs and manages backups of the system's database and image files, and lets you test-restore them without touching real data.\n\nThe system automatically backs up both the database and image files every day at 03:00. You can also click \"Run Now\" on either card to trigger a backup manually at any time.\n\nDatabase Backup:\nUses pg_dump to back up the entire PostgreSQL database, compressed as a .sql.gz file, with a SHA256 checksum computed to verify file integrity.\n\nStorage Backup:\nBacks up all files from whichever Storage Provider is currently marked \"Default\" only, as a .tar.gz file — if you have multiple providers, files on non-default ones are not included in this backup.\n\nEach summary card shows: the latest status (Completed/Failed/Running/Pending), file size, time of the last backup, and an error message if it failed.\n\nBackup history: a table of every past backup run — type, status, start time, file size, and file path.\n\nTest Restore:\nClick the shield icon on a completed backup's row to verify that backup file can actually be opened/restored, without touching any real data in the system. Test this periodically to confirm your backups are genuinely usable, not just present.\n\nNote: all backup files are stored at /app/backups inside the image-api container, which is bound to a persistent Docker volume (backup-data), so they survive the container being rebuilt/recreated (e.g. during a system update). That volume still lives on the same physical disk as the rest of the system, though — periodically copy the .sql.gz/.tar.gz files off-site as well, to protect against the machine's real disk failing entirely."
-        },
-        "masterdataGuide": {
-          "title": "17. Masterdata",
-          "body": "This page manages 9 categories of master/lookup data used as selectable options in forms throughout the system, organized into tabs:\n\n• Camera Type - the \"Camera Type\" option in the camera form (topic 7).\n• Camera Status - status options in the camera status-change dialog (topic 7).\n• Capture Mode - options in the camera/camera template forms (topics 7, 12).\n• Image Category.\n• Defect Type.\n• Inspection Type.\n• Incident Reason - the \"Reason\" option in the camera status-change dialog, and a filter on the Incident Center page (topic 8).\n• Incident Root Cause - used on the Incident Center page (topic 8).\n• Incident Resolution - used in the incident Resolution dialog (topic 8).\n\nFields in the create/edit form (same across every tab):\n• Code - a unique identifier; this is the actual value the rest of the system refers to (avoid changing it frequently once it's in real use).\n• Name in 5 languages (TH/EN/CN/MM/JP) - the text actually shown on screen.\n• Description, sort order.\n• Active/inactive (isActive) - inactive options no longer appear in other forms' dropdowns, but existing records that already selected them are unaffected.\n\n⚠️ Important caution: deleting an entry on this page requires no password confirmation, and the system does not check whether that code is still referenced elsewhere (unlike other pages in the system, e.g. Retention Policy, which blocks deletion while any camera still uses it). If you delete a code that's still referenced (e.g. a camera set to that type, or an incident logged with that reason), the affected screens will show the raw code instead of its translated name, rather than warning you or blocking the deletion. Make sure nothing still uses a code before deleting it.\n\nTip: keep \"Code\" values in English snake_case (e.g. network_issue, hardware_failure) and never change them once set. The displayed names (5 languages) can be edited freely at any time without affecting existing data, since the system only ever refers to entries by Code."
-        },
-        "healthGuide": {
-          "title": "18. Health Status",
-          "body": "This page is a single-screen dashboard for the entire system's health, auto-refreshing every 15 seconds — useful for checking in real time whether every part of the system is running normally.\n\nOverall system status: a \"Healthy/Degraded\" badge with continuous uptime, plus sub-badges for PostgreSQL, Redis, storage overall, and each individual Storage Provider (with its latency in milliseconds).\n\nPipeline Flow diagram: shows the entire data flow as a single picture — from cameras → Sync Worker → processing queue → Processing Worker → storage/database — with a health indicator at each stage, so you can immediately see which part of the pipeline is having trouble.\n\nSummary stat cards: total images, active cameras, currently-open alerts, queue jobs (wait/active), and system version.\n\nThree detail columns:\n• Server Resources - RAM and disk usage bars (turning amber/red as they near full), CPU core count, load average, platform, and Node.js version.\n• Service Details - status and latency for each service (image-api, PostgreSQL, Redis, each Storage Provider), plus a queue status summary (wait/active/failed/delayed).\n• Verification - a full end-to-end diagnostic tool. Click \"Run Verification\" to fire real requests at nearly 25 core endpoints across the entire system (auth, cameras, images, processing logs, storage, backup, retention policy, alerts, masterdata, API keys, users, permissions, audit logs, Dead Letter Queue, etc.), showing a live PASS/FAIL result with response time (ms) for each one. Great to run immediately after any update or fresh deployment, to confirm every part is still wired up correctly.\n\nTip: use this page as your first stop whenever you suspect something is wrong, before drilling into a specific page (e.g. Dead Letter Queue, Processing Logs). The \"Run Verification\" button is especially useful right after any update/deployment, to confirm nothing broke unexpectedly."
-        },
-        "deadLetterGuide": {
-          "title": "19. Dead Letter Queue",
-          "body": "This page shows processing jobs that failed repeatedly until they exhausted their configured retry limit (Max Retries), and were moved here for an administrator to review and decide what to do, instead of just silently disappearing — this ties directly into the \"Queue Failed\" number seen on the Overview page (topic 5) and the Health Status page (topic 18).\n\nSummary cards: total jobs in the DLQ, number of distinct job types, the date of the oldest job, and the highest retry count seen.\n\nFiltering by job type: click a job-type chip (showing the count for each type) to filter the table below; click it again to clear the filter.\n\nBulk actions: the \"Retry All\"/\"Reject All\" buttons only apply to the currently filtered job type (or everything, if no filter is set).\n\nTable: job type, the related image (filename/ID), error message, retry count/max (retryCount/maxRetries), and the time it was queued.\n\nActions per job:\n• Retry - sends the job back into the processing queue again; use this once whatever caused the failure (e.g. a temporary network glitch, storage being unavailable) has been fixed.\n• Reject - permanently discards this job, no further retries; use this when the source image is genuinely corrupted, or the underlying problem can't be fixed.\n\nTip: always read the error message before clicking Retry. If the exact same error keeps recurring across many jobs of the same type (e.g. SMB/storage errors), fix the actual root cause first (e.g. on the Cameras page or Storage Providers page), then click Retry All — rather than retrying repeatedly without addressing the real problem."
-        },
-        "processingLogsGuide": {
-          "title": "20. Processing Logs",
-          "body": "This page is the raw execution log of every image-processing job ever run in the system (Sync, Convert, Thumbnail, Checksum, Archive, Delete), both successful and failed — unlike the Dead Letter Queue page (topic 19), which only shows jobs that failed until they ran out of retries, this page keeps a history of every job at every status.\n\nFiltering: filter by status (Queued/Running/Completed/Failed/Retrying/Dead Letter) and job type (Sync/Convert/Thumbnail/Checksum/Archive/Delete), plus a free-text search.\n\nTable columns: Image ID, job type, status, Worker ID (which processing worker ran this job — useful when running multiple Processing Workers at once), time queued, and duration (seconds). Click any column header to sort.\n\nActions per job: the Retry button only appears for jobs with a \"Failed\" or \"Dead Letter\" status; click it to send the job straight back into the queue from this page. An error message (if any) is shown truncated in the same row.\n\nBulk-deleting logs by age [requires the processing:create permission]:\nPick a number of days (7-365). The system always previews how many records would be deleted first. A password confirmation is required before deleting for real. Warning: this is an immediate, permanent delete with no recovery.\n\nTip: use this page when you need the detailed processing history for one specific image (search by Image ID), or want to see which worker is under the heaviest load. If you instead need to manage a batch of stuck jobs and decide Retry/Reject in bulk, go to the Dead Letter Queue page (topic 19) instead."
-        },
-        "storageDashboardGuide": {
-          "title": "21. Storage Dashboard",
-          "body": "This page is a system-wide summary dashboard for storage space (aggregating every Storage Provider together), focused on growth trends and forward forecasting. It is separate from the \"Storage Providers\" page (topic 3), which manages individual providers, and from the P26 system (topic 4), which looks at storage pressure per provider.\n\n⚠️ Important caveat: every \"capacity\" figure on this page (Total Capacity, days-until-full estimate, the forecast chart, the projection table) is computed from a single \"Total Storage Capacity\" value (max_storage_gb) set on the System Config page. This is a separate global value that is NOT linked to the per-provider Max Capacity values (the ones actually used by the P26 system in topic 4) — if this setting is never updated to match real disk space, every forecast number on this page will be based on the 1000GB default, which won't reflect reality.\n\nThe layout can be customized the same way as the Overview page (drag/resize widgets, with a \"save as default layout\" button for admins).\n\nWidgets on this page:\n1. Summary stat cards — total file count, space used vs. configured capacity, count by file type, growth trend (increasing/stable), and estimated days until full (turns red if under 120 days).\n2. Storage by file type — a donut chart split by Raw/Processed/Thumbnail, showing both size and file count.\n3. Growth Trend — an area chart of space added per day (MB), with a selectable lookback period (7/14/30/60/90 days).\n4. Forecast — a current usage-percent bar, the daily growth rate, and a line chart projecting future usage percent.\n5. Projection Table — a list of forecasted usage percentages for future days, highlighted in red if projected to reach 100%.\n6. Storage by camera — a bar chart of storage bytes used per camera, useful for spotting cameras consuming abnormal amounts of space.\n\nExport: export all widgets at once as an Excel/PDF file.\n\nTip: always keep the \"Total Storage Capacity\" value on the System Config page in sync with real disk space (see topic 4 for how to calculate it correctly) — otherwise the \"days until full\" figure on this page is practically meaningless."
-        },
-        "usersGuide": {
-          "title": "22. Users",
-          "body": "This page manages users, roles, and permissions for the whole system, split into 3 tabs.\n\nUsers tab: a table of every user (username, email, role, status, last login), sortable on every column. New users are created with a username/email/password/role, and can also be granted extra \"custom permissions\" on top of whatever their role already grants.\n\n⚠️ Note: the \"Delete User\" (trash) button does not actually remove the user from the database — it deactivates them, exactly the same as the enable/disable toggle. The user record always stays in the system, to keep audit log entries that reference that user intact.\n\nRoles & Permissions tab: manage fully custom roles (not limited to the built-in admin/operator/viewer). Each role has a name in all 5 languages (TH/EN/CN/MM/JP) and picks permissions from the system's full list of permission modules (roughly 20 modules — cameras, search, storage, backup, users, etc.). A role can only be deleted if it has zero assigned users and is not the \"admin\" role.\n\nActivity Stats tab: a summary of system-wide login activity with a selectable lookback period (7/14/30/60/90 days). Summary cards show total logins, active users, average session duration, and peak hour, followed by a per-user table. Clicking a user row opens a detail view: a daily-login-count chart, an hourly-usage heatmap, and a session history table (login/logout time, duration, IP address).\n\nTip: use the Activity Stats tab to spot unusual behavior — logins from an unfamiliar IP, or logins at hours nobody should be working."
-        },
-        "systemConfigGuide": {
-          "title": "23. System Config",
-          "body": "This page is the central hub for global, system-wide settings that affect every user (unlike the \"Settings\" page in topic 27, parts of which are only saved locally in each user's browser). It is organized into categories:\n\n• General — logo, program name, description, version, copyright text (shown in various parts of the UI, such as the login page).\n• Retention / Compression / Thumbnail / Camera Polling / Alerts / Storage Limit / Automation — real config values the backend actually reads and acts on; changes here take effect immediately, system-wide.\n\n⚠️ Important: the \"Storage Limit\" category has a \"Total Storage Capacity\" value (max_storage_gb) that is used ONLY by the storage forecast dashboard (topic 21) — it is unrelated to the per-provider Max Capacity values actually used by the P26 system (topic 4). Both must be updated separately to match real disk capacity.\n\nClear All Data [requires typing DELETE and a password confirmation]:\n⚠️ Very important caution: this button deletes ALL \"processing data\" (Image, ImageFile, ProcessingJob, and AuditLog records) from the database, deletes every real file in storage, and flushes the Redis job queues — but it does NOT delete any cameras, users, roles, retention policies, storage providers/profiles, alert rules, or masterdata. In other words it's a \"reset the processed image data\" action, not a full system wipe — useful for testing from a clean slate without re-configuring cameras/users. It is an immediate, permanent delete with no recovery — always back up (topic 16) before using it.\n\nReset / Refresh buttons: Reset reverts unsaved changes back to the last-saved values; Refresh re-fetches the current config values from the backend."
-        },
-        "requiredFieldsGuide": {
-          "title": "24. Required Fields",
-          "body": "This page controls which fields on each of the system's forms must be filled in before saving, organized by data type (Entity) as tabs — Camera, Incident, Camera Template, Storage Provider, Storage Profile, Retention Policy, Alert Rule, API Key, Masterdata, Users, and Role — about 11 entities in total.\n\nEach entity's fields are grouped into subsections (e.g. \"General\", \"Connection Info\"). Check the fields you want to make mandatory; there are \"Select All / Clear All\" buttons at both the group and entity level.\n\nSome fields are marked with * and cannot be un-required (alwaysRequired), because the system always needs them as a baseline (e.g. camera name, IP address).\n\nEach entity tab shows a selected/total count (e.g. 5/12) for a quick overview. The save button is only visible to users with the system-config:update permission.\n\nTip: tighten this setting when multiple people are entering data into the system at once (e.g. always require camera latitude/longitude) to prevent incomplete data from breaking reports later."
-        },
-        "apiKeysGuide": {
-          "title": "25. API Keys",
-          "body": "This page creates and manages API keys that let external systems (scripts, other integrations) call the iSmart CCTV API without logging in as a real user account.\n\nCreating a new key: name the key, choose which permissions it can access (e.g. view overview, read/update images, view storage, etc., or pick \"Full Access (*)\" for admin-level access), and optionally set an expiration date (leave empty for no expiration).\n\n⚠️ Very important: the full API key token is shown **only once**, immediately after creation. Copy it right away — the system only stores the tokenPrefix (the first few characters) afterward, just enough to identify the key in the table, and the full token can never be viewed again. If you forget to copy it, delete the key and create a new one.\n\nUsage: send the token in the x-api-token HTTP header to the base URL {your-server}/image-service/api/v1.\n\nThe table shows status (Active/Inactive), assigned permissions, creator, creation date, and expiration date, sortable on every column. Delete a key instantly with the trash button (takes effect immediately, no recovery).\n\nTip: never use \"Full Access (*)\" for a key handed to an external system you don't fully trust — grant only the permissions actually needed, and always set an expiration date to limit the damage if the token ever leaks."
-        },
-        "telegramBotGuide": {
-          "title": "26. Telegram Bot",
-          "body": "This page configures the Telegram Bot connection used to send system notifications (camera offline, storage nearly full, processing failures, etc.) into a Telegram group.\n\nMain settings:\n• Bot Token — the bot token obtained from @BotFather on Telegram.\n• Group Chat ID — the ID of the group to send messages to (usually a negative number).\nStep-by-step instructions for getting a token are included on the same page (creating a bot with @BotFather, adding the bot to a group, retrieving the chat ID, etc.).\n\nThe \"Test Connection\" button sends a test message directly to the Telegram API from the browser (bypassing the backend), to confirm the token and chat ID are correct before saving for real.\n\n⚠️ Note: the \"Callback Settings\" section (API Base URL and API Token) can be saved, but based on the current backend source code, **nothing in the system actually reads or uses these two values yet** — they appear to be placeholders for a future feature (such as handling replies from inline buttons in a Telegram message). Filling them in or leaving them blank has no effect on notifications today.\n\nTip: always use the Test Connection button after changing the token or chat ID, before saving, so you don't silently miss important alerts."
-        },
-        "settingsGuide": {
-          "title": "27. Settings",
-          "body": "This page bundles frequently-used settings in one place, but there is an important catch: not everything on this page is saved to the central database.\n\n⚠️ Sections saved only in the browser (localStorage), never sent to the backend, and with no effect on real system behavior:\n• Notifications (alert recipient email, webhook URL)\n• Processing (poll interval, max retries)\nValues set here only apply to the specific device/browser that set them — someone opening this page from another machine won't see the same values, and the poll interval/retry numbers shown here are **not actually used** by the Sync Worker running behind the scenes.\n\n✅ Sections that really are wired to the backend:\n• System Info (total images, active cameras, total alerts) — pulled live from the API.\n• Alert Rules — create/edit/delete rules for real: pick an event type (storage warning, processing failure, camera offline, etc.), notification channels (Telegram/Line), and a cooldown period before re-alerting — these save to the database and take effect immediately.\n\n\"Reset All\" button: clears the custom layout, theme, language, and every localStorage value for this browser back to defaults — it does not touch any database data (unlike the \"Clear All Data\" button on the System Config page, topic 23, which permanently deletes real data).\n\nTip: if you need a setting that genuinely affects the whole system (like the real poll interval used by the Worker), go to the System Config page (topic 23) instead."
-        },
-        "roadmapGuide": {
-          "title": "28. Roadmap",
-          "body": "This page shows the system's full development plan from the start through the future, split into 3 main sections.\n\n1. System Architecture: live stat cards pulled from the real database (camera count/active count, file count and space used, number of file types, number of retention policies), alongside the actual technology stack used in each layer of the system (Frontend/Backend/Sync Worker/Processing Worker/Database/Storage, etc.), including the font used across the web UI.\n\n2. Rules: a summary of each module's key business rules, grouped by feature.\n\n3. Development Phases: an overall progress percentage (calculated from the proportion of phases marked \"Launched\" out of the total), and the full phase list from P0.1 through P48. Each phase can be expanded to show its task list, with \"Expand All / Collapse All\" buttons.\n\nEach phase has one of two statuses: Launched, or Planned (designed but not yet built) — a notable example still marked Planned is P48 (the Storage Profile Routing Engine), which is exactly why the \"Storage Profiles\" page (topic 13) has no real effect on file distribution today.\n\nTip: use this page as the central reference whenever you're unsure whether a feature is \"actually working\" or \"still on the roadmap\" — check here before expecting results from that feature elsewhere in the system."
-        },
-        "capacityPlanningGuide": {
-          "title": "29. Scale Planning — Camera Count vs. Settings",
-          "body": "These estimates are based on the real measured rate from the TP27 pilot camera on a full normal working day (2026-07-18 = 6,758 images/camera/day) and the real average file sizes (Raw ~895KB + Processed ~580KB + Thumbnail ~40KB ≈ 1.5MB/image), projected against the current retention policy (Raw 32 days, Processed 90 days, Thumbnail 365 days).\n\n⚠️ These are planning estimates only, not guaranteed numbers — actual rates vary by camera/production line. Re-measure the real rate as more cameras go live.\n\n• 1 camera — ~6,800 images/day · +~10GB/day · ~0.6TB at steady-state · scanner_max_files_per_cycle: 50-100\n• 10 cameras — ~68,000 images/day · +~100GB/day · ~6.3TB · scanner_max_files_per_cycle: 50\n• 20 cameras — ~136,000 images/day · +~200GB/day · ~12.7TB · scanner_max_files_per_cycle: 30\n• 30 cameras — ~203,000 images/day · +~300GB/day · ~19.0TB · scanner_max_files_per_cycle: 20\n• 40 cameras — ~271,000 images/day · +~400GB/day · ~25.4TB · scanner_max_files_per_cycle: 15\n• 50 cameras — ~338,000 images/day · +~500GB/day · ~31.7TB · scanner_max_files_per_cycle: 10\n• 60 cameras — ~406,000 images/day · +~600GB/day · ~38.0TB · scanner_max_files_per_cycle: 10\n• 70 cameras — ~473,000 images/day · +~700GB/day · ~44.4TB · scanner_max_files_per_cycle: 10\n• 80 cameras — ~541,000 images/day · +~800GB/day · ~50.7TB · scanner_max_files_per_cycle: 5-10\n• 90 cameras — ~608,000 images/day · +~900GB/day · ~57.1TB · scanner_max_files_per_cycle: 5-10\n• 100 cameras — ~676,000 images/day · +~1TB/day · ~63.4TB · scanner_max_files_per_cycle: 5-10\n\nWhy scanner_max_files_per_cycle must go down as camera count goes up: the sync-worker scans every camera concurrently, so this value effectively multiplies by camera count into a system-wide load. More cameras means a lower per-cycle limit is needed to avoid overloading CPU/SMB connections if many cameras have a backlog at once.\n\nSettings that stay constant regardless of camera count: camera_offline_threshold_minutes = 5 minutes (default), poll_interval_default = 30 seconds.\n\n❗ Not yet validated — confirm with a real load test before scaling all the way up: how many Processing Worker instances need to run in parallel (currently 1 instance, concurrency 4 — never load-tested at peak), how many SeaweedFS volume servers/nodes are needed (at ~40TB+ this definitely requires multiple nodes, not just raising -max), and whether the sync-worker (a single Node.js process) can scan 100 cameras concurrently without saturating CPU.\n\nRecommendation: pilot at 10-20 cameras first, measure the real images/day rate per camera and each worker's CPU/network usage, then recompute from the real measured numbers — don't use this estimate alone to commit to hardware purchases."
-        }
-      },
-      "aboutProgram": {
-        "title": "About iSmart CCTV",
-        "intro": "iSmart CCTV (a Centralized Industrial Inspection & Vision Platform) is the central hub for managing images from vision cameras and production sensors in Industry 4.0 factories, turning raw shop-floor images into searchable, fast, and secure data assets.",
-        "capabilitiesTitle": "System Capabilities",
-        "businessValueTitle": "Business Value & Future Roadmap",
-        "comparisonTitle": "Comparison: Centralized vs Legacy (per-PC storage)"
-      },
-      "requirements": {
-        "title": "System Requirements & Network Specs",
-        "intro": "Specifications for computers, servers, disks, and a dedicated network to support industrial image processing and storage at a scale of 10 to 100+ cameras.",
-        "assumptionsTitle": "Hardware & Capacity Sizing Assumptions",
-        "hardwareSpecsTitle": "Recommended Hardware by Camera Scale (Sizing Matrix)",
-        "networkSpecsTitle": "Network Switch Specs & Dedicated Vision Network"
-      }
-    },
     "requiredFields": {
       "title": "Required Fields Configuration",
       "subtitle": "Select the data fields that users must provide (Required) for each system module",
@@ -3064,46 +2450,6 @@
       "field_streamPath": "Stream path",
       "field_recordingRetentionDays": "Keep recordings (days)"
     },
-    "productionRuns": {
-      "title": "Production Runs",
-      "subtitle": "Record which customer/job ran during which time window — defect images are auto-attributed to a customer/job by capture time, so you can search history by customer, job type, or time range.",
-      "newRun": "New Run",
-      "editRun": "Edit Run",
-      "customer": "Customer",
-      "searchCustomer": "Search customer…",
-      "orderNo": "Order No.",
-      "jobType": "Job Type",
-      "partNo": "Part / Model No.",
-      "jobPart": "Job Type / Part",
-      "line": "Production Line",
-      "camera": "Camera / Machine",
-      "allCameras": "All cameras (Apply-all)",
-      "allCamerasFilter": "All cameras",
-      "start": "Start",
-      "end": "End",
-      "endOptional": "End (leave blank = still running)",
-      "note": "Note",
-      "running": "Running",
-      "runningNow": "Running now",
-      "activeOnly": "Active only",
-      "endRun": "End run",
-      "ended": "Run ended",
-      "retroEdited": "Retro-edited",
-      "retroEditedHint": "Edited after the run had ended",
-      "confirmDelete": "Delete this run?",
-      "noData": "No production runs yet",
-      "cameraHint": "Choose \"All cameras\" if this job covers every machine during that window — a camera-specific run wins over an apply-all run.",
-      "team": "Responsible Team",
-      "teamFallback": "Auto by shift (P50)",
-      "teamFallbackShort": "by shift",
-      "cameras": "Cameras / Machines (multi-line)",
-      "selectPlaceholder": "Select…",
-      "quickAdd": "Add new",
-      "manage": "Manage in Masterdata",
-      "newValuePlaceholder": "Type a new value…",
-      "producedQty": "Units produced",
-      "producedQtyHint": "Enter when closing the run — used to compute the defect rate"
-    },
     "llm": {
       "title": "AI (LLM) connection",
       "subtitle": "Configure a language model to phrase the management recommendations",
@@ -3118,16 +2464,6 @@
       "timeout": "Timeout (seconds)",
       "saveLlm": "Save AI settings",
       "dataSourceNote": "The model reads /api/v1/insights — a pre-computed summary — and never the database directly. The figures come from auditable rules; the model only supplies the wording."
-    },
-    "assistant": {
-      "title": "Smart Assistant",
-      "subtitle": "Ask about the system in plain language",
-      "greeting": "Ask me anything — try a camera name, \"overview\", or \"storage\".",
-      "suggestions": "Suggested questions",
-      "thinking": "Looking that up...",
-      "placeholder": "Ask something, e.g. \"TP27\", \"overview\", \"anything worrying\"",
-      "errorTitle": "Sorry, that lookup failed",
-      "errorNote": "Please try again"
     }
   },
   "common": {
@@ -3182,13 +2518,6 @@
     "back": "Back",
     "password": "Password",
     "enterPassword": "Enter your password to confirm",
-    "clearData": "Clear All Data",
-    "clearDataWarning": "This will permanently delete ALL images, processing jobs, audit logs, Storage objects, and Redis queue data. Cameras, users, roles, and system configuration will NOT be affected. This action CANNOT be undone.",
-    "clearDataConfirmLabel": "Type DELETE to confirm",
-    "clearDataPasswordLabel": "Enter your password",
-    "clearDataSubmit": "Clear All Data",
-    "clearDataSuccess": "All data cleared successfully",
-    "clearDataError": "Failed to clear data",
     "expandAll": "Expand All",
     "collapseAll": "Collapse All",
     "confirm": "Confirm",
@@ -4033,39 +3362,6 @@
       "attachments": "Attachments",
       "probeSocket": "Probe Socket (554)"
     },
-    "imageServiceSearch": {
-      "clearAllFilters": "Clear all filters",
-      "clear": "Clear",
-      "lastPage": "Last page",
-      "id": "ID:",
-      "warningDeletingRawOutputFilesRemoves": "Warning: deleting raw/output files removes them from storage (MinIO/SeaweedFS) permanently to free space, and they cannot be recovered!",
-      "searchFileName": "Search file name...",
-      "allCameras": "All cameras",
-      "startDateDeleteFrom": "Start date (delete from)",
-      "endDateDeleteUntil": "End date (delete until)",
-      "clearFilters": "Clear filters",
-      "restore": "Restore",
-      "deletePermanently": "Delete Permanently",
-      "confirmDeletingTheSelected": "Confirm deleting the selected",
-      "imagesPermanentlyThisCannotBeUndone": "images permanently? This cannot be undone.",
-      "deletePermanently2": "Delete permanently"
-    },
-    "imageServiceProcessingMonitor": {
-      "queueResumed": "Queue resumed",
-      "queuePaused": "Queue paused",
-      "activeQueuePurged": "Active queue purged",
-      "clickToResumeTheQueue": "Click to resume the queue",
-      "clickToPauseTheQueue": "Click to pause the queue",
-      "resumeQueue": "Resume Queue",
-      "pauseQueue": "Pause Queue",
-      "clearStaleJobLocksInThe": "Clear stale job locks in the active queue",
-      "purgeActiveQueue": "Purge Active Queue",
-      "of": "(of",
-      "images": "images)",
-      "live": "Live",
-      "disconnected": "Disconnected",
-      "auto": "Auto"
-    },
     "imageServiceCameras": {
       "metric": "Metric",
       "value": "Value",
@@ -4083,24 +3379,6 @@
       "streamPath": "Stream path (MediaMTX)",
       "streamPathHint": "Path used for live view and recording; must be unique. May be left blank for DVR/NVR channels"
     },
-    "deadLetterQueue": {
-      "jobQueuedForRetry": "Job queued for retry",
-      "failedToRetryJob": "Failed to retry job",
-      "jobRejected": "Job rejected",
-      "failedToRejectJob": "Failed to reject job",
-      "jobsSentForRetry": "{{updated}} jobs sent for retry",
-      "failedToBulkRetry": "Failed to bulk retry",
-      "jobsRejected": "{{updated}} jobs rejected",
-      "failedToBulkReject": "Failed to bulk reject"
-    },
-    "processingVisualizer": {
-      "idle": "Idle",
-      "processing": "Processing...",
-      "styleRing": "Progress Ring",
-      "styleFlow": "Data Flow",
-      "stylePulse": "Pulse Wave",
-      "styleParticle": "Particle"
-    },
     "storageProvidersPage": {
       "gb": "GB",
       "gb2": "GB)",
@@ -4111,13 +3389,6 @@
       "typePageNumberAndPressEnter": "Type page number and press Enter",
       "searchThisGuide": "Search this guide...",
       "noPagesMatch": "No pages match \""
-    },
-    "storageProfilesPage": {
-      "profileDeleted": "Profile deleted",
-      "areYouSureYouWantTo": "Are you sure you want to delete this profile?",
-      "profileCreated": "Profile created",
-      "profileUpdated": "Profile updated",
-      "codeAndNameEnAreRequired": "Code and Name (EN) are required"
     },
     "systemConfigPage": {
       "logo": "Logo"
@@ -4165,21 +3436,6 @@
     "loginPage": {
       "logo": "Logo",
       "version": "Version"
-    },
-    "pipelineFlow": {
-      "cameraSyncWorkerRedisQueueProcessing": "Camera → Sync Worker → Redis Queue → Processing Worker → Storage → Database"
-    },
-    "imageServiceOverview": {
-      "metric": "Metric",
-      "value": "Value",
-      "gb": "{{v0}} (GB)",
-      "queue": "Queue",
-      "count": "Count",
-      "gb2": "(GB)"
-    },
-    "imageServiceStorage": {
-      "metric": "Metric",
-      "value": "Value"
     }
   }
 }

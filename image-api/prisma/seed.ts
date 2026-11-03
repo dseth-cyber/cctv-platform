@@ -413,57 +413,14 @@ async function main() {
   // untouched — it's harmless to leave running unused, and other cameras can still be
   // pointed at it manually if a test SMB target is ever needed again.
 
-  // Seed Masterdata: camera_type, image_category, defect_type, inspection_type
+  // Seed Masterdata: camera_status
   console.log('Seeding masterdata (base types)...');
   const baseTypes = [
-    // camera_type
-    { type: 'camera_type', code: 'line_scan', nameTh: 'กล้อง Line Scan', nameEn: 'Line Scan Camera', nameCn: '线扫描相机', nameMm: 'Line Scan ကင်မရာ', nameJp: 'ラインスキャンカメラ', sortOrder: 1 },
-    { type: 'camera_type', code: 'area_scan', nameTh: 'กล้อง Area Scan', nameEn: 'Area Scan Camera', nameCn: '面扫描相机', nameMm: 'Area Scan ကင်မရာ', nameJp: 'エリアスキャンカメラ', sortOrder: 2 },
-    { type: 'camera_type', code: 'ccd', nameTh: 'กล้อง CCD', nameEn: 'CCD Camera', nameCn: 'CCD相机', nameMm: 'CCD ကင်မရာ', nameJp: 'CCDカメラ', sortOrder: 3 },
-    { type: 'camera_type', code: 'cmos', nameTh: 'กล้อง CMOS', nameEn: 'CMOS Camera', nameCn: 'CMOS相机', nameMm: 'CMOS ကင်မရာ', nameJp: 'CMOSカメラ', sortOrder: 4 },
-    { type: 'camera_type', code: 'infrared', nameTh: 'กล้องอินฟราเรด', nameEn: 'Infrared Camera', nameCn: '红外相机', nameMm: 'အနီအောက်ရောင်ခြည်ကင်မရာ', nameJp: '赤外線カメラ', sortOrder: 5 },
-    { type: 'camera_type', code: '3d_camera', nameTh: 'กล้อง 3D', nameEn: '3D Camera', nameCn: '3D相机', nameMm: '3D ကင်မရာ', nameJp: '3Dカメラ', sortOrder: 6 },
-    { type: 'camera_type', code: 'ip_camera', nameTh: 'กล้อง IP', nameEn: 'IP Camera', nameCn: 'IP摄像机', nameMm: 'IP ကင်မရာ', nameJp: 'IPカメラ', sortOrder: 7 },
-    { type: 'camera_type', code: 'other', nameTh: 'อื่นๆ', nameEn: 'Other', nameCn: '其他', nameMm: 'အခြား', nameJp: 'その他', sortOrder: 99 },
     // camera_status
     { type: 'camera_status', code: 'active', nameTh: 'ทำงาน', nameEn: 'Active', nameCn: '运行中', nameMm: 'အသက်ဝင်', nameJp: 'アクティブ', sortOrder: 1 },
     { type: 'camera_status', code: 'inactive', nameTh: 'ไม่ทำงาน', nameEn: 'Inactive', nameCn: '未运行', nameMm: 'မလုပ်ဆောင်', nameJp: '非アクティブ', sortOrder: 2 },
     { type: 'camera_status', code: 'maintenance', nameTh: 'ซ่อมบำรุง', nameEn: 'Maintenance', nameCn: '维护中', nameMm: 'ပြုပြင်ထိန်းသိမ်း', nameJp: 'メンテナンス', sortOrder: 3 },
     { type: 'camera_status', code: 'error', nameTh: 'ข้อผิดพลาด', nameEn: 'Error', nameCn: '错误', nameMm: 'အမှား', nameJp: 'エラー', sortOrder: 4 },
-    // capture_mode
-    { type: 'capture_mode', code: 'periodic', nameTh: 'ตามระยะเวลา', nameEn: 'Periodic', nameCn: '定时', nameMm: 'အချိန်ကာလအလိုက်', nameJp: '定期', sortOrder: 1 },
-    { type: 'capture_mode', code: 'on_demand', nameTh: 'ตามคำสั่ง', nameEn: 'On Demand', nameCn: '按需', nameMm: 'လိုအပ်သလို', nameJp: 'オンデマンド', sortOrder: 2 },
-    { type: 'capture_mode', code: 'continuous', nameTh: 'ต่อเนื่อง', nameEn: 'Continuous', nameCn: '连续', nameMm: 'ဆက်တိုက်', nameJp: '連続', sortOrder: 3 },
-    // image_category
-    { type: 'image_category', code: 'quality_inspection', nameTh: 'ตรวจสอบคุณภาพ', nameEn: 'Quality Inspection', nameCn: '质量检查', nameMm: 'အရည်အသွေးစစ်ဆေးခြင်း', nameJp: '品質検査', sortOrder: 1 },
-    { type: 'image_category', code: 'label_verification', nameTh: 'ตรวจสอบฉลาก', nameEn: 'Label Verification', nameCn: '标签验证', nameMm: 'တံဆိပ်စစ်ဆေးခြင်း', nameJp: 'ラベル検証', sortOrder: 2 },
-    { type: 'image_category', code: 'packaging', nameTh: 'บรรจุภัณฑ์', nameEn: 'Packaging', nameCn: '包装', nameMm: 'ထုပ်ပိုးခြင်း', nameJp: 'パッケージング', sortOrder: 3 },
-    { type: 'image_category', code: 'dimension_check', nameTh: 'ตรวจสอบขนาด', nameEn: 'Dimension Check', nameCn: '尺寸检查', nameMm: 'အတိုင်းအတာစစ်ဆေးခြင်း', nameJp: '寸法検査', sortOrder: 4 },
-    { type: 'image_category', code: 'surface_inspection', nameTh: 'ตรวจสอบพื้นผิว', nameEn: 'Surface Inspection', nameCn: '表面检查', nameMm: 'မျက်နှာပြင်စစ်ဆေးခြင်း', nameJp: '表面検査', sortOrder: 5 },
-    { type: 'image_category', code: 'color_check', nameTh: 'ตรวจสอบสี', nameEn: 'Color Check', nameCn: '颜色检查', nameMm: 'အရောင်စစ်ဆေးခြင်း', nameJp: '色検査', sortOrder: 6 },
-    { type: 'image_category', code: 'barcode_ocr', nameTh: 'บาร์โค้ด/OCR', nameEn: 'Barcode/OCR', nameCn: '条码/OCR', nameMm: 'ဘားကုဒ်/OCR', nameJp: 'バーコード/OCR', sortOrder: 7 },
-    { type: 'image_category', code: 'other', nameTh: 'อื่นๆ', nameEn: 'Other', nameCn: '其他', nameMm: 'အခြား', nameJp: 'その他', sortOrder: 99 },
-    // defect_type
-    { type: 'defect_type', code: 'scratch', nameTh: 'รอยขีดข่วน', nameEn: 'Scratch', nameCn: '划痕', nameMm: 'ခြစ်ရာ', nameJp: '傷', sortOrder: 1 },
-    { type: 'defect_type', code: 'dent', nameTh: 'รอยบุบ', nameEn: 'Dent', nameCn: '凹痕', nameMm: 'ချိုင့်ဝင်ရာ', nameJp: 'へこみ', sortOrder: 2 },
-    { type: 'defect_type', code: 'stain', nameTh: 'คราบสกปรก', nameEn: 'Stain', nameCn: '污渍', nameMm: 'အညစ်အကြေး', nameJp: '汚れ', sortOrder: 3 },
-    { type: 'defect_type', code: 'misalignment', nameTh: 'เยื้องศูนย์', nameEn: 'Misalignment', nameCn: '错位', nameMm: 'ချိန်ညှိမှုလွဲ', nameJp: '位置ずれ', sortOrder: 4 },
-    { type: 'defect_type', code: 'crack', nameTh: 'รอยแตก', nameEn: 'Crack', nameCn: '裂纹', nameMm: 'အက်ကွဲခြင်း', nameJp: 'ひび割れ', sortOrder: 5 },
-    { type: 'defect_type', code: 'color_deviation', nameTh: 'สีเพี้ยน', nameEn: 'Color Deviation', nameCn: '色差', nameMm: 'အရောင်လွဲခြင်း', nameJp: '色ずれ', sortOrder: 6 },
-    { type: 'defect_type', code: 'missing_part', nameTh: 'ชิ้นส่วนขาด', nameEn: 'Missing Part', nameCn: '缺件', nameMm: 'အစိတ်အပိုင်းပျောက်', nameJp: '部品欠落', sortOrder: 7 },
-    { type: 'defect_type', code: 'deformation', nameTh: 'ผิดรูป', nameEn: 'Deformation', nameCn: '变形', nameMm: 'ပုံသဏ္ဍာန်ပျက်', nameJp: '変形', sortOrder: 8 },
-    { type: 'defect_type', code: 'other', nameTh: 'อื่นๆ', nameEn: 'Other', nameCn: '其他', nameMm: 'အခြား', nameJp: 'その他', sortOrder: 99 },
-    // inspection_type
-    { type: 'inspection_type', code: 'incoming', nameTh: 'ตรวจรับวัตถุดิบ', nameEn: 'Incoming Inspection', nameCn: '来料检验', nameMm: 'ဝင်လာစစ်ဆေးခြင်း', nameJp: '受入検査', sortOrder: 1 },
-    { type: 'inspection_type', code: 'in_process', nameTh: 'ตรวจระหว่างผลิต', nameEn: 'In-Process Inspection', nameCn: '过程检验', nameMm: 'လုပ်ငန်းစဉ်စစ်ဆေးခြင်း', nameJp: '工程内検査', sortOrder: 2 },
-    { type: 'inspection_type', code: 'final', nameTh: 'ตรวจขั้นสุดท้าย', nameEn: 'Final Inspection', nameCn: '最终检验', nameMm: 'နောက်ဆုံးစစ်ဆေးခြင်း', nameJp: '最終検査', sortOrder: 3 },
-    { type: 'inspection_type', code: 'outgoing', nameTh: 'ตรวจก่อนส่งมอบ', nameEn: 'Outgoing Inspection', nameCn: '出货检验', nameMm: 'ထွက်ခွာစစ်ဆေးခြင်း', nameJp: '出荷検査', sortOrder: 4 },
-    { type: 'inspection_type', code: 'periodic', nameTh: 'ตรวจตามรอบ', nameEn: 'Periodic Inspection', nameCn: '定期检验', nameMm: 'အချိန်ကာလအလိုက်စစ်ဆေးခြင်း', nameJp: '定期検査', sortOrder: 5 },
-    { type: 'inspection_type', code: 'special', nameTh: 'ตรวจพิเศษ', nameEn: 'Special Inspection', nameCn: '特殊检验', nameMm: 'အထူးစစ်ဆေးခြင်း', nameJp: '特別検査', sortOrder: 6 },
-    { type: 'inspection_type', code: 'other', nameTh: 'อื่นๆ', nameEn: 'Other', nameCn: '其他', nameMm: 'အခြား', nameJp: 'その他', sortOrder: 99 },
-    // image_viewpoint (มุมมองภาพ) — angle the camera captures the part from
-    { type: 'image_viewpoint', code: 'top', nameTh: 'บน', nameEn: 'Top', nameCn: '顶部', nameMm: 'အပေါ်', nameJp: '上', sortOrder: 1 },
-    { type: 'image_viewpoint', code: 'side', nameTh: 'ข้าง', nameEn: 'Side', nameCn: '侧面', nameMm: 'ဘေး', nameJp: '横', sortOrder: 2 },
   ];
 
   for (const entry of baseTypes) {

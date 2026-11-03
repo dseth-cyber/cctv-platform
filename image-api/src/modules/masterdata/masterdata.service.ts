@@ -1,7 +1,7 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
 
-export const MASTERDATA_TYPES = ['camera_type', 'camera_status', 'capture_mode', 'image_category', 'defect_type', 'inspection_type', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'customer', 'job_type', 'production_line', 'image_viewpoint'] as const;
+export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
 export async function listMasterdata(params: {

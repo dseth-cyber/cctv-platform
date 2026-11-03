@@ -447,44 +447,6 @@
       "enable": "启用",
       "disable": "禁用",
       "edit": "编辑",
-      "pressure": {
-        "title": "存储压力",
-        "normal": "正常",
-        "warning": "警告",
-        "pressure": "压力",
-        "critical": "严重",
-        "emergency": "紧急",
-        "sectionTitle": "存储压力阈值",
-        "sectionDesc": "配置触发告警和自动清理的使用率阈值。",
-        "warningThreshold": "警告阈值 (%)",
-        "startThreshold": "开始清理 (%)",
-        "stopThreshold": "停止清理 (%)",
-        "stopHint": "清理将持续进行直到使用率降至此水平",
-        "criticalThreshold": "严重阈值 (%)",
-        "emergencyThreshold": "紧急阈值 (%)",
-        "backpressureStrategy": "存储严重不足时的策略",
-        "continuePolling": "继续轮询（默认）",
-        "stopPolling": "停止轮询"
-      },
-      "cleanup": {
-        "title": "存储清理",
-        "modeManual": "手动清理",
-        "modeEmergency": "紧急清理",
-        "emergencyWarning": "紧急模式在策略允许的情况下，也可能删除设置为手动模式的摄像头数据。请在执行前仔细查看预览结果。",
-        "currentUsage": "当前使用率",
-        "afterCleanup": "清理后",
-        "filesToDelete": "待删除文件数",
-        "spaceToFree": "可释放空间",
-        "byFileType": "按文件类型",
-        "affectedCameras": "受影响的摄像头（{{count}}）",
-        "noCandidates": "当前没有需要删除的文件",
-        "passwordConfirm": "请输入密码以确认清理",
-        "passwordPlaceholder": "您的密码",
-        "passwordError": "密码错误，或无法完成此操作",
-        "executeManual": "立即清理",
-        "executeEmergency": "确认紧急清理",
-        "executeSuccess": "清理完成：{{count}} 个文件（{{size}} GB）"
-      },
       "capacityGb": "最大容量 (GB)",
       "capacityAutoHint": "从磁盘自动检测",
       "capacityAutoDesc": "本地磁盘会从文件系统自动检测容量。输入数值可覆盖。",
@@ -495,57 +457,6 @@
       "capacityDetectUnsupported": "暂时无法检测实际容量（卷服务器不可达，或此存储类型不支持）。",
       "capacityDetectedResult": "检测结果：总计 {{total}}GB（可用 {{free}}GB）",
       "capacityUseDetected": "使用此数值"
-    },
-    "migrations": {
-      "title": "迁移任务",
-      "subtitle": "在存储提供商之间迁移文件",
-      "newMigration": "新建迁移",
-      "sourceProvider": "源提供商",
-      "targetProvider": "目标提供商",
-      "fileType": "文件类型（可选）",
-      "allTypes": "所有文件类型",
-      "status": "状态",
-      "pending": "待处理",
-      "running": "运行中",
-      "completed": "已完成",
-      "failed": "失败",
-      "cancelled": "已取消",
-      "totalFiles": "总文件数",
-      "migratedFiles": "已迁移文件数",
-      "progress": "进度",
-      "startMigration": "开始迁移",
-      "cancelJob": "取消任务",
-      "createJob": "创建迁移任务",
-      "noJobs": "暂无迁移任务",
-      "created": "迁移任务创建成功",
-      "started": "迁移已开始",
-      "cancelledMsg": "迁移已取消"
-    },
-    "storageProfiles": {
-      "title": "存储配置文件",
-      "subtitle": "基于策略的路由到存储后端",
-      "notWiredWarning": "提示：目前在此页面创建的配置文件尚未对实际文件存储产生任何影响——所有新文件仍然只会保存到被标记为默认的那一个 Storage Provider。按文件类型路由的功能计划在后续阶段 (P48) 实现。",
-      "newProfile": "新建配置文件",
-      "editProfile": "编辑配置文件",
-      "code": "代码",
-      "name": "名称",
-      "nameTh": "名称 (TH)",
-      "nameEn": "名称 (EN)",
-      "nameCn": "名称 (CN)",
-      "nameMm": "名称 (MM)",
-      "nameJp": "名称 (JP)",
-      "provider": "提供商",
-      "rules": "规则",
-      "ruleCount": "{{count}} 条规则",
-      "sortOrder": "排序",
-      "status": "状态",
-      "isActive": "启用",
-      "description": "描述",
-      "noProfiles": "尚未配置存储配置文件",
-      "deleteConfirm": "确定要删除此配置文件吗？",
-      "created": "配置文件创建成功",
-      "updated": "配置文件更新成功",
-      "deleted": "配置文件删除成功"
     },
     "retention": {
       "title": "保留策略",
@@ -602,68 +513,6 @@
       "jobsTodayHint": "统计处理次数（含重试）— 一张图片可能有多个任务，因此可能与总览页的\"今日图片\"不同",
       "modeCumulative": "累计",
       "modeRealtime": "实时 (20)"
-    },
-    "processingLogs": {
-      "title": "处理日志",
-      "subtitle": "查看图像处理历史记录",
-      "allJobs": "所有任务",
-      "jobType": "任务类型",
-      "status": "状态",
-      "imageId": "图像ID",
-      "workerId": "工作节点",
-      "queuedAt": "排队时间",
-      "startedAt": "开始时间",
-      "completedAt": "完成时间",
-      "duration": "耗时",
-      "errorMessage": "错误信息",
-      "retry": "重试",
-      "retrySuccess": "任务已重新加入队列",
-      "noLogs": "未找到处理日志",
-      "allTypes": "所有类型",
-      "allStatuses": "所有状态",
-      "statusQueued": "排队中",
-      "statusRunning": "运行中",
-      "statusCompleted": "已完成",
-      "statusFailed": "失败",
-      "statusRetrying": "重试中",
-      "statusDeadLetter": "死信",
-      "typeSync": "同步",
-      "typeConvert": "转换",
-      "typeThumbnail": "缩略图",
-      "typeChecksum": "校验和",
-      "typeArchive": "归档",
-      "typeDelete": "删除",
-      "seconds": "秒",
-      "bulkDelete": "根据存留时间删除日志",
-      "bulkDeleteTitle": "删除处理日志",
-      "bulkDeleteDays": "删除早于以下时间的处理日志",
-      "bulkDeletePreview": "将删除截止日期 {{date}} 前的 {{count}} 条处理日志记录",
-      "bulkDeleteConfirm": "请输入您的密码以确认操作",
-      "bulkDeletePassword": "您的密码",
-      "bulkDeleteSuccess": "成功删除了 {{count}} 条处理日志",
-      "bulkDeleteWrongPassword": "密码不正确",
-      "bulkDeleteWarning": "此清空操作执行后将无法撤销或恢复数据",
-      "days": "天"
-    },
-    "deadLetter": {
-      "title": "死信队列",
-      "subtitle": "监控和管理处理失败的任务",
-      "total": "死信总数",
-      "byJobType": "任务类型数",
-      "oldest": "最早",
-      "maxRetries": "最大重试",
-      "jobTypeBreakdown": "按任务类型分类",
-      "allTypes": "所有类型",
-      "retryAll": "全部重试",
-      "rejectAll": "全部拒绝",
-      "jobType": "任务类型",
-      "image": "图像",
-      "error": "错误",
-      "retries": "重试次数",
-      "queuedAt": "排队时间",
-      "retry": "重试",
-      "reject": "拒绝",
-      "noDeadLetters": "无死信 — 所有任务处理成功"
     },
     "auditLog": {
       "title": "审计日志",
@@ -889,152 +738,6 @@
       "noAccount": "还没有账户？在此注册",
       "forbidden": "您没有执行此操作的权限"
     },
-    "executive": {
-      "title": "高管视图",
-      "subtitle": "系统存储的每张图像都是一件不良品 — 所有统计均基于真实拍摄时间（即生产时间）",
-      "defectsToday": "今日不良品",
-      "defectsPeriod": "所选期间不良品",
-      "vsPrevious": "与上一期间对比",
-      "machinesWithDefects": "有不良品的机台",
-      "avgPerMachine": "每台平均",
-      "topMachine": "不良品最多的机台",
-      "pieces": "件",
-      "defects": "不良品",
-      "rankingTitle": "不良品最多的机台排名",
-      "trendTitle": "每日不良品趋势",
-      "tableTitle": "按机台明细",
-      "rank": "排名",
-      "machine": "机台 / 相机",
-      "share": "占比",
-      "vsAvg": "对比平均值",
-      "vsAvgHint": "与同期有不良品机台的平均值对比 — 超过1.5倍应予以检查",
-      "noData": "所选期间未发现不良品",
-      "anomalyTitle": "不良品异常的机台",
-      "anomalyHint": "不良品数量超过同期有不良品机台平均值的1.5倍以上",
-      "critical": "严重",
-      "warning": "警示",
-      "inspect": "检查",
-      "period": {
-        "1d": "今天",
-        "7d": "7天",
-        "14d": "14天",
-        "30d": "30天",
-        "3m": "3个月",
-        "6m": "6个月",
-        "9m": "9个月",
-        "12m": "12个月",
-        "24m": "24个月"
-      },
-      "cameraStatusTitle": "摄像头状态 (实时)",
-      "camerasUnit": "摄像头",
-      "noCameraData": "无摄像头状态数据",
-      "rankingHint": "×N 为与有不良品机台平均值的比较 — 超过 ×1.5 应检查",
-      "byCustomerTitle": "按客户统计不良品",
-      "byCustomerHint": "按拍摄时间关联生产批次 — 显示机台与负责班组",
-      "teamByShift": "按班次 (P50)",
-      "unattributedRuns": "无生产批次覆盖",
-      "topCausesTitle": "机台停机/问题主要原因",
-      "topCausesHint": "来自所选期间的摄像头/机台事件 — 含停机时间",
-      "stillOpen": "未关闭",
-      "hoursUnit": "小时",
-      "paretoHint": "到此机台 = 覆盖 80% 不良品 — 优先解决这组最划算 (80/20 法则)",
-      "cumShare": "累计占比",
-      "heatmapTitle": "不良品集中时段 (小时 × 星期)",
-      "heatmapHint": "颜色越深不良越多 — 基于实际拍摄时间，用于发现反复出问题的时段/班次",
-      "mttrTitle": "每月机台故障时长 (Downtime / MTTR)",
-      "mttrHint": "每月故障总时长 — 趋势下降 = 修复更快/故障更少",
-      "downtime": "停机时间",
-      "incidentsUnit": "次",
-      "noIncidents": "无机台事件",
-      "dowSun": "日",
-      "dowMon": "一",
-      "dowTue": "二",
-      "dowWed": "三",
-      "dowThu": "四",
-      "dowFri": "五",
-      "dowSat": "六",
-      "dailyAvgImages": "日均图像",
-      "defectsPerDay": "日均不良",
-      "dailyAvgStorage": "日均容量 (GB)",
-      "dailyAvgStorageHint": "所选期间每天平均新增的存储空间",
-      "dailyVolumeTitle": "每日图像量",
-      "dailyVolumeHint": "系统每天记录的图像数量",
-      "imagesUnit": "张",
-      "noAnomalies": "🛡️ 所有设备正常 — 未发现不良异常偏高的设备 (>1.5× 平均)",
-      "byShiftTitle": "按班次/负责团队的不良",
-      "byShiftHint": "根据拍摄时间与排班表归属 — 交接与无排班时段单独分出，不计入任何团队",
-      "attributed": "已归属",
-      "handover": "班次交接",
-      "unassigned": "无排班",
-      "noRoster": "📅 尚未设置排班表 (P50)",
-      "slaTitle": "各设备 SLA 可用率",
-      "slaHint": "对比所选期间摄像头实际可用率与 SLA 目标（不含计划维护）",
-      "slaTarget": "目标",
-      "storageForecastTitle": "存储空间预测",
-      "storageForecastHint": "用于决定是否采购更多存储/硬件",
-      "retentionWindowLabel": "当前容量可保留图像",
-      "retentionWindowHint": "按当前存储使用速率",
-      "storageDaysLeft": "存储将写满于",
-      "storageRunOutBy": "预计写满日期",
-      "insightsTitle": "给管理层的建议",
-      "insightsHint": "由固定规则得出——每个数字均取自真实数据，可追溯",
-      "insightsNone": "本期没有需要关注的问题",
-      "insightsLimitations": "数据局限"
-    },
-    "shifts": {
-      "title": "班次与责任",
-      "subtitle": "管理班次、技工团队与责任人 — 不良品根据拍摄时间自动归属到班次",
-      "tabRoster": "排班表",
-      "tabDefinitions": "班次定义",
-      "tabTeams": "团队",
-      "newShift": "新增班次",
-      "editShift": "编辑班次",
-      "code": "代码",
-      "name": "名称",
-      "time": "时间",
-      "handover": "交接(分钟)",
-      "startTime": "开始",
-      "endTime": "结束",
-      "color": "颜色",
-      "handoverHint": "交接 = 班次首尾不计入任何团队KPI的分钟数，以求公平",
-      "noShifts": "尚无班次定义",
-      "newTeam": "新增团队",
-      "editTeam": "编辑团队",
-      "supervisor": "主管",
-      "members": "成员",
-      "noTeams": "尚无团队",
-      "assignTeam": "分配团队",
-      "shift": "班次",
-      "thisWeek": "本周",
-      "autoGenerate": "自动生成",
-      "needSetup": "请先创建班次定义和团队，才能编排排班表",
-      "retroFlag": "追溯修改",
-      "retroLegend": "盾牌图标 = 排班在其日期之后被修改（已记录审计）",
-      "autoLegend": "自动生成",
-      "retroWarn": "此条目被追溯修改并记录在审计日志中",
-      "clear": "清除分配",
-      "from": "从",
-      "to": "至",
-      "rotation": "轮换",
-      "rotWeekly": "每周",
-      "rotDaily": "每日",
-      "rotNone": "不轮换(固定)",
-      "includeShifts": "要编排的班次",
-      "rotateTeams": "轮换的团队(按顺序)",
-      "overwrite": "覆盖已有条目",
-      "generate": "生成",
-      "generated": "已生成 {{n}} 条排班",
-      "generateHint": "团队按所选周期在各班次间轮换，之后可逐日修改",
-      "dow": {
-        "0": "一",
-        "1": "二",
-        "2": "三",
-        "3": "四",
-        "4": "五",
-        "5": "六",
-        "6": "日"
-      }
-    },
     "nav": {
       "imageService": "图像服务",
       "overview": "概览",
@@ -1084,10 +787,6 @@
     "masterdataManagement": {
       "title": "主数据管理",
       "subtitle": "管理 iSmart CCTV 的参考数据实体",
-      "tabCameraType": "相机类型",
-      "tabImageCategory": "图像类别",
-      "tabDefectType": "缺陷类型",
-      "tabInspectionType": "检查类型",
       "tabIncidentReason": "事件原因",
       "tabIncidentRootCause": "根本原因",
       "tabIncidentResolution": "解决方案",
@@ -1102,12 +801,7 @@
       "formActive": "启用",
       "formDefault": "默认值",
       "nameLabel": "名称 ({{lang}})",
-      "tabCameraStatus": "摄像头状态",
-      "tabCaptureMode": "捕获模式",
-      "tabCustomer": "客户",
-      "tabJobType": "工单类型",
-      "tabProductionLine": "产线",
-      "tabImageViewpoint": "图像视角"
+      "tabCameraStatus": "摄像头状态"
     },
     "telegramBot": {
       "title": "Telegram 机器人设置",
@@ -2476,28 +2170,6 @@
       "confirmDeleteOne": "删除事件 {{num}}？其附件照片也将被永久删除。",
       "clearIncidentsButton": "清除事件历史"
     },
-    "knowledgeArticles": {
-      "title": "故障排除文章",
-      "addArticle": "添加文章",
-      "editArticle": "编辑文章",
-      "searchPlaceholder": "按标题、症状或解决方案搜索文章...",
-      "noArticles": "暂无文章",
-      "fieldTitle": "标题",
-      "fieldSymptoms": "症状",
-      "fieldCause": "原因",
-      "fieldResolution": "解决方案",
-      "fieldVerification": "验证步骤",
-      "fieldTags": "标签",
-      "fieldTagsHint": "以逗号分隔，例如：摄像头, SMB, 网络",
-      "fieldReasonLink": "关联原因 (Reason)",
-      "fieldRootCauseLink": "关联根本原因 (Root Cause)",
-      "validationRequired": "请填写标题、症状和解决方案",
-      "createSuccess": "文章创建成功",
-      "updateSuccess": "文章更新成功",
-      "deleteSuccess": "文章删除成功",
-      "deleteConfirmTitle": "确认删除文章",
-      "deleteConfirmBody": "确定要删除这篇文章吗："
-    },
     "sopChecklists": {
       "title": "标准作业程序 (SOP)",
       "addChecklist": "添加清单",
@@ -2600,292 +2272,6 @@
       "deleted": "模板已删除",
       "deleteConfirm": "您确定要删除此模板吗？"
     },
-    "docs": {
-      "title": "产品文档",
-      "subtitle": "企业级开发者门户，深入分析架构、部署指南以及API规范。",
-      "menu": {
-        "gettingStarted": "开始使用",
-        "architecture": "系统架构",
-        "deployment": "部署指南",
-        "apiReference": "API 参考",
-        "eventCatalog": "事件目录",
-        "pluginSdk": "插件 / Worker SDK",
-        "databaseSchema": "数据库模式",
-        "storageProviders": "存储提供商",
-        "troubleshooting": "问题排查",
-        "bestPractices": "最佳实践",
-        "releaseNotes": "版本记录",
-        "roadmap": "产品路线图",
-        "userGuide": "用户手册与图表",
-        "aboutProgram": "关于程序",
-        "systemRequirements": "系统要求"
-      },
-      "gettingStarted": {
-        "title": "开始使用",
-        "p1": "欢迎来到图像服务（iSmart CCTV）产品文档中心。图像服务是一个企业级平台，专为工业MES和ERP系统中的高分辨率摄像头源自动抓取、处理、归档和监控而设计。",
-        "noteTitle": "架构速览",
-        "noteBody": "系统采用解耦架构，通过 Redis BullMQ 队列进行通信。相机将图像上传到网络 SMB 共享文件夹，由同步工人下载、处理并上传到 S3 对象存储。",
-        "preTitle": "系统前置要求",
-        "preItem1": "Docker Engine v20.10+ 和 Docker Compose v2.0+",
-        "preItem2": "PostgreSQL v15+ (主数据库存储)",
-        "preItem3": "Redis v7.0+ (任务队列控制)",
-        "preItem4": "可通过 SMB/CIFS 协议访问相机的共享文件夹",
-        "dockerTitle": "通过 Docker 快速部署",
-        "dockerBody": "运行以下 Docker 命令以获取代码并启动系统：",
-        "dockerWarning": "默认管理员账户为 admin 密码为 admin123，部署后请立即修改此默认凭据。",
-        "scaleTitle": "系统性能与扩容优化建议（可选）",
-        "scaleBody": "如果未来相机数量增加，需要提高处理速度，您可以通过 Docker Compose 轻松扩容，无需修改任何代码：",
-        "scaleStep1": "1. 扩展处理 Worker 节点 (Scale Workers):",
-        "scaleStep1Desc": "*此操作将充分利用剩余约 50% 的 CPU 空闲资源，并立即使吞吐量提高到每秒 3 - 4 张图片。*",
-        "scaleStep2": "2. 使用 SSD/NVMe 固态硬盘作为临时存储:",
-        "scaleStep2Desc": "由于管道频繁进行本地文件读写与上传，将系统部署在 SSD 上能最有效地解决磁盘 I/O 延迟瓶颈。"
-      },
-      "architecture": {
-        "title": "系统架构",
-        "p1": "图像服务采用微服务架构设计，能支持每小时处理数千张高分辨率工业图像而不会出现延迟或瓶颈。",
-        "flowTitle": "数据处理流管道",
-        "flow1Title": "1. 扫描与同步阶段 (Sync Worker)",
-        "flow1Body": "Sync Worker 通过 SMB 协议定期轮询相机共享目录。扫描自上次检查点以来的新 TIFF/RAW 文件，下载到本地临时目录，并将任务元数据推入 Redis 队列。",
-        "flow2Title": "2. 图像处理阶段 (Processing Worker)",
-        "flow2Body": "图像处理节点异步从 Redis 队列中获取任务。计算 SHA-256 校验和以防重复处理，提取图像元数据，将RAW格式转换为标准PNG，并生成压缩的缩略图。",
-        "flow3Title": "3. 存储与数据库索引阶段",
-        "flow3Body": "处理后的图片和缩略图将上传到配置的存储提供商（SeaweedFS, MinIO, 或本地磁盘）。同时将元数据写入 PostgreSQL 数据库，并分发 Webhook/WebSocket 消息。",
-        "warnTitle": "弹性水平扩展",
-        "warnBody": "在重度负载下，可通过扩展 image-processing-worker 的容器副本数量实现并行处理以分担负载。",
-        "scanTitle": "摄像头文件夹扫描的工作方式",
-        "scanBody": "系统会在每个轮询周期（默认 15 秒，可按摄像机设置）检查每台摄像机 SMB 共享中的新文件。工作方式：\n\n• 逐层遍历所有子文件夹直至最深层，最多支持 50 层嵌套（现有摄像机使用 3 层，例如 ImageArchive / camera_1 / 0021 / file），无论文件夹如何组织都不会遗漏。\n\n• 为避免无用功，系统会记住每个文件夹的最后修改时间。若文件夹未变化，本周期跳过重新列出其文件——其中不可能出现新文件。\n\n• 该跳过仅适用于存放文件的最底层文件夹。包含子文件夹的文件夹总会被遍历，因为在更深层添加文件时 SMB 不会更新上级文件夹的时间戳。\n\n• 每 20 个周期（约 5 分钟）系统会忽略已记忆的状态，从头重新列出全部文件，作为安全保障。\n\n• 最近 10 秒内写入的文件会暂缓处理，让摄像机写完，并在下一周期拾取。\n\n结果：一次扫描周期从约 9 秒缩短到约 1 秒，CPU 占用大幅下降，同时仍能找到每个文件。",
-        "scanOverwriteTitle": "会自动覆盖旧文件的摄像头",
-        "scanOverwriteBody": "部分摄像机设置为磁盘写满后删除最旧的图像并覆盖。这不会影响系统：删除文件同样会改变该文件夹的最后修改时间，系统会自动重新读取并重新计数。\n\n真正重要的是文件被覆盖前还剩多少时间。系统会根据摄像机上仍保留的最旧文件的时间自动计算，并显示在“摄像机可用性”页面。如果低于设定阈值（可在系统设置中调整），会立即告警——因为在被覆盖前未取回的图像将永久丢失，无法恢复。"
-      },
-      "deployment": {
-        "title": "部署指南",
-        "p1": "适用于虚拟机和生产环境服务器的推荐部署步骤。",
-        "composeTitle": "Docker Compose 配置示例",
-        "composeSub": "将以下内容保存为 docker-compose.yml 并配置对应环境变量：",
-        "sslTitle": "SSL/HTTPS 生产环境安全设置",
-        "sslBody": "为了在企业内部网中确保 SMB 密码和 API 密匙的安全传输，强制要求启用 HTTPS。使用以下脚本生成自签名证书："
-      },
-      "apiReference": {
-        "title": "API 参考",
-        "p1": "API 中的所有写入操作（POST/PATCH/DELETE）均需要令牌认证（Bearer Token）和相应的模块角色权限。",
-        "createTitle": "创建相机接口示例",
-        "createSub": "调用 API 接口向系统内添加新相机：",
-        "primaryTitle": "核心 API 接口列表",
-        "thMethod": "请求方式",
-        "thPath": "接口路径",
-        "thPermission": "所需模块权限"
-      },
-      "eventCatalog": {
-        "title": "事件目录",
-        "p1": "图像服务在操作完成后会将事件广播到 Webhook、WebSocket 以及 Kafka。集成开发人员可订阅这些主题以获取实时通知。",
-        "triggerTitle": "事件类型: image.processed",
-        "triggerSub": "当工作节点完成校验和计算、转换并成功上传至存储时自动触发：",
-        "signingTitle": "Webhook 安全签名",
-        "signingBody": "为了确保推送内容未被篡改，Webhook 请求头包含 X-Image-Service-Signature，该签名采用共享密钥并基于 HMAC-SHA256 算法生成。"
-      },
-      "pluginSdk": {
-        "title": "Worker 与 插件 SDK",
-        "p1": "可以通过自定义 Processing Worker 脚本，在图片存档前运行实时 AI 缺陷检测、目标识别或面部遮罩过滤。",
-        "hookTitle": "Python Worker Hook 示例",
-        "hookSub": "在工作节点代码库中实现以下方法以处理下载的图像：",
-        "tipTitle": "小贴士",
-        "tipBody": "由于 AI 分析图像会占用大量 CPU/GPU 资源，建议将处理 Worker 部署到独立的机器上，以避免影响主控制台的响应速度。"
-      },
-      "databaseSchema": {
-        "title": "数据库模式",
-        "p1": "主数据库采用 PostgreSQL。以下是 Prisma ORM 的模型结构定义：",
-        "prismaTitle": "Camera 相机 Prisma 模型",
-        "entitiesTitle": "核心表结构说明",
-        "entityCamera": "Camera: 存储相机详情、SMB 路径和工作状态。",
-        "entityImage": "ImageFile: 存储图片元数据、尺寸、存储路径以及与工单/批次的关联。",
-        "entityPolicy": "RetentionPolicy: 存储期限、自动清理与压缩规则。",
-        "entityAudit": "AuditLog: 记录系统操作日志、用户操作行为和 IP 以供追溯审计。"
-      },
-      "storageProviders": {
-        "title": "存储提供商",
-        "p1": "图像服务支持多种存储后端。可在系统设置页面动态切换存储提供商：",
-        "localTitle": "本地磁盘 (Local Disk)",
-        "localBody": "直接将图片存储在服务器磁盘上。适用于单机环境及初级调试阶段。",
-        "minioTitle": "MinIO (兼容 S3)",
-        "minioBody": "企业级对象存储服务，支持云端部署和高可用集群模式。",
-        "seaweedTitle": "SeaweedFS",
-        "seaweedBody": "超高速分布式文件系统，专为处理数十亿小文件/小图片设计和优化。"
-      },
-      "troubleshooting": {
-        "title": "问题排查",
-        "p1": "常见运行故障的排查步骤及自检方法。",
-        "cameraTitle": "相机状态显示 Offline 或 Error",
-        "cameraSteps": "1. 检查物理相机 IP 能否从服务器主机 Ping 通。\n2. 在相机设置页面点击测试连接以确认 SMB 密码是否过期。\n3. 确认 SMB 共享目录是否为对应账号分配了读写权限。",
-        "queueTitle": "Redis BullMQ 队列任务积压",
-        "queueBody": "若任务积压严重，表示 Worker 处理速度滞后。请检查 Worker 容器日志或增加 Worker 容器副本数。",
-        "missingFilesTitle": "怀疑系统漏抓了图像？",
-        "missingFilesSteps": "1. 打开“摄像机可用性”，查看摄像机端缓冲——摄像机上仍保留多少天的文件。数值较低表示文件可能在系统取回前被覆盖。\n2. 对比摄像机上的文件数量与系统中的图像数量，如有异常差距请报告管理员。\n3. 系统每 5 分钟已会重新列出全部文件。如果您刚手动添加了文件，请至少等待 5 分钟再判断是否遗漏。\n4. 在“摄像机”页面确认摄像机仍可访问，并查看其事件历史中是否有“无新图像”记录。\n5. 如果确实有文件遗漏，请让管理员触发一次完整重新扫描。"
-      },
-      "bestPractices": {
-        "title": "最佳实践",
-        "p1": "保障生产环境长期稳定运行的安全和架构建议。",
-        "securityTitle": "安全与加密规范",
-        "securityItem1": "在进入生产环境部署前，务必修改默认密钥 (JWT_SECRET, ENCRYPTION_KEY)。",
-        "securityItem2": "使用防火墙限制后端访问； metrics 监控接口仅对 Prometheus 抓取器开放。",
-        "securityItem3": "对于第三方外部系统对接，应使用独立的 API Key；严禁直接分享管理员 JWT 权限。"
-      },
-      "releaseNotes": {
-        "title": "版本记录",
-        "p1": "系统迭代开发日志与更新历史记录。",
-        "v110Title": "v1.1.0 (当前版本)",
-        "v110Body": "- 添加了 5 语言国际化翻译支持。\n- 集成了系统自检 API 批量测试诊断工具。\n- 新增了相机软删除回收站和删除时输入密码验证功能。",
-        "v100Title": "v1.0.0",
-        "v100Body": "- 发布初始版，提供 SMB 轮询抓图、Worker 队列分发以及 SeaweedFS/MinIO 存储对接。"
-      },
-      "roadmap": {
-        "title": "产品路线图",
-        "p1": "随着业务发展，系统下一阶段的演进路线规划：",
-        "phase1Title": "第一阶段: 高级 AI 缺陷分析 (Q3 2026)",
-        "phase1Body": "在 Worker 执行流中集成异常缺陷图像匹配、关键部分 OCR 识别等 AI 算法模块。",
-        "phase2Title": "第二阶段: 相机故障预测性维护 (Q4 2026)",
-        "phase2Body": "基于时序数据分析镜头偏移、污渍、偏色或网络闪断概率以实现提前报警。",
-        "phase3Title": "第三阶段: 深度 MES/ERP 业务整合 (Q1 2027)",
-        "phase3Body": "完成图片信息同 SAP/Oracle 等 MES 批次追踪链条的自动绑定与对齐。"
-      },
-      "userGuide": {
-        "title": "用户手册与仪表板图表说明",
-        "p1": "有关指标、系统配置以及仪表板中各图表的详细解读指南。",
-        "analyticsTitle": "1. 摄像头健康分析指标解读",
-        "analyticsBody": "摄像头健康指标的含义与评估标准如下：\n\n• 设备可用性 (Availability)\n  - 定义：统计时间段内，摄像头正常在线运行的时间比例。\n  - 推荐标准：应大于或等于 99.5%（SLA 目标值）。\n  - 含义：若低于此值，代表该摄像头掉线较为频繁。\n\n• MTBF (平均无故障时间)\n  - 定义：摄像头两次掉线/错误之间的平均正常工作时间（单位：小时）。\n  - 推荐标准：数值越高越好（建议大于 168 小时，即 7 天以上）。\n  - 含义：反映摄像头硬件及网络连接的长期稳定性。\n\n• MTTR (平均修复时间)\n  - 定义：从摄像头掉线到系统自动恢复或人工修好的平均时长（单位：分钟）。\n  - 推荐标准：数值越低越好（建议少于 15 分钟）。\n  - 含义：反映现场维护响应速度或重连机制的及时性。\n\n• 健康度评分 (Health Score)\n  - 定义：结合可用性、MTBF、MTTR 及掉线次数综合加权计算的 100 分制指标。\n  - 推荐标准：\n    - 80 - 100: 优秀/正常（绿色）\n    - 50 - 79: 预警/需维护（黄色）\n    - 低于 50: 严重/必须干预（红色）\n\n• 估算漏拍图片数 (Estimated Missed Images)\n  - 定义：估算在摄像头下线（Downtime）期间漏拍的图片数量。\n  - 计算方法：在线期间每小时平均拍摄张数 × 累计掉线小时数。\n  - 含义：帮助质量保证部门 (QA) 评估生产数据缺口（Data Gap）的严重性。",
-        "monitorTitle": "2. 任务状态与类型图表模式切换",
-        "monitorBody": "在“处理监视器”页面中，您可以在“任务状态”卡片的右上角切换两种图表展示模式：\n\n• 实时模式 (最近 20 条)\n  - 目的：类似于心电图，仅展示最新的 20 个工作任务状态。\n  - 含义：用于在大规模图像扫描时，实时查看是否有正在发生的报错并快速纠错。\n\n• 累计模式 (Cumulative)\n  - 目的：展示数据库中记录的所有处理任务的总累计数值。\n  - 含义：用于分析系统的长期总处理吞吐量以及累积负荷。",
-        "dataLifecycle": {
-          "title": "4. 智能数据生命周期与存储治理 (P26)",
-          "body": "智能数据生命周期与存储治理功能可防止存储空间意外用满，并减少人工运维负担。可在“保留策略”和“存储提供商”菜单中进行配置。\n\n主要优势：\n• 防止存储空间失控式用满——系统会在到达临界点之前发出告警和/或自动清理。\n• 同一系统内支持不同策略并存——部分摄像头绝不允许删除数据，部分摄像头可在空间不足时自动删除。\n• 执行删除前始终可预览结果（Simulate / Dry Run）——不会有意外的删除操作。\n• 通过图片锁定功能防止重要图片被意外删除。\n\n存储压力分为 5 个等级，按每个存储提供商单独跟踪：\n1. Normal（正常）——使用率低于警告阈值，一切正常运行。\n2. Warning（警告）——超过警告阈值（默认 75%），系统会通过告警管理页面和 Telegram 发出提醒，但尚不会对数据做任何处理。\n3. Pressure（压力）——超过清理启动阈值（默认 90%），系统会为已配置允许清理的摄像头开始自动清理，直到使用率降至停止阈值（默认 80%）。\n4. Critical（严重）——超过严重阈值（默认 95%）。\n5. Emergency（紧急）——超过紧急阈值（默认 98%）。若该提供商的策略设置为“停止轮询”，系统会暂时停止从使用该提供商的摄像头拉取图像，以防止损失进一步扩大。\n\n提示：系统具备防抖机制，避免状态频繁切换——新状态必须连续观测到 2 次才会被确认。\n\n如何配置百分比阈值（在“存储提供商”页面 > 编辑）：\n• 警告 / 开始清理 / 停止清理 / 严重 / 紧急阈值——可按每个提供商独立调整。\n• 背压策略（Backpressure Strategy）——可选择“继续轮询”（默认，适合必须持续运行的生产线）或“停止轮询”（更利于保护存储空间）。\n\nMax Capacity 应该设置为多少（如果系统运行在虚拟机上尤为重要）：\n每个 Provider 的“Max Capacity (GB)”应参照运行本系统的这台机器实际可见的磁盘大小，而不是宿主硬件的规格参数——例如，如果本系统运行在 Proxmox 上，系统只能看到 Proxmox 分配给该虚拟机的虚拟磁盘大小，永远看不到 Proxmox 宿主机上真实的 SSD 容量。配置前最准确的方法是在运行本系统的机器上执行 df -h 查看真实剩余空间。\n\n重要提示：系统中存在两个互不关联的“存储总容量”设置：\n1. 系统设置 > 存储限制 > 存储总容量——仅用于仪表板预测的单一全局数值，与 P26 引擎无关。\n2. 存储提供商 > 编辑 > Max Capacity (GB)——P26 引擎实际用于计算使用率百分比并驱动自动清理的按 Provider 配置数值。\n\n如果多个存储提供商共用同一块底层物理磁盘（例如所有容器都运行在同一台虚拟机上，共享同一块磁盘），切勿将所有 Provider 的 Max Capacity 总和设置得超过实际可用空间——每个 Provider 都是独立计算使用率百分比的，并不知道自己在与其他 Provider 共享磁盘。容量设置过高会让每个 Provider 都显得空间充裕，而实际共享的磁盘可能已接近用满。\n\n5 种清理模式（在“保留策略”页面 > 编辑中配置）：\n1. 仅按保留期限——默认模式，适合绝不允许删除数据的工厂（如制药、食品、汽车行业）。存储空间用满时，系统会停止接收新图像并发出告警，而不会删除任何数据。\n2. 保留期限 + 水位线——推荐大多数工厂使用。正常保留数据，一旦存储达到阈值，会先删除已过期的数据，再删除最旧的剩余数据，直至释放足够空间。\n3. 循环存储（Circular Storage）——类似 DVR，存储空间用满时自动删除最旧的数据，完全忽略保留天数。适合 Vision AI/CCTV 等临时缓存场景。\n4. 只读——绝不删除任何数据。存储空间达到严重水平时，系统仅停止处理并发出告警。适合审计/合规数据。\n5. 仅手动清理——完全没有自动删除，必须由管理员在“存储提供商”页面手动触发清理。\n\n如何在真正清理前使用 Simulate：\n在“存储提供商”页面，点击某个提供商旁的星光（清理）图标，系统会立即预览将删除多少文件/GB、哪些摄像头会受影响，并按文件类型（缩略图/已处理/原始文件）分类展示——此阶段不会删除任何内容。必须再次输入密码确认后才会真正执行删除。\n\n紧急清理：\n适用于存储空间已真正处于严重状态、且需要清理超出常规策略允许范围的数据时使用。如果某策略勾选了“允许纳入紧急清理”，该模式也可能包含设置为手动模式的摄像头。每次确认前都应仔细查看预览结果。\n\n图片锁定：\n用于防止重要图片在任何情况下被删除（例如客户投诉证据、审计用图片）。可在“搜索图片”页面 > 打开图片详情 > 锁定图片中进行锁定，并可填写锁定原因（可选）。已锁定的图片无论清理模式如何设置，都绝不会被自动清理引擎选中。\n\n无需修改代码即可新增存储空间（本地磁盘 / USB / NAS）：\n系统已预先将宿主机/VM 的 /mnt 目录绑定挂载到容器内的 /mnt/host-storage 路径下。因此，只要在实际主机的 /mnt/xxx 下挂载了新磁盘（新增 SSD/USB/NAS），网页端会立即可见，无需再修改 docker-compose 或重新构建系统。操作步骤：\n1. 在 VM 上将新磁盘挂载为 /mnt 下的某个路径，例如 /mnt/storage-8tb\n2. 在 VM 上执行 `sudo chown -R 1001:1001 /mnt/storage-8tb`（此步骤始终必须执行——新挂载的磁盘默认属主为 root，容器无法写入）\n3. 在「存储提供者」页面 > 新建 > 类型选择「本地文件系统」> Root Directory 填写 /mnt/host-storage/storage-8tb\n\n对于通过 SMB/NFS 使用的 NAS：必须先在 VM 上将该共享/导出目录挂载为真实路径（例如通过 `mount.cifs`），然后将该挂载路径填入 Provider 表单中的「Mount Path」字段。仅填写用户名/密码/共享路径而不填写 Mount Path，会导致实际文件上传失败，因为系统本身并不直接实现 SMB/NFS 协议连接。\n\n「存储配置文件」目前的限制：\n「存储配置文件」页面可以创建按文件类型路由到不同 Provider 的规则（例如 raw→NAS，thumbnail→SSD），但这些规则目前尚未对实际文件存储产生任何影响——所有新文件仍然只会保存到被标记为默认的那一个 Storage Provider。此功能将在后续阶段接入真实流程（P48 — 存储配置文件路由引擎）。\n\n当前范围（Phase A）：目前尚无清理运行的 KPI/统计仪表板，存储空间用满时也暂不支持本地缓冲（Local Buffer，目前仅支持“停止轮询”/“继续轮询”）。将数据迁移至长期归档存储（Archive Tier）计划在未来阶段推出。"
-        },
-        "overviewDashboard": {
-          "title": "5. 概览仪表板 (Overview Dashboard)",
-          "body": "概览页面是打开 iSmart CCTV 后看到的第一个页面，将整个系统的状态汇总在同一屏幕上，各个卡片（widget）均可自由拖动位置、调整大小。\n\n如何自定义布局：\n点击右上角的“编辑布局”按钮，即可拖动/调整每个 widget（拖动 widget 右上角的点状图标）。您的排布方式仅保存在您自己的浏览器中，不影响其他用户。点击“重置布局”可恢复默认排布。管理员（admin）还会额外看到“设为默认布局”按钮，用于将当前布局保存为所有尚未自行调整过的用户的默认布局。\n\n本页包含的 widget：\n1. 综合趋势（Executive Trends）——比较今日图片数量与历史累计总数，以及当前周期与上一周期的趋势对比，并附带每日图片数量与每日存储用量的趋势图。\n2. 统计摘要（Stats）——4 项核心数字：图片总数、活跃摄像头（活跃/总数）、已用存储空间（已用/总量）、处理速率（每小时图片数）。\n3. 最近活动（Recent Activity）——面积图，显示近期每日接收入库的图片数量。\n4. 存储增长（Storage Growth）——柱状图，显示每个时间段新增的存储空间（单位 GB）。\n5. 处理吞吐历史（Throughput History）——最近 24 小时的面积图，显示每小时完成的处理任务数，用于查看一天中哪些时段负载较高/较低。\n6. 平均吞吐率（Average Throughput）——大号数字显示平均速率，可在按分钟/按小时/按天之间切换，基于最近 24 小时累计数据计算。\n7. 摄像头状态（Camera Status）——饼图显示 Active/Maintenance/Inactive/Error 各状态摄像头占比。\n8. 按摄像头统计图片数（Images by Camera）——水平条形图，按摄像头显示各自的图片数量，可用于发现图片量异常偏高的摄像头。\n9. 按文件类型统计存储（Storage by File Type）——环形图，按 Raw/Processed/Thumbnail 分类。\n10. 队列长度（Queue Length）——处理队列中的任务数：等待中（Wait）、处理中（Active）、失败（Failed）、延迟（Delayed）——如果 Failed 数值异常偏高，应接着检查“死信队列 (Dead Letter Queue)”页面。\n11. PostgreSQL 统计（Postgres Stats）——TPS（每秒事务数）、活跃连接数、锁（Locks）、死锁（Deadlocks）——如果死锁数大于 0，数字会以红色闪烁警示，应进一步排查。\n12. 存储提供商统计（Provider Stats）——列出每个 Storage Provider 及其使用率进度条（低于 70% 显示绿色，70-85% 显示黄色，高于 85% 显示红色），并标注“默认”（Default）标签。\n\n数据导出（Export）：\n点击右上角的 Export 按钮，可一次性将本页所有 widget 的数据导出为文件（Excel/PDF）。\n\n解读提示：如果 Queue Failed 持续偏高，或 Postgres Deadlocks 经常不为 0，应分别接着检查“死信队列”和“处理日志”页面。"
-        },
-        "searchGuide": {
-          "title": "6. 搜索图片 (Search)",
-          "body": "搜索页面用于搜索、查看详情、下载和管理系统已接收的所有图片文件。\n\n搜索与筛选：\n• 搜索框——按文件名搜索。\n• 摄像头下拉框——筛选指定摄像头（或“所有摄像头”）。\n• “筛选”按钮——展开更多筛选条件：状态（Pending/Queued/Processing/Completed/Failed/Deleted/Archived）、日期范围（起-止）、按标签搜索（Key/Value）。\n• 点击任意列标题即可排序（摄像头名称、文件名、状态、文件大小、拍摄日期）。\n\n表格列说明：\n摄像头名称、文件名（如有子文件夹会一并显示，图片被锁定时会显示锁定图标）、状态、来源（“摄像头”=文件名符合摄像头日期时间命名规则、由真实扫描产生的文件；“特殊”=不符合该命名规则的文件，例如手动上传或特殊导入）、原始文件大小、处理后文件大小、拍摄时间。\n\n批量操作（Bulk Actions）：\n• 勾选多行后点击“批量重新处理”（Reprocess Selected），可一次性将多个文件重新加入处理队列。\n• “批量删除”（Bulk Delete）按钮 [需要 search:delete 权限]——选择天数（7/14/30/60/90/120/240/365 天），系统会先预览将删除的文件数量，必须输入密码确认后才会真正执行（此删除为软删除——文件会移入回收站，不会立即永久删除）。\n\n回收站（Trash Bin）：\n无论是单个删除还是批量删除，文件都会先进入“回收站”，不会立即消失。点击右上角“回收站”按钮打开。\n• 可单独恢复某个文件（Restore），或一键恢复全部（Restore All）。\n• “清空回收站”（Empty Trash）[需要 search:delete 权限]——需输入密码确认，此操作为真正的永久删除，无法撤销。\n\n图片详情（点击眼睛图标）：\n• 查看缩略图预览及完整元数据（像素尺寸、位深度、色彩空间、压缩方式、文件大小、SHA256 校验值、拍摄/处理时间）。\n• 按类型（Raw/Processed/Thumbnail）分别下载文件。\n• 添加/删除标签（key-value）以标记图片。\n• 图片锁定（Image Lock）——防止自动清理引擎（P26）选中该图片进行删除，可填写锁定原因（可选），随时可解锁。\n• 可直接在详情页中重新处理（Reprocess）或删除该图片。\n\n提示：如果发现“Failed”状态数量异常偏多，应接着前往“死信队列”页面查看处理失败的具体原因。"
-        },
-        "camerasGuide": {
-          "title": "7. 摄像头管理 (Cameras)",
-          "body": "摄像头管理页面用于新增/编辑/删除摄像头、手动触发扫描，以及变更摄像头状态（会自动与 Incident 系统联动）。\n\n摄像头列表：\n显示摄像头名称、IP 地址、摄像头类型、保留策略、状态（旁边有一个小圆点，表示真实连通性，独立于业务状态）、最近扫描时间、图片总数、添加日期及创建者。点击任意列标题即可排序。点击摄像头名称可打开该摄像头的详情页面（专属图表/统计数据）。\n\n连通状态圆点（Operational Status）与业务状态（Business Status）的区别：\n状态标签旁的小圆点显示的是“技术层面的真实情况”——摄像头当前是否真的可连通（绿色=在线、红色闪烁=离线、黄色闪烁=恢复中、灰色=未知），这与彩色状态标签（Active/Maintenance/Inactive/Error，即管理员手动设置的状态）是相互独立的。摄像头的业务状态可能是“Active”，但圆点却是红色（表示实际上目前无法连通）。\n\n变更摄像头状态 = 自动创建 Incident：\n点击状态标签（需有编辑权限）会打开状态变更对话框。变更为 Active 以外的任何状态都需要填写原因，并附加更多字段（问题描述、优先级、影响程度、负责人、关注人、最多可附加 3 张证据照片、预计修复完成日期）。系统会自动在“Incident 管理中心”页面创建对应的 Incident。变更回 Active 时，则会改为弹出“处理结果记录”（Resolution）对话框，要求填写根本原因/解决方法/预防措施。\n\n手动扫描（Scan Now）：\n• 右上角的“立即扫描”（Scan Now）按钮——立即让系统扫描所有摄像头，无需等待正常的自动扫描周期。\n• 每行的扫描图标（圆形箭头）——立即触发该摄像头单独扫描。\n\n新增/编辑摄像头表单：\n• 模板（Template）——选择模板以继承默认的图像处理设置（转换为 PNG、缩略图尺寸、压缩质量等），无需逐个摄像头单独配置。\n• IP 地址、SMB 共享路径——该摄像头/设备通过 SMB 共享图片的地址与路径。\n• “测试连接”（Test Connection）按钮——保存前先确认 SMB 连接确实可用。\n• “浏览”（Browse）按钮——打开真实的 SMB 共享/文件夹浏览器，无需手动输入即可选择路径。\n• 摄像头类型、拍摄模式（Periodic/On Demand/Continuous）、轮询间隔（秒）、SLA 目标（%）——在报表中会与实际运行时间进行比对。\n• SMB 用户名/密码。\n• 保留策略（Retention Policy）——必填。\n• 可折叠的“本摄像头专属设置”（Override）区域——仅对该摄像头覆盖模板中的数值，例如接受的文件扩展名、是否转换为 PNG、缩略图尺寸、压缩质量。留空或选择“继承”（Inherit）即改用模板的数值。\n\n删除摄像头：\n始终需要输入密码确认。已删除的摄像头会先进入“摄像头回收站”（Camera Trash），不会立即消失。可从右上角“摄像头回收站”按钮中恢复，或永久清空（需再次输入密码确认）。\n\n提示：如果某摄像头的圆点持续显示红色（离线），但业务状态仍为 Active，应检查该摄像头的网络/SMB 连接，并在 Incident 管理中心页面查看系统自动创建的相关 Incident 记录。"
-        },
-        "incidentCenterGuide": {
-          "title": "8. Incident 管理中心 (Incident Center)",
-          "body": "本页面将所有由摄像头状态变更（参见第 7 项）产生的 Incident 集中在一处管理，共有 2 个标签页：“列表”（List）与“知识库”（Knowledge）。\n\n列表标签页：\n可按搜索文字、摄像头、原因（Reason）、根本原因（Root Cause）、状态（进行中/已解决）、优先级（Critical/High/Medium/Low）进行筛选。点击任意列标题即可排序。MTTR（平均修复时长）列显示已解决 Incident 所耗费的时间；仍在进行中的 Incident 则显示已经过的时长（Ongoing）。\n\nIncident 详情（点击某一行）：\n• 基本信息：摄像头、原因、根本原因，并附带“置信度”标签（High/Medium/Low，如果由系统自动分析得出）、检测来源（Manual=由人工手动变更状态触发；Auto=由系统自动检测触发）。\n• 状态变更时附加的证据照片（点击可放大）。\n• 维修工单（Work Order）——可直接从该 Incident 创建维修工单，并在同一处更新工单状态（Open/In Progress/Completed）。\n• 标准作业流程清单（SOP Checklist）——如果该 Incident 的原因已关联清单，系统会在此显示供逐项打勾确认，并记录打勾历史（谁、何时打勾，见“历史记录”）。\n• 时间线（Timeline）——将摄像头在该 Incident 持续期间的真实连通事件（online/offline/recovering）与 Incident 本身的开启/关闭时间合并为一条统一时间线，便于查看问题未解决期间摄像头掉线了多少次。\n• 相关 Incident（Related Incidents）——列出与本次相关的其他 Incident（例如同一摄像头/同一原因），点击即可直接切换查看。\n• 相关知识文章（Related Knowledge Articles）——系统会根据本次 Incident 的原因/根本原因自动推荐相关文章。\n• 工作流（Workflow）——指派负责人、变更处理阶段（未分派/已分派/处理中/等待零件/等待供应商），点击“确认知悉”（Acknowledge）记录谁在何时接手此 Incident。\n\n知识库标签页：\n选择时间范围（7天/30天/90天/全部），查看统计摘要：Incident 总数、进行中数量、已解决数量、平均 MTTR，并附带常见问题排行榜、根本原因排行榜、常用解决方法排行榜等图表，以及发生 Incident 最多的摄像头列表（点击摄像头名称可直接跳转到已筛选好的列表标签页）。\n\n知识文章（Knowledge Articles）：\n创建/编辑/删除记录问题解决方法的文章（症状、原因、解决方法、验证步骤），可添加标签，并关联原因/根本原因代码，以便系统在对应 Incident 的详情页面中自动推荐。可通过顶部搜索框查找文章。\n\n标准作业流程清单（SOP Checklists）：\n为每个原因代码创建/编辑/删除标准作业清单（每行输入一个步骤）。当有新的 Incident 匹配该原因时，系统会将该清单拉取到详情页面，供负责人按顺序逐项打勾确认。\n\n清空全部 Incident 历史记录 [需要 cameras:delete 权限]：\n右上角的“清空 Incident 历史”按钮——可选择清除范围（清除全部，或仅清除早于 X 年的记录）。需要输入密码确认。警告：此删除为立即永久删除，包括磁盘上所有已附加的证据照片，且无法撤销。\n\n提示：可利用知识库标签页查看哪个摄像头/原因最常反复出现问题，提前撰写知识文章或设置 SOP 清单，有助于团队在下次遇到同样问题时更快地解决。"
-        },
-        "alertManagementGuide": {
-          "title": "9. 告警管理 (Alert Management)",
-          "body": "本页面用于查看、管理并清空系统实际触发的告警历史记录。“告警规则”（Alert Rules）本身的设置——例如启用/禁用各类告警、重复告警之间的冷却时间（cooldown）、通知渠道——位于单独的“系统设置”（Settings）页面，而非本页面。\n\n筛选：\n• 严重程度（Severity）——Critical、Warning、Info\n• 状态——进行中（Open）/ 已解决（Resolved）/ 全部\n\n表格：显示严重程度、告警标题、来源、发生时间。点击任意列标题即可排序。在移动端会切换为卡片列表而非表格，便于小屏幕阅读。\n\n针对每条告警的操作（点击眼睛图标查看完整详情）：\n• 详情视图显示完整告警内容、类型，以及确认/解决的时间戳。\n• 确认（Acknowledge）——记录已有人看到此告警，但不代表问题已经解决。\n• 解决（Resolve）——将此告警标记为已处理关闭。\n\n清空全部（Clear All）：\n右上角的“清空全部”按钮始终需要输入密码确认。警告：此操作会将系统中所有未解决的告警永久删除，且无法撤销。\n\n提示：某些技术类告警的标题和内容（例如原始 SMB 错误 NT_STATUS_BAD_NETWORK_NAME）会自动翻译为易懂的文字，而不是直接显示系统原始错误代码。"
-        },
-        "cameraAnalyticsGuide": {
-          "title": "10. 摄像头分析 (Camera Analytics)",
-          "body": "本页面显示单个摄像头的深度 SLA/正常运行时间统计，与「摄像头报表」页面（第 11 项，为原始数据表格）不同。\n\n选择摄像头与时间范围：\n使用左右箭头按钮或顶部搜索框切换摄像头。可选择分析周期（7/14/30/60/90 天）。\n\n本页 widget（可像概览页面一样拖动/调整大小，参见第 5 项）：\n1. 可用率（Availability，%）——所选周期内摄像头实际在线的时间百分比，并与该摄像头设置的 SLA 目标进行比较。\n2. MTBF（平均故障间隔时间）——每次摄像头掉线之间的平均时间，数值越高越好（表示摄像头越稳定）。\n3. MTTR（平均修复时间）——每次问题修复所需的平均时间，数值越低越好。\n4. 健康评分（Health Score）——由多项因素综合计算出的整体健康等级（Excellent/Good/Warning/Critical）。\n5. 在线/离线/维护时间占比——饼图显示在线、离线、维护中所占的时间比例（维护时间不计入 SLA 计算）。\n6. 预计丢失图片数（Estimated Lost Images）——估算摄像头离线期间本应拍摄但未拍摄到的图片数量，并与实际拍摄到的图片数量对比。\n7. 离线次数（Offline Events）——并附带在线/离线/维护总时长的完整明细。\n8. 时间线（Timeline）——显示所选周期内摄像头状态的连续状态条（绿色=在线、黄色=维护中、红色=离线），鼠标悬停任意区段可查看详情。\n9. 事件历史（Event History）——记录每一次状态变更的表格，包含原因、变更人及在该状态停留的时长。\n10. 摄像头对比（Camera Comparison）——柱状图同时对比系统内所有摄像头的可用率与健康评分，便于快速找出表现最差的摄像头。\n\n布局自定义与导出功能与概览页面完全相同（拖动/调整 widget 大小，管理员可保存为默认布局，一次性导出所有 widget 数据）。\n\n提示：可先从摄像头对比图（最后一个 widget）入手，找出系统内可用率最低的摄像头，再切换到该摄像头进行深入分析。"
-        },
-        "cameraReportsGuide": {
-          "title": "11. 摄像头报表 (Camera Reports)",
-          "body": "本页面是一个完全可自定义的电子表格式摄像头数据报表生成器，用于一次性提取所有摄像头的数据并导出为文件——与「摄像头分析」页面（第 10 项，专注于单个摄像头的图表/深度统计）不同。\n\n列自定义：\n点击右上角的滑块（Sliders）图标打开表格设置面板。共有 25 个以上的可选列，例如摄像头名称、状态、IP、图片总数、平均每日图片数、摄像头使用天数、故障次数、主要负责技术员、最常出问题的时间段、主要故障原因、最近一张图片时间、最近扫描时间、技术配置项（SMB 路径/域/用户名、轮询间隔、时区、拍摄模式、接受的文件扩展名、图像处理设置）以及创建/更新日期。\n• 勾选/取消勾选以显示/隐藏各列。\n• 拖动列以重新排序。\n• “全选”/“全部清除”按钮可一次性切换所有列。\n您的列配置仅保存在您自己的浏览器中，不会影响其他用户。\n\n搜索与筛选：\n可按摄像头名称或 IP 搜索，按状态（Online/Maintenance/Error/Offline）筛选。点击任意列标题即可按该列排序。表格上方会显示当前可见列数以及符合当前筛选条件的摄像头数量。\n\n导出：仅导出当前显示的列（按您排列的顺序）为 Excel/PDF 文件。\n\n提示：当需要以表格形式获取所有摄像头的汇总报表时（例如提交给管理层，或一次性核对多台摄像头的配置）使用本页面；当需要深入查看单个摄像头的 SLA 图表时，请使用「摄像头分析」页面。"
-        },
-        "cameraTemplatesGuide": {
-          "title": "12. 摄像头模板 (Camera Templates)",
-          "body": "摄像头模板是一组默认的图像处理设置，各摄像头可以直接选用，而不必逐个单独配置（参见第 7 项——摄像头管理页面中有「模板」字段可供选择）。\n\n列表显示：模板名称（若为默认模板会带星标）、接受的文件扩展名、是否转换为 PNG、是否生成缩略图、当前使用该模板的摄像头数量，以及是否启用。\n\n新增/编辑表单中的字段：\n• 名称、描述、排序顺序（Sort Order）。\n• 接受的文件扩展名（Accepted Extensions）——可多选（tif/tiff/ptif/ptiff/jpg/jpeg/png/bmp），决定 Sync Worker 会从使用该模板的摄像头中提取哪些文件类型。\n• 转换为 PNG（Convert to PNG）、保留较小文件（Keep Smaller）、生成缩略图（Generate Thumbnail）。\n• 缩略图尺寸（像素）、压缩质量（0-100）、轮询间隔（秒）。\n• 拍摄模式（Periodic/On Demand/Continuous）、默认保留策略（Retention Policy）。\n• “设为默认”（isDefault）——新增摄像头时会自动预先选中此模板。\n• “启用”（isActive）——已停用的模板在新增/编辑摄像头时不会再作为选项出现，但已在使用该模板的摄像头不受影响。\n\n删除模板：会弹出确认对话框，但不需要输入密码（与删除摄像头/图片/Incident 不同）。删除前务必先查看「摄像头」这一列——如果仍有摄像头在使用该模板，应先将这些摄像头转移到其他模板。\n\n重要提示：摄像头从模板继承的设置是「实时引用」，而非在创建摄像头时一次性复制的固定值——如果之后修改了模板中的数值，所有正在使用该模板（且未设置本摄像头专属 Override）的摄像头，会从下一次处理图片开始立即应用新数值，无需逐个摄像头修改。如果某台摄像头需要永久使用与模板不同的数值，请直接在摄像头管理页面为其设置 Override。"
-        },
-        "storageProfilesGuide": {
-          "title": "13. 存储配置文件 (Storage Profiles)",
-          "body": "本页面用于管理「存储配置文件」——即绑定到单个 Storage Provider 的一个标签，设计用于未来功能：按文件类型将文件路由到不同的存储位置（例如 raw→NAS，thumbnail→SSD）。但目前它对文件的实际存储位置尚无任何影响（本页面已有黄色警示条说明此情况）——所有新文件仍然只会保存到被标记为默认的那一个 Storage Provider。真正的路由功能计划在 P48 阶段——存储配置文件路由引擎（参见路线图页面）中实现。\n\n列表显示：代码（Code）、名称（英文）、绑定的 Provider（含类型）、路由规则数量（目前始终为 0，因为尚无 UI 可配置真正的规则）、排序顺序，以及启用/停用状态。\n\n新增/编辑表单中的字段：\n• 代码（Code）——唯一标识符。\n• Provider——选择此配置文件所绑定的 Storage Provider（仅列出已启用的 Provider）。\n• 5 种语言的名称（EN/TH/CN/MM/JP）。\n• 描述、排序顺序（Sort Order）。\n• 启用/停用（isActive）。\n\n删除：会弹出确认对话框，但不需要输入密码。\n\n提示：如果近期没有计划使用存储配置文件路由功能，完全不需要在本页面创建任何配置文件——系统仅通过「存储提供商」页面（Storage Providers，设置「默认」/isDefault）即可正常运作。"
-        },
-        "retentionGuide": {
-          "title": "14. 保留策略 (Retention Policy)",
-          "body": "本页面用于设定系统在考虑删除之前，应将各类图片保留多长时间。每个摄像头（第 7 项）或摄像头模板（第 12 项）都必须始终绑定一个保留策略。\n\n每张卡片显示：策略名称、清理模式（按模式显示不同颜色）、Raw/Processed/Thumbnail 各自的保留天数、Archive 启用状态，以及当前使用该策略的摄像头数量（如有）。\n\n新增/编辑表单中的字段：\n• 策略名称、描述。\n• Raw / Processed / Thumbnail 保留天数——按文件类型分别设置，因为 Raw 文件通常体积最大，所以保留时间往往比体积小得多的 Thumbnail 更短。\n• 启用 Archive——启用后会显示额外字段：Raw 文件转入归档前的天数，以及目标存储层级（Hot/Warm/Cold）。注意：完整的 Archive Tier 功能仍在开发中（参见路线图页面的 P27 阶段）——此处设置的数值只是为该功能预先搭建结构。\n• 清理模式（Cleanup Mode）——共 5 种模式（Retention Only/Retention+Watermark/Circular/Read Only/Manual），完整说明已在第 4 项（P26）中介绍。每次切换模式时，系统都会在选择器下方显示简短说明。\n• “允许纳入紧急清理”（Allow Emergency Cleanup）——默认关闭，即使模式设置为 Manual 也是如此。勾选此项后，紧急清理（在存储提供商页面）在真正的紧急情况下，才会将使用此策略的摄像头也纳入删除考虑范围。\n\n删除策略：如果仍有摄像头在使用该策略，系统会拒绝删除（并显示警告信息）——需先将所有相关摄像头转移到其他策略。\n\n提示：如果不确定该选择哪种模式，建议先从「仅按保留期限」（Retention Only，默认模式，最安全，不会自动删除）开始，等准备好让系统自动管理空间后，再切换为「保留期限 + 水位线」（Retention + Watermark）（各模式的完整说明请参见第 4 项）。"
-        },
-        "auditLogGuide": {
-          "title": "15. 审计日志 (Audit Log)",
-          "body": "本页面将整个系统中发生的每一项重要操作记录为永久审计追踪——几乎涵盖本指南提到的所有页面：创建/编辑/删除图片、摄像头、保留策略、存储提供商、用户、权限、API Key、摄像头模板、SOP 清单、知识文章、主数据、系统设置，以及前面各主题中提到的所有批量删除/清空全部功能。\n\n筛选：可按操作类型（Action）和数据类型（Entity）筛选。\n\n表格列：\n• 时间、用户（如果是系统自动执行的操作，会显示“System”）。\n• 操作（Action）——以颜色标签显示：红色 = 删除，绿色 = 创建，蓝色 = 其他（更新/查看/下载等）。\n• 数据类型（Entity）及对应 ID（Entity ID）。\n• 描述——某些操作类型（例如摄像头状态变更、摄像头创建/更新/删除）会自动翻译为易读的句子，而非显示系统原始文字。\n• 操作者的 IP 地址。\n\n点击任意列标题即可按该列排序。\n\n按时间批量删除记录（Bulk Delete）[需要 audit-log:read 权限]：\n选择天数（7-365 天），系统会先预览将删除的记录数量，必须输入密码确认后才会真正执行。警告：此操作为立即永久删除，无法恢复（与图片/摄像头使用的软删除回收站不同）。\n\n提示：本页面是查证系统中“谁在何时做了什么”的权威依据，适用于调查异常事件，或满足组织的合规/审计要求——使用批量删除前应仔细考虑合适的保留期限，因为该操作是永久性的。"
-        },
-        "backupGuide": {
-          "title": "16. 备份 (Backup)",
-          "body": "本页面用于运行和管理系统数据库及图片文件的备份，并可在不影响真实数据的情况下测试恢复。\n\n系统每天凌晨 03:00 会自动备份数据库和图片文件。您也可以随时点击各卡片上的“立即运行”（Run Now）手动触发备份。\n\n数据库备份（Database Backup）：\n使用 pg_dump 备份整个 PostgreSQL 数据库，压缩为 .sql.gz 文件，并计算 SHA256 校验值以验证文件完整性。\n\n存储备份（Storage Backup）：\n仅备份当前被标记为“默认”（Default）的那一个 Storage Provider 中的所有文件，打包为 .tar.gz 文件——如果您有多个 Provider，非默认 Provider 上的文件不会包含在此次备份中。\n\n每个摘要卡片显示：最新状态（已完成/失败/运行中/等待中）、文件大小、最近一次备份时间，以及失败时的错误信息。\n\n备份历史：以表格形式列出所有历史备份记录——类型、状态、开始时间、文件大小及文件路径。\n\n测试恢复（Test Restore）：\n点击已完成备份所在行的盾牌图标，可验证该备份文件是否真的能够打开/恢复，且不会影响系统中的任何真实数据。建议定期测试，以确认备份文件确实可用，而不仅仅是“文件存在”。\n\n提示：所有备份文件存储在 image-api 容器内的 /app/backups，该路径已绑定持久化 Docker 卷（backup-data），因此容器被重建/重新创建（例如系统更新期间）时备份文件不会丢失。不过该卷仍位于与系统其余部分相同的物理磁盘上——建议同时定期将 .sql.gz/.tar.gz 文件复制到异地保存，以防本机磁盘整体损坏。"
-        },
-        "masterdataGuide": {
-          "title": "17. 主数据 (Masterdata)",
-          "body": "本页面用于管理 9 类主数据/查找数据（Master/Lookup Data），它们在系统各处的表单中作为可选项使用，按标签页划分：\n\n• 摄像头类型（Camera Type）——摄像头表单中的“摄像头类型”选项（第 7 项）。\n• 摄像头状态（Camera Status）——摄像头状态变更对话框中的状态选项（第 7 项）。\n• 拍摄模式（Capture Mode）——摄像头/摄像头模板表单中的选项（第 7、12 项）。\n• 图片分类（Image Category）。\n• 缺陷类型（Defect Type）。\n• 检验类型（Inspection Type）。\n• Incident 原因（Incident Reason）——摄像头状态变更对话框中的“原因”选项，以及 Incident 管理中心页面的筛选条件（第 8 项）。\n• Incident 根本原因（Incident Root Cause）——用于 Incident 管理中心页面（第 8 项）。\n• Incident 解决方法（Incident Resolution）——用于 Incident 处理结果记录对话框（第 8 项）。\n\n新增/编辑表单中的字段（各标签页相同）：\n• 代码（Code）——唯一标识符，是系统其余部分实际引用的值（一旦投入实际使用后应避免频繁更改）。\n• 5 种语言的名称（TH/EN/CN/MM/JP）——实际显示在界面上的文字。\n• 描述、排序顺序（Sort Order）。\n• 启用/停用（isActive）——已停用的选项将不再出现在其他表单的下拉列表中，但已经选用过它的既有记录不受影响。\n\n⚠️ 重要提示：在本页面删除条目不需要输入密码确认，系统也不会检查该代码是否仍在其他地方被引用（这与系统中其他页面不同，例如保留策略页面，如果仍有摄像头在使用会阻止删除）。如果删除了仍被引用的代码（例如某摄像头设置了该类型，或某 Incident 记录了该原因），相关界面会显示原始代码而非翻译后的名称，而不会发出警告或阻止删除。删除前请务必确认没有数据仍在使用该代码。\n\n提示：建议将“代码”（Code）设置为英文 snake_case 格式（例如 network_issue、hardware_failure），并且一经设定就保持不变；而显示名称（5 种语言）则可以随时自由修改，不会影响既有数据，因为系统始终只通过 Code 进行引用。"
-        },
-        "healthGuide": {
-          "title": "18. 系统健康状态 (Health Status)",
-          "body": "本页面是整个系统健康状况的单屏仪表板，每 15 秒自动刷新一次——适合实时查看系统各部分是否运行正常。\n\n系统整体状态：显示“Healthy/Degraded”状态标签及持续运行时间（Uptime），并附带 PostgreSQL、Redis、存储整体，以及每个 Storage Provider 各自的子状态标签（含以毫秒计的延迟）。\n\n流程图（Pipeline Flow）：将整个数据流以一张图的形式展示——从摄像头 → Sync Worker → 处理队列 → Processing Worker → 存储/数据库，并在每个环节标示健康状态，可立即看出流程中哪个环节出现问题。\n\n统计摘要卡片：图片总数、活跃摄像头数、当前进行中的告警数量、队列任务数（等待中/处理中），以及系统版本。\n\n三栏详细信息：\n• 服务器资源（Server Resources）——RAM 与磁盘使用率进度条（接近满载时变为黄色/红色）、CPU 核心数、平均负载（Load Average）、平台、Node.js 版本。\n• 服务详情（Service Details）——各服务（image-api、PostgreSQL、Redis、各个 Storage Provider）的状态与延迟，以及队列状态摘要（等待中/处理中/失败/延迟）。\n• 系统验证（Verification）——完整的端到端诊断工具。点击“运行验证”（Run Verification）会向系统中近 25 个核心接口（认证、摄像头、图片、处理日志、存储、备份、保留策略、告警、主数据、API Key、用户、权限、审计日志、死信队列等）发出真实请求，实时显示每个接口的 PASS/FAIL 结果及响应时间（ms）。非常适合在每次更新或全新部署后立即运行，以确认各部分仍正确连通。\n\n提示：当怀疑系统出现问题时，应先来本页面查看，再深入到具体页面（例如死信队列、处理日志）排查。“运行验证”按钮在每次更新/部署后尤其有用，可确认没有任何接口意外损坏。"
-        },
-        "deadLetterGuide": {
-          "title": "19. 死信队列 (Dead Letter Queue)",
-          "body": "本页面显示反复失败、直至用尽所设定重试次数上限（Max Retries）的处理任务——这些任务会被移到此处，供管理员查看并决定如何处理，而不是悄无声息地消失。这与概览页面（第 5 项）和系统健康状态页面（第 18 项）中看到的“Queue Failed”数字直接相关。\n\n摘要卡片：死信队列中的任务总数、不同任务类型的数量、最早任务的日期，以及出现过的最高重试次数。\n\n按任务类型筛选：点击某个任务类型标签（显示该类型的数量）即可筛选下方表格；再次点击可取消筛选。\n\n批量操作：“全部重试”（Retry All）/“全部拒绝”（Reject All）按钮仅作用于当前筛选的任务类型（若未筛选，则作用于全部任务）。\n\n表格：任务类型、相关图片（文件名/ID）、错误信息、重试次数/上限（retryCount/maxRetries），以及入队时间。\n\n针对每个任务的操作：\n• 重试（Retry）——将任务重新送回处理队列；适用于导致失败的原因（例如网络暂时中断、存储暂不可用）已经解决的情况。\n• 拒绝（Reject）——永久丢弃该任务，不再重试；适用于源图片确实已损坏，或导致失败的根本问题无法修复的情况。\n\n提示：点击“重试”前请务必先阅读错误信息。如果同一类型的多个任务反复出现完全相同的错误（例如 SMB/存储错误），应先解决实际的根本原因（例如前往摄像头管理页面或存储提供商页面处理），再点击“全部重试”，而不是在未解决真正问题的情况下反复重试。"
-        },
-        "processingLogsGuide": {
-          "title": "20. 处理日志 (Processing Logs)",
-          "body": "本页面是系统中曾经运行过的每一个图像处理任务（Sync、Convert、Thumbnail、Checksum、Archive、Delete）的原始执行日志，无论成功还是失败——与只显示重试耗尽后失败任务的死信队列页面（第 19 项）不同，本页面保留每个任务在每种状态下的完整历史记录。\n\n筛选：可按状态（等待中/处理中/已完成/失败/重试中/死信）和任务类型（Sync/Convert/Thumbnail/Checksum/Archive/Delete）筛选，并支持自由文本搜索。\n\n表格列：图片 ID、任务类型、状态、Worker ID（运行该任务的处理工作进程——在同时运行多个 Processing Worker 时很有用）、入队时间，以及耗时（秒）。点击任意列标题即可排序。\n\n针对每个任务的操作：仅当任务状态为“失败”或“死信”时才会显示“重试”按钮；点击即可直接从本页面将任务送回队列。如有错误信息，会在同一行以截断形式显示。\n\n按时间批量删除日志（Bulk Delete）[需要 processing:create 权限]：\n选择天数（7-365 天），系统会先预览将删除的记录数量，必须输入密码确认后才会真正执行。警告：此操作为立即永久删除，无法恢复。\n\n提示：当需要查看某一张特定图片的详细处理历史时（按图片 ID 搜索），或想了解哪个 Worker 负载过重时，可使用本页面。如果需要批量管理积压任务并决定重试/拒绝，请改用死信队列页面（第 19 项）。"
-        },
-        "storageDashboardGuide": {
-          "title": "21. 存储仪表盘 (Storage Dashboard)",
-          "body": "本页面是全系统存储空间的汇总仪表盘（汇总所有存储提供方），重点展示增长趋势与未来预测。它与管理各个存储提供方的“存储提供方”页面（第 3 项）不同，也与按提供方查看存储压力的 P26 系统（第 4 项）不同。\n\n⚠️ 重要提示：本页面上所有“容量”相关数字（总容量、预计剩余可用天数、预测图表、预测表）均基于系统设置页面中设置的唯一一个“存储总容量”值（max_storage_gb）计算得出。这是一个全局值，与每个存储提供方各自设置的最大容量值（P26 系统实际使用的值，见第 4 项）完全没有关联——如果从未将该值更新为与真实磁盘空间一致，本页面上的所有预测数字都将基于默认值 1000GB，与实际情况不符。\n\n布局可像概览页面一样自定义（可拖拽/调整各个组件大小，管理员可点击按钮保存为默认布局）。\n\n本页面的组件：\n1. 汇总统计卡片——文件总数、已用空间/已设置容量、按文件类型分类的数量、增长趋势（上升/稳定）、预计剩余可用天数（低于 120 天时显示红色）。\n2. 按文件类型划分的存储空间——甜甜圈饼图，按 Raw/Processed/Thumbnail 分类，同时显示大小和文件数量。\n3. 增长趋势（Growth Trend）——面积图，显示每天新增的空间大小（MB），可选择回溯时间段（7/14/30/60/90 天）。\n4. 预测（Forecast）——当前使用率百分比进度条、每日增长速率，以及预测未来使用率百分比的折线图。\n5. 预测表（Projection Table）——按天列出未来预计的使用率百分比，若预计将达到 100% 则以红色高亮显示。\n6. 按摄像头划分的存储空间——柱状图显示每个摄像头占用的存储字节数，便于发现异常占用空间的摄像头。\n\n导出：可一次性将所有组件的数据导出为 Excel/PDF 文件。\n\n提示：请始终将系统设置页面中的“存储总容量”值与真实磁盘空间保持一致（正确计算方法见第 4 项），否则本页面的“剩余可用天数”在实际使用中将毫无意义。"
-        },
-        "usersGuide": {
-          "title": "22. 用户 (Users)",
-          "body": "本页面管理整个系统的用户、角色（Role）和访问权限（Permission），分为 3 个标签页。\n\n用户标签页：显示所有用户的表格（用户名、邮箱、角色、状态、最近登录时间），每一列都可排序。创建新用户时需设置用户名/邮箱/密码/角色，还可以在角色自带权限之外，额外授予“个人自定义权限”（customPermissions）。\n\n⚠️ 提示：“删除用户”（垃圾桶）按钮实际上并不会将用户从数据库中真正删除，而是将其停用（Deactivate），效果与启用/禁用开关按钮相同——用户记录会始终保留在系统中，以维护引用该用户的审计日志（Audit Log）的完整性。\n\n角色与权限标签页：可以管理完全自定义的角色（不局限于系统自带的 admin/operator/viewer）。每个角色可设置 5 种语言的名称（TH/EN/CN/MM/JP），并从系统全部权限模块列表（约 20 个模块，如摄像头、搜索、存储、备份、用户等）中选择要授予的权限。只有当某角色尚未分配给任何用户（已分配用户数为 0）且不是“admin”角色时，才能被删除。\n\n活动统计标签页：汇总全系统的登录活动，可选择回溯时间段（7/14/30/60/90 天）。汇总卡片显示总登录次数、活跃用户数、平均会话时长、使用高峰时段，其下是按用户列出的表格。点击某个用户行可打开详细视图：每日登录次数图表、按小时的使用热力图，以及会话历史表（登录/登出时间、时长、IP 地址）。\n\n提示：使用活动统计标签页可以发现异常行为，例如来自陌生 IP 的登录，或在不应有人工作的时段发生的登录。"
-        },
-        "systemConfigGuide": {
-          "title": "23. 系统设置 (System Config)",
-          "body": "本页面是影响所有用户的全局系统设置中心（不同于第 27 项中的“常规设置”页面，其中部分内容仅保存在每个用户各自的浏览器中）。设置按类别划分：\n\n• 通用信息 — 徽标、程序名称、描述、版本号、版权文本（会显示在 UI 的多个位置，例如登录页面）。\n• 数据保留 / 图像压缩 / 缩略图 / 摄像头轮询 / 告警 / 存储限制 / 自动化 — 这些是后端会实际读取并据此执行操作的真实配置值，在此处修改会立即对整个系统生效。\n\n⚠️ 重要提示：“存储限制”类别中的“存储总容量”值（max_storage_gb）仅供存储预测仪表盘（第 21 项）使用，与 P26 系统（第 4 项）实际使用的各存储提供方的最大容量值毫无关联——必须分别更新这两处，才能与真实磁盘容量保持一致。\n\n清除全部数据（Clear Data）[需输入 DELETE 并进行密码确认]：\n⚠️ 极其重要的警告：此按钮会删除数据库中所有“处理数据”（Image、ImageFile、ProcessingJob、AuditLog 记录），删除存储中所有真实文件，并清空 Redis 中的任务队列——但**不会删除**任何摄像头、用户、角色、保留策略、存储提供方/配置文件、告警规则或主数据（Masterdata）。换言之，这是“重置已处理的图像数据”，而非清空整个系统——适合在无需重新配置摄像头/用户的情况下从零开始测试。此操作为立即永久删除，无法恢复——使用前请务必先进行备份（第 16 项）。\n\n“重置”/“刷新”按钮：重置会将未保存的更改还原为最后一次保存的值；刷新会从后端重新获取当前的配置值。"
-        },
-        "requiredFieldsGuide": {
-          "title": "24. 必填字段 (Required Fields)",
-          "body": "本页面用于控制系统各表单中哪些字段在保存前必须填写，按数据类型（Entity）以标签页形式划分——摄像头、事件（Incident）、摄像头模板、存储提供方、存储配置文件、保留策略、告警规则、API 密钥、主数据、用户、角色——共约 11 种实体。\n\n每种实体的字段按小节分组（例如“通用信息”、“连接信息”）。勾选需要设为必填的字段；在分组和实体两个层级都提供“全选/取消全选”按钮。\n\n部分字段带有 * 标记，无法取消其必填状态（alwaysRequired），因为系统始终需要这些字段作为基础数据（例如摄像头名称、IP 地址）。\n\n每个实体标签页上都会显示“已选/总数”（例如 5/12），便于快速了解整体情况。只有拥有 system-config:update 权限的用户才能看到保存按钮。\n\n提示：当多人同时向系统录入数据时，应加强本设置（例如始终强制填写摄像头的经纬度），以防止数据不完整而影响后续报表。"
-        },
-        "apiKeysGuide": {
-          "title": "25. API 密钥 (API Keys)",
-          "body": "本页面用于创建和管理 API 密钥，供外部系统（如脚本、其他集成系统）在无需以真实用户账号登录的情况下调用 iSmart CCTV API。\n\n创建新密钥：为密钥命名，选择该密钥可访问的权限（例如查看概览、读取/更新图片、查看存储等，或选择“完全访问 (*)”以获得管理员级别的权限），并可选设置过期日期（留空表示永不过期）。\n\n⚠️ 极其重要：完整的 API 密钥令牌**仅会显示一次**，即创建成功后立即显示。请立刻复制保存——此后系统只会保存 tokenPrefix（前几个字符），仅用于在表格中标识该密钥，完整令牌将无法再次查看。如果忘记复制，只能删除该密钥并重新创建一个。\n\n使用方法：通过名为 x-api-token 的 HTTP 请求头，将令牌发送至基础 URL {你的服务器地址}/image-service/api/v1。\n\n表格中显示状态（启用/停用）、已分配权限、创建者、创建时间、过期时间，每一列均可排序。点击垃圾桶按钮可立即删除密钥（立即生效，无法恢复）。\n\n提示：切勿对交给不完全信任的外部系统使用的密钥授予“完全访问 (*)”权限，应只授予实际所需的权限，并始终设置过期日期，以在令牌一旦泄露时降低损失。"
-        },
-        "telegramBotGuide": {
-          "title": "26. Telegram 机器人 (Telegram Bot)",
-          "body": "本页面用于配置 Telegram 机器人连接，将系统通知（如摄像头离线、存储空间即将耗尽、处理失败等）发送到 Telegram 群组中。\n\n主要设置：\n• Bot Token — 从 Telegram 的 @BotFather 获取的机器人令牌。\n• 群组 Chat ID — 要发送消息的群组 ID（通常为负数）。\n本页面同时提供获取令牌的分步说明（通过 @BotFather 创建机器人、将机器人加入群组、获取 Chat ID 等）。\n\n“测试连接”按钮会直接从浏览器（不经过后端）向 Telegram API 发送一条测试消息，以便在真正保存前确认令牌和 Chat ID 是否正确。\n\n⚠️ 提示：“回调设置”（Callback Settings）部分（API Base URL 和 API Token）虽然可以保存，但根据目前的后端源代码，**系统中目前没有任何部分实际读取或使用这两个值**——它们似乎是为未来功能预留的占位符（例如处理 Telegram 消息中内联按钮的回调）。目前无论是否填写，都不会对通知产生任何影响。\n\n提示：每次修改令牌或 Chat ID 后，在保存之前都应使用“测试连接”按钮进行确认，以免在不知情的情况下错过重要告警。"
-        },
-        "settingsGuide": {
-          "title": "27. 常规设置 (Settings)",
-          "body": "本页面将常用设置集中在一处，但有一点需要特别注意：并非本页面上的所有内容都会保存到中央数据库中。\n\n⚠️ 仅保存在浏览器本地（localStorage）、不会发送到后端、对系统实际行为没有任何影响的部分：\n• 通知（告警接收邮箱、Webhook URL）\n• 处理（轮询间隔、最大重试次数）\n这些设置只会在设置它们的那台设备/浏览器上生效——其他人在别的设备上打开本页面时不会看到相同的值，并且此处显示的轮询间隔/重试次数数值**实际上并未被**后台运行的 Sync Worker 使用。\n\n✅ 真正与后端相连的部分：\n• 系统信息（图片总数、活跃摄像头数、告警总数）——实时从 API 获取。\n• 告警规则（Alert Rules）——可真正地新增/编辑/删除规则：选择事件类型（存储空间告警、处理失败、摄像头离线等）、通知渠道（Telegram/Line），以及再次告警前的冷却时间（Cooldown）——这些会真正保存到数据库并立即生效。\n\n“重置全部”（Reset All）按钮：会清除本浏览器自定义的布局、主题、语言，以及所有保存在 localStorage 中的值，恢复为默认设置——不会影响数据库中的任何数据（不同于系统设置页面中第 23 项的“清除全部数据”按钮，后者会永久删除真实数据）。\n\n提示：如果需要真正影响整个系统的设置（例如 Worker 实际使用的轮询间隔），请前往系统设置页面（第 23 项）进行设置。"
-        },
-        "roadmapGuide": {
-          "title": "28. 路线图 (Roadmap)",
-          "body": "本页面展示系统从起始到未来的完整开发计划，分为 3 个主要部分。\n\n1. 系统架构（System Architecture）：从真实数据库中获取的实时统计卡片（摄像头总数/活跃数、文件数量与已用空间大小、文件类型数量、保留策略数量），以及系统各层实际使用的技术栈（前端/后端/同步 Worker/处理 Worker/数据库/存储等），其中还包括网页界面所使用的字体信息。\n\n2. 规则（Rules）：按功能分组，汇总每个模块的关键业务规则。\n\n3. 开发阶段（Development Phases）：显示总体进度百分比（根据状态为“已上线（Launched）”的阶段占全部阶段的比例计算得出），以及从 P0.1 到 P48 的完整阶段列表。每个阶段都可展开查看其子任务列表，并提供“全部展开/全部收起”按钮。\n\n每个阶段有两种状态之一：Launched（已上线）或 Planned（已规划、尚未开发）——一个值得注意的仍处于 Planned 状态的例子是 P48（存储配置文件路由引擎），这正是“存储配置文件”页面（第 13 项）目前对文件分配没有实际效果的原因。\n\n提示：当不确定某个功能是“已经真正生效”还是“仍处于规划阶段”时，可将本页面作为中心参考，先在此确认后再对系统其他页面中该功能的效果抱有预期。"
-        },
-        "capacityPlanningGuide": {
-          "title": "29. 扩容规划 — 摄像头数量与参数设置",
-          "body": "以下估算基于 TP27 试点摄像头在正常完整工作日（2026-07-18）的实测数据：6,758 张图片/摄像头/天，以及实测的平均文件大小（Raw ~895KB + Processed ~580KB + Thumbnail ~40KB ≈ 1.5MB/张），并按当前的保留策略（Raw 32天、Processed 90天、Thumbnail 365天）推算累计存储量。\n\n⚠️ 以下仅为规划估算，并非保证数值——实际速率会因各摄像头/产线而异，随着摄像头数量增加应重新实测真实速率。\n\n• 1台摄像头 — ~6,800张/天 · 每天新增 ~10GB · 稳态总量 ~0.6TB · scanner_max_files_per_cycle 建议值 50-100\n• 10台 — ~68,000张/天 · 每天新增 ~100GB · 总量 ~6.3TB · 建议值 50\n• 20台 — ~136,000张/天 · 每天新增 ~200GB · 总量 ~12.7TB · 建议值 30\n• 30台 — ~203,000张/天 · 每天新增 ~300GB · 总量 ~19.0TB · 建议值 20\n• 40台 — ~271,000张/天 · 每天新增 ~400GB · 总量 ~25.4TB · 建议值 15\n• 50台 — ~338,000张/天 · 每天新增 ~500GB · 总量 ~31.7TB · 建议值 10\n• 60台 — ~406,000张/天 · 每天新增 ~600GB · 总量 ~38.0TB · 建议值 10\n• 70台 — ~473,000张/天 · 每天新增 ~700GB · 总量 ~44.4TB · 建议值 10\n• 80台 — ~541,000张/天 · 每天新增 ~800GB · 总量 ~50.7TB · 建议值 5-10\n• 90台 — ~608,000张/天 · 每天新增 ~900GB · 总量 ~57.1TB · 建议值 5-10\n• 100台 — ~676,000张/天 · 每天新增 ~1TB · 总量 ~63.4TB · 建议值 5-10\n\n为什么摄像头越多 scanner_max_files_per_cycle 反而要设得越低：同步 Worker 会同时扫描所有摄像头，因此该数值实际上会乘以摄像头数量，成为系统整体负载。摄像头越多，越需要调低单次上限，以免多台摄像头同时出现积压文件时导致 CPU/SMB 连接过载。\n\n无需随摄像头数量调整的固定参数：camera_offline_threshold_minutes = 5分钟（默认值），poll_interval_default = 30秒。\n\n❗ 以下数值尚未验证，全面扩容前必须先做真实负载测试：所需并行运行的 Processing Worker 实例数量（目前为1个实例，并发数4——从未进行过峰值负载测试）、所需的 SeaweedFS 存储节点/卷服务器数量（达到约40TB以上必须改为多节点架构，而不只是调高 -max 参数）、以及同步 Worker（单一 Node.js 进程）能否在不占满 CPU 的情况下同时扫描100台摄像头。\n\n建议：先在10-20台摄像头规模下试点，实测每台摄像头的真实日产图量以及各 Worker 的 CPU/网络占用情况，再依据实测数据重新计算——不要仅凭本估算就直接采购硬件。"
-        },
-        "storageGuide": {
-          "caveatsTitle": "重要注意事项与限制",
-          "introTitle": "3. 存储提供商设置指南（概览）",
-          "localTitle": "案例 1：本地磁盘",
-          "minioTitle": "案例 2：MinIO（S3 兼容）",
-          "seaweedTitle": "案例 3：SeaweedFS",
-          "introBody": "系统支持多种存储后端，最常见的 3 种是本地磁盘、MinIO（S3 兼容）和 SeaweedFS，均在“设置 > 存储提供方”中配置。\n\n基本步骤（适用于所有类型）：\n1. 进入存储提供方页面，点击“新建提供方”。\n2. 输入提供方名称——必填，且不能与现有提供方重名。\n3. 选择提供方类型：本地文件系统、S3 兼容、SeaweedFS（S3 兼容）、SMB 共享或 NFS 导出。\n4. 填写该类型特有的字段（各类型详见后续页面）。\n5. 在正式使用前点击“测试连接”进行验证。\n6. 如需设为系统默认提供方，请勾选“设为默认”（原默认项会自动取消）。\n\n注意：图像文件存放到哪个提供方，由系统的默认提供方或与提供方关联的存储配置文件（在“存储配置文件”菜单中设置）决定——不直接绑定到摄像机或保留策略。",
-          "localBody": "适合测试系统，或服务器本身已有足够磁盘空间的情况。\n\n设置步骤：\n1. 将提供方类型设为“本地文件系统”。\n2. 填写根目录（basePath），例如 /data/images——这是运行 image-api 的机器（或容器）上的路径。\n   - 文件夹不存在时会自动创建，但运行 image-api 的系统用户必须对该位置有写权限。\n3. 最大容量 (GB) 可选——系统会自动检测剩余磁盘空间，仅在需要覆盖该值时填写。\n4. 点击“测试连接”——仅检查文件夹的写权限，不执行完整的读写测试。\n\n注意：之后若修改 basePath，旧路径下已存储的文件不会自动迁移。",
-          "minioBody": "适合需要横向扩展、并希望获得企业级存储安全的系统。\n\n设置步骤：\n1. 将提供方类型设为“S3 兼容”。\n2. 填写 Endpoint，例如 minio（仅主机名，不含 http:// 或端口）。\n3. 填写端口——默认 9000。\n4. 填写 Bucket，例如 images——该 bucket 必须事先在 MinIO 中创建，系统不会自动创建（bucket 不存在时测试连接会失败）。\n5. 填写 MinIO 的 Access Key 和 Secret Key。\n6. 若 MinIO 端启用了 HTTPS，请勾选“使用 SSL”。\n7. 手动输入最大容量 (GB)——MinIO 容量无法自动检测，此值用于计算使用率和低空间告警，必须填写。\n8. 点击“测试连接”，确认连接正常且能看到 bucket。\n\n注意：表单中的 Region 字段目前对后端没有任何作用，填写与否结果相同。",
-          "seaweedBody": "适合拥有大量小图像文件、需要高速和高效存储利用率的系统。\n\n设置步骤：\n1. 将提供方类型设为“SeaweedFS（S3 兼容）”——系统通过 SeaweedFS Filer 的 S3 网关连接，字段与 MinIO 完全相同。\n2. 填写 Endpoint，例如 seaweedfs-filer。\n3. 填写端口——惯用值为 8333（仅为建议值，不强制）。\n4. 按 MinIO 的方式填写 Bucket、Access Key 和 Secret Key——bucket 也必须事先在 SeaweedFS 端创建。\n5. 手动输入最大容量 (GB)，因为它与 MinIO 一样无法自动检测。\n6. 点击“测试连接”进行确认。\n\n注意：在本系统中，SeaweedFS 与 MinIO 使用完全相同的代码路径，只有 endpoint/端口不同。",
-          "caveatsBody": "1. 密钥未加密\n   所有提供方的 Access Key、Secret Key 和密码均以明文保存在数据库中，API 也会返回原始值（包括预填到编辑表单）。拥有 storage:read 权限的任何用户都能看到全部凭据。请仅允许受信任的管理员访问此页面。\n\n2. 测试连接并不检查所有内容\n   - 本地：仅检查文件夹写权限，不执行完整读写测试。\n   - MinIO/SeaweedFS：仅检查 bucket 是否存在。\n\n3. 已有文件的提供方无法删除，且目前没有迁移文件的界面\n   请事先慎重选择存储提供方，之后更改较困难。\n\n4. 存储提供方的“必填字段设置”页面目前对表单没有实际作用\n   目前创建/编辑存储提供方表单只要求填写名称字段——在必填字段设置页面勾选其他字段对此表单无效。\n\n5. 文件存放位置仅由全局默认 + 存储配置文件决定\n   精细规则（例如“此摄像机始终存到此提供方”）尚不能通过界面配置，尽管底层数据模型已支持。"
-        }
-      },
-      "aboutProgram": {
-        "title": "关于 iSmart CCTV",
-        "intro": "iSmart CCTV（集中式工业检测与视觉平台）是面向工业 4.0 工厂的视觉相机与生产传感器图像集中管理中心，将机台原始图像转化为可检索、快速且安全的数据资产。",
-        "capabilitiesTitle": "系统核心功能与能力",
-        "businessValueTitle": "商业价值与未来路线图",
-        "comparisonTitle": "对比表：集中式 vs 传统（按 PC 分散存储）"
-      },
-      "requirements": {
-        "title": "系统要求与网络规格",
-        "intro": "计算机、服务器、硬盘及专用网络（Dedicated Network）的规格要求，以支持 10 至 100+ 摄像头规模的工业图像处理与存储。",
-        "assumptionsTitle": "硬件与容量测算假设",
-        "hardwareSpecsTitle": "按摄像头规模推荐的硬件配置（配置矩阵）",
-        "networkSpecsTitle": "网络交换机规格与专用视觉网络"
-      }
-    },
     "requiredFields": {
       "title": "必填字段配置",
       "subtitle": "选择每个系统模块中用户必须提供的必填（Required）数据字段",
@@ -2982,46 +2368,6 @@
       "field_streamPath": "流路径",
       "field_recordingRetentionDays": "录像保留（天）"
     },
-    "productionRuns": {
-      "title": "生产批次",
-      "subtitle": "记录哪个客户/工单在哪个时间段生产 — 不良品图片按拍摄时间自动归属到客户/工单，可按客户、工单类型或时间段检索历史。",
-      "newRun": "新增批次",
-      "editRun": "编辑批次",
-      "customer": "客户",
-      "searchCustomer": "搜索客户…",
-      "orderNo": "订单号",
-      "jobType": "工单类型",
-      "partNo": "型号 / 零件号",
-      "jobPart": "工单类型 / 零件",
-      "line": "产线",
-      "camera": "摄像头 / 机台",
-      "allCameras": "所有摄像头 (通用)",
-      "allCamerasFilter": "所有摄像头",
-      "start": "开始",
-      "end": "结束",
-      "endOptional": "结束 (留空 = 进行中)",
-      "note": "备注",
-      "running": "进行中",
-      "runningNow": "正在生产",
-      "activeOnly": "仅进行中",
-      "endRun": "结束批次",
-      "ended": "批次已结束",
-      "retroEdited": "事后修改",
-      "retroEditedHint": "在批次结束后进行了修改",
-      "confirmDelete": "删除此批次？",
-      "noData": "暂无生产批次",
-      "cameraHint": "如果此工单在该时段覆盖所有机台，请选择\"所有摄像头\" — 指定摄像头的批次优先于通用批次。",
-      "team": "负责班组",
-      "teamFallback": "按班次自动 (P50)",
-      "teamFallbackShort": "按班次",
-      "cameras": "摄像头 / 机台 (可多线)",
-      "selectPlaceholder": "选择…",
-      "quickAdd": "新增",
-      "manage": "在主数据中管理",
-      "newValuePlaceholder": "输入新值…",
-      "producedQty": "生产数量（件）",
-      "producedQtyHint": "收工时填写——用于计算不良率"
-    },
     "llm": {
       "title": "AI（LLM）连接",
       "subtitle": "配置语言模型来撰写管理层建议",
@@ -3036,16 +2382,6 @@
       "timeout": "超时（秒）",
       "saveLlm": "保存 AI 设置",
       "dataSourceNote": "模型只读取 /api/v1/insights 这一已计算好的摘要，不会直接访问数据库。数字来自可审计的规则，模型只负责措辞。"
-    },
-    "assistant": {
-      "title": "智能助手",
-      "subtitle": "用自然语言查询系统数据",
-      "greeting": "随时提问 —— 试试摄像头名称、\"总览\"或\"存储\"。",
-      "suggestions": "推荐问题",
-      "thinking": "正在查询...",
-      "placeholder": "输入问题，例如 \"TP27\"、\"总览\"、\"有什么值得注意\"",
-      "errorTitle": "抱歉，查询失败",
-      "errorNote": "请重试"
     },
     "incidents": {
       "title": "事件管理",
@@ -3177,13 +2513,6 @@
     "system": "系统",
     "mb": "MB",
     "browse": "浏览",
-    "clearData": "清除所有数据",
-    "clearDataWarning": "这将永久删除所有图像、处理作业、审计日志、存储对象和Redis队列数据。摄像头、用户、角色和系统配置不会受到影响。此操作无法撤销。",
-    "clearDataConfirmLabel": "输入 DELETE 确认",
-    "clearDataPasswordLabel": "输入您的密码",
-    "clearDataSubmit": "清除所有数据",
-    "clearDataSuccess": "所有数据已成功清除",
-    "clearDataError": "清除数据失败",
     "expandAll": "全部展开",
     "collapseAll": "全部折叠",
     "expandSidebar": "展开侧边栏",
@@ -4030,39 +3359,6 @@
       "attachments": "附件",
       "probeSocket": "探测端口 (554)"
     },
-    "imageServiceSearch": {
-      "clearAllFilters": "清除所有筛选",
-      "clear": "清除",
-      "lastPage": "最后一页",
-      "id": "ID：",
-      "warningDeletingRawOutputFilesRemoves": "警告：删除原始/输出文件会立即从存储（MinIO/SeaweedFS）中永久移除以释放空间，且无法恢复！",
-      "searchFileName": "搜索文件名...",
-      "allCameras": "所有摄像机",
-      "startDateDeleteFrom": "开始日期（删除起始）",
-      "endDateDeleteUntil": "结束日期（删除截止）",
-      "clearFilters": "清除筛选",
-      "restore": "恢复",
-      "deletePermanently": "永久删除",
-      "confirmDeletingTheSelected": "确认删除所选的",
-      "imagesPermanentlyThisCannotBeUndone": "张图片？此操作无法撤销。",
-      "deletePermanently2": "永久删除"
-    },
-    "imageServiceProcessingMonitor": {
-      "queueResumed": "队列已恢复运行",
-      "queuePaused": "队列已暂停",
-      "activeQueuePurged": "已清理卡住的队列任务",
-      "clickToResumeTheQueue": "点击恢复队列",
-      "clickToPauseTheQueue": "点击暂停队列",
-      "resumeQueue": "恢复队列",
-      "pauseQueue": "暂停队列",
-      "clearStaleJobLocksInThe": "清理活动队列中残留的旧任务锁",
-      "purgeActiveQueue": "清理活动队列",
-      "of": "（共",
-      "images": "张）",
-      "live": "实时",
-      "disconnected": "已断开",
-      "auto": "自动"
-    },
     "imageServiceCameras": {
       "metric": "指标",
       "value": "值",
@@ -4080,24 +3376,6 @@
       "streamPath": "流路径 (MediaMTX)",
       "streamPathHint": "用于实时查看和录像的路径，必须唯一。DVR/NVR 通道可留空"
     },
-    "deadLetterQueue": {
-      "jobQueuedForRetry": "任务已加入重试队列",
-      "failedToRetryJob": "重试任务失败",
-      "jobRejected": "任务已拒绝",
-      "failedToRejectJob": "拒绝任务失败",
-      "jobsSentForRetry": "已将 {{updated}} 个任务送去重试",
-      "failedToBulkRetry": "批量重试失败",
-      "jobsRejected": "已拒绝 {{updated}} 个任务",
-      "failedToBulkReject": "批量拒绝失败"
-    },
-    "processingVisualizer": {
-      "idle": "空闲",
-      "processing": "处理中...",
-      "styleRing": "进度环",
-      "styleFlow": "数据流",
-      "stylePulse": "脉冲波",
-      "styleParticle": "粒子"
-    },
     "storageProvidersPage": {
       "gb": "GB",
       "gb2": "GB）",
@@ -4108,13 +3386,6 @@
       "typePageNumberAndPressEnter": "输入页码后按回车",
       "searchThisGuide": "搜索本指南...",
       "noPagesMatch": "没有匹配的页面 “"
-    },
-    "storageProfilesPage": {
-      "profileDeleted": "配置已删除",
-      "areYouSureYouWantTo": "确定要删除此配置吗？",
-      "profileCreated": "配置已创建",
-      "profileUpdated": "配置已更新",
-      "codeAndNameEnAreRequired": "代码和名称 (EN) 为必填项"
     },
     "systemConfigPage": {
       "logo": "标志"
@@ -4162,21 +3433,6 @@
     "loginPage": {
       "logo": "标志",
       "version": "版本"
-    },
-    "pipelineFlow": {
-      "cameraSyncWorkerRedisQueueProcessing": "摄像机 → 同步 Worker → Redis 队列 → 处理 Worker → 存储 → 数据库"
-    },
-    "imageServiceOverview": {
-      "metric": "指标",
-      "value": "值",
-      "gb": "{{v0}} (GB)",
-      "queue": "队列",
-      "count": "数量",
-      "gb2": "(GB)"
-    },
-    "imageServiceStorage": {
-      "metric": "指标",
-      "value": "值"
     }
   }
 }

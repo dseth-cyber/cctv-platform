@@ -158,8 +158,8 @@ const STORAGE_LEVEL_TH: Record<string, string> = { warning: 'ใกล้เต�
 /**
  * Translates every alert title/message shape actually emitted by createAlert() calls in
  * image-api — see cameras.controller.ts (camera status/create/delete), image-sync-worker
- * (sync errors), camera-health-monitor.ts (incident escalation), storage-pressure-monitor.ts
- * /provider-metric-collector.ts (storage warning/critical/emergency/cleanup),
+ * (sync errors), camera-health-monitor.ts (incident escalation),
+ * provider-metric-collector.ts (storage warning/critical/emergency/cleanup),
  * images.service.ts (trash emptied, bulk delete, bulk delete files), and
  * auth.service.ts (suspicious login activity / account lockout). Anything unrecognized
  * (including a message that no longer matches its title's expected shape, e.g. after an

@@ -38,7 +38,7 @@
 - ห้ามระบุงานเสร็จเพราะแก้เอกสารหรือ compile ผ่านอย่างเดียว; ต้องผ่าน acceptance criteria ของเฟส
 - ห้าม fallback ที่สร้างผลสำเร็จหรือข้อมูลจำลองแทนผลจริง เช่น ไฟล์หลักฐานปลอม, สถานะ `COMPLETED` เมื่อไม่มีวิดีโอ, preflight/sign-off/DR drill สำเร็จเมื่อ API ล้มเหลว; เมื่อทำไม่ได้ต้องรายงาน `FAILED`/error ให้เห็นชัด (บทเรียนตรวจซ้ำ 2026-10-30)
 - ห้ามคืน credential ใน API response โดยตรง: response กล้อง/อุปกรณ์ต้องผ่าน `toPublicCamera()` / `redactRtspUrl()`; RTSP URL ที่มี credential ต้องเก็บผ่าน `sealRtspUrl()` เท่านั้น
-- Recording cleanup ต้องผ่าน `quarantineRecording()` (claim atomic `legalHold=false` + ย้ายไป quarantine) ห้าม `unlink` ไฟล์วิดีโอตรง และเปิดได้เฉพาะ `RECORDINGS_CLEANUP_ENABLED=true` หลังนโยบาย retention ได้รับอนุมัติ
+- Recording cleanup ต้องผ่าน `quarantineRecording()` (claim atomic `legalHold=false` + ย้ายไป quarantine) และการลบถาวรผ่าน `deleteRecordingPermanently()` เท่านั้น (ตรวจ Legal Hold ซ้ำ, ไม่ลบไฟล์นอก recordings root, `deleteMany` แบบมีเงื่อนไข `legalHold=false`, เขียน audit `recording_purge`) ห้าม `unlink` ไฟล์วิดีโอตรงจากที่อื่น. นโยบายที่อนุมัติ 2026-11-03: เก็บ 30 วัน (ปรับรายนโยบายได้) → quarantine → ลบถาวรหลัง 7 วัน; ดิสก์ ≥ 92% ลบไฟล์เก่าสุดที่ไม่ติด Legal Hold (quarantine ก่อน) จน < 85%; Legal Hold ชนะเสมอ; ปิดทั้งหมดได้ด้วย `RECORDINGS_CLEANUP_ENABLED=false`
 - Handoff/Roadmap ต้องแยก "ทำโค้ดแล้ว" (`[x]`) กับ "ตรวจรับ end-to-end ผ่าน" (`[A]`); ห้ามใช้คำว่า Production-Hardened/100% โดยไม่มีหลักฐานการรันจริง
 
 ## ลำดับความปลอดภัยก่อนใช้คำสั่ง legacy
@@ -47,9 +47,9 @@
 
 ---
 
-# Legacy reference: Image Service — System Rules & Conventions
+# Conventions (สืบทอดจาก Image Service เดิม)
 
-ยึดมาตรฐานเดียวกับ ERP/MES ตั้งแต่วันแรก เพื่อลดงาน Integration ตอนย้ายเข้าระบบจริง.
+ยึดมาตรฐานเดียวกับ ERP/MES ตั้งแต่วันแรก เพื่อลดงาน Integration ตอนย้ายเข้าระบบจริง. กฎเฉพาะของระบบภาพโรงงาน (SMB/TIFF ingest, image_files, Kafka image event, BullMQ, sync/processing worker) ถูกตัดออก 2026-11-03 พร้อมกับการถอดระบบเดิม — ดูได้ที่ git tag `legacy-image-service-final`.
 
 ## Priority 1 — ใช้ทันที 100%
 
@@ -207,79 +207,25 @@ Actions ที่ต้อง log: create, update, delete, status_change, restor
 
 ### Masterdata Fields
 ทุก masterdata entity ต้องมีฟิลด์ครบ: `code @unique`, `name` / `nameTh` / `nameEn` / `nameCn` / `nameMm` / `nameJp`, `description`, `sortOrder`, `isActive` — **ห้าม** สร้าง entity ที่ขาดฟิลด์พื้นฐาน.
-- ✅ Camera Type, Image Category, Defect Type, Inspection Type → ต้องมีครบ
-- ❌ Image Entity → ไม่ต้อง (เป็นไฟล์ภาพ ไม่ใช่ masterdata)
+- ✅ camera_status, incident_reason, incident_root_cause, incident_resolution → ต้องมีครบ
+- ❌ Recording / Clip → ไม่ต้อง (เป็นไฟล์วิดีโอ ไม่ใช่ masterdata)
 
 ---
 
-## Priority 5 — เมื่อเข้า ERP Integration
-
-### Kafka Event Standard
-เมื่อประมวลผลเสร็จ เตรียมรองรับ Kafka Event:
-```json
-{
-  "event": "image.processed",
-  "imageId": "...",
-  "cameraId": "...",
-  "filename": "...",
-  "pngPath": "...",
-  "thumbnailPath": "...",
-  "capturedAt": "..."
-}
-```
-Consumer ในอนาคต: vision-service, predictive-service, historian-service, production-service.
-
----
-
-## Image Service — กฎเฉพาะ
-
-### Image Storage Rule
-ทุกภาพต้องมี record ใน `image_files` พร้อม `storageProviderId` — ห้ามเป็น NULL สำหรับไฟล์ใหม่
-- FileType รองรับ: raw, processed, thumbnail, ai, ocr, face_blur, custom
-- `submitProcessingResult` ต้อง auto-assign S3 provider เมื่อ worker ไม่ได้ระบุ
-
-### Storage Provider Rule
-- Worker ดึง default provider config จาก API ตอน startup + refresh ทุก 5 นาที
-- เปลี่ยน default provider จาก UI ได้ — worker ไม่ต้อง restart
-- Provider ทุกตัวต้องมี `capacityBytes` ตั้งค่าได้จาก UI (Local Disk อ่าน auto)
-- Metric collector ทุก 15 นาที + alert เมื่อ usage > 75% (warning) / 90% (critical)
-
-### Camera Health Rule
-- Camera health monitor ทุก 1 นาที — ตรวจ `lastPolledAt` + `status`
-- Offline > `camera_offline_threshold_minutes` (default 5) → alert + CameraEvent
-- เปลี่ยนสถานะกล้อง (active/maintenance/inactive) → audit log + alert + webhook
-- กล้อง maintenance → sync worker หยุด poll อัตโนมัติ
-
-### Traceability Rule
-ทุกภาพต้อง Trace กลับได้ว่า: Camera → Machine → Lot → Operator → Shift มาจากไหน.
-
-### Retroactive Backfill & Timestamp Rule
-- **CapturedAt Preservation**: ทุกภาพที่ดึงเข้ามาผ่าน Sync Worker **ต้องใช้ `capturedAt` จากเวลาสร้างไฟล์จริง (`file.lastModified`)** เสมอ ห้ามใช้เวลาที่ทำการ Sync เพื่อให้รายงานสถิติต่างๆ และกะการทำงาน (Shift Attribution) ถูกต้องตามเวลาผลิตจริง
-- **Confirmed Lost Calculation**: การคำนวณภาพสูญหาย **ต้องคำนวณยอดภาพสูญหายจริง (Confirmed Lost)** โดยนำยอดประเมินหักลบจำนวนภาพที่ดึงย้อนหลังสำเร็จ (`backfilledImages`) และภาพที่รอดึงขณะเน็ตออฟไลน์ (`pendingBackfillImages`) ออกเสมอ ป้องกันไม่ให้เน็ตหลุดชั่วคราวทำลายสถิติความพร้อมใช้งาน
-
-### Queue Retention Rule
-- **BullMQ Auto-Cleanup**: ทุกการสร้าง Queue ใน BullMQ **ต้องตั้งค่า `removeOnComplete` และ `removeOnFail` เสมอ** ป้องกันไม่ให้ประวัติคิวงานสะสมใน Redis จนเกิด Out Of Memory (OOM)
+## CCTV — กฎเฉพาะ
 
 ### Technical Error i18n Rule
-- **Alert & Exception Translation**: ข้อความแจ้งเตือน Error เชิงเทคนิค (เช่น SMB status, Stack overflow, Queue failure) **ต้องผ่าน `translateTechnicalDetail` / `translateAlertTitle`** เพื่อแสดงผล 5 ภาษา (th/en/cn/mm/jp) บน UI เสมอ ห้ามแสดงข้อความภาษาอังกฤษดิบ
-
-### Event Rule
-เมื่อประมวลผลเสร็จ ต้อง emit: Kafka event + Webhook + Alert (ถ้าตั้งค่าไว้)
+- ข้อความแจ้งเตือน Error เชิงเทคนิค **ต้องผ่าน `translateTechnicalDetail` / `translateAlertTitle`** เพื่อแสดงผล 5 ภาษา (th/en/cn/mm/jp) บน UI เสมอ ห้ามแสดงข้อความภาษาอังกฤษดิบ
 
 ### Observability Rule
-- Prometheus scrape `/api/v1/metrics` ทุก 15 วินาที (24+ metrics)
-- Grafana 4 dashboards: Overview, Camera, Storage, System
-- Per-camera metrics: status, images_total, last_poll_seconds
-- System metrics: CPU, RAM, disk, DB connections, process memory
+- Prometheus scrape `/api/v1/metrics` ของ image-api ทุก 15 วินาที; มี Grafana ใน compose
 
 ---
 
 ## Docker & Deployment
-- Image Service รันบน dedicated VM แยกจาก ERP Platform
-- 20+ containers จัดการด้วย docker-compose + health checks
-- DB isolation: แต่ละ service เป็นเจ้าของ DB ของตัวเอง
+- Compose project `cctv-platform` (Dev เท่านั้น — ดูข้อบังคับด้านบน); หลังแก้โค้ดต้อง build image ใหม่ (ดู Critical Fixes)
 - HTTPS: self-signed cert สำหรับ LAN + เปลี่ยน IP ด้วย `./ssl/generate-cert.sh <IP>`
-- Grafana + Prometheus + Loki สำหรับ monitoring
+- nginx ใน web-app re-resolve ชื่อ container ผ่าน Docker DNS (`resolver 127.0.0.11` + `upstream ... resolve`) — recreate image-api/mediamtx แล้วไม่ต้อง restart web-app
 
 ## Charts & Dataviz
 - ใช้ Recharts สำหรับ data visualization
@@ -311,41 +257,8 @@ Consumer ในอนาคต: vision-service, predictive-service, historian-se
 
 **Lesson:** Always check which process is actually serving the frontend (Docker vs dev server) before debugging. `docker ps` and `curl http://localhost:5173/ | Select-String "index-"` to confirm.
 
-### 2026-06-24 — scan-now infinite loop + processing-worker SMB access
+### 2026-07-23 — stack overflow จาก spread operator
 
-**Problem 1: scan-now infinite loop**
-- `updateHandler` in `cameras.controller.ts` set `sync:scan-now = 'all'` on EVERY update
-- sync-worker's `updateCameraPoll` called `PATCH /cameras/:id` every cycle → re-triggered scan-now → worker never slept
-- **Fix:** Removed `redis.set('sync:scan-now', ...)` from `updateHandler`. Users click "Scan Now" manually.
-
-**Problem 2: processing-worker file access via mount volume**
-- processing-worker relied on CIFS mount at `/mnt/smb/host/share/` per camera
-- Adding new cameras required docker-compose volume changes → not scalable
-- **Fix:** processing-worker now uses `smbclient` CLI to download TIFF files (same pattern as sync-worker)
-  - `worker.py:_resolve_file()` fetches camera config from `GET /api/v1/cameras/:id`
-  - Uses `smbclient //share -U user%pass -c 'get "relative/path" /tmp/file.tif'`
-  - Deletes temp file after processing
-  - Added `smbclient` to Docker image
-  - Added `api_client.py:get_camera()` for camera config fetch
-
-**Problem 3: stale Redis keys after clear-all-data**
-- `clear-all-data` didn't clear `sync:scan-now`, `sync:scan-now:ids`, `sync:camera:*`, `sync:processed:*` keys
-- **Fix:** Added cleanup of all `sync:*` and `bull:*` keys in `admin.service.ts:clearAllData()`
-
-**Problem 4: `lastPolledAt` silently dropped on camera update**
-- `updateCameraSchema` didn't include `lastPolledAt` → Zod stripped it
-- **Fix:** Added `lastPolledAt: z.string().datetime().optional()` to schema and `updateCamera()` service
-
-### 2026-07-23 — sync-worker scan stack overflow (RangeError: Maximum call stack size exceeded)
-
-**Problem:** 
-- `scanner.ts` used `discovered.push(...subResults)` to merge directory scan results recursively.
-- When scanning folders containing tens or hundreds of thousands of image files, the spread operator (`...subResults`) passed too many arguments to `.push()`, exceeding V8's function argument stack limit (65,535).
-- Caused the sync worker poll cycle to crash with `Maximum call stack size exceeded` and halted all new image ingestion from 08:52 AM.
-
-**Fix:**
-- Replaced `discovered.push(...subResults)` with a safe `for (const item of subResults) { discovered.push(item); }` loop in `scanner.ts`.
-- Added i18n translation key `scan_overflow` for sync worker scan error alerts across all 5 languages.
+`array.push(...bigArray)` เกินขีดจำกัดจำนวน argument ของ V8 (65,535) เมื่อ array ใหญ่ (เคยทำให้ sync worker ของระบบเดิมล่ม).
 
 **Lesson:** Never use spread operator (`...`) to pass array elements as arguments when the array length can be large or unbounded.
-
