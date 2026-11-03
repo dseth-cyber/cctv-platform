@@ -24,6 +24,15 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 7) — ย้ายการเปิด LAN จาก 192.168.60.77 ไป 192.168.30.77
+
+- **แก้ความเข้าใจผิด:** session ก่อนหน้าถือว่าวง 192.168.30.x เป็นวง production เดิม (มาจาก IP ตัวอย่าง `192.168.30.248` ใน `ssl/generate-cert.sh`). ผู้ใช้ยืนยัน 2026-11-03 ว่า production อยู่วง 60 — ตรงกับบันทึกเดิมในไฟล์นี้: `imageservice` 192.168.60.99 และ share กล้อง 192.168.60.70
+- ผลคือหน้าเว็บ Dev เคยเปิดบน 192.168.60.77 = วงเดียวกับ production; ย้ายแล้ว: `.env` `WEB_LAN_ADDRESS`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST`, `CORS_ALLOWED_ORIGINS` → 192.168.30.77 (backup `.env` เดิมใน scratchpad `env.before-30x.bak`); ตัวอย่างใน generate-cert.sh เปลี่ยนเป็น 192.168.x.y; AGENTS.md ระบุ IP production แล้ว
+- การ์ด 192.168.60.77 ไม่มี gateway — เครื่องจากวงอื่นเข้าไม่ได้อยู่แล้ว (สาเหตุที่ทดสอบจากเครื่องอื่นไม่ผ่าน); การ์ด Ethernet 2 เป็น Public profile
+- ตรวจในเครื่อง: 192.168.30.77:8090 → 200, login ด้วย origin 30.77 → 200, origin 60.77 → 403, 192.168.60.77:8090 ปิด (connection refused), web-app ผูก 127.0.0.1 + 192.168.30.77, MediaMTX UDP 8189 ผูก 192.168.30.77
+- Firewall (ผู้ใช้ตั้งเอง): rule `iSmart CCTV - *` ต้องเปลี่ยน RemoteAddress เป็นวง/เครื่องใน 192.168.30.x; ใบรับรอง HTTPS ยังออกให้ localhost เท่านั้น (HTTPS ผ่าน LAN จะมีคำเตือน)
+- ยังไม่ได้ทดสอบจากเครื่องอื่นในวง 30.x
+
 ## งานล่าสุด (2026-11-03, รอบ 6) — locale ที่ไม่ได้ใช้ และคำแปล alert ของระบบบันทึก
 
 - locale: ลบอีก 497 key (383 ที่ไม่มีโค้ดอ้างถึง + 114 ที่เหลือจากระบบเดิมใน section ที่มี dynamic prefix แบบจำกัดค่า: alerts.${severity}, cameras.${status}, systemConfig.labels.${key}); ทั้ง 5 ภาษาเหลือ 2,369 key เท่ากัน. ตรวจทั้งสองทาง: ไม่มี key ที่ไม่ได้ใช้ และไม่มี key ที่โค้ดเรียกแต่หาไม่เจอ (รวม key ใน map และ techError ที่ประกอบจากตัวแปร); สคริปต์อยู่ใน scratchpad (unused_keys.py, bounded_scan.py, missing_keys.py)

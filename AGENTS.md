@@ -26,6 +26,7 @@
 
 - ห้าม SSH/remote Docker/deploy-prod.sh/CI push ที่ไป Image Service Production; ห้ามคัดลอก secret หรือ backup จริงของ Production มาใช้ใน Dev
 - ห้ามใช้ DB, NAS/SMB share, S3 bucket, Redis, Telegram bot/chat, webhook, tunnel หรือ DNS ของ Image Service Production เดิมโดยเด็ดขาดในโปรเจกต์นี้; การอนุมัติปลายทางใช้ได้เฉพาะ Dev หรือระบบ CCTV ใหม่ที่แยกต่างหาก ไม่ใช่ข้อยกเว้นสำหรับระบบเดิม
+- Image Service Production เดิม = เครื่อง `imageservice` **192.168.60.99**, share กล้องโรงงาน 192.168.60.70 (วง 192.168.60.x). เครื่อง Dev นี้มี 2 การ์ด: 192.168.60.77 (วงเดียวกับ production — ห้ามเปิดบริการ Dev บนการ์ดนี้) และ 192.168.30.77 (ใช้เปิดหน้าเว็บ Dev ให้ LAN ทดสอบ)
 - ห้ามวาง Dev/load test บน host หรือ physical storage ของ Image Service Production; จำกัด CPU/RAM/disk/network ของ Dev และไม่ mount Docker socket หรือ credentials ที่เข้าถึง Production ให้ application containers
 - Preflight ต้องมี negative tests ยืนยันว่า remote context, production endpoint และ config ไม่ครบถูกปฏิเสธก่อน side effect; ทุกครั้งที่ config/context เปลี่ยนต้องตรวจ isolation ใหม่
 - ห้ามรัน database reset/clear-all-data/seed reset credentials หรือ schema push ที่ยอม data loss; ห้ามใช้ volume deletion/prune กับทรัพยากรที่ยังไม่ยืนยัน Dev
