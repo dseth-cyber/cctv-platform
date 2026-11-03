@@ -219,9 +219,11 @@ export const CctvPlayback: React.FC = () => {
       const parts = initialTime.split(':').map(Number);
       if (parts.length >= 2) return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
     }
-    // Default to 12:00:00 (noon)
+    // Placeholder until the timeline loads; then it moves to the latest recording (see below).
     return 12 * 3600;
   });
+  // Camera/date the playhead was last placed for, so it jumps once per selection, not on every refetch.
+  const autoPlacedFor = useRef<string | null>(initialTime ? `${initialCameraId}|${initialDate}` : null);
 
   const [zoomLevel, setZoomLevel] = useState<'24h' | '12h' | '4h' | '1h'>('24h');
   const [zoomOffsetSec, setZoomOffsetSec] = useState<number>(0);
@@ -285,6 +287,19 @@ export const CctvPlayback: React.FC = () => {
     enabled: !!selectedCameraId,
     staleTime: 1000 * 30,
   });
+
+  // Without a time in the URL, open at the last 5 minutes of the newest recording of that day.
+  useEffect(() => {
+    const key = `${selectedCameraId}|${selectedDate}`;
+    if (!timelineData || autoPlacedFor.current === key) return;
+    autoPlacedFor.current = key;
+    const blocks = timelineData.continuousBlocks ?? [];
+    if (blocks.length === 0) return;
+    const last = blocks[blocks.length - 1];
+    const start = isoToBangkokDaySeconds(last.startTime);
+    const end = isoToBangkokDaySeconds(last.endTime);
+    setCurrentTimeSec(Math.max(start, end - 300));
+  }, [timelineData, selectedCameraId, selectedDate]);
 
   // Fetch exported clips
   const { data: clipsData, refetch: refetchClips } = useQuery({

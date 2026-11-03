@@ -24,6 +24,13 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 12) — สถานะกล้องไม่ตรงกันระหว่างหน้า
+
+- สาเหตุ: Live Grid และ Map ใช้ query key `['cameras']` ร่วมกันแต่ไม่ refresh; Dashboard ดึงกล้องทั้งหมดรวมที่ปิดอยู่ (รายการ "ต้องตรวจสอบ" มี r1-legacy-*, pathsync-test ที่ disabled) → แผนที่ค้าง offline ขณะภาพสดเล่นอยู่. แก้: hook กลาง `useCctvCameras()` (กล้อง enabled, refresh ทุก 10 วิ) ใช้ใน Live Grid / Map / Dashboard; หน้าจัดการกล้อง invalidate `cctv-cameras` หลังบันทึก/ลบ; dashboard-summary กรอง `deletedAt: null` ด้วย
+- Playback: เดิมเปิดที่ 12:00 เสมอ (กล้องที่เพิ่งเริ่มบันทึกจึงขึ้น "ไม่มีข้อมูล") → ถ้าไม่มีเวลาใน URL จะไปที่ 5 นาทีสุดท้ายของ block บันทึกล่าสุดของวันนั้น (ครั้งเดียวต่อกล้อง/วัน)
+- ตรวจ: tsc web/API, vitest 121 passed; timeline IT-SERVER-001 มี block 16:44–16:54 (เวลาไทย) 10 segment
+- ยังเหลือ (รอผู้ใช้ตัดสินใจ): `r1-accept-cam` ใช้ `sim/ch1` แบบ runOnDemand → ไม่มีคนดู 10 วิ สตรีมหยุด กล้องสลับ online/offline/flapping ทำให้ตัวเลขแต่ละหน้าต่างกันตามจังหวะ
+
 ## งานล่าสุด (2026-11-03, รอบ 11) — กล้อง RTSP จริงไม่เคยลงทะเบียนกับ MediaMTX ได้
 
 - อาการ: เพิ่มกล้องแล้วหน้า Live ขึ้น "WHEP 404"; path-sync log `failed: 2` ทุกรอบ. สาเหตุ: path `sim/ch1`, `sim/ch2` ใน mediamtx.yml ใช้ `runOnDemand` โดยไม่ระบุ `source` — อ่านไฟล์ตอนเริ่มผ่าน แต่ MediaMTX v1.21.3 ตรวจ config ทั้งหมดใหม่ทุกครั้งที่แก้ผ่าน API แล้วปฏิเสธ (`'runOnDemand' and 'runOnUnDemand' can be used only when source is 'publisher'`) → **การแก้ config ผ่าน API ล้มทุกครั้ง แม้แต่ global patch** = ไม่มีกล้อง RTSP จริงตัวไหนเคยลงทะเบียนสำเร็จ (ที่ผ่านมาทดสอบด้วย sim ซึ่ง publish เข้ามาเอง)

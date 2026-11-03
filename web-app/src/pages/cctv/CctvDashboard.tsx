@@ -1,3 +1,4 @@
+import { useCctvCameras } from '@/hooks/useCctvCameras';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -67,10 +68,7 @@ export default function CctvDashboard() {
     queryFn: () => imageServiceApi.getDevices(),
   });
 
-  const { data: cameras = [] } = useQuery({
-    queryKey: ['cctv-cameras-all'],
-    queryFn: () => imageServiceApi.getCameras({ limit: 1000 }),
-  });
+  const { data: cameras = [] } = useCctvCameras();
 
   // Probe single camera on the fly
   const probeCameraMutation = useMutation({

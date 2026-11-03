@@ -362,7 +362,7 @@ export default function ImageServiceCameras() {
         await imageServiceApi.createCamera(buildPayload());
         toast.success(t('imageService.cameras.created'));
       }
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       setModal({ open: false });
     } catch (e: any) { if (!e?._handled) toast.error(cameraErrorMessage(e, t)); }
     finally { setSubmitting(false); }
@@ -402,7 +402,7 @@ export default function ImageServiceCameras() {
     try {
       await imageServiceApi.deactivateCamera(id);
       toast.success(t('imageService.cameras.deactivated'));
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
   };
 
@@ -428,7 +428,7 @@ export default function ImageServiceCameras() {
       setSelectedIds(new Set());
       setBulkDeleteModal({ open: false });
       setBulkDeletePassword('');
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (!e?._handled) toast.error(t('common.error'));
     } finally {
@@ -465,7 +465,7 @@ export default function ImageServiceCameras() {
       toast.success(t('imageService.cameras.createdBulk', { count: successCount }));
       setSelectedIds(new Set());
       setBulkCloneModal({ open: false });
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (!e?._handled) toast.error(t('common.error'));
     } finally {
@@ -486,7 +486,7 @@ export default function ImageServiceCameras() {
       toast.success(t('imageService.cameras.deleteCameraSuccess'));
       setDeleteModal({ open: false });
       setDeletePassword('');
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (e?.response?.status === 401) {
         toast.error(t('imageService.cameras.wrongPassword'));
@@ -539,7 +539,7 @@ export default function ImageServiceCameras() {
       }
       toast.success(t('imageService.cameras.restoreCameraSuccess'));
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (!e?._handled) toast.error(cameraErrorMessage(e, t));
       fetchCameraTrash();
@@ -558,7 +558,7 @@ export default function ImageServiceCameras() {
       setShowBulkDeleteTrashConfirm(false);
       setBulkDeleteTrashPassword('');
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (e?.response?.status === 401) {
         toast.error(t('imageService.cameras.wrongPassword'));
@@ -590,7 +590,7 @@ export default function ImageServiceCameras() {
       await imageServiceApi.restoreCamera(id);
       toast.success(t('imageService.cameras.restoreCameraSuccess'));
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) { if (!e?._handled) toast.error(cameraErrorMessage(e, t)); }
   }, [t, toast, queryClient, fetchCameraTrash]);
 
@@ -603,7 +603,7 @@ export default function ImageServiceCameras() {
       }
       toast.success(t('imageService.cameras.restoreCameraSuccess'));
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (!e?._handled) toast.error(cameraErrorMessage(e, t));
       fetchCameraTrash();
@@ -618,7 +618,7 @@ export default function ImageServiceCameras() {
       setShowEmptyConfirm(false);
       setEmptyTrashPassword('');
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (e?.response?.status === 401) {
         toast.error(t('imageService.cameras.wrongPassword'));
@@ -637,7 +637,7 @@ export default function ImageServiceCameras() {
       setPermaDeleteTarget(null);
       setPermaDeletePassword('');
       fetchCameraTrash();
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
       if (e?.response?.status === 401) {
         toast.error(t('imageService.cameras.wrongPassword'));
@@ -806,7 +806,7 @@ export default function ImageServiceCameras() {
         } catch { /* non-fatal: attachment upload failure */ }
       }
       toast.success(t('imageService.incidents.incidentCreated'));
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-open-incidents-count'] });
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
     finally {
@@ -830,7 +830,7 @@ export default function ImageServiceCameras() {
         resolutionDesc: resolveForm.resolutionDesc || undefined,
       });
       toast.success(t('imageService.incidents.incidentResolved'));
-      queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-open-incidents-count'] });
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
     finally {

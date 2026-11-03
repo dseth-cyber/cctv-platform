@@ -23,6 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useTranslation } from 'react-i18next';
+import { useCctvCameras } from '@/hooks/useCctvCameras';
 interface CameraPin {
   id: string;
   name: string;
@@ -56,10 +57,7 @@ export default function CctvMap() {
     queryFn: () => imageServiceApi.getSites(),
   });
 
-  const { data: cameras = [], isLoading: isLoadingCameras } = useQuery({
-    queryKey: ['cameras'],
-    queryFn: () => imageServiceApi.getCameras({ enabled: true }),
-  });
+  const { data: cameras = [], isLoading: isLoadingCameras } = useCctvCameras();
 
   // Selected site object
   const currentSite = sites.find((s: any) => s.id === selectedSiteId);
@@ -80,7 +78,7 @@ export default function CctvMap() {
     mutationFn: ({ id, lat, lng }: { id: string; lat: number; lng: number }) =>
       imageServiceApi.updateCamera(id, { latitude: lat, longitude: lng }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cameras'] });
+      queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     },
   });
 

@@ -430,7 +430,7 @@ export async function getDashboardSummary() {
       },
     }),
     prisma.camera.findMany({
-      where: { enabled: true },
+      where: { enabled: true, deletedAt: null },
       select: {
         id: true,
         name: true,

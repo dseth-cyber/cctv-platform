@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
+import { useCctvCameras } from '@/hooks/useCctvCameras';
 type GridLayout = '1x1' | '2x2' | '3x3' | '4x4';
 
 interface GridCell {
@@ -113,10 +114,7 @@ export default function LiveGrid() {
   );
 
   // Queries
-  const { data: cameras = [], isLoading: isLoadingCameras } = useQuery({
-    queryKey: ['cameras'],
-    queryFn: () => imageServiceApi.getCameras({ enabled: true }),
-  });
+  const { data: cameras = [], isLoading: isLoadingCameras } = useCctvCameras();
 
   const { data: devices = [] } = useQuery({
     queryKey: ['cctv-devices'],
