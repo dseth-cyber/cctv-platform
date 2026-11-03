@@ -391,7 +391,7 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
       severity: 'critical',
       source: 'disk_watermark_monitor',
       title: 'Recording Storage Critical — Cleanup Disabled',
-      message: `Recording disk usage is critical at ${usedPercent.toFixed(1)}% (Threshold: ${critThreshold}%). Automatic cleanup is disabled pending an approved retention policy; free space manually.`,
+      message: `Recording disk usage is critical at ${usedPercent.toFixed(1)}% (Threshold: ${critThreshold}%). Automatic cleanup is disabled (RECORDINGS_CLEANUP_ENABLED is not true); free space manually.`,
       details: { usedPercent, critThreshold, totalBytes, freeBytes, dirPath },
       skipDedup: false,
     });

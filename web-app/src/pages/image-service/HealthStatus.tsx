@@ -89,7 +89,6 @@ export default function HealthStatus() {
   const offlineDevices = devicesArr.filter((d: any) => d.status === 'offline').length
   const streamingCameras = camerasArr.filter((c: any) => c.operationalStatus === 'online').length
   const stalledCameras = camerasArr.filter((c: any) => c.operationalStatus === 'offline' || c.status === 'error').length
-  const flowAlerts = alertsArr.filter((a: any) => a.alertType === 'camera_no_new_images').length
 
   const serviceOk = health?.status === 'ok'
   const dbOk = health?.checks?.database === 'ok'
@@ -207,18 +206,18 @@ export default function HealthStatus() {
                 <span className={`text-xs font-medium ${themeConfig.text.secondary}`}>
                   {t('ui.healthStatus.n3VideoStalledDroppedFrames')}
                 </span>
-                {stalledCameras === 0 && flowAlerts === 0 ? (
+                {stalledCameras === 0 ? (
                   <CheckCircle size={16} className="text-emerald-400" />
                 ) : (
                   <AlertTriangle size={16} className="text-rose-400" />
                 )}
               </div>
-              <p className={`text-2xl font-bold ${stalledCameras === 0 && flowAlerts === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {stalledCameras + flowAlerts} <span className="text-xs font-normal text-slate-400">{t('ui.healthStatus.issues')}</span>
+              <p className={`text-2xl font-bold ${stalledCameras === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {stalledCameras} <span className="text-xs font-normal text-slate-400">{t('ui.healthStatus.issues')}</span>
               </p>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              {stalledCameras === 0 && flowAlerts === 0
+              {stalledCameras === 0
                 ? t('ui.healthStatus.socketUpActiveFrameFlowVerified')
                 : t('ui.healthStatus.cameraSStalledOrProducing', { stalledCameras })}
             </p>

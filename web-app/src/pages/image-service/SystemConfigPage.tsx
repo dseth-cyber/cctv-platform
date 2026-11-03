@@ -4,16 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { Save, RotateCcw, RefreshCw, Settings, Database, HardDrive, Server, Bell, Image, Upload, Info, AlertTriangle, Trash2, Zap } from 'lucide-react';
+import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, Info, Zap } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Modal } from '@/components/ui';
 
 const CATEGORIES: { key: string; icon: any; labelKey: string; color: string }[] = [
   { key: 'general', icon: Settings, labelKey: 'imageService.systemConfig.categoryGeneral', color: 'text-gray-400 bg-gray-500/10' },
   { key: 'retention', icon: Database, labelKey: 'imageService.systemConfig.categoryRetention', color: 'text-blue-400 bg-blue-500/10' },
-  { key: 'compression', icon: Image, labelKey: 'imageService.systemConfig.categoryCompression', color: 'text-purple-400 bg-purple-500/10' },
-  { key: 'thumbnail', icon: HardDrive, labelKey: 'imageService.systemConfig.categoryThumbnail', color: 'text-amber-400 bg-amber-500/10' },
-  { key: 'polling', icon: RefreshCw, labelKey: 'imageService.systemConfig.categoryPolling', color: 'text-green-400 bg-green-500/10' },
   { key: 'alert', icon: Bell, labelKey: 'imageService.systemConfig.categoryAlert', color: 'text-red-400 bg-red-500/10' },
   { key: 'storage', icon: Server, labelKey: 'imageService.systemConfig.categoryStorageLimit', color: 'text-teal-400 bg-teal-500/10' },
   { key: 'automation', icon: Zap, labelKey: 'imageService.systemConfig.categoryAutomation', color: 'text-cyan-400 bg-cyan-500/10' },

@@ -1,11 +1,9 @@
 // Telegram is a single shared chat with no per-viewer language preference (unlike the
 // in-app alert bell, which re-translates the same stored-English alert per viewer via
 // web-app/src/utils/textUtils.ts translateAlertTitle/Message) — so there's one fixed
-// target language for it, chosen here as Thai to match the operating team. This only
-// covers the camera status-change/created/deleted shape (see cameras.controller.ts) and
-// sync-worker-error alerts (see image-sync-worker) for now; anything else falls through
-// untranslated. Extend pattern-by-pattern the same way textUtils.ts does on the frontend
-// if more alert types need this.
+// target language for it, chosen here as Thai to match the operating team. Anything not
+// recognized falls through untranslated. Extend pattern-by-pattern the same way textUtils.ts
+// does on the frontend if more alert types need this.
 
 import { getPrisma } from './prisma.js';
 
@@ -17,44 +15,6 @@ const STATUS_TH: Record<string, string> = {
 // priority: low/medium/high/critical, impact: none/partial/full.
 const PRIORITY_TH: Record<string, string> = { low: 'ต่ำ', medium: 'ปานกลาง', high: 'สูง', critical: 'วิกฤต' };
 const IMPACT_TH: Record<string, string> = { none: 'ไม่มี', partial: 'บางส่วน', full: 'ทั้งสายการผลิต' };
-// Matches the Prisma FileType enum (schema.prisma).
-const FILE_TYPE_TH: Record<string, string> = {
-  raw: 'ต้นฉบับ', processed: 'ประมวลผลแล้ว', thumbnail: 'รูปขนาดเล็ก',
-  metadata_json: 'ข้อมูล Metadata (JSON)', ai: 'ผลวิเคราะห์ AI', ocr: 'ผลอ่านข้อความ (OCR)',
-};
-function translateFileTypes(csv: string): string {
-  return csv.split(',').map((t) => FILE_TYPE_TH[t.trim()] ?? t.trim()).join(', ');
-}
-// Mirrors web-app/src/utils/textUtils.ts's translateTechnicalDetail — same classification
-// codes/order/keys as the camera "Test Connection" feature (smb.service.ts), kept in sync
-// by hand.
-const SMB_ERROR_TH: Record<string, string> = {
-  auth_failed: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
-  share_not_found: 'ไม่พบ Share Path ที่ระบุ กรุณาตรวจสอบเส้นทาง',
-  path_not_found: 'ไม่พบโฟลเดอร์หรือไฟล์ที่ระบุ',
-  unreachable: 'ไม่สามารถเชื่อมต่อกับอุปกรณ์ได้ กรุณาตรวจสอบเครือข่ายหรือที่อยู่ IP',
-  scan_overflow: 'สแกนอ่านไฟล์ล้มเหลวเนื่องจากจำนวนไฟล์ในโฟลเดอร์เกินขีดจำกัดหน่วยความจำ',
-};
-
-// Classifies raw SMB/NT_STATUS technical error text into a stable code (or null if
-// unrecognized) — order matters, first match wins, same as textUtils.ts.
-function classifySmbError(detail: string): string | null {
-  const s = detail.toLowerCase();
-  if (s.includes('nt_status_logon_failure') || s.includes('nt_status_wrong_password') || s.includes('nt_status_access_denied')) return 'auth_failed';
-  if (s.includes('nt_status_bad_network_name')) return 'share_not_found';
-  if (s.includes('nt_status_object_name_not_found') || s.includes('nt_status_object_path_not_found')) return 'path_not_found';
-  if (s.includes('nt_status_host_unreachable') || s.includes('nt_status_io_timeout') || s.includes('connection timed out') || s.includes('timeout') || s.includes('connection refused')) return 'unreachable';
-  if (s.includes('maximum call stack size exceeded') || s.includes('scan failed') || s.includes('stack overflow')) return 'scan_overflow';
-  return null;
-}
-
-// Prepends a Thai explanation for known SMB failures while keeping the original text
-// visible for troubleshooting; unrecognized text is returned unchanged.
-function translateTechnicalDetailTh(detail: string): string {
-  const code = classifySmbError(detail);
-  return code ? `${SMB_ERROR_TH[code]} (${detail})` : detail;
-}
-
 // reason/rootCause/resolution are masterdata-backed codes (incident_reason /
 // incident_root_cause / incident_resolution) — admin-editable, so resolved via a live
 // DB lookup rather than a hardcoded dictionary (keeps this in sync automatically).
@@ -144,7 +104,10 @@ async function translateMessage(message: string): Promise<string> {
     return `กล้อง "${name}" ออฟไลน์ สถานะ: ${statusTh} เช็คล่าสุด: ${formatThaiDateTime(lastPoll)}`;
   }
 
-  const autoOnline = message.match(/^Camera "(.+?)" is back online(?:\. Downtime: (.+))?$/i);
+  const streamDropped = message.match(/^Camera "(.+?)" stream disconnected instantly \(< 3s detection\)\. Stream: (.+?)\.?$/i);
+  if (streamDropped) return `กล้อง "${streamDropped[1]}" สตรีมขาดทันที (ตรวจพบภายใน 3 วินาที) สตรีม: ${streamDropped[2]}`;
+
+  const autoOnline = message.match(/^Camera "(.+?)" is back online(?: via real-time webhook)?(?:\. Downtime: (.+))?$/i);
   if (autoOnline) {
     const [, name, downtime] = autoOnline;
     return `กล้อง "${name}" กลับมาออนไลน์แล้ว${downtime ? ` ระยะเวลาที่ดาวน์: ${translateDuration(downtime)}` : ''}`;
@@ -153,27 +116,46 @@ async function translateMessage(message: string): Promise<string> {
   return message;
 }
 
+// Recording storage alerts (retention-sweeper.service.ts / segment-indexer.ts): fixed titles,
+// numbers pulled out of the message.
+function translateRecordingAlertTh(title: string, message: string): { title: string; message: string } | null {
+  let m: RegExpMatchArray | null;
+  switch (title) {
+    case 'Recording Storage Monitor Error':
+      m = message.match(/^Cannot read disk usage for recordings directory (.+?): ([\s\S]+)$/);
+      return { title: 'อ่านพื้นที่ดิสก์บันทึกไม่ได้', message: m ? `อ่านการใช้พื้นที่ของโฟลเดอร์ ${m[1]} ไม่ได้: ${m[2]}` : message };
+    case 'Recording Storage High-Watermark Warning':
+      m = message.match(/^Recording disk usage reached ([\d.]+)% \(Threshold: ([\d.]+)%\)/);
+      return { title: 'ดิสก์บันทึกใกล้เต็ม', message: m ? `ดิสก์บันทึกใช้ไป ${m[1]}% (เกณฑ์เตือน ${m[2]}%) ใกล้ถึงระดับวิกฤต` : message };
+    case 'Recording Storage Critical — Cleanup Disabled':
+      m = message.match(/^Recording disk usage is critical at ([\d.]+)% \(Threshold: ([\d.]+)%\)/);
+      return { title: 'ดิสก์บันทึกวิกฤต — ปิดการล้างอัตโนมัติอยู่', message: m ? `ดิสก์บันทึกใช้ไป ${m[1]}% (เกณฑ์วิกฤต ${m[2]}%) การล้างไฟล์อัตโนมัติถูกปิดอยู่ ต้องคืนพื้นที่เอง` : message };
+    case 'Emergency FIFO Eviction Triggered':
+      m = message.match(/^Recording disk usage is critical at ([\d.]+)% \(Threshold: ([\d.]+)%\)\. Deleting the oldest .+ until usage < ([\d.]+)%/);
+      return { title: 'ดิสก์บันทึกวิกฤต — เริ่มลบไฟล์เก่าสุด', message: m ? `ดิสก์บันทึกใช้ไป ${m[1]}% (เกณฑ์วิกฤต ${m[2]}%) กำลังลบไฟล์เก่าสุดที่ไม่ติด Legal Hold (เริ่มจาก quarantine) จนต่ำกว่า ${m[3]}%` : message };
+    case 'Emergency Eviction Did Not Free Space':
+      m = message.match(/^Deleted (\d+) recordings but usage is still ([\d.]+)%\. Something other than recordings is filling (.+?), or/);
+      return { title: 'ลบไฟล์แล้วพื้นที่ไม่ลดลง', message: m ? `ลบไฟล์บันทึกไป ${m[1]} ไฟล์ แต่ดิสก์ยังใช้อยู่ ${m[2]}% อาจมีไฟล์อื่นใน ${m[3]} หรือไฟล์ที่เหลือติด Legal Hold` : message };
+    case 'Recording files missing from disk':
+      m = message.match(/^(\d+) indexed recording segment\(s\) are no longer on disk \((\d+) under Legal Hold\)/);
+      return { title: 'ไฟล์บันทึกหายจากดิสก์', message: m ? `ไฟล์บันทึก ${m[1]} ไฟล์ไม่อยู่บนดิสก์แล้ว (ติด Legal Hold ${m[2]} ไฟล์) ถูกลบนอกกระบวนการ retention` : message };
+    default:
+      return null;
+  }
+}
+
 const STORAGE_LEVEL_TH: Record<string, string> = { warning: 'ใกล้เต็ม', critical: 'วิกฤต', emergency: 'ฉุกเฉิน' };
 
 /**
  * Translates every alert title/message shape actually emitted by createAlert() calls in
- * image-api — see cameras.controller.ts (camera status/create/delete), image-sync-worker
- * (sync errors), camera-health-monitor.ts (incident escalation),
- * provider-metric-collector.ts (storage warning/critical/emergency/cleanup),
- * images.service.ts (trash emptied, bulk delete, bulk delete files), and
+ * image-api — see cameras.controller.ts (camera status/create/delete), camera-health-monitor.ts
+ * (incident escalation), provider-metric-collector.ts (storage warning/critical/emergency),
+ * retention-sweeper.service.ts / segment-indexer.ts (recording storage), and
  * auth.service.ts (suspicious login activity / account lockout). Anything unrecognized
  * (including a message that no longer matches its title's expected shape, e.g. after an
  * upstream template change) falls back to the raw text rather than dropping information.
  */
 export async function translateCameraAlertToThai(title: string, message: string): Promise<{ title: string; message: string }> {
-  const syncWorker = title.match(/^Sync worker error:\s*(.+)$/i);
-  if (syncWorker) {
-    return {
-      title: `ข้อผิดพลาด Sync Worker: ${translateTechnicalDetailTh(syncWorker[1])}`,
-      message: translateTechnicalDetailTh(message),
-    };
-  }
-
   const authAnomaly = title.match(/^Suspicious login activity:\s*(.+)$/i);
   if (authAnomaly) {
     const m = message.match(/^(\d+) failed login attempts for user "(.+?)"(?: from IP (\S+))? within (\d+) minute\(s\) — account locked for (\d+) minute\(s\)\.?$/i);
@@ -182,40 +164,6 @@ export async function translateCameraAlertToThai(title: string, message: string)
       message: m
         ? `พบความพยายาม Login ผิดพลาด ${m[1]} ครั้งสำหรับผู้ใช้ "${m[2]}"${m[3] ? ` จาก IP ${m[3]}` : ''} ภายใน ${m[4]} นาที — ล็อกบัญชีชั่วคราว ${m[5]} นาที`
         : message,
-    };
-  }
-
-  // camera-health-monitor.ts's image-flow watchdog — "reachable but silent", which is a
-  // different failure from camera_offline and reads very differently in Thai: the point to
-  // get across is that the network is fine and the camera itself has stopped producing.
-  const noNewImages = title.match(/^No new images:\s*(.+)$/i);
-  if (noNewImages) {
-    const m = message.match(/^Camera "(.+?)" is still reachable but has produced no new images for (.+?) \(last image: (\S+)\)(?: during an active production run for (.+?))?\. Only defective parts/i);
-    return {
-      title: `ไม่มีรูปใหม่: ${noNewImages[1]}`,
-      message: m
-        ? `กล้อง "${m[1]}" ยังเชื่อมต่อได้ปกติ แต่ไม่มีรูปใหม่เข้ามาเลยเป็นเวลา ${translateDuration(m[2])} (รูปล่าสุด: ${formatThaiDateTime(m[3])})${m[4] ? `\nอยู่ระหว่างรอบผลิตของ ${m[4]}` : ''}\nระบบถ่ายเฉพาะชิ้นงานที่เสีย จึงเป็นได้ทั้ง "ไม่มีของเสียเลย" หรือ "ระบบถ่ายภาพหยุดทำงาน" — การเชื่อมต่อไม่มีปัญหา`
-        : message,
-    };
-  }
-
-  const stillNoNewImages = title.match(/^Still no new images:\s*(.+)$/i);
-  if (stillNoNewImages) {
-    const m = message.match(/^Camera "(.+?)" has now produced no new images for (.+?) \(last image: (\S+)\)(?: during an active production run for (.+?))?\. It is still reachable/i);
-    return {
-      title: `ยังไม่มีรูปใหม่: ${stillNoNewImages[1]}`,
-      message: m
-        ? `กล้อง "${m[1]}" ไม่มีรูปใหม่เข้ามาเลยเป็นเวลา ${translateDuration(m[2])} แล้ว (รูปล่าสุด: ${formatThaiDateTime(m[3])})${m[4] ? `\nอยู่ระหว่างรอบผลิตของ ${m[4]}` : ''}\nยังเชื่อมต่อได้อยู่ จึงไม่ใช่ปัญหาเครือข่าย`
-        : message,
-    };
-  }
-
-  const imagesResumed = title.match(/^Camera producing images again:\s*(.+)$/i);
-  if (imagesResumed) {
-    const m = message.match(/^Camera "(.+?)" is producing images again after (.+?) with no new images\.?$/i);
-    return {
-      title: `กล้องส่งรูปอีกครั้ง: ${imagesResumed[1]}`,
-      message: m ? `กล้อง "${m[1]}" กลับมาส่งรูปใหม่แล้ว หลังจากไม่มีรูปเข้ามานาน ${translateDuration(m[2])}` : message,
     };
   }
 
@@ -250,58 +198,8 @@ export async function translateCameraAlertToThai(title: string, message: string)
     };
   }
 
-  const storageCleanup = title.match(/^Storage cleanup:\s*(.+)$/i);
-  if (storageCleanup) {
-    const m = message.match(/^Auto-cleanup freed ([\d.]+ ?GB) \((\d+) files?\) for (.+?)\.?$/i);
-    return {
-      title: `ทำความสะอาดพื้นที่จัดเก็บ: ${storageCleanup[1]}`,
-      message: m ? `ทำความสะอาดอัตโนมัติปลดปล่อยพื้นที่ ${m[1]} (${m[2]} ไฟล์) สำหรับ ${m[3]}` : message,
-    };
-  }
-
-  const trashEmptied = title.match(/^Trash emptied:\s*(\d+)\s*images$/i);
-  if (trashEmptied) {
-    const m = message.match(/^(.+?) permanently deleted (\d+)\/(\d+) images from trash \((\d+) files?, (\d+) failed and kept for retry\)$/i);
-    return {
-      title: `ล้างถังขยะสำเร็จ: ${trashEmptied[1]} ภาพ`,
-      message: m ? `${m[1]} ลบภาพถาวรจากถังขยะ ${m[2]}/${m[3]} ภาพ (${m[4]} ไฟล์, ผิดพลาด ${m[5]} ไฟล์ ซึ่งจะเก็บไว้ลองใหม่ภายหลัง)` : message,
-    };
-  }
-
-  // Both message shapes are built from a fixed template (see images.service.ts
-  // bulkDeleteFilesByAge/bulkDeleteByAge) with exactly two day/"all" variants and an
-  // optional trailing failed-count clause — deterministic enough to fully regex-parse.
-  const bulkDeleteFiles = title.match(/^Bulk delete files:\s*(\d+)\s*files$/i);
-  if (bulkDeleteFiles) {
-    const th = `ลบไฟล์จำนวนมาก: ${bulkDeleteFiles[1]} ไฟล์`;
-    const aged = message.match(/^(.+?) deleted (\d+) files \(types: ([^)]*)\) older than (\d+) days\. Filter: cameras=(\S+), age=(\S+)(?: \((\d+) failed, kept for retry\))?$/i);
-    if (aged) {
-      const [, user, count, types, days, cameras, age, errors] = aged;
-      return { title: th, message: `${user} ลบไฟล์ถาวร ${count} ไฟล์ (ประเภท: ${translateFileTypes(types)}) ที่เก่ากว่า ${days} วัน (กล้อง=${cameras}, อายุ=${age})${errors ? ` — ล้มเหลว ${errors} รายการ จะลองใหม่ภายหลัง` : ''}` };
-    }
-    const all = message.match(/^(.+?) deleted all (\d+) files \(types: ([^)]*)\)\. Filter: cameras=(\S+), age=(\S+)(?: \((\d+) failed, kept for retry\))?$/i);
-    if (all) {
-      const [, user, count, types, cameras, age, errors] = all;
-      return { title: th, message: `${user} ลบไฟล์ถาวรทั้งหมด ${count} ไฟล์ (ประเภท: ${translateFileTypes(types)}) (กล้อง=${cameras}, อายุ=${age})${errors ? ` — ล้มเหลว ${errors} รายการ จะลองใหม่ภายหลัง` : ''}` };
-    }
-    return { title: th, message }; // shape changed upstream and no longer matches — keep raw rather than drop info
-  }
-
-  const bulkDelete = title.match(/^Bulk delete:\s*(\d+)\s*images$/i);
-  if (bulkDelete) {
-    const th = `ลบภาพจำนวนมาก: ${bulkDelete[1]} ภาพ`;
-    const aged = message.match(/^(.+?) deleted (\d+) images older than (\d+) days\. Filter: cameras=(\S+), age=(\S+)$/i);
-    if (aged) {
-      const [, user, count, days, cameras, age] = aged;
-      return { title: th, message: `${user} ลบภาพ ${count} ภาพ ที่เก่ากว่า ${days} วัน (กล้อง=${cameras}, อายุ=${age})` };
-    }
-    const all = message.match(/^(.+?) deleted all (\d+) images\. Filter: cameras=(\S+), age=(\S+)$/i);
-    if (all) {
-      const [, user, count, cameras, age] = all;
-      return { title: th, message: `${user} ลบภาพทั้งหมด ${count} ภาพ (กล้อง=${cameras}, อายุ=${age})` };
-    }
-    return { title: th, message };
-  }
+  const recording = translateRecordingAlertTh(title, message);
+  if (recording) return recording;
 
   if (!/^Camera (offline|online|maintenance|error|deleted|created):/i.test(title)) {
     return { title, message };

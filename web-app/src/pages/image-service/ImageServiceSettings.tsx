@@ -109,27 +109,15 @@ export default function ImageServiceSettings() {
     { value: 'line', label: 'Line' },
   ];
 
-  // Every value here must exist in the Prisma AlertType enum (schema.prisma) — this list
-  // intentionally covers all 12, not just the ones actually wired up to createAlert()
-  // calls yet, so a rule can be pre-created before the emitting code ships. Currently
-  // wired up (will actually fire): storage_warning, disk_space, camera_offline,
-  // camera_no_new_images, storage_cleanup, incident_escalation, auth_anomaly. NOT wired
-  // up anywhere yet (a rule for these will sit dormant — nothing in the codebase creates
-  // an alert with that type): processing_failure, rate_limit_exceeded,
-  // retention_violation, ingest_lag, checksum_mismatch.
+  // Alert types something in image-api actually emits (each must exist in the Prisma
+  // AlertType enum). The enum still has factory-era values; a rule for those would never fire.
   const ALERT_TYPE_OPTIONS = [
-    { value: 'storage_warning', label: t('imageService.settings.alertTypes.storage_warning', 'Storage Warning') },
-    { value: 'disk_space', label: t('imageService.settings.alertTypes.disk_space', 'Disk Space') },
     { value: 'camera_offline', label: t('imageService.settings.alertTypes.camera_offline', 'Camera Offline') },
-    { value: 'camera_no_new_images', label: t('imageService.settings.alertTypes.camera_no_new_images', 'Camera Producing No New Images') },
-    { value: 'storage_cleanup', label: t('imageService.settings.alertTypes.storage_cleanup', 'Storage Cleanup') },
+    { value: 'disk_space', label: t('imageService.settings.alertTypes.disk_space', 'Disk Space') },
+    { value: 'storage_warning', label: t('imageService.settings.alertTypes.storage_warning', 'Storage Warning') },
+    { value: 'retention_violation', label: t('imageService.settings.alertTypes.retention_violation', 'Retention Violation') },
     { value: 'incident_escalation', label: t('imageService.settings.alertTypes.incident_escalation', 'Incident Escalation') },
     { value: 'auth_anomaly', label: t('imageService.settings.alertTypes.auth_anomaly', 'Suspicious Login Activity') },
-    { value: 'processing_failure', label: t('imageService.settings.alertTypes.processing_failure', 'Processing Failure') },
-    { value: 'rate_limit_exceeded', label: t('imageService.settings.alertTypes.rate_limit_exceeded', 'Rate Limit Exceeded') },
-    { value: 'retention_violation', label: t('imageService.settings.alertTypes.retention_violation', 'Retention Violation') },
-    { value: 'ingest_lag', label: t('imageService.settings.alertTypes.ingest_lag', 'Ingest Lag') },
-    { value: 'checksum_mismatch', label: t('imageService.settings.alertTypes.checksum_mismatch', 'Checksum Mismatch') },
   ];
 
   const handleSaveGeneral = async () => {

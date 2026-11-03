@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 6) — locale ที่ไม่ได้ใช้ และคำแปล alert ของระบบบันทึก
+
+- locale: ลบอีก 497 key (383 ที่ไม่มีโค้ดอ้างถึง + 114 ที่เหลือจากระบบเดิมใน section ที่มี dynamic prefix แบบจำกัดค่า: alerts.${severity}, cameras.${status}, systemConfig.labels.${key}); ทั้ง 5 ภาษาเหลือ 2,369 key เท่ากัน. ตรวจทั้งสองทาง: ไม่มี key ที่ไม่ได้ใช้ และไม่มี key ที่โค้ดเรียกแต่หาไม่เจอ (รวม key ใน map และ techError ที่ประกอบจากตัวแปร); สคริปต์อยู่ใน scratchpad (unused_keys.py, bounded_scan.py, missing_keys.py)
+- พบระหว่างทาง: scan รอบแรกพลาด key ที่ต่อท้ายแบบไม่มีจุด (`imageService.incidents.priority${X}`) — แก้ scan แล้ว ไม่มี key ใดถูกลบผิด
+- textUtils.ts / telegram-translate-th.ts: ลบตัวแปล alert ของระบบเดิม 8 แบบ (Trash emptied, Bulk delete, Sync worker, No new images, Storage cleanup, SMB error ฯลฯ) และ `translateSmbTestResult`; `translateTechnicalDetail` จัดกลุ่มแบบทั่วไป (เชื่อมต่อไม่ได้ / รหัสกล้องผิด / ดิสก์เต็ม)
+- **alert ของระบบบันทึก 6 แบบเดิมแสดงเป็นอังกฤษดิบ** (High-Watermark Warning, Cleanup Disabled, Emergency eviction, Eviction ineffective, Monitor error, Recording files missing) + ข้อความ real-time "stream disconnected instantly" / "back online via real-time webhook" — ตอนนี้แปลครบ 5 ภาษาในเว็บ และภาษาไทยใน Telegram
+- ข้อความ "Cleanup Disabled" ไม่อ้างว่ารอนโยบายอนุมัติแล้ว (บอกว่า RECORDINGS_CLEANUP_ENABLED ไม่ใช่ true)
+- system-config: ลบค่าตั้งของระบบภาพที่ไม่มีโค้ดอ่าน 21 ค่า (TIFF/PNG retention, compression, thumbnail, polling, DLQ, scanner, no-new-images 4 ค่า, ingest buffer, dashboard layout ฯลฯ) และหมวด compression/thumbnail/polling ในหน้า System Config; ตัวเลือกประเภท alert ในหน้า Settings เหลือ 6 แบบที่ระบบสร้างจริง; ตัด flowAlerts (camera_no_new_images) ในหน้า Health
+- ตรวจ: tsc API/web, vitest 103 passed (+ test ตัวแปล Telegram); รัน textUtils จริงกับ alert ใน DB และข้อความจาก template ของ API → แปลครบ (th/en/jp); ใน container: system-config เหลือ 27 ค่า ไม่มีค่าเดิม, PATCH config 200, alerts/health 200, bundle ไม่มี smbError/titleTrashEmptied
+- ยังเหลือ: enum AlertType ใน DB ยังมีค่าของระบบเดิม (processing_failure, camera_no_new_images, storage_cleanup ฯลฯ) — ไม่กระทบการทำงาน
+
 ## งานล่าสุด (2026-11-03, รอบ 5) — zod v4 และตัวเลือก incident ของ CCTV
 
 - image-api ใช้ zod 4.6.7: `z.string().uuid()` → `z.guid()` (seed ใช้ id แบบ non-RFC เช่น `00000000-...-0001` ซึ่ง `z.uuid()` ของ v4 ปฏิเสธ), `z.record(x)` → `z.record(z.string(), x)`; test `cameras.schema.test.ts` กันการเปลี่ยนกลับ และยืนยันว่า update schema ไม่ใส่ค่า default
@@ -40,7 +51,7 @@
 - Web: ลบ `types/image-service.ts` (ไม่มีใครใช้), ฟิลด์ภาพใน required-fields catalog (cameraTemplate processing, storageProfile), case ภาพในหน้า Reports; locale ลบ 19 section ที่ไม่มีโค้ดใช้เลย (docs, executive, shifts, migrations, storageProfiles, processingLogs, deadLetter, ui.imageServiceSearch ฯลฯ) + common.clearData* + แท็บ masterdata เดิม
 - AGENTS.md: ส่วน legacy เปลี่ยนเป็น "Conventions" — ตัดกฎเฉพาะระบบภาพ (image_files, Kafka image event, BullMQ, SMB/scan-worker fixes); กฎ recording cleanup อัปเดตตามนโยบายที่อนุมัติ 2026-11-03 (มี `deleteRecordingPermanently()` แล้ว)
 - ตรวจ: tsc API/web, vitest 95 passed, web build; ใน container: masterdata เหลือ 4 type, คอลัมน์ pressure 0, enum 0, provider list/patch 200, masterdata camera_type → 400, endpoint หลัก 200, bundle ไม่มี key เดิม
-- ยังเหลือ: locale ~380 key ที่ไม่ได้ใช้กระจายอยู่ใน section ที่ยังใช้บางส่วน (เช่น imageService.search/overview/storage) — ไม่ลบเพราะเสี่ยงกับ key ที่ประกอบแบบ dynamic
+- locale ที่ยังเหลือ ~380 key เก็บกวาดแล้วในรอบ 6
 
 ## งานล่าสุด (2026-11-03, รอบ 3) — แก้ 502 หลัง restart API และ 500 จาก id ผิดรูปแบบ
 

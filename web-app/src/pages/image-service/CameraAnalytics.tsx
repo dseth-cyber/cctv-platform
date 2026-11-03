@@ -826,12 +826,7 @@ export default function CameraAnalytics() {
                           maintenance_start: 'text-yellow-400 bg-yellow-500/10',
                           maintenance_end: 'text-green-400 bg-green-500/10',
                           reconfigured: 'text-blue-400 bg-blue-500/10',
-                          // Reachable but producing nothing — amber, not red: the camera is
-                          // not broken, and with defect-only capture this may be good news.
-                          no_new_images: 'text-amber-400 bg-amber-500/10',
-                          images_resumed: 'text-green-400 bg-green-500/10',
                           recovering: 'text-yellow-400 bg-yellow-500/10',
-                          image_deleted: 'text-gray-400 bg-gray-500/10',
                         }
 
                         return (

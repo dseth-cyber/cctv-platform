@@ -47,33 +47,10 @@ export function translateAlertTitle(title: string, t: (k: string, opts?: any) =>
     if (translated !== key) return translated
   }
 
-  const storageCleanup = title.match(/^Storage cleanup:\s*(.+)$/i)
-  if (storageCleanup) {
-    const key = 'imageService.alerts.titleStorageCleanup'
-    const translated = t(key, { name: storageCleanup[1] })
-    if (translated !== key) return translated
-  }
-
   const authAnomaly = title.match(/^Suspicious login activity:\s*(.+)$/i)
   if (authAnomaly) {
     const key = 'imageService.alerts.titleAuthAnomaly'
     const translated = t(key, { username: authAnomaly[1] })
-    if (translated !== key) return translated
-  }
-
-  const noNewImages = title.match(/^(Still no|No) new images:\s*(.+)$/i)
-  if (noNewImages) {
-    const key = noNewImages[1].toLowerCase() === 'still no'
-      ? 'imageService.alerts.titleStillNoNewImages'
-      : 'imageService.alerts.titleNoNewImages'
-    const translated = t(key, { name: noNewImages[2] })
-    if (translated !== key) return translated
-  }
-
-  const imagesResumed = title.match(/^Camera producing images again:\s*(.+)$/i)
-  if (imagesResumed) {
-    const key = 'imageService.alerts.titleImagesResumed'
-    const translated = t(key, { name: imagesResumed[1] })
     if (translated !== key) return translated
   }
 
@@ -91,58 +68,38 @@ export function translateAlertTitle(title: string, t: (k: string, opts?: any) =>
     if (translated !== key) return translated
   }
 
-  // Sync worker errors carry arbitrary technical detail (SMB paths, NT_STATUS codes, IPs).
-  // Known SMB failure codes get a translated explanation via translateTechnicalDetail;
-  // anything unrecognized (raw paths, unknown codes) is left as-is since it isn't
-  // meaningfully translatable.
-  const syncWorker = title.match(/^Sync worker error:\s*(.+)$/i)
-  if (syncWorker) {
-    const key = 'imageService.alerts.titleSyncWorkerError'
-    const translated = t(key, { detail: translateTechnicalDetail(syncWorker[1], t) })
-    if (translated !== key) return translated
-  }
-
-  const trashEmptied = title.match(/^Trash emptied:\s*(\d+)\s*images$/i)
-  if (trashEmptied) {
-    const key = 'imageService.alerts.titleTrashEmptied'
-    const translated = t(key, { count: trashEmptied[1] })
-    if (translated !== key) return translated
-  }
-
-  const bulkDeleteFiles = title.match(/^Bulk delete files:\s*(\d+)\s*files$/i)
-  if (bulkDeleteFiles) {
-    const key = 'imageService.alerts.titleBulkDeleteFiles'
-    const translated = t(key, { count: bulkDeleteFiles[1] })
-    if (translated !== key) return translated
-  }
-
-  const bulkDelete = title.match(/^Bulk delete:\s*(\d+)\s*images$/i)
-  if (bulkDelete) {
-    const key = 'imageService.alerts.titleBulkDelete'
-    const translated = t(key, { count: bulkDelete[1] })
-    if (translated !== key) return translated
+  // Recording storage alerts (retention-sweeper.service.ts / segment-indexer.ts) have fixed titles.
+  const recordingKey = RECORDING_TITLE_KEYS[title]
+  if (recordingKey) {
+    const translated = t(recordingKey)
+    if (translated !== recordingKey) return translated
   }
 
   return title
 }
 
-// Recognizes common SMB/NT_STATUS failure codes embedded in raw technical error text
-// (from smbclient, sync-worker scan failures, etc.) and prepends a Thai/localized
-// explanation while keeping the original code visible for troubleshooting. Reuses the
-// same classification keys as the camera "Test Connection" feature (smb.service.ts).
-// Falls back to the untouched original string when no known pattern matches.
+const RECORDING_TITLE_KEYS: Record<string, string> = {
+  'Recording Storage Monitor Error': 'imageService.alerts.titleRecordingMonitorError',
+  'Recording Storage High-Watermark Warning': 'imageService.alerts.titleRecordingWarning',
+  'Recording Storage Critical — Cleanup Disabled': 'imageService.alerts.titleRecordingCriticalDisabled',
+  'Emergency FIFO Eviction Triggered': 'imageService.alerts.titleRecordingEviction',
+  'Emergency Eviction Did Not Free Space': 'imageService.alerts.titleRecordingEvictionIneffective',
+  'Recording files missing from disk': 'imageService.alerts.titleRecordingMissing',
+}
+
+// Recognizes common technical failure text (connection timeouts, camera auth, full disk) and
+// prepends a localized explanation while keeping the original text visible for
+// troubleshooting. Falls back to the untouched original string when no known pattern matches.
 export function translateTechnicalDetail(detail: string, t: (k: string, opts?: any) => string): string {
   if (!detail) return detail
   const s = detail.toLowerCase()
   let code: string | null = null
-  if (s.includes('nt_status_logon_failure') || s.includes('nt_status_wrong_password') || s.includes('nt_status_access_denied')) code = 'auth_failed'
-  else if (s.includes('nt_status_bad_network_name')) code = 'share_not_found'
-  else if (s.includes('nt_status_object_name_not_found') || s.includes('nt_status_object_path_not_found')) code = 'path_not_found'
-  else if (s.includes('nt_status_host_unreachable') || s.includes('nt_status_io_timeout') || s.includes('connection timed out') || s.includes('timeout') || s.includes('connection refused')) code = 'unreachable'
-  else if (s.includes('maximum call stack size exceeded') || s.includes('scan failed') || s.includes('stack overflow')) code = 'scan_overflow'
+  if (/\b401\b|unauthorized|invalid credentials/.test(s)) code = 'authFailed'
+  else if (/enospc|no space left|disk full/.test(s)) code = 'diskFull'
+  else if (/etimedout|timed out|timeout|econnrefused|connection refused|ehostunreach|unreachable/.test(s)) code = 'unreachable'
 
   if (!code) return detail
-  const key = `imageService.cameras.smbError.${code}`
+  const key = `imageService.alerts.techError.${code}`
   const translated = t(key)
   return translated !== key ? `${translated} (${detail})` : detail
 }
@@ -156,23 +113,6 @@ function translateDuration(value: string, t: (k: string, opts?: any) => string):
     .replace(/(\d+)h/g, (_, n) => `${n} ${t('imageService.alerts.unitHour', 'h')}`)
     .replace(/(\d+)m/g, (_, n) => `${n} ${t('imageService.alerts.unitMinute', 'm')}`)
     .replace(/(\d+)s/g, (_, n) => `${n} ${t('imageService.alerts.unitSecond', 's')}`)
-}
-
-// Reuses the file-type labels from the Image Search page (imageService.search.fileType*)
-// rather than duplicating them under alerts — metadata_json/ai/ocr aren't covered there
-// (rare in a bulk-delete filter) so they fall back to the raw code.
-const FILE_TYPE_KEY_MAP: Record<string, string> = {
-  raw: 'imageService.search.fileTypeRaw', processed: 'imageService.search.fileTypeProcessed',
-  thumbnail: 'imageService.search.fileTypeThumbnail',
-}
-function translateFileTypes(csv: string, t: (k: string, opts?: any) => string): string {
-  return csv.split(',').map((s) => {
-    const type = s.trim()
-    const key = FILE_TYPE_KEY_MAP[type]
-    if (!key) return type
-    const label = t(key)
-    return label !== key ? label : type
-  }).join(', ')
 }
 
 // code -> localized label lookups for the masterdata-backed incident fields embedded in
@@ -223,16 +163,6 @@ function translateCameraDetailLine(part: string, t: (k: string, opts?: any) => s
 // technical-detail classifier over it.
 export function translateAlertMessage(message: string, t: (k: string, opts?: any) => string, labels?: IncidentLabelMaps, lang = 'th'): string {
   if (!message) return ''
-
-  const trashEmptied = message.match(/^(.+?) permanently deleted (\d+)\/(\d+) images from trash \((\d+) files?, (\d+) failed and kept for retry\)$/i)
-  if (trashEmptied) {
-    const key = 'imageService.alerts.messageTrashEmptied'
-    const translated = t(key, {
-      user: trashEmptied[1], deleted: trashEmptied[2], total: trashEmptied[3],
-      files: trashEmptied[4], errors: trashEmptied[5],
-    })
-    if (translated !== key) return translated
-  }
 
   const cameraStatus = message.match(/^Camera "(.+?)" status changed to (\w+) by ([^.]+)\.?\s*([\s\S]*)$/)
   if (cameraStatus) {
@@ -287,7 +217,14 @@ export function translateAlertMessage(message: string, t: (k: string, opts?: any
     if (translated !== key) return translated
   }
 
-  const autoOnline = message.match(/^Camera "(.+?)" is back online(?:\. Downtime: (.+))?$/i)
+  const streamDropped = message.match(/^Camera "(.+?)" stream disconnected instantly \(< 3s detection\)\. Stream: (.+?)\.?$/i)
+  if (streamDropped) {
+    const key = 'imageService.alerts.messageCameraStreamDropped'
+    const translated = t(key, { name: streamDropped[1], path: streamDropped[2] })
+    if (translated !== key) return translated
+  }
+
+  const autoOnline = message.match(/^Camera "(.+?)" is back online(?: via real-time webhook)?(?:\. Downtime: (.+))?$/i)
   if (autoOnline) {
     const [, name, downtime] = autoOnline
     const key = 'imageService.alerts.messageCameraAutoOnline'
@@ -296,38 +233,6 @@ export function translateAlertMessage(message: string, t: (k: string, opts?: any
       if (downtime) translated += ' ' + t('imageService.alerts.detailDowntime', { value: translateDuration(downtime, t) })
       return translated
     }
-  }
-
-  // The image-flow watchdog: reachable, but nothing coming out of it. Kept separate from
-  // the offline messages above because the operator action is completely different —
-  // there is nothing wrong with the network, so pointing them at it would waste their time.
-  const noNewImages = message.match(/^Camera "(.+?)" is still reachable but has produced no new images for (.+?) \(last image: (\S+)\)(?: during an active production run for (.+?))?\. Only defective parts/i)
-  if (noNewImages) {
-    const [, name, silent, lastImage, run] = noNewImages
-    const key = 'imageService.alerts.messageNoNewImages'
-    let translated = t(key, { name, duration: translateDuration(silent, t), lastImage: formatDateTime(lastImage, lang) })
-    if (translated !== key) {
-      if (run) translated += ' ' + t('imageService.alerts.duringRun', { run })
-      return translated
-    }
-  }
-
-  const stillNoNewImages = message.match(/^Camera "(.+?)" has now produced no new images for (.+?) \(last image: (\S+)\)(?: during an active production run for (.+?))?\. It is still reachable/i)
-  if (stillNoNewImages) {
-    const [, name, silent, lastImage, run] = stillNoNewImages
-    const key = 'imageService.alerts.messageStillNoNewImages'
-    let translated = t(key, { name, duration: translateDuration(silent, t), lastImage: formatDateTime(lastImage, lang) })
-    if (translated !== key) {
-      if (run) translated += ' ' + t('imageService.alerts.duringRun', { run })
-      return translated
-    }
-  }
-
-  const imagesResumed = message.match(/^Camera "(.+?)" is producing images again after (.+?) with no new images\.?$/i)
-  if (imagesResumed) {
-    const key = 'imageService.alerts.messageImagesResumed'
-    const translated = t(key, { name: imagesResumed[1], duration: translateDuration(imagesResumed[2], t) })
-    if (translated !== key) return translated
   }
 
   const authAnomaly = message.match(/^(\d+) failed login attempts for user "(.+?)"(?: from IP (\S+))? within (\d+) minute\(s\) — account locked for (\d+) minute\(s\)\.?$/i)
@@ -370,90 +275,27 @@ export function translateAlertMessage(message: string, t: (k: string, opts?: any
     }
   }
 
-  const storageCleanup = message.match(/^Auto-cleanup freed ([\d.]+ ?GB) \((\d+) files?\) for (.+?)\.?$/i)
-  if (storageCleanup) {
-    const key = 'imageService.alerts.messageStorageCleanup'
-    const translated = t(key, { bytes: storageCleanup[1], count: storageCleanup[2], name: storageCleanup[3] })
-    if (translated !== key) return translated
+  let m: RegExpMatchArray | null
+  if ((m = message.match(/^Cannot read disk usage for recordings directory (.+?): ([\s\S]+)$/))) {
+    return t('imageService.alerts.messageRecordingMonitorError', { dir: m[1], error: m[2] })
   }
-
-  // Both bulk-delete shapes are built from a fixed template with exactly two day/"all"
-  // variants and (files-only) an optional trailing failed-count clause — see
-  // images.service.ts bulkDeleteFilesByAge/bulkDeleteByAge.
-  const bulkDeleteFilesAged = message.match(/^(.+?) deleted (\d+) files \(types: ([^)]*)\) older than (\d+) days\. Filter: cameras=(\S+), age=(\S+)(?: \((\d+) failed, kept for retry\))?$/i)
-  if (bulkDeleteFilesAged) {
-    const [, user, count, types, days, cameras, age, errors] = bulkDeleteFilesAged
-    const key = 'imageService.alerts.messageBulkDeleteFilesAged'
-    let translated = t(key, { user, count, types: translateFileTypes(types, t), days, cameras, age })
-    if (translated !== key) {
-      if (errors) {
-        const errKey = 'imageService.alerts.messageBulkDeleteErrorSuffix'
-        const errText = t(errKey, { errors })
-        if (errText !== errKey) translated += errText
-      }
-      return translated
-    }
+  if ((m = message.match(/^Recording disk usage reached ([\d.]+)% \(Threshold: ([\d.]+)%\)/))) {
+    return t('imageService.alerts.messageRecordingWarning', { pct: m[1], threshold: m[2] })
   }
-
-  const bulkDeleteFilesAll = message.match(/^(.+?) deleted all (\d+) files \(types: ([^)]*)\)\. Filter: cameras=(\S+), age=(\S+)(?: \((\d+) failed, kept for retry\))?$/i)
-  if (bulkDeleteFilesAll) {
-    const [, user, count, types, cameras, age, errors] = bulkDeleteFilesAll
-    const key = 'imageService.alerts.messageBulkDeleteFilesAll'
-    let translated = t(key, { user, count, types: translateFileTypes(types, t), cameras, age })
-    if (translated !== key) {
-      if (errors) {
-        const errKey = 'imageService.alerts.messageBulkDeleteErrorSuffix'
-        const errText = t(errKey, { errors })
-        if (errText !== errKey) translated += errText
-      }
-      return translated
-    }
+  if ((m = message.match(/^Recording disk usage is critical at ([\d.]+)% \(Threshold: ([\d.]+)%\)\. Automatic cleanup is disabled/))) {
+    return t('imageService.alerts.messageRecordingCriticalDisabled', { pct: m[1], threshold: m[2] })
   }
-
-  const bulkDeleteAged = message.match(/^(.+?) deleted (\d+) images older than (\d+) days\. Filter: cameras=(\S+), age=(\S+)$/i)
-  if (bulkDeleteAged) {
-    const [, user, count, days, cameras, age] = bulkDeleteAged
-    const key = 'imageService.alerts.messageBulkDeleteAged'
-    const translated = t(key, { user, count, days, cameras, age })
-    if (translated !== key) return translated
+  if ((m = message.match(/^Recording disk usage is critical at ([\d.]+)% \(Threshold: ([\d.]+)%\)\. Deleting the oldest .+ until usage < ([\d.]+)%/))) {
+    return t('imageService.alerts.messageRecordingEviction', { pct: m[1], threshold: m[2], target: m[3] })
   }
-
-  const bulkDeleteAll = message.match(/^(.+?) deleted all (\d+) images\. Filter: cameras=(\S+), age=(\S+)$/i)
-  if (bulkDeleteAll) {
-    const [, user, count, cameras, age] = bulkDeleteAll
-    const key = 'imageService.alerts.messageBulkDeleteAll'
-    const translated = t(key, { user, count, cameras, age })
-    if (translated !== key) return translated
+  if ((m = message.match(/^Deleted (\d+) recordings but usage is still ([\d.]+)%\. Something other than recordings is filling (.+?), or/))) {
+    return t('imageService.alerts.messageRecordingEvictionIneffective', { count: m[1], pct: m[2], dir: m[3] })
+  }
+  if ((m = message.match(/^(\d+) indexed recording segment\(s\) are no longer on disk \((\d+) under Legal Hold\)/))) {
+    return t('imageService.alerts.messageRecordingMissing', { count: m[1], onHold: m[2] })
   }
 
   return translateTechnicalDetail(message, t)
-}
-
-// Translate SMB test-connection results. The backend classifies failures into a
-// stable `code` (auth_failed/share_not_found/path_not_found/unreachable/unknown)
-// so the UI never has to render the raw smbclient/stderr text directly.
-export function translateSmbTestResult(
-  res: { success: boolean; message: string; code?: string },
-  t: (k: string, opts?: any) => string,
-): string {
-  if (res.success) {
-    const unc = res.message.match(/^Connected to (.+)$/)
-    if (unc) {
-      const translated = t('imageService.cameras.smbTestSuccess', { path: unc[1] })
-      if (translated !== 'imageService.cameras.smbTestSuccess') return translated
-    }
-    return res.message
-  }
-
-  if (res.code && res.code !== 'unknown') {
-    const key = `imageService.cameras.smbError.${res.code}`
-    const translated = t(key)
-    if (translated !== key) return translated
-  }
-
-  const key = 'imageService.cameras.smbError.unknown'
-  const translated = t(key, { detail: res.message })
-  return translated !== key ? translated : res.message
 }
 
 export function formatFileSize(bytes: number | bigint | null | undefined): string {
