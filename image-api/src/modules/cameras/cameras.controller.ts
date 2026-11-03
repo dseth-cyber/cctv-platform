@@ -53,7 +53,7 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
   const streamPath = isSub ? `${basePath}_sub` : basePath;
 
   if (targetRtsp) {
-    await MediaMtxService.registerStreamPath(streamPath, targetRtsp);
+    await MediaMtxService.registerStreamPath(streamPath, targetRtsp, { liveOnly: isSub });
   }
 
   const user = (request as any).user;

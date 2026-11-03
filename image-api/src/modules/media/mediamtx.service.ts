@@ -85,16 +85,20 @@ export class MediaMtxService {
 
   /**
    * Register or update a camera RTSP source path in MediaMTX.
+   *
+   * Main streams are pulled all the time so recording is continuous (with sourceOnDemand the camera
+   * was only pulled, and recorded, while someone watched it). Sub streams exist for the live grid
+   * only: pulled on demand and never recorded, so they do not double the disk usage.
    */
-  static async registerStreamPath(streamPath: string, rtspSourceUrl: string): Promise<boolean> {
+  static async registerStreamPath(
+    streamPath: string,
+    rtspSourceUrl: string,
+    opts: { liveOnly?: boolean } = {},
+  ): Promise<boolean> {
     const cleanPath = streamPath.replace(/^\/+/, '');
-    // Cameras are pulled all the time so recording is continuous. With sourceOnDemand the
-    // camera was only pulled (and recorded) while someone was watching it.
-    const payload: MediaMtxPathConfig = {
-      source: rtspSourceUrl,
-      sourceOnDemand: false,
-      record: true,
-    };
+    const payload: MediaMtxPathConfig = opts.liveOnly
+      ? { source: rtspSourceUrl, sourceOnDemand: true, record: false }
+      : { source: rtspSourceUrl, sourceOnDemand: false, record: true };
 
     try {
       const res = await this.apiFetch(`/v3/config/paths/add/${cleanPath}`, {

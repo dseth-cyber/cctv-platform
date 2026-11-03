@@ -15,4 +15,13 @@ describe('MediaMtxService.registerStreamPath', () => {
     expect(JSON.parse(init.body)).toMatchObject({ source: 'rtsp://10.0.0.5/stream', sourceOnDemand: false, record: true });
     expect(init.headers.Authorization).toMatch(/^Basic /);
   });
+
+  it('pulls sub streams on demand and never records them', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await MediaMtxService.registerStreamPath('cam/gate1_sub', 'rtsp://10.0.0.5/sub', { liveOnly: true });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ source: 'rtsp://10.0.0.5/sub', sourceOnDemand: true, record: false });
+  });
 });

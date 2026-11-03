@@ -65,13 +65,18 @@ pathDefaults:
 # ── Stream Paths ───────────────────────────────────────────────
 paths:
   # Built-in Dev Simulator Streams (On-demand test pattern with timer)
+  # `source: publisher` must be explicit on runOnDemand paths: MediaMTX re-validates the whole config on
+  # every API change, and without it every camera path the API adds is refused with
+  # "'runOnDemand' and 'runOnUnDemand' can be used only when source is 'publisher'".
   sim/ch1:
+    source: publisher
     runOnDemand: ffmpeg -re -f lavfi -i testsrc=size=1280x720:rate=25 -f lavfi -i sine=frequency=1000:sample_rate=44100 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -c:a aac -f rtsp rtsp://localhost:8554/sim/ch1
     runOnDemandRestart: yes
     runOnDemandCloseAfter: 10s
     record: yes
 
   sim/ch2:
+    source: publisher
     runOnDemand: ffmpeg -re -f lavfi -i smptebars=size=1280x720:rate=25 -f lavfi -i sine=frequency=800:sample_rate=44100 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -c:a aac -f rtsp rtsp://localhost:8554/sim/ch2
     runOnDemandRestart: yes
     runOnDemandCloseAfter: 10s

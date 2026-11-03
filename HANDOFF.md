@@ -24,6 +24,14 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 11) — กล้อง RTSP จริงไม่เคยลงทะเบียนกับ MediaMTX ได้
+
+- อาการ: เพิ่มกล้องแล้วหน้า Live ขึ้น "WHEP 404"; path-sync log `failed: 2` ทุกรอบ. สาเหตุ: path `sim/ch1`, `sim/ch2` ใน mediamtx.yml ใช้ `runOnDemand` โดยไม่ระบุ `source` — อ่านไฟล์ตอนเริ่มผ่าน แต่ MediaMTX v1.21.3 ตรวจ config ทั้งหมดใหม่ทุกครั้งที่แก้ผ่าน API แล้วปฏิเสธ (`'runOnDemand' and 'runOnUnDemand' can be used only when source is 'publisher'`) → **การแก้ config ผ่าน API ล้มทุกครั้ง แม้แต่ global patch** = ไม่มีกล้อง RTSP จริงตัวไหนเคยลงทะเบียนสำเร็จ (ที่ผ่านมาทดสอบด้วย sim ซึ่ง publish เข้ามาเอง)
+- แก้: ใส่ `source: publisher` ให้ sim paths (ทดสอบใน MediaMTX ชั่วคราวก่อน: add path → 200); test ตรวจทุก path ที่มี runOnDemand ต้องมี source publisher
+- พบระหว่างทาง: สตรีมรอง `_sub` ถูกลงทะเบียนแบบดึงตลอด + บันทึก (ดิสก์ใช้เกือบ 2 เท่า, ไฟล์ซ้ำ) → `registerStreamPath(..., { liveOnly })`: สตรีมรองดึงเมื่อมีคนดู ไม่บันทึก; สตรีมหลักดึงตลอด + บันทึกเหมือนเดิม
+- ตรวจ: vitest 121 passed; หลัง deploy path-sync `registered: 2, failed: 0`; `cam/it-server-001` ready (H264); บันทึกจริง 2 segment × ~62 วิ รวม 11.6 MB ถูก index เข้า camera_recordings
+- ปริมาณ: กล้องนี้ ~5.8 MB/นาที ≈ 8 GB/วัน; ดิสก์ D: เหลือราว 23 GB ก่อนถึง 92% → ประมาณ 3 วันระบบจะเริ่มลบไฟล์เก่าสุดตามนโยบาย
+
 ## งานล่าสุด (2026-11-03, รอบ 10) — บันทึกกล้องแล้วได้ "เกิดข้อผิดพลาด"
 
 - สาเหตุ: ชื่อ `IT-SERVER-001` ถูกจองโดยกล้องทดสอบที่ session นี้สร้างแล้วลบ (อยู่ในถังขยะ) — create เช็กชื่อรวมกล้องในถังขยะ แต่ฟอร์มเตือนเฉพาะกล้องที่ใช้งาน และแสดงแค่ "เกิดข้อผิดพลาด"

@@ -14,6 +14,8 @@ export function cameraBasePath(camera: { id: string; streamPath: string | null }
   return camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
 }
 
+export const isSubStreamPath = (name: string) => name.endsWith('_sub');
+
 export async function desiredCameraPaths(): Promise<Map<string, string>> {
   const cameras = await getPrisma().camera.findMany({
     where: { enabled: true, deletedAt: null, rtspUrl: { not: null } },
@@ -41,7 +43,7 @@ export async function syncCameraPaths() {
   const summary = { registered: 0, removed: 0, failed: 0 };
   for (const [name, source] of desired) {
     if (current.get(name) === source) continue;
-    if (await MediaMtxService.registerStreamPath(name, source)) summary.registered++;
+    if (await MediaMtxService.registerStreamPath(name, source, { liveOnly: isSubStreamPath(name) })) summary.registered++;
     else summary.failed++;
   }
   // Camera pulls (rtsp sources) that no enabled camera wants any more: disabled, deleted or renamed.
