@@ -297,41 +297,6 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
         60000
       : null; // minutes
 
-  // 3. Get images count in period for this camera
-  const imagesCount = await prisma.image.count({
-    where: {
-      cameraId,
-      capturedAt: { gte: since },
-      status: { not: 'deleted' as any },
-    },
-  });
-
-  // 4. Estimate lost images (avg images/hour when active * downtime hours)
-  const activeHours = uptimeMs / 3600000 || 1;
-  const avgImagesPerHour = imagesCount / activeHours;
-  const downtimeHours = downtimeMs / 3600000;
-  const estimatedLostImages = Math.round(avgImagesPerHour * downtimeHours);
-
-  // 4b. Time the camera was reachable but producing nothing, from the image-flow
-  // watchdog's own event pairs. Deliberately NOT folded into downtime or Availability:
-  // the camera is not broken, and this system photographs only defective parts, so a
-  // silent stretch may simply be a run with no defects. Charging it against the SLA
-  // would make the SLA mean something nobody agreed to. Reported as its own number.
-  let silentMs = 0;
-  let silentSpells = 0;
-  let silentStart: Date | null = null;
-  for (const event of events) {
-    if (event.eventType === 'no_new_images' && !silentStart) {
-      silentStart = event.createdAt;
-      silentSpells++;
-    } else if (event.eventType === 'images_resumed' && silentStart) {
-      silentMs += event.createdAt.getTime() - silentStart.getTime();
-      silentStart = null;
-    }
-  }
-  // Still silent at the end of the window — count it up to now, same as an open incident.
-  if (silentStart) silentMs += now.getTime() - silentStart.getTime();
-
   // Build timeline early to inspect offline periods
   const timeline = buildTimeline(
     events.map((e) => ({
@@ -341,39 +306,6 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
     })),
     since,
     now,
-  );
-
-  // Find offline intervals
-  const offlineSegments = timeline.filter((seg) => seg.status === 'offline');
-  let backfilledImages = 0;
-  if (offlineSegments.length > 0) {
-    const conditions = offlineSegments.map((seg) => ({
-      capturedAt: {
-        gte: new Date(seg.start),
-        lte: new Date(seg.end),
-      },
-    }));
-    backfilledImages = await prisma.image.count({
-      where: {
-        cameraId,
-        status: { not: 'deleted' as any },
-        OR: conditions,
-      },
-    });
-  }
-
-  // Calculate pending backfill if currently offline
-  const lastSegment = timeline[timeline.length - 1];
-  let pendingBackfillImages = 0;
-  if (lastSegment && lastSegment.status === 'offline') {
-    const ongoingDowntimeMs = now.getTime() - new Date(lastSegment.start).getTime();
-    const ongoingDowntimeHours = ongoingDowntimeMs / 3600000;
-    pendingBackfillImages = Math.round(avgImagesPerHour * ongoingDowntimeHours);
-  }
-
-  const confirmedLostImages = Math.max(
-    0,
-    estimatedLostImages - backfilledImages - pendingBackfillImages,
   );
 
   // 5. Downtime by reason
@@ -426,18 +358,6 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
     mtbf,
     mttr,
     offlineCount,
-    silent: {
-      seconds: Math.round(silentMs / 1000),
-      percent: round2((silentMs / totalMs) * 100),
-      spells: silentSpells,
-      // Says out loud what the number does not do, so nobody wires it into the SLA later.
-      excludedFromSla: true,
-    },
-    imagesCaptured: imagesCount,
-    estimatedLostImages,
-    backfilledImages,
-    pendingBackfillImages,
-    confirmedLostImages,
     healthScore,
     healthGrade:
       healthScore >= 90
@@ -483,9 +403,5 @@ export async function getCameraComparisonReport(period: string) {
     healthScore: r.healthScore,
     healthGrade: r.healthGrade,
     offlineCount: r.offlineCount,
-    estimatedLostImages: r.estimatedLostImages,
-    backfilledImages: r.backfilledImages,
-    pendingBackfillImages: r.pendingBackfillImages,
-    confirmedLostImages: r.confirmedLostImages,
   }));
 }

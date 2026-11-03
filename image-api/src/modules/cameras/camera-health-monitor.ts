@@ -2,13 +2,12 @@ import type { ScheduledTask } from 'node-cron';
 import cron from 'node-cron';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
-import { createAlert, dispatchAlertNotifications } from '../alerts/alerts.service.js';
+import { createAlert } from '../alerts/alerts.service.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
 import { probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
-import { config } from '../../config/index.js';
 
 let cronTask: ScheduledTask | null = null;
 
@@ -60,176 +59,6 @@ export function computeEscalatedPriority(offlineMs: number, highMin: number, cri
   return 'medium';
 }
 
-/**
- * Watches the image flow instead of the connection.
- *
- * checkCameraHealth() below only asks "can we still reach the camera?" — which is exactly
- * why the 2026-08-20 TP27 stoppage went unnoticed for 23h: the PC stayed up, the SMB share
- * stayed browsable, our poller kept succeeding every 15s, and the capture software had
- * simply stopped writing files. Every signal we had said "healthy".
- *
- * Only reachable cameras are considered here — an unreachable one is already covered by
- * camera_offline, and two alerts for one outage is just noise. And because this system
- * photographs only defective parts, silence outside a scheduled production run means
- * nothing at all, so by default those cameras are skipped entirely.
- */
-export async function checkCameraImageFlow(): Promise<void> {
-  const prisma = getPrisma();
-  const configs = await getAllConfigs();
-  if (configs.camera_no_new_images_enabled?.value !== true) return;
-
-  const thresholdMin = Number(configs.camera_no_new_images_threshold_minutes?.value ?? 120);
-  if (!Number.isFinite(thresholdMin) || thresholdMin <= 0) return;
-  const thresholdMs = thresholdMin * 60 * 1000;
-
-  const repeatHours = Number(configs.camera_no_new_images_repeat_hours?.value ?? 0);
-  const repeatMs = Number.isFinite(repeatHours) && repeatHours > 0 ? repeatHours * 60 * 60 * 1000 : 0;
-
-  const cameras = await prisma.camera.findMany({
-    where: { enabled: true },
-    select: { id: true, name: true, operationalStatus: true },
-  });
-
-  for (const cam of cameras) {
-    if (cam.operationalStatus !== 'online') continue;
-
-    const latest = await prisma.image.findFirst({
-      where: { cameraId: cam.id },
-      orderBy: { capturedAt: 'desc' },
-      select: { capturedAt: true },
-    });
-    // A camera that has never produced an image has no "normal" to compare against yet.
-    if (!latest?.capturedAt) continue;
-
-    const silentMs = Date.now() - new Date(latest.capturedAt).getTime();
-    const silentText = formatDuration(silentMs);
-
-    // A camera that stops producing frames is a fault for CCTV regardless of any
-    // production schedule, so the silence check runs unconditionally.
-    const openAlert = await prisma.alert.findFirst({
-      where: { alertType: 'camera_no_new_images', source: cam.id, resolvedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // Images are flowing again — close the outage if one was open.
-    if (silentMs < thresholdMs) {
-      if (openAlert) {
-        const outageMs = Date.now() - new Date(openAlert.createdAt).getTime();
-        await prisma.alert.update({
-          where: { id: openAlert.id },
-          data: {
-            resolvedAt: new Date(),
-            resolvedBy: 'system',
-            details: {
-              ...((openAlert.details as any) ?? {}),
-              resolvedReason: 'New images received again',
-              outageMs,
-              outageFormatted: formatDuration(outageMs),
-            },
-          },
-        });
-
-        await prisma.cameraEvent.create({
-          data: {
-            cameraId: cam.id,
-            eventType: 'images_resumed',
-            source: 'health_monitor',
-            message: `Camera "${cam.name}" is producing images again after ${formatDuration(outageMs)}`,
-            metadata: { outageMs },
-          },
-        });
-
-        // skipDedup: we just resolved the outage row, and this recovery notice is resolved
-        // on the spot so it can never sit "open" and swallow the next outage alert.
-        const resumed = await createAlert({
-          alertType: 'camera_no_new_images',
-          severity: 'info',
-          source: cam.id,
-          title: `Camera producing images again: ${cam.name}`,
-          message: `Camera "${cam.name}" is producing images again after ${formatDuration(outageMs)} with no new images.`,
-          details: { cameraId: cam.id, cameraName: cam.name, event: 'images_resumed', outageMs },
-          skipDedup: true,
-        });
-        await prisma.alert.update({
-          where: { id: resumed.id },
-          data: { resolvedAt: new Date(), resolvedBy: 'system' },
-        });
-
-        logger.info({ camera: cam.name, outage: formatDuration(outageMs) }, 'Camera image flow recovered');
-      }
-      continue;
-    }
-
-    // Silent past the threshold, first time we notice it.
-    if (!openAlert) {
-      logger.warn({ camera: cam.name, cameraId: cam.id, silentMs, lastImageAt: latest.capturedAt }, 'Camera reachable but producing no new images');
-
-      await prisma.cameraEvent.create({
-        data: {
-          cameraId: cam.id,
-          eventType: 'no_new_images',
-          source: 'health_monitor',
-          message: `Camera "${cam.name}" is reachable but has produced no new images for ${silentText}`,
-          metadata: { silentMs, lastImageAt: latest.capturedAt, thresholdMinutes: thresholdMin },
-        },
-      });
-
-      await createAlert({
-        alertType: 'camera_no_new_images',
-        severity: 'warning',
-        source: cam.id,
-        title: `No new images: ${cam.name}`,
-        message: `Camera "${cam.name}" is still reachable but has produced no new images for ${silentText} (last image: ${new Date(latest.capturedAt).toISOString()}). The capture or stream may have stalled — the connection itself is fine.`,
-        details: {
-          cameraId: cam.id,
-          cameraName: cam.name,
-          lastImageAt: latest.capturedAt,
-          silentMs,
-          thresholdMinutes: thresholdMin,
-          lastNotifiedAt: new Date().toISOString(),
-        },
-        skipDedup: true,
-      });
-      continue;
-    }
-
-    // Still silent. Re-send the reminder on the configured interval, reusing the same alert
-    // row so an outage stays one entry in the list no matter how long it drags on.
-    if (repeatMs > 0) {
-      const details = (openAlert.details as any) ?? {};
-      const lastNotifiedAt = new Date(details.lastNotifiedAt ?? openAlert.createdAt).getTime();
-      if (Date.now() - lastNotifiedAt >= repeatMs) {
-        const title = `Still no new images: ${cam.name}`;
-        const message = `Camera "${cam.name}" has now produced no new images for ${silentText} (last image: ${new Date(latest.capturedAt).toISOString()}). It is still reachable, so this is not a network problem.`;
-
-        await prisma.alert.update({
-          where: { id: openAlert.id },
-          data: {
-            severity: 'critical',
-            message,
-            details: {
-              ...details,
-              silentMs,
-              lastNotifiedAt: new Date().toISOString(),
-              reminderCount: Number(details.reminderCount ?? 0) + 1,
-            },
-          },
-        });
-
-        await dispatchAlertNotifications({
-          alertType: 'camera_no_new_images',
-          severity: 'critical',
-          source: cam.id,
-          title,
-          message,
-        });
-
-        logger.warn({ camera: cam.name, silent: silentText }, 'Camera still producing no new images — reminder sent');
-      }
-    }
-  }
-}
-
 export async function checkCameraHealth(): Promise<void> {
   const prisma = getPrisma();
   const configs = await getAllConfigs();
@@ -251,10 +80,6 @@ export async function checkCameraHealth(): Promise<void> {
       ipAddress: true,
       rtspUrl: true,
       streamPath: true,
-      // SMB is only a probe target while the factory modules are on [R2.3].
-      ...(config.factoryModulesEnabled
-        ? { factorySettings: { select: { smbSharePath: true, smbUsername: true, smbPasswordEncrypted: true, smbDomain: true } } }
-        : {}),
       device: { select: { ipAddress: true, rtspPort: true } },
       lastPolledAt: true,
       operationalStatus: true,
@@ -277,7 +102,7 @@ export async function checkCameraHealth(): Promise<void> {
     const streamReady = !!cam.streamPath && readyPaths.has(cam.streamPath.replace(/^\/+/, ''));
     const probeResult = streamReady
       ? { reachable: true, latencyMs: 0 }
-      : await probeCameraHealth({ ...cam, ...((cam as any).factorySettings ?? {}) });
+      : await probeCameraHealth(cam);
     const isProbeSuccess = probeResult.reachable;
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
@@ -485,66 +310,6 @@ export async function checkCameraHealth(): Promise<void> {
   }
 }
 
-/**
- * The camera PC overwrites its own oldest images once its disk fills, so ingestion runs
- * against a deadline: anything not fetched before it rolls off is gone permanently, since
- * nothing else holds a copy. The margin is disk capacity ÷ defect rate, not a fixed number
- * of days — TP27 measured ~21 days on 2026-08-24, but a tenfold rise in defects would cut
- * that to about two without any other signal changing. This watches the actual measured
- * window rather than assuming it stays comfortable.
- */
-export async function checkIngestBuffer(): Promise<void> {
-  const prisma = getPrisma();
-  const configs = await getAllConfigs();
-  const warnDays = Number(configs.ingest_buffer_warn_days?.value ?? 0);
-  if (!Number.isFinite(warnDays) || warnDays <= 0) return;
-
-  const rows = await prisma.camera.findMany({
-    where: { enabled: true, factorySettings: { is: { sourceOldestFileAt: { not: null } } } },
-    select: { id: true, name: true, factorySettings: { select: { sourceOldestFileAt: true, sourceFileCount: true } } },
-  });
-  const cameras = rows.map((r) => ({ id: r.id, name: r.name, ...r.factorySettings! }));
-
-  for (const cam of cameras) {
-    const bufferMs = Date.now() - new Date(cam.sourceOldestFileAt!).getTime();
-    const bufferDays = bufferMs / 86400000;
-
-    const openAlert = await prisma.alert.findFirst({
-      where: { alertType: 'ingest_lag', source: cam.id, resolvedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (bufferDays >= warnDays) {
-      if (openAlert) {
-        await prisma.alert.update({
-          where: { id: openAlert.id },
-          data: {
-            resolvedAt: new Date(),
-            resolvedBy: 'system',
-            details: { ...((openAlert.details as any) ?? {}), resolvedReason: 'Buffer back above the threshold', bufferDays },
-          },
-        });
-        logger.info({ camera: cam.name, bufferDays }, 'Ingest buffer recovered');
-      }
-      continue;
-    }
-
-    const title = `Ingest buffer low: ${cam.name}`;
-    const message = `Camera "${cam.name}" only keeps ${bufferDays.toFixed(1)} day(s) of images on its own disk before overwriting them (${cam.sourceFileCount ?? 0} files, oldest ${new Date(cam.sourceOldestFileAt!).toISOString()}). Anything not fetched within that window is lost permanently.`;
-    const details = { cameraId: cam.id, cameraName: cam.name, bufferDays, warnDays, fileCount: cam.sourceFileCount };
-
-    // One open alert per camera, kept current — same shape as the storage alerts, for the
-    // same reason: a shrinking buffer is one ongoing condition, not a new event each minute.
-    if (openAlert) {
-      await prisma.alert.update({ where: { id: openAlert.id }, data: { title, message, details } });
-      continue;
-    }
-
-    logger.warn({ camera: cam.name, bufferDays, warnDays }, 'Ingest buffer below threshold');
-    await createAlert({ alertType: 'ingest_lag', severity: 'warning', source: cam.id, title, message, details });
-  }
-}
-
 export function startCameraHealthMonitor(): void {
   if (cronTask) return;
 
@@ -556,18 +321,6 @@ export function startCameraHealthMonitor(): void {
     }
     // Runs after checkCameraHealth so it reads the operationalStatus that tick just wrote,
     // and in its own try/catch so a failure here can't stop the offline detection above.
-    // Image-flow and ingest-buffer checks watch the factory image pipeline [R2.3].
-    if (!config.factoryModulesEnabled) return;
-    try {
-      await checkCameraImageFlow();
-    } catch (err) {
-      logger.error({ err }, 'Camera image-flow monitor failed');
-    }
-    try {
-      await checkIngestBuffer();
-    } catch (err) {
-      logger.error({ err }, 'Ingest buffer check failed');
-    }
   });
 
   logger.info('Camera health monitor scheduled (every 1 minute)');

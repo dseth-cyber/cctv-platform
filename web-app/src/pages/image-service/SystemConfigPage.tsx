@@ -28,31 +28,6 @@ export default function SystemConfigPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const [clearModal, setClearModal] = useState(false);
-  const [clearConfirm, setClearConfirm] = useState('');
-  const [clearPassword, setClearPassword] = useState('');
-  const [clearing, setClearing] = useState(false);
-
-  const clearMutation = useMutation({
-    mutationFn: (data: { password: string; confirmation: string }) => imageServiceApi.clearAllData(data),
-    onSuccess: () => {
-      toast.success(t('common.clearDataSuccess'));
-      setClearModal(false);
-      setClearConfirm('');
-      setClearPassword('');
-      queryClient.invalidateQueries({ queryKey: ['system-config'] });
-    },
-    onError: (e: any) => { if (!e?._handled) toast.error(t('common.clearDataError')); },
-  });
-
-  const handleClearData = () => {
-    setClearing(true);
-    clearMutation.mutate(
-      { password: clearPassword, confirmation: clearConfirm },
-      { onSettled: () => setClearing(false) },
-    );
-  };
-
   const { data: configs, isLoading } = useQuery({
     queryKey: ['system-config'],
     queryFn: () => imageServiceApi.getSystemConfigs(),
@@ -239,21 +214,6 @@ export default function SystemConfigPage() {
             );
           })}
 
-          {/* Clear Data */}
-          <div className={`${themeConfig.card} rounded-lg p-6 mb-5 border border-red-500/20`}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg text-red-400 bg-red-500/10">
-                <AlertTriangle size={18} />
-              </div>
-              <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('common.clearData')}</h3>
-            </div>
-            <p className={`text-sm mb-4 ${themeConfig.text.secondary}`}>{t('common.clearDataWarning')}</p>
-            <Button onClick={() => setClearModal(true)} className="bg-red-600 hover:bg-red-700 text-white">
-              <Trash2 size={16} className="mr-1.5" />
-              {t('common.clearDataSubmit')}
-            </Button>
-          </div>
-
           <div className="flex items-center gap-3">
             <Button onClick={handleSave} disabled={saving}>
               <Save size={16} className="mr-1.5" />
@@ -271,36 +231,6 @@ export default function SystemConfigPage() {
         </>
       )}
 
-      {/* Clear Data Confirmation Modal */}
-      <Modal isOpen={clearModal} onClose={() => { setClearModal(false); setClearPassword(''); setClearConfirm(''); }}
-        title={t('common.clearData')}>
-        <p className={`text-sm mb-4 ${themeConfig.text.secondary}`}>{t('common.clearDataWarning')}</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('common.clearDataConfirmLabel')}</label>
-            <input value={clearConfirm} onChange={e => setClearConfirm(e.target.value)}
-              placeholder="DELETE"
-              className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-red-500/50`} />
-          </div>
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('common.clearDataPasswordLabel')}</label>
-            <input type="password" autoComplete="new-password" value={clearPassword} onChange={e => setClearPassword(e.target.value)}
-              className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-red-500/50`} />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="secondary" onClick={() => { setClearModal(false); setClearPassword(''); setClearConfirm(''); }}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleClearData}
-            disabled={clearConfirm !== 'DELETE' || !clearPassword || clearing}
-            className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
-            {clearing ? t('common.loading') : t('common.clearDataSubmit')}
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -1,7 +1,5 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
-import { logger } from '../../lib/logger.js';
-import { recomputeRetentionForPolicy } from '../retention-sweeper/retention-sweeper.service.js';
 import type { CreateRetentionPolicyInput, UpdateRetentionPolicyInput } from './retention.schema.js';
 
 export async function listPolicies() {
@@ -65,15 +63,6 @@ export async function updatePolicy(id: string, input: UpdateRetentionPolicyInput
   }
 
   const updated = await prisma.retentionPolicy.update({ where: { id }, data: input });
-
-  // rawRetentionDays changed: existing images' retentionUntil was snapshotted at
-  // ingestion time under the *old* value, so without this they'd keep expiring on the
-  // old schedule instead of the one the admin just set — see [[incident_2026-08-06]].
-  if (input.rawRetentionDays !== undefined && input.rawRetentionDays !== existing.rawRetentionDays) {
-    recomputeRetentionForPolicy(id, input.rawRetentionDays)
-      .then((count) => logger.info({ policyId: id, rawRetentionDays: input.rawRetentionDays, affected: count }, 'Recomputed retentionUntil after policy change'))
-      .catch((err) => logger.error({ err, policyId: id }, 'Failed to recompute retentionUntil after policy change'));
-  }
 
   return updated;
 }

@@ -64,10 +64,6 @@ export async function probeCameraHealth(camera: {
   name: string;
   ipAddress?: string | null;
   rtspUrl?: string | null;
-  smbSharePath?: string | null;
-  smbUsername?: string | null;
-  smbPasswordEncrypted?: string | null;
-  smbDomain?: string | null;
   device?: { ipAddress: string; rtspPort: number } | null;
 }): Promise<ProbeResult> {
   const prisma = getPrisma();
@@ -109,32 +105,6 @@ export async function probeCameraHealth(camera: {
       });
     }
     return res;
-  }
-
-  // 4. Legacy SMB probe if configured
-  if (camera.smbSharePath && camera.smbUsername && camera.smbPasswordEncrypted) {
-    try {
-      const { testConnection } = await import('../smb/smb.service.js');
-      const { decrypt } = await import('../../lib/encryption.js');
-      const start = Date.now();
-      const res = await testConnection({
-        smbSharePath: camera.smbSharePath,
-        smbUsername: camera.smbUsername,
-        smbPasswordEncrypted: decrypt(camera.smbPasswordEncrypted),
-        smbDomain: camera.smbDomain ?? undefined,
-      });
-      const latencyMs = Date.now() - start;
-      if (res.success) {
-        await prisma.camera.update({
-          where: { id: camera.id },
-          data: { lastPolledAt: new Date() },
-        });
-        return { reachable: true, latencyMs };
-      }
-      return { reachable: false, latencyMs, reason: res.message };
-    } catch (err: any) {
-      return { reachable: false, latencyMs: 0, reason: err.message };
-    }
   }
 
   return { reachable: false, latencyMs: 0, reason: 'No probe target configured' };

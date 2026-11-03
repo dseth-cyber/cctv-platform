@@ -10,41 +10,17 @@ import { getAllConfigs } from '../system-config/system-config.service.js';
 // real ingest volume (see HANDOFF incident) — these three are the next tables in line to
 // do the same without a retention mechanism.
 export async function cleanupOperationalLogs(): Promise<{
-  processingJobs: number;
   auditLogs: number;
   alerts: number;
 }> {
   const prisma = getPrisma();
   const configs = await getAllConfigs();
 
-  const processingDays = Number(configs.processing_logs_retention_days?.value ?? 0);
   const auditDays = Number(configs.audit_logs_retention_days?.value ?? 0);
   const alertsDays = Number(configs.alerts_retention_days?.value ?? 0);
 
-  let processingJobs = 0;
   let auditLogs = 0;
   let alerts = 0;
-
-  try {
-    if (processingDays > 0) {
-      const cutoff = new Date(Date.now() - processingDays * 86400000);
-      // Only terminal-state jobs — never touch anything still queued/active regardless
-      // of age. completedAt is null for jobs that never finished (e.g. old failures from
-      // before that field was populated); fall back to queuedAt for those.
-      const result = await prisma.processingJob.deleteMany({
-        where: {
-          status: { in: ['completed', 'failed', 'dead_letter'] },
-          OR: [
-            { completedAt: { lt: cutoff } },
-            { completedAt: null, queuedAt: { lt: cutoff } },
-          ],
-        },
-      });
-      processingJobs = result.count;
-    }
-  } catch (err) {
-    logger.error({ err }, 'Processing job cleanup failed');
-  }
 
   try {
     if (auditDays > 0) {
@@ -70,9 +46,9 @@ export async function cleanupOperationalLogs(): Promise<{
     logger.error({ err }, 'Alert cleanup failed');
   }
 
-  if (processingJobs > 0 || auditLogs > 0 || alerts > 0) {
-    logger.info({ processingJobs, auditLogs, alerts }, 'Operational log cleanup completed');
+  if (auditLogs > 0 || alerts > 0) {
+    logger.info({ auditLogs, alerts }, 'Operational log cleanup completed');
   }
 
-  return { processingJobs, auditLogs, alerts };
+  return { auditLogs, alerts };
 }

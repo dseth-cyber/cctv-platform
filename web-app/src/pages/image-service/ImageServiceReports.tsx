@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useFeatures } from '@/hooks/useFeatures';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -19,40 +18,19 @@ const CAMERA_STATUS_LABELS: Record<string, string> = {
   maintenance: 'Maintenance',
 };
 
-// [R2.3] Factory image-pipeline columns; only shown while the server enables the factory modules.
-const FACTORY_COLUMN_IDS = new Set([
-  'totalImagesCount', 'averageImagesPerDay', 'lastImageAt', 'smbSharePath', 'smbDomain', 'smbUsername',
-  'pollIntervalSeconds', 'captureMode', 'acceptedExtensions', 'convertToPng', 'keepSmaller',
-  'generateThumbnail', 'thumbnailSize', 'compressionQuality',
-]);
-
 const DEFAULT_COLUMNS = [
   { id: 'name', labelKey: 'imageService.reports.colName', defaultLabel: 'ชื่อกล้อง', visible: true },
   { id: 'status', labelKey: 'imageService.reports.colStatus', defaultLabel: 'สถานะ', visible: true },
   { id: 'ipAddress', labelKey: 'imageService.reports.colIp', defaultLabel: 'IP Address', visible: true },
-  { id: 'totalImagesCount', labelKey: 'imageService.reports.colTotalImages', defaultLabel: 'จำนวนภาพทั้งหมด', visible: true },
-  { id: 'averageImagesPerDay', labelKey: 'imageService.reports.colAvgImages', defaultLabel: 'ค่าเฉลี่ยรูปภาพ/วัน', visible: true },
   { id: 'cameraAgeDays', labelKey: 'imageService.reports.colAgeDays', defaultLabel: 'อายุกล้อง (วัน)', visible: true },
   { id: 'incidentCount', labelKey: 'imageService.reports.colIncidentsCount', defaultLabel: 'จำนวนที่พบปัญหา (ครั้ง)', visible: true },
   { id: 'topTechnician', labelKey: 'imageService.reports.colTopTech', defaultLabel: 'ช่างที่ดูแลหลัก', visible: true },
   { id: 'peakHour', labelKey: 'imageService.reports.colPeakHour', defaultLabel: 'ช่วงเวลาที่มีปัญหาบ่อยสุด', visible: true },
   { id: 'topReason', labelKey: 'imageService.reports.colTopReason', defaultLabel: 'สาเหตุหลักของปัญหา', visible: true },
-  { id: 'lastImageAt', labelKey: 'imageService.reports.colLastImage', defaultLabel: 'ภาพล่าสุดเมื่อ', visible: true },
   { id: 'lastPolledAt', labelKey: 'imageService.reports.colLastPolled', defaultLabel: 'สแกนล่าสุด', visible: true },
   { id: 'streamPath', labelKey: 'ui.imageServiceCameras.streamPath', defaultLabel: 'Stream path', visible: true },
-  { id: 'smbSharePath', labelKey: 'imageService.reports.colSmbShare', defaultLabel: 'SMB Path', visible: true },
   { id: 'description', labelKey: 'imageService.reports.colDesc', defaultLabel: 'คำอธิบาย', visible: false },
-  { id: 'smbDomain', labelKey: 'imageService.reports.colSmbDomain', defaultLabel: 'SMB Domain', visible: false },
-  { id: 'smbUsername', labelKey: 'imageService.reports.colSmbUser', defaultLabel: 'SMB User', visible: false },
-  { id: 'pollIntervalSeconds', labelKey: 'imageService.reports.colInterval', defaultLabel: 'รอบการตรวจ (วินาที)', visible: false },
   { id: 'timezone', labelKey: 'imageService.reports.colTimezone', defaultLabel: 'โซนเวลา', visible: false },
-  { id: 'captureMode', labelKey: 'imageService.reports.colCaptureMode', defaultLabel: 'โหมดจับภาพ', visible: false },
-  { id: 'acceptedExtensions', labelKey: 'imageService.reports.colExts', defaultLabel: 'สกุลไฟล์ที่ยอมรับ', visible: false },
-  { id: 'convertToPng', labelKey: 'imageService.reports.colConvertPng', defaultLabel: 'แปลงเป็น PNG', visible: false },
-  { id: 'keepSmaller', labelKey: 'imageService.reports.colKeepSmaller', defaultLabel: 'เก็บไฟล์เล็ก', visible: false },
-  { id: 'generateThumbnail', labelKey: 'imageService.reports.colGenThumbnail', defaultLabel: 'สร้าง Thumbnail', visible: false },
-  { id: 'thumbnailSize', labelKey: 'imageService.reports.colThumbnailSize', defaultLabel: 'ขนาด Thumbnail', visible: false },
-  { id: 'compressionQuality', labelKey: 'imageService.reports.colCompression', defaultLabel: 'คุณภาพการบีบอัด', visible: false },
   { id: 'createdAt', labelKey: 'imageService.reports.colCreated', defaultLabel: 'วันที่สร้าง', visible: false },
   { id: 'updatedAt', labelKey: 'imageService.reports.colUpdated', defaultLabel: 'วันที่แก้ไขล่าสุด', visible: false },
 ];
@@ -62,8 +40,6 @@ const STORAGE_KEY = 'image_service_reports_columns_v1';
 export default function ImageServiceReports() {
   const { t, i18n } = useTranslation();
   const { themeConfig } = useTheme();
-  const { factoryModules } = useFeatures();
-  const isShown = (id: string) => factoryModules || !FACTORY_COLUMN_IDS.has(id);
 
   // Columns Configuration
   const [columns, setColumns] = useState(() => {
@@ -245,23 +221,23 @@ export default function ImageServiceReports() {
   // Build columns list for ExportButton
   const activeColumns = useMemo(() => {
     return columns
-      .filter(c => c.visible && isShown(c.id))
+      .filter(c => c.visible)
       .map(c => ({
         key: c.id,
         label: String(t(c.labelKey, c.defaultLabel))
       }));
-  }, [columns, t, factoryModules]);
+  }, [columns, t]);
 
   // Format data specifically for exports
   const exportData = useMemo(() => {
     return filteredCameras.map((cam: any) => {
       const row: Record<string, string> = {};
-      columns.filter(col => isShown(col.id)).forEach(col => {
+      columns.forEach(col => {
         row[col.id] = String(formatValue(cam, col.id));
       });
       return row;
     });
-  }, [filteredCameras, columns, i18n.language, t, factoryModules]);
+  }, [filteredCameras, columns, i18n.language, t]);
 
   return (
     <div className="pt-6 px-6 pb-2.5">
@@ -314,7 +290,7 @@ export default function ImageServiceReports() {
 
                 {/* Draggable Columns List */}
                 <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
-                  {columns.map((col, index) => !isShown(col.id) ? null : (
+                  {columns.map((col, index) => (
                     <div
                       key={col.id}
                       draggable={true}
@@ -400,7 +376,7 @@ export default function ImageServiceReports() {
               <table className="w-full text-xs text-left border-collapse">
                 <thead className={`${themeConfig.tableHeader} sticky top-0 z-10 shadow-sm`}>
                   <tr className={`border-b ${themeConfig.cardBorder}`}>
-                    {columns.filter(c => c.visible && isShown(c.id)).map((col) => (
+                    {columns.filter(c => c.visible).map((col) => (
                       <th key={col.id} onClick={() => handleSort(col.id)}
                         className={`px-4 py-3 font-semibold ${themeConfig.text.secondary} border-r border-white/5 cursor-pointer select-none hover:text-cyan-300`}>
                         <div className="flex items-center gap-1">
@@ -416,7 +392,7 @@ export default function ImageServiceReports() {
                 <tbody className={themeConfig.tableDivide}>
                   {paginatedCameras.map((cam: any) => (
                     <tr key={cam.id} className={`${themeConfig.tableRow} border-b border-white/5`}>
-                      {columns.filter(c => c.visible && isShown(c.id)).map((col) => {
+                      {columns.filter(c => c.visible).map((col) => {
                         const isName = col.id === 'name';
                         return (
                           <td key={col.id} className={`px-4 py-2.5 font-medium border-r border-white/5 ${isName ? themeConfig.text.primary : themeConfig.text.secondary}`}>

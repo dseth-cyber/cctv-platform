@@ -17,18 +17,6 @@ enum Role {
   @@map("role")
 }
 
-enum ImageStatus {
-  pending
-  queued
-  processing
-  completed
-  failed
-  deleted
-  archived
-
-  @@map("image_status")
-}
-
 enum ProviderType {
   s3
   local
@@ -37,19 +25,6 @@ enum ProviderType {
   seaweedfs
 
   @@map("provider_type")
-}
-
-enum FileType {
-  raw
-  processed
-  thumbnail
-  metadata_json
-  ai
-  ocr
-  face_blur
-  custom
-
-  @@map("file_type")
 }
 
 enum StorageClass {
@@ -134,22 +109,6 @@ enum StoragePressureState {
   emergency
 
   @@map("storage_pressure_state")
-}
-
-enum CleanupTrigger {
-  auto
-  manual
-  emergency
-
-  @@map("cleanup_trigger")
-}
-
-enum CleanupRunStatus {
-  running
-  completed
-  failed
-
-  @@map("cleanup_run_status")
 }
 
 enum AlertSeverity {
@@ -307,37 +266,9 @@ model StorageProvider {
   currentPressureState     StoragePressureState @default(normal) @map("current_pressure_state")
   currentPressureSince     DateTime?            @map("current_pressure_since")
 
-  imageFiles  ImageFile[]
-  profiles    StorageProfile[]
   metrics     StorageProviderMetric[]
-  sourceJobs  MigrationJob[]          @relation("MigrationSource")
-  targetJobs  MigrationJob[]          @relation("MigrationTarget")
-  cleanupRuns CleanupRun[]
 
   @@map("storage_providers")
-}
-
-model StorageProfile {
-  id           String    @id @default(uuid()) @db.Uuid
-  code         String    @unique @db.VarChar(64)
-  nameTh       String    @map("name_th") @db.VarChar(256)
-  nameEn       String    @map("name_en") @db.VarChar(256)
-  nameCn       String    @map("name_cn") @db.VarChar(256)
-  nameMm       String    @map("name_mm") @db.VarChar(256)
-  nameJp       String    @map("name_jp") @db.VarChar(256)
-  description  String?   @db.Text
-  providerId   String    @map("provider_id") @db.Uuid
-  routingRules Json      @default("[]") @map("routing_rules")
-  sortOrder    Int       @default(0) @map("sort_order")
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
-
-  provider   StorageProvider @relation(fields: [providerId], references: [id])
-  imageFiles ImageFile[]
-
-  @@map("storage_profiles")
 }
 
 model StorageProviderMetric {
@@ -362,74 +293,10 @@ model StorageProviderMetric {
 // Doubles as the audit trail and the source of KPI data (duration, recovered space,
 // emergency count, etc) — kept separate from CameraEvent/AuditLog since this is a
 // different domain (storage lifecycle, not camera health or generic user actions).
-model CleanupRun {
-  id                  String           @id @default(uuid()) @db.Uuid
-  storageProviderId   String           @map("storage_provider_id") @db.Uuid
-  trigger             CleanupTrigger   @default(auto)
-  status              CleanupRunStatus @default(running)
-  dryRun              Boolean          @default(false) @map("dry_run")
-  filesScanned        Int              @default(0) @map("files_scanned")
-  filesDeleted        Int              @default(0) @map("files_deleted")
-  bytesFreed          BigInt           @default(0) @map("bytes_freed")
-  deleteOrderSnapshot Json?            @map("delete_order_snapshot")
-  triggeredBy         String?          @map("triggered_by") @db.VarChar(128)
-  errorMessage        String?          @map("error_message") @db.Text
-  startedAt           DateTime         @default(now()) @map("started_at")
-  completedAt         DateTime?        @map("completed_at")
-
-  storageProvider StorageProvider @relation(fields: [storageProviderId], references: [id])
-
-  @@index([storageProviderId, startedAt(sort: Desc)])
-  @@map("cleanup_runs")
-}
-
-enum MigrationStatus {
-  pending
-  running
-  completed
-  failed
-  cancelled
-
-  @@map("migration_status")
-}
-
-model MigrationJob {
-  id            String          @id @default(uuid()) @db.Uuid
-  sourceId      String          @map("source_id") @db.Uuid
-  targetId      String          @map("target_id") @db.Uuid
-  status        MigrationStatus @default(pending)
-  fileType      String?         @map("file_type") @db.VarChar(32)
-  totalFiles    Int             @default(0) @map("total_files")
-  migratedFiles Int             @default(0) @map("migrated_files")
-  totalBytes    BigInt          @default(0) @map("total_bytes")
-  migratedBytes BigInt          @default(0) @map("migrated_bytes")
-  errorMessage  String?         @map("error_message") @db.Text
-  startedAt     DateTime?       @map("started_at")
-  completedAt   DateTime?       @map("completed_at")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-
-  sourceProvider StorageProvider @relation("MigrationSource", fields: [sourceId], references: [id])
-  targetProvider StorageProvider @relation("MigrationTarget", fields: [targetId], references: [id])
-
-  @@index([status])
-  @@index([sourceId])
-  @@index([targetId])
-  @@map("migration_jobs")
-}
-
 model CameraTemplate {
   id                  String   @id @default(uuid()) @db.Uuid
   name                String   @db.VarChar(128)
   description         String?  @db.Text
-  acceptedExtensions  String[] @map("accepted_extensions")
-  convertToPng        Boolean  @default(true) @map("convert_to_png")
-  keepSmaller         Boolean  @default(true) @map("keep_smaller")
-  generateThumbnail   Boolean  @default(true) @map("generate_thumbnail")
-  thumbnailSize       Int      @default(512) @map("thumbnail_size")
-  compressionQuality  Int      @default(85) @map("compression_quality")
-  pollIntervalSeconds Int      @default(30) @map("poll_interval_seconds")
-  captureMode         String   @default("periodic") @map("capture_mode") @db.VarChar(32)
   retentionPolicyId   String?  @map("retention_policy_id") @db.Uuid
   isDefault           Boolean  @default(false) @map("is_default")
   sortOrder           Int      @default(0) @map("sort_order")
@@ -590,166 +457,15 @@ model Camera {
   site             Site?                 @relation(fields: [siteId], references: [id])
   zone             Zone?                 @relation(fields: [zoneId], references: [id])
   mediaNode        MediaNode?            @relation(fields: [mediaNodeId], references: [id])
-  images           Image[]
   cameraEvents     CameraEvent[]
-  storageSnapshots StorageSnapshot[]
   dailySummaries   CameraDailySummary[]
   incidents        CameraIncident[]
   recordings       CameraRecording[]
   recordingClips   RecordingClip[]
-  factorySettings  CameraFactorySettings?
 
   @@map("cameras")
 }
 
-/// [R2.3] Factory image-pipeline settings, split out of `cameras`. One row per camera; only read and
-/// written while FACTORY_MODULES_ENABLED=true.
-model CameraFactorySettings {
-  cameraId               String    @id @map("camera_id") @db.Uuid
-  smbSharePath           String?   @map("smb_share_path") @db.Text
-  smbDomain              String?   @map("smb_domain") @db.VarChar(128)
-  smbUsername            String?   @map("smb_username") @db.VarChar(256)
-  smbPasswordEncrypted   String?   @map("smb_password_encrypted") @db.Text
-  smbSubdirectoryPattern String?   @map("smb_subdirectory_pattern") @db.VarChar(256)
-  pollIntervalSeconds    Int       @default(30) @map("poll_interval_seconds")
-  captureMode            String    @default("periodic") @map("capture_mode") @db.VarChar(32)
-  cameraTypeCode         String?   @map("camera_type_code") @db.VarChar(64)
-  viewpointCode          String?   @map("viewpoint_code") @db.VarChar(64)
-  acceptedExtensions     String[]  @default([]) @map("accepted_extensions")
-  convertToPng           Boolean?  @map("convert_to_png")
-  keepSmaller            Boolean?  @map("keep_smaller")
-  generateThumbnail      Boolean?  @map("generate_thumbnail")
-  thumbnailSize          Int?      @map("thumbnail_size")
-  compressionQuality     Int?      @map("compression_quality")
-  sourceOldestFileAt     DateTime? @map("source_oldest_file_at")
-  sourceFileCount        Int?      @map("source_file_count")
-  lastImageAt            DateTime? @map("last_image_at")
-  totalImagesCount       BigInt    @default(0) @map("total_images_count")
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
-
-  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
-
-  @@map("camera_factory_settings")
-}
-
-
-model Image {
-  id               String      @id @default(uuid()) @db.Uuid
-  cameraId         String?     @map("camera_id") @db.Uuid
-  originalFilename String      @map("original_filename") @db.VarChar(512)
-  fileSizeBytes    BigInt      @map("file_size_bytes")
-  checksumSha256   String?     @map("checksum_sha256") @db.Char(64)
-  checksumMd5      String?     @map("checksum_md5") @db.Char(32)
-  status           ImageStatus @default(pending)
-  widthPx          Int?        @map("width_px")
-  heightPx         Int?        @map("height_px")
-  bitDepth         Int?        @map("bit_depth")
-  colorSpace       String?     @map("color_space") @db.VarChar(32)
-  compressionType  String?     @map("compression_type") @db.VarChar(64)
-  compressionRatio Decimal?    @map("compression_ratio") @db.Decimal(5, 2)
-  tiffMetadata     Json?       @default("{}") @map("tiff_metadata")
-  capturedAt       DateTime    @map("captured_at")
-  ingestedAt       DateTime    @default(now()) @map("ingested_at")
-  processedAt      DateTime?   @map("processed_at")
-  deletedAt        DateTime?   @map("deleted_at")
-  retentionUntil   DateTime?   @map("retention_until")
-  createdAt        DateTime    @default(now()) @map("created_at")
-
-  // P26 — Image Locking: a Business Decision (who/why/until-when), not something the
-  // Cleanup Planner ever sets itself — the Planner only ever reads `locked` as a filter.
-  locked       Boolean   @default(false)
-  lockedBy     String?   @map("locked_by") @db.VarChar(128)
-  // Snapshot of the locker's role code at lock time — role can change later, so we
-  // record it here to decide who is allowed to unlock (a junior role must not be
-  // able to unlock what a more senior role locked).
-  lockedByRole String?   @map("locked_by_role") @db.VarChar(64)
-  lockedAt     DateTime? @map("locked_at")
-  lockReason   String?   @map("lock_reason") @db.Text
-  lockExpireAt DateTime? @map("lock_expire_at")
-
-  camera         Camera?         @relation(fields: [cameraId], references: [id], onDelete: SetNull)
-  imageFiles     ImageFile[]
-  imageTags      ImageTag[]
-  processingJobs ProcessingJob[]
-
-  @@index([cameraId, capturedAt(sort: Desc)])
-  @@index([deletedAt, capturedAt(sort: Desc)])
-  @@index([deletedAt, cameraId, capturedAt(sort: Desc)])
-  @@index([deletedAt, status, capturedAt(sort: Desc)])
-  @@index([status])
-  @@index([checksumMd5])
-  @@index([retentionUntil])
-  @@index([locked])
-  @@map("images")
-}
-
-model ImageFile {
-  id                String       @id @default(uuid()) @db.Uuid
-  imageId           String       @map("image_id") @db.Uuid
-  fileType          FileType     @map("file_type")
-  bucket            String       @db.VarChar(128)
-  objectKey         String       @db.Text
-  storageClass      StorageClass @default(hot) @map("storage_class")
-  fileSizeBytes     BigInt       @map("file_size_bytes")
-  checksumSha256    String?      @map("checksum_sha256") @db.Char(64)
-  mimeType          String?      @map("mime_type") @db.VarChar(128)
-  storageProviderId String?      @map("storage_provider_id") @db.Uuid
-  storageProfileId  String?      @map("storage_profile_id") @db.Uuid
-  processorName     String?      @map("processor_name") @db.VarChar(64)
-  processorParams   Json?        @map("processor_params")
-  parentFileId      String?      @map("parent_file_id") @db.Uuid
-  createdAt         DateTime     @default(now()) @map("created_at")
-
-  image           Image            @relation(fields: [imageId], references: [id])
-  storageProvider StorageProvider? @relation(fields: [storageProviderId], references: [id])
-  storageProfile  StorageProfile?  @relation(fields: [storageProfileId], references: [id])
-  parentFile      ImageFile?       @relation("FileVersions", fields: [parentFileId], references: [id])
-  childFiles      ImageFile[]      @relation("FileVersions")
-
-  @@unique([imageId, fileType])
-  @@map("image_files")
-}
-
-model ImageTag {
-  id        BigInt   @id @default(autoincrement())
-  imageId   String   @map("image_id") @db.Uuid
-  key       String   @db.VarChar(128)
-  value     String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
-
-  image Image @relation(fields: [imageId], references: [id])
-
-  @@unique([imageId, key])
-  @@index([key, value])
-  @@map("image_tags")
-}
-
-model ProcessingJob {
-  id           String    @id @default(uuid()) @db.Uuid
-  imageId      String?   @map("image_id") @db.Uuid
-  jobType      String    @map("job_type") @db.VarChar(32)
-  workerId     String?   @map("worker_id") @db.VarChar(128)
-  status       String    @default("queued") @db.VarChar(32)
-  priority     Int       @default(0)
-  queueName    String    @default("default") @map("queue_name") @db.VarChar(64)
-  payload      Json?
-  result       Json?
-  errorMessage String?   @map("error_message") @db.Text
-  errorDetails Json?     @map("error_details")
-  retryCount   Int       @default(0) @map("retry_count")
-  maxRetries   Int       @default(3) @map("max_retries")
-  queuedAt     DateTime  @default(now()) @map("queued_at")
-  startedAt    DateTime? @map("started_at")
-  completedAt  DateTime? @map("completed_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-
-  image Image? @relation(fields: [imageId], references: [id])
-
-  @@index([imageId])
-  @@index([status, queuedAt(sort: Desc)])
-  @@map("processing_jobs")
-}
 
 model CameraEvent {
   id             BigInt          @id @default(autoincrement())
@@ -787,22 +503,6 @@ model CameraDailySummary {
 
   @@unique([cameraId, date])
   @@map("camera_daily_summaries")
-}
-
-model StorageSnapshot {
-  id           BigInt       @id @default(autoincrement())
-  cameraId     String?      @map("camera_id") @db.Uuid
-  snapshotDate DateTime     @map("snapshot_date") @db.Date
-  fileType     FileType     @map("file_type")
-  storageClass StorageClass @default(hot) @map("storage_class")
-  totalFiles   BigInt       @default(0) @map("total_files")
-  totalBytes   BigInt       @default(0) @map("total_bytes")
-  createdAt    DateTime     @default(now()) @map("created_at")
-
-  camera Camera? @relation(fields: [cameraId], references: [id])
-
-  @@unique([cameraId, snapshotDate, fileType, storageClass])
-  @@map("storage_snapshots")
 }
 
 model Alert {

@@ -19,7 +19,6 @@ import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { authenticate } from './middleware/auth.js';
 import { authRoutes } from './modules/auth/auth.controller.js';
-import { imageRoutes } from './modules/images/images.controller.js';
 import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
@@ -30,15 +29,10 @@ import { releaseRoutes } from './modules/release/release.controller.js';
 import { cameraTemplateRoutes } from './modules/camera-templates/camera-templates.controller.js';
 import { retentionRoutes } from './modules/retention/retention.controller.js';
 import { healthRoutes } from './modules/health/health.controller.js';
-import { storageRoutes } from './modules/storage/storage.controller.js';
 import { storageProviderRoutes } from './modules/storage-providers/storage-providers.controller.js';
-import { storageLifecycleRoutes } from './modules/storage-lifecycle/storage-lifecycle.controller.js';
-import { storageProfileRoutes } from './modules/storage-profiles/storage-profiles.controller.js';
-import { migrationRoutes } from './modules/migrations/migrations.controller.js';
 import { alertRoutes } from './modules/alerts/alerts.controller.js';
 import { userRoutes } from './modules/users/users.controller.js';
 import { roleRoutes } from './modules/roles/roles.controller.js';
-import { processingLogRoutes } from './modules/processing-logs/processing-logs.controller.js';
 import { alertRuleRoutes } from './modules/alert-rules/alert-rules.controller.js';
 import { systemSettingsRoutes } from './modules/system-settings/system-settings.controller.js';
 import { telegramUserRoutes } from './modules/telegram-bot/telegram-users.controller.js';
@@ -48,19 +42,14 @@ import { systemConfigRoutes } from './modules/system-config/system-config.contro
 import { auditRoutes } from './modules/audit/audit.controller.js';
 import { backupRoutes } from './modules/backup/backup.controller.js';
 import { startBackupScheduler, stopBackupScheduler } from './modules/backup/backup-scheduler.js';
-import { smbRoutes } from './modules/smb/smb.controller.js';
-import adminRoutes from './modules/admin/admin.controller.js';
 import { searchRoutes } from './modules/search/search.controller.js';
 import { startRetentionSweeper, stopRetentionSweeper } from './modules/retention-sweeper/retention-sweeper.controller.js';
-import { startDlqReprocessor, stopDlqReprocessor } from './modules/processing-logs/dlq-reprocessor.js';
-import { startOrphanSweeper, stopOrphanSweeper } from './modules/processing-logs/orphan-sweeper.js';
 import { startMetricCollector, stopMetricCollector } from './modules/provider-metrics/provider-metric-collector.js';
 import { startCameraHealthMonitor, stopCameraHealthMonitor } from './modules/cameras/camera-health-monitor.js';
 import { startRecordingReconciler, stopRecordingReconciler } from './modules/recordings/segment-indexer.js';
 import { startCameraPathSync, stopCameraPathSync } from './modules/media/path-sync.js';
 import { startTelegramBot, stopTelegramBot } from './modules/telegram-bot/telegram-bot.service.js';
 import { startSystemCleanup, stopSystemCleanup } from './modules/system-cleanup/system-cleanup.controller.js';
-import { workerUploadRoutes } from './modules/images/worker-upload.controller.js';
 import { metricsRoutes } from './modules/metrics/metrics.controller.js';
 import { storageRouter } from './lib/storage/storage-router.js';
 import { getPrisma } from './lib/prisma.js';
@@ -167,27 +156,11 @@ export async function buildApp() {
       await api.register(systemConfigRoutes, { prefix: '/api/v1/system-config' });
       await api.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
       await api.register(backupRoutes, { prefix: '/api/v1/backup' });
-      await api.register(adminRoutes, { prefix: '/api/v1/admin' });
       await api.register(storageProviderRoutes, { prefix: '/api/v1/storage-providers' });
-      await api.register(storageLifecycleRoutes, { prefix: '/api/v1/storage-providers' });
       await api.register(metricsRoutes, { prefix: '/api/v1/metrics' });
       await api.register(searchRoutes, { prefix: '/api/v1/search' });
       await api.register(releaseRoutes, { prefix: '/api/v1/release' });
 
-      // [R2.2] Factory image pipeline: registered only when FACTORY_MODULES_ENABLED=true.
-      if (config.factoryModulesEnabled) {
-        await api.register(imageRoutes, { prefix: '/api/v1/images' });
-        await api.register(workerUploadRoutes, { prefix: '/api/v1/images' });
-        await api.register(processingLogRoutes, { prefix: '/api/v1/processing-logs' });
-        await api.register(storageRoutes, { prefix: '/api/v1/storage' });
-        await api.register(storageProfileRoutes, { prefix: '/api/v1/storage-profiles' });
-        await api.register(smbRoutes, { prefix: '/api/v1' });
-        await api.register(migrationRoutes, { prefix: '/api/v1/migrations' });
-      }
-
-      api.get('/api/v1/features', { preHandler: [app.authenticate] }, async () => ({
-        factoryModules: config.factoryModulesEnabled,
-      }));
     },
   );
 
@@ -216,10 +189,6 @@ export async function startApp() {
   const app = await buildApp();
 
   startRetentionSweeper();
-  if (config.factoryModulesEnabled) {
-    startDlqReprocessor();
-    startOrphanSweeper();
-  }
   startBackupScheduler();
   startMetricCollector();
   startCameraHealthMonitor();
@@ -254,8 +223,6 @@ export async function startApp() {
   const gracefulShutdown = async (signal: string) => {
     logger.info({ signal }, 'Shutdown signal received');
     stopRetentionSweeper();
-    stopDlqReprocessor();
-    stopOrphanSweeper();
     stopBackupScheduler();
     stopMetricCollector();
     stopCameraHealthMonitor();

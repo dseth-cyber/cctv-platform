@@ -7,32 +7,6 @@ import { imageServiceApi } from '@/services/imageServiceApi'
 import { Button, Modal, TableSkeleton, SearchableSelect } from '@/components/ui'
 import { Plus, HardDrive, CheckCircle, XCircle, TestTube, Star, Trash2, Edit3, Server, Wifi, Clock, ToggleLeft, ToggleRight, Gauge, AlertTriangle, Sparkles } from 'lucide-react'
 
-const PRESSURE_COLORS: Record<string, string> = {
-  normal: 'bg-green-500/20 text-green-300',
-  warning: 'bg-yellow-500/20 text-yellow-300',
-  pressure: 'bg-orange-500/20 text-orange-300',
-  critical: 'bg-red-500/20 text-red-300',
-  emergency: 'bg-red-600/30 text-red-200',
-}
-
-function PressureBadge({ providerId }: { providerId: string }) {
-  const { t } = useTranslation()
-  const { data } = useQuery({
-    queryKey: ['storage-pressure-state', providerId],
-    queryFn: () => imageServiceApi.getStoragePressureState(providerId),
-    staleTime: 30000,
-    refetchInterval: 60000,
-  })
-  const state = data?.state ?? 'normal'
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${PRESSURE_COLORS[state] ?? PRESSURE_COLORS.normal}`}>
-      <Gauge size={10} />
-      {t(`imageService.storageProviders.pressure.${state}`)}
-      {typeof data?.percent === 'number' && data.percent > 0 ? ` (${data.percent.toFixed(1)}%)` : ''}
-    </span>
-  )
-}
-
 const TYPE_LABEL: Record<string, string> = {
   s3: 'storageProviders.s3',
   local: 'storageProviders.local',
@@ -59,7 +33,6 @@ export default function StorageProvidersPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, any>>({})
-  const [cleanupTarget, setCleanupTarget] = useState<any | null>(null)
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ['storage-providers'],
@@ -171,7 +144,6 @@ export default function StorageProvidersPage() {
                 <th className={thClass}>{t('imageService.storageProviders.status')}</th>
                 <th className={thClass}>{t('imageService.storageProviders.default')}</th>
                 <th className={thClass}>{t('imageService.storageProviders.health')}</th>
-                <th className={thClass}>{t('imageService.storageProviders.pressure.title')}</th>
                 <th className={thClass}>{t('imageService.storageProviders.actions')}</th>
               </tr>
             </thead>
@@ -221,15 +193,7 @@ export default function StorageProvidersPage() {
                       )}
                     </td>
                     <td className={tdClass}>
-                      <PressureBadge providerId={p.id} />
-                    </td>
-                    <td className={tdClass}>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setCleanupTarget(p)}
-                          className="p-1.5 rounded text-amber-400 hover:bg-amber-500/20 transition-colors"
-                          title={t('imageService.storageProviders.cleanup.title')}>
-                          <Sparkles size={15} />
-                        </button>
                         <button onClick={() => toggleActiveMutation.mutate({ id: p.id, isActive: !p.isActive })}
                           className={`p-1.5 rounded transition-colors ${p.isActive ? 'text-green-400 hover:bg-green-500/20' : 'text-gray-500 hover:bg-white/10'}`}
                           title={p.isActive ? t('imageService.storageProviders.disable') : t('imageService.storageProviders.enable')}>
@@ -283,193 +247,7 @@ export default function StorageProvidersPage() {
         </div>
       </Modal>
 
-      <CleanupModal provider={cleanupTarget} onClose={() => setCleanupTarget(null)} />
     </div>
-  )
-}
-
-function CleanupModal({ provider, onClose }: { provider: any | null; onClose: () => void }) {
-  const { t } = useTranslation()
-  const { themeConfig } = useTheme()
-  const toast = useToast()
-  const queryClient = useQueryClient()
-  const [trigger, setTrigger] = useState<'manual' | 'emergency'>('manual')
-  const [plan, setPlan] = useState<any | null>(null)
-  const [simulating, setSimulating] = useState(false)
-  const [password, setPassword] = useState('')
-  const [executing, setExecuting] = useState(false)
-
-  const runSimulate = async (t2: 'manual' | 'emergency') => {
-    if (!provider) return
-    setSimulating(true)
-    setPlan(null)
-    try {
-      const result = await imageServiceApi.simulateCleanup(provider.id, t2)
-      setPlan(result)
-    } catch (e: any) {
-      if (!e?._handled) toast.error(t('common.error'))
-    } finally {
-      setSimulating(false)
-    }
-  }
-
-  const handleOpenChange = (t2: 'manual' | 'emergency') => {
-    setTrigger(t2)
-    runSimulate(t2)
-  }
-
-  useEffect(() => {
-    if (provider) runSimulate('manual')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider?.id])
-
-  const handleExecute = async () => {
-    if (!provider || !password) return
-    setExecuting(true)
-    try {
-      const result = await imageServiceApi.executeCleanup(provider.id, trigger, password)
-      toast.success(t('imageService.storageProviders.cleanup.executeSuccess', {
-        count: result.filesDeleted,
-        size: (result.bytesFreed / 1024 / 1024 / 1024).toFixed(2),
-      }))
-      queryClient.invalidateQueries({ queryKey: ['storage-pressure-state', provider.id] })
-      setPassword('')
-      setPlan(null)
-      onClose()
-    } catch (e: any) {
-      if (e?.response?.status === 403 || e?.response?.status === 400) {
-        toast.error(t('imageService.storageProviders.cleanup.passwordError'))
-      } else if (!e?._handled) {
-        toast.error(t('common.error'))
-      }
-    } finally {
-      setExecuting(false)
-    }
-  }
-
-  const handleClose = () => {
-    setPlan(null)
-    setPassword('')
-    setTrigger('manual')
-    onClose()
-  }
-
-  if (!provider) return null
-
-  return (
-    <Modal isOpen={!!provider} onClose={handleClose} title={`${t('imageService.storageProviders.cleanup.title')} — ${provider.name}`} size="2xl">
-      <div className="space-y-4 p-1 max-w-full">
-        <div className="flex gap-2">
-          <button onClick={() => handleOpenChange('manual')}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${trigger === 'manual' ? 'bg-cyan-600/20 border-cyan-500/40 text-cyan-300' : `${themeConfig.cardBorder} ${themeConfig.text.secondary} hover:bg-white/5`}`}>
-            {t('imageService.storageProviders.cleanup.modeManual')}
-          </button>
-          <button onClick={() => handleOpenChange('emergency')}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${trigger === 'emergency' ? 'bg-red-600/20 border-red-500/40 text-red-300' : `${themeConfig.cardBorder} ${themeConfig.text.secondary} hover:bg-white/5`}`}>
-            {t('imageService.storageProviders.cleanup.modeEmergency')}
-          </button>
-        </div>
-
-        {trigger === 'emergency' && (
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <AlertTriangle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
-            <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.cleanup.emergencyWarning')}</p>
-          </div>
-        )}
-
-        {simulating ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="animate-spin w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full" />
-          </div>
-        ) : plan ? (
-          <div className={`rounded-lg border ${themeConfig.cardBorder} ${themeConfig.card} p-4 space-y-3`}>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className={themeConfig.text.secondary}>{t('imageService.storageProviders.cleanup.currentUsage')}</span>
-                <p className={`font-semibold ${themeConfig.text.primary}`}>{plan.usagePercent.toFixed(1)}%</p>
-              </div>
-              <div>
-                <span className={themeConfig.text.secondary}>{t('imageService.storageProviders.cleanup.afterCleanup')}</span>
-                <p className="font-semibold text-green-400">{plan.wouldFreeToPercent.toFixed(1)}%</p>
-              </div>
-              <div>
-                <span className={themeConfig.text.secondary}>{t('imageService.storageProviders.cleanup.filesToDelete')}</span>
-                <p className={`font-semibold ${themeConfig.text.primary}`}>{plan.candidateCount.toLocaleString()}</p>
-              </div>
-              <div>
-                <span className={themeConfig.text.secondary}>{t('imageService.storageProviders.cleanup.spaceToFree')}</span>
-                <p className="font-semibold text-cyan-400">{(plan.candidateBytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb')}</p>
-              </div>
-            </div>
-
-            {Object.keys(plan.byFileType).length > 0 && (
-              <div className="pt-2 border-t border-white/10">
-                <p className={`text-xs font-medium mb-1.5 ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.cleanup.byFileType')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(plan.byFileType).map(([type, v]: [string, any]) => (
-                    <span key={type} className={`px-2 py-1 rounded text-xs ${themeConfig.card} border ${themeConfig.cardBorder}`}>
-                      {type}: {v.count} ({(v.bytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb2')}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {plan.affectedCameras.length > 0 && (
-              <div className="pt-2 border-t border-white/10">
-                <p className={`text-xs font-medium mb-1.5 ${themeConfig.text.secondary}`}>
-                  {t('imageService.storageProviders.cleanup.affectedCameras', { count: plan.affectedCameras.length })}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {plan.affectedCameras.map((c: any) => (
-                    <span key={c.id} className={`px-2 py-1 rounded text-xs ${themeConfig.card} border ${themeConfig.cardBorder}`}>
-                      {c.name}: {c.files} ({(c.bytes / 1024 / 1024 / 1024).toFixed(2)}{' '}{t('ui.storageProvidersPage.gb2')}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {plan.candidateCount === 0 && (
-              <p className={`text-sm text-center py-2 ${themeConfig.text.secondary}`}>{t('imageService.storageProviders.cleanup.noCandidates')}</p>
-            )}
-          </div>
-        ) : null}
-
-        {plan && plan.candidateCount > 0 && (
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-              {t('imageService.storageProviders.cleanup.passwordConfirm')}
-            </label>
-            <input
-              type="password" autoComplete="new-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder={t('imageService.storageProviders.cleanup.passwordPlaceholder')}
-              className={`w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-red-500/50`}
-            />
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-          <Button variant="secondary" onClick={handleClose}>{t('common.close')}</Button>
-          {plan && plan.candidateCount > 0 && (
-            <button
-              onClick={handleExecute}
-              disabled={executing || !password}
-              className={`px-4 py-2 rounded-md text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors ${trigger === 'emergency' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`}
-            >
-              {executing ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-              ) : (
-                <Sparkles size={14} />
-              )}
-              {trigger === 'emergency' ? t('imageService.storageProviders.cleanup.executeEmergency') : t('imageService.storageProviders.cleanup.executeManual')}
-            </button>
-          )}
-        </div>
-      </div>
-    </Modal>
   )
 }
 

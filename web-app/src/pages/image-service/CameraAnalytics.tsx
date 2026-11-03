@@ -30,7 +30,6 @@ const DEFAULT_LAYOUTS: Record<string, any[]> = {
     { i: 'mttr', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1.5 },
     { i: 'healthScore', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 1.5 },
     { i: 'timeBreakdown', x: 0, y: 2, w: 4, h: 3, minW: 3, minH: 2.5 },
-    { i: 'lostImages', x: 4, y: 2, w: 4, h: 3, minW: 3, minH: 2.5 },
     { i: 'offlineEvents', x: 8, y: 2, w: 4, h: 3, minW: 3, minH: 2.5 },
     { i: 'timeline', x: 0, y: 5, w: 12, h: 2, minW: 6, minH: 1.5 },
     { i: 'eventHistory', x: 0, y: 7, w: 12, h: 3, minW: 6, minH: 2.5 },
@@ -42,7 +41,6 @@ const DEFAULT_LAYOUTS: Record<string, any[]> = {
     { i: 'mttr', x: 0, y: 2, w: 5, h: 2, minW: 2, minH: 1.5 },
     { i: 'healthScore', x: 5, y: 2, w: 5, h: 2, minW: 2, minH: 1.5 },
     { i: 'timeBreakdown', x: 0, y: 4, w: 4, h: 3, minW: 3, minH: 2.5 },
-    { i: 'lostImages', x: 4, y: 4, w: 3, h: 3, minW: 3, minH: 2.5 },
     { i: 'offlineEvents', x: 7, y: 4, w: 3, h: 3, minW: 3, minH: 2.5 },
     { i: 'timeline', x: 0, y: 7, w: 10, h: 2, minW: 6, minH: 1.5 },
     { i: 'eventHistory', x: 0, y: 9, w: 10, h: 3, minW: 6, minH: 2.5 },
@@ -54,7 +52,6 @@ const DEFAULT_LAYOUTS: Record<string, any[]> = {
     { i: 'mttr', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 1.5 },
     { i: 'healthScore', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 1.5 },
     { i: 'timeBreakdown', x: 0, y: 4, w: 6, h: 3, minW: 3, minH: 2.5 },
-    { i: 'lostImages', x: 0, y: 7, w: 6, h: 3, minW: 3, minH: 2.5 },
     { i: 'offlineEvents', x: 0, y: 10, w: 6, h: 3, minW: 3, minH: 2.5 },
     { i: 'timeline', x: 0, y: 13, w: 6, h: 2, minW: 4, minH: 1.5 },
     { i: 'eventHistory', x: 0, y: 15, w: 6, h: 3, minW: 4, minH: 2.5 },
@@ -414,8 +411,6 @@ export default function CameraAnalytics() {
                 { metric: 'MTTR', value: analytics.mttr != null ? `${analytics.mttr.toFixed(1)} ${t('imageService.analytics.minutes')}` : '-' },
                 { metric: t('imageService.analytics.healthScore'), value: `${analytics.healthScore} (${t(`imageService.analytics.${analytics.healthGrade}`)})` },
                 { metric: t('imageService.analytics.offlineEvents'), value: String(analytics.offlineCount) },
-                { metric: t('imageService.analytics.imagesCaptured'), value: String(analytics.imagesCaptured) },
-                { metric: t('imageService.analytics.estimatedLostImages'), value: String(analytics.estimatedLostImages) },
               ] : [] },
               ...(analytics ? [{ title: `${t('imageService.analytics.uptime')} / ${t('imageService.analytics.downtime')}`, columns: [
                 { key: 'metric', label: t('ui.cameraAnalytics.metric') }, { key: 'seconds', label: t('imageService.analytics.duration') }, { key: 'pct', label: '%' },
@@ -432,13 +427,12 @@ export default function CameraAnalytics() {
                 { key: 'mttr', label: 'MTTR' },
                 { key: 'healthScore', label: t('imageService.analytics.healthScore') },
                 { key: 'offlineCount', label: t('imageService.analytics.offlineEvents') },
-                { key: 'lostImages', label: t('imageService.analytics.estimatedLostImages') },
               ], data: comparison.map((c: any) => ({
                 name: c.cameraName, availability: `${c.availability}%`,
                 mtbf: c.mtbf != null ? `${c.mtbf.toFixed(1)}h` : '-',
                 mttr: c.mttr != null ? `${c.mttr.toFixed(1)}m` : '-',
                 healthScore: `${c.healthScore} (${c.healthGrade})`,
-                offlineCount: c.offlineCount, lostImages: c.estimatedLostImages,
+                offlineCount: c.offlineCount,
               })) }] : []),
             ]}
           />
@@ -460,7 +454,6 @@ export default function CameraAnalytics() {
           recovering: 'text-amber-400 border-amber-500/30 bg-amber-500/5',
           unknown: 'text-gray-400 border-white/10 bg-white/5',
         };
-        const lastImg = timeAgo(selectedCamera.lastImageAt);
         const lastPoll = timeAgo(selectedCamera.lastPolledAt);
         const opLabel = String(t(`imageService.cameras.operational.${op}`, op));
         return (
@@ -478,12 +471,6 @@ export default function CameraAnalytics() {
                 <p className={`text-[10px] uppercase tracking-wider ${themeConfig.text.secondary}`}>{t('imageService.cameras.status', 'สถานะตั้งค่า')}</p>
                 <p className={`text-sm font-semibold flex items-center gap-1.5 ${themeConfig.text.primary}`}>
                   <StatusDot status={selectedCamera.status} />{String(t(`imageService.cameras.${selectedCamera.status}`, selectedCamera.status))}
-                </p>
-              </div>
-              <div>
-                <p className={`text-[10px] uppercase tracking-wider ${themeConfig.text.secondary}`}>{t('imageService.analytics.lastImage', 'ภาพล่าสุด')}</p>
-                <p className={`text-sm font-semibold ${lastImg && lastImg.staleMin > 30 ? 'text-amber-400' : themeConfig.text.primary}`}>
-                  {lastImg ? t('imageService.analytics.ago', '{{t}} ที่แล้ว', { t: lastImg.text }) : '—'}
                 </p>
               </div>
               <div>
@@ -510,21 +497,10 @@ export default function CameraAnalytics() {
         const maintenanceSeconds = analytics?.maintenance?.seconds ?? 0;
         const uptimeSeconds = analytics?.uptime?.seconds ?? 0;
         const downtimeSeconds = analytics?.downtime?.seconds ?? 0;
-        const silentSeconds = analytics?.silent?.seconds ?? 0;
-        const silentSpells = analytics?.silent?.spells ?? 0;
-        // How far back the camera's own disk still reaches before it overwrites itself.
-        const sourceBufferDays = selectedCamera?.sourceOldestFileAt
-          ? (Date.now() - new Date(selectedCamera.sourceOldestFileAt).getTime()) / 86400000
-          : null;
         const mtbf = analytics?.mtbf ?? null;
         const mttr = analytics?.mttr ?? null;
         const healthScore = analytics?.healthScore ?? 100;
         const healthGrade = analytics?.healthGrade ?? 'good';
-        const estimatedLostImages = analytics?.estimatedLostImages ?? 0;
-        const backfilledImages = analytics?.backfilledImages ?? 0;
-        const pendingBackfillImages = analytics?.pendingBackfillImages ?? 0;
-        const confirmedLostImages = analytics?.confirmedLostImages ?? 0;
-        const imagesCaptured = analytics?.imagesCaptured ?? 0;
         const offlineCount = analytics?.offlineCount ?? 0;
         const timeline = analytics?.timeline ?? [];
         const events = analytics?.events ?? [];
@@ -712,46 +688,6 @@ export default function CameraAnalytics() {
               </div>
             </div>
 
-            {/* Lost Images */}
-            <div key="lostImages" className={`${themeConfig.card} rounded-xl p-4 relative overflow-hidden flex flex-col h-full`}>
-              <DragHandle show={isEditing} />
-              <h3 className={`text-sm font-semibold mb-3 flex-shrink-0 ${themeConfig.text.primary}`}>
-                {t('imageService.analytics.confirmedLostImages', 'ภาพสูญหายจริง')}
-              </h3>
-              <div className="flex flex-col justify-between flex-1 min-h-0">
-                <div className="text-center my-auto">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <div className="p-2 rounded-full bg-red-500/10">
-                      <TrendingDown size={20} className="text-red-400" />
-                    </div>
-                  </div>
-                  <div className={`text-3xl font-bold ${confirmedLostImages > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    <CountUpValue value={confirmedLostImages} isLoading={analyticsLoading} />
-                  </div>
-                  <p className={`text-[10px] mt-1 leading-normal ${themeConfig.text.secondary}`}>
-                    {t('imageService.analytics.confirmedLostImagesDesc')}
-                  </p>
-                </div>
-                
-                <div className="border-t border-white/5 pt-2.5 mt-2 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className={themeConfig.text.secondary}>{t('imageService.analytics.estimatedLostImages')}:</span>
-                    <span className={`font-semibold ${themeConfig.text.primary}`}><CountUpValue value={estimatedLostImages} isLoading={analyticsLoading} /></span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-green-400">{t('imageService.analytics.backfilledImages')}:</span>
-                    <span className="font-semibold text-green-400"><CountUpValue value={backfilledImages} isLoading={analyticsLoading} /></span>
-                  </div>
-                  {pendingBackfillImages > 0 && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-yellow-400">{t('imageService.analytics.pendingBackfillImages')}:</span>
-                      <span className="font-semibold text-yellow-400"><CountUpValue value={pendingBackfillImages} isLoading={analyticsLoading} /></span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Offline Events */}
             <div key="offlineEvents" className={`${themeConfig.card} rounded-xl p-4 relative overflow-hidden flex flex-col h-full`}>
               <DragHandle show={isEditing} />
@@ -791,36 +727,6 @@ export default function CameraAnalytics() {
                         )}
                       </span>
                     </div>
-                    {/* Reachable but producing nothing. Shown separately rather than as a
-                        slice of the pie above, because it overlaps uptime — the camera is
-                        online throughout — and it is deliberately kept out of the SLA:
-                        with defect-only capture, silence may simply mean no defects. */}
-                    <div className="flex justify-between gap-4 items-center">
-                      <span>{t('imageService.analytics.silentTime', 'เงียบ (ไม่มีงานเสียเข้า)')}:</span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-amber-400 font-medium">{formatDurationLong(silentSeconds)}</span>
-                        {silentSeconds > 0 && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-yellow-500/10 text-yellow-500">
-                            {t('imageService.analytics.excludedFromSla', 'ไม่รวมใน SLA')}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    {silentSpells > 0 && (
-                      <div className={`flex justify-between gap-4 ${themeConfig.text.secondary}`}>
-                        <span>{t('imageService.analytics.silentSpells', 'จำนวนช่วงที่เงียบ')}:</span>
-                        <span className="text-amber-400 font-medium">{silentSpells}</span>
-                      </div>
-                    )}
-                    {/* The camera overwrites its own oldest files — this is the deadline. */}
-                    {sourceBufferDays != null && (
-                      <div className="flex justify-between gap-4 pt-1 border-t border-gray-700/30">
-                        <span>{t('imageService.analytics.sourceBuffer', 'ไฟล์บนเครื่องกล้องย้อนหลัง')}:</span>
-                        <span className={`font-medium ${sourceBufferDays < 3 ? 'text-red-400' : 'text-cyan-400'}`}>
-                          {sourceBufferDays.toFixed(1)} {t('imageService.storage.days', 'วัน')}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1014,15 +920,6 @@ export default function CameraAnalytics() {
                           <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
                             {t('imageService.analytics.offlineEvents')}
                           </th>
-                          <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
-                            {t('imageService.analytics.estimatedLostImages')}
-                          </th>
-                          <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
-                            {t('imageService.analytics.confirmedLostImages', 'ภาพสูญหายจริง')}
-                          </th>
-                          <th className={`px-3 py-2 text-left text-xs font-semibold ${themeConfig.text.secondary}`}>
-                            {t('imageService.analytics.backfilledImages', 'ภาพดึงย้อนหลังสำเร็จ')}
-                          </th>
                         </tr>
                       </thead>
                       <tbody className={themeConfig.tableDivide}>
@@ -1060,15 +957,6 @@ export default function CameraAnalytics() {
                             </td>
                             <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>
                               {cam.offlineCount}
-                            </td>
-                            <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>
-                              {(cam.estimatedLostImages ?? 0).toLocaleString()}
-                            </td>
-                            <td className={`px-3 py-2 text-xs font-semibold ${cam.confirmedLostImages > 0 ? 'text-red-400' : themeConfig.text.secondary}`}>
-                              {(cam.confirmedLostImages ?? 0).toLocaleString()}
-                            </td>
-                            <td className={`px-3 py-2 text-xs text-green-400 font-semibold`}>
-                              {(cam.backfilledImages ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         ))}

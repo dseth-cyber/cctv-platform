@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
-import { useFeatures } from '@/hooks/useFeatures'
 import {
   Microscope, Camera, Database, Server, Activity, CheckCircle2, Clock, Kanban,
   ArrowRight, HardDrive, Shield, Wifi, Bug, Lock, FileText, Cpu, Palette, Layout,
@@ -258,7 +257,6 @@ function formatBytes(bytes: number): string {
 }
 
 export default function ImageServiceRoadmap() {
-  const { factoryModules } = useFeatures()
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set())
@@ -282,13 +280,6 @@ export default function ImageServiceRoadmap() {
     staleTime: 1000 * 60 * 2,
   })
 
-  const { data: storage } = useQuery({
-    queryKey: ['storage-summary'],
-    queryFn: () => imageServiceApi.getStorageSummary(),
-    enabled: factoryModules,
-    staleTime: 1000 * 60 * 2,
-  })
-
   const { data: policies = [] } = useQuery({
     queryKey: ['retention-policies'],
     queryFn: () => imageServiceApi.getRetentionPolicies(),
@@ -300,14 +291,9 @@ export default function ImageServiceRoadmap() {
 
   const totalCameras = camerasArr.length
   const activeCameras = camerasArr.filter((c: any) => c.status === 'active').length
-  const totalFiles = storage?.totalFiles ?? 0
-  const totalBytes = storage?.totalBytes ?? 0
-  const byFileType = storage?.byFileType ? Object.keys(storage.byFileType).length : 0
 
   const archStats = [
     { label: t('imageService.cameras.title'), value: String(totalCameras), sub: `${activeCameras} active`, icon: Camera, color: '#06b6d4' },
-    { label: t('imageService.storage.totalFiles'), value: totalFiles.toLocaleString(), sub: formatBytes(totalBytes), icon: HardDrive, color: '#8b5cf6' },
-    { label: t('imageService.storage.byFileType'), value: `${byFileType}`, sub: t('imageService.storage.byFileType'), icon: Database, color: '#10b981' },
     { label: t('imageService.retention.title'), value: String(policiesArr.length), sub: t('imageService.settings.systemInfo'), icon: Shield, color: '#f59e0b' },
   ]
 

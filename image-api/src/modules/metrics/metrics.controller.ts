@@ -2,7 +2,6 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import os from 'os';
 import fs from 'fs';
 import { getPrisma } from '../../lib/prisma.js';
-import { getRedisClient } from '../../lib/redis.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
 import { config } from '../../config/index.js';
 
@@ -12,31 +11,17 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
   httpRequestCount++;
 
   const prisma = getPrisma();
-  const redis = getRedisClient();
 
   const [
-    imagesTotal,
-    jobsByStatus,
     camerasByStatus,
     cameraDetails,
-    queueWait, queueActive, queueFailed, queueDelayed,
-    deadLetterCount,
     alertsByseverity,
     dbConnections,
-    imageFiles,
   ] = await Promise.all([
-    prisma.image.count().catch(() => 0),
-    prisma.processingJob.groupBy({ by: ['status'], _count: true }).catch(() => []),
     prisma.camera.groupBy({ by: ['status'], _count: true }).catch(() => []),
-    prisma.camera.findMany({ where: { enabled: true }, select: { id: true, name: true, status: true, lastPolledAt: true, factorySettings: { select: { totalImagesCount: true } } } }).catch(() => []),
-    redis.llen('bull:image-processing:wait').catch(() => 0),
-    redis.llen('bull:image-processing:active').catch(() => 0),
-    redis.zcard('bull:image-processing:failed').catch(() => 0),
-    redis.zcard('bull:image-processing:delayed').catch(() => 0),
-    prisma.processingJob.count({ where: { status: 'dead_letter' } }).catch(() => 0),
+    prisma.camera.findMany({ where: { enabled: true }, select: { id: true, name: true, status: true, lastPolledAt: true } }).catch(() => []),
     prisma.alert.groupBy({ by: ['severity'], where: { resolvedAt: null }, _count: true }).catch(() => []),
     prisma.$queryRawUnsafe<any[]>('SELECT numbackends FROM pg_stat_database WHERE datname = current_database()').catch(() => []),
-    prisma.imageFile.groupBy({ by: ['fileType'], _count: true, _sum: { fileSizeBytes: true } }).catch(() => []),
   ]);
 
   const providers = storageRouter.getAll();
@@ -63,28 +48,6 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
     entries.forEach(e => lines.push(e));
   };
 
-  // ── Images ──
-  g('image_service_images_total', 'Total images in the system', 'gauge',
-    [`image_service_images_total ${imagesTotal}`]);
-
-  // ── Processing Jobs ──
-  g('image_service_processing_jobs_total', 'Processing jobs by status', 'gauge',
-    Array.isArray(jobsByStatus) && jobsByStatus.length > 0
-      ? jobsByStatus.map((r: any) => `image_service_processing_jobs_total{status="${r.status}"} ${r._count}`)
-      : ['image_service_processing_jobs_total{status="none"} 0']);
-
-  // ── Dead Letter Queue ──
-  g('image_service_dead_letter_total', 'Dead letter queue count', 'gauge',
-    [`image_service_dead_letter_total ${deadLetterCount}`]);
-
-  // ── Queue Depth ──
-  g('image_service_queue_depth', 'Queue depth by state', 'gauge', [
-    `image_service_queue_depth{state="wait"} ${queueWait}`,
-    `image_service_queue_depth{state="active"} ${queueActive}`,
-    `image_service_queue_depth{state="failed"} ${queueFailed}`,
-    `image_service_queue_depth{state="delayed"} ${queueDelayed}`,
-  ]);
-
   // ── Cameras ──
   g('image_service_cameras_total', 'Cameras by status', 'gauge',
     Array.isArray(camerasByStatus) && camerasByStatus.length > 0
@@ -98,12 +61,6 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
       const v = c.status === 'active' ? 1 : c.status === 'error' ? -1 : c.status === 'maintenance' ? -2 : 0;
       const name = (c.name || '').replace(/"/g, '');
       return `image_service_camera_status{camera_id="${c.id}",camera_name="${name}",status="${c.status}"} ${v}`;
-    }));
-
-  g('image_service_camera_images_total', 'Total images per camera', 'gauge',
-    camArr.map((c: any) => {
-      const name = (c.name || '').replace(/"/g, '');
-      return `image_service_camera_images_total{camera_id="${c.id}",camera_name="${name}"} ${Number(c.factorySettings?.totalImagesCount ?? 0)}`;
     }));
 
   g('image_service_camera_last_poll_seconds', 'Seconds since last poll per camera', 'gauge',
@@ -129,17 +86,6 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
   g('image_service_storage_objects_total', 'Storage objects per provider', 'gauge',
     storageStats.map(s => `image_service_storage_objects_total{provider="${s.name}",type="${s.type}"} ${s.objectCount}`));
 
-  // ── Files by Type ──
-  g('image_service_files_total', 'Image files by type', 'gauge',
-    Array.isArray(imageFiles) && imageFiles.length > 0
-      ? imageFiles.map((r: any) => `image_service_files_total{file_type="${r.fileType}"} ${r._count}`)
-      : ['image_service_files_total{file_type="none"} 0']);
-
-  g('image_service_files_bytes', 'Image file bytes by type', 'gauge',
-    Array.isArray(imageFiles) && imageFiles.length > 0
-      ? imageFiles.map((r: any) => `image_service_files_bytes{file_type="${r.fileType}"} ${Number(r._sum?.fileSizeBytes ?? 0)}`)
-      : ['image_service_files_bytes{file_type="none"} 0']);
-
   // ── Alerts ──
   g('image_service_alerts_open_total', 'Open alerts by severity', 'gauge',
     Array.isArray(alertsByseverity) && alertsByseverity.length > 0
@@ -148,7 +94,7 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
 
   // ── DB Connections ──
   g('image_service_postgres_connections_active', 'Active PostgreSQL connections', 'gauge',
-    [`image_service_postgres_connections_active ${(imageFiles as any)?.[0]?.numbackends ?? dbConnections?.[0]?.numbackends ?? 0}`]);
+    [`image_service_postgres_connections_active ${dbConnections?.[0]?.numbackends ?? 0}`]);
 
   // ── Process Memory ──
   g('image_service_process_memory_bytes', 'Process memory usage', 'gauge', [

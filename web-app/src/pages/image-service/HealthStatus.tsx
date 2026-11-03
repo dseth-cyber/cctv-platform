@@ -3,14 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
-import { useFeatures } from '@/hooks/useFeatures'
 import {
   HeartPulse, Database, HardDrive, Server, Cpu, Activity, CheckCircle, XCircle,
   Camera, Clock, Layers, AlertTriangle, Play, Shield, Video, Radio, Wifi, WifiOff,
 } from 'lucide-react'
 import { TableSkeleton, Button } from '@/components/ui'
 import api from '@/lib/axios'
-import PipelineFlow from './PipelineFlow'
 
 const BASE = '/image-service/api/v1'
 
@@ -51,7 +49,6 @@ function UsageBar({ label, used, total, color }: { label: string; used: number; 
 }
 
 export default function HealthStatus() {
-  const { factoryModules } = useFeatures()
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
 
@@ -60,13 +57,6 @@ export default function HealthStatus() {
     queryFn: () => api.get(`${BASE}/health`).then(r => r.data),
     staleTime: 1000 * 10,
     refetchInterval: 1000 * 15,
-  })
-
-  const { data: overview } = useQuery({
-    queryKey: ['image-service-overview-health'],
-    queryFn: () => imageServiceApi.getOverview(),
-    enabled: factoryModules,
-    staleTime: 1000 * 30,
   })
 
   const { data: cameras = [] } = useQuery({
@@ -153,16 +143,6 @@ export default function HealthStatus() {
         </div>
       </div>
 
-      {/* Pipeline Flow */}
-      <PipelineFlow
-        cameras={{ active: activeCameras, total: camerasArr.length, error: camerasArr.filter((c: any) => c.status === 'error').length }}
-        syncWorker={{ ok: serviceOk, lastPoll: camerasArr.find((c: any) => c.lastPoll)?.lastPoll }}
-        queue={{ wait: queue.wait ?? 0, active: queue.active ?? 0, failed: queue.failed ?? 0 }}
-        processingWorker={{ ok: serviceOk, running: queue.active ?? 0 }}
-        storage={{ ok: storageOk, providers: providers.map((p: any) => ({ name: p.name, ok: p.status === 'ok', latencyMs: p.latencyMs ?? 0 })) }}
-        database={{ ok: dbOk }}
-      />
-
       {/* CCTV Infrastructure & Stream Health (3-Pillar Separation) */}
       <div className={`${themeConfig.card} rounded-lg p-5 mb-5`}>
         <div className="flex items-center justify-between mb-4">
@@ -247,12 +227,10 @@ export default function HealthStatus() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { icon: Activity, label: t('imageService.health.totalImages'), value: (overview?.totalImages ?? 0).toLocaleString(), color: '#06b6d4' },
           { icon: Camera, label: t('imageService.health.activeCameras'), value: String(activeCameras), color: '#10b981' },
           { icon: AlertTriangle, label: t('imageService.health.openAlerts'), value: String(openAlerts), color: openAlerts > 0 ? '#f59e0b' : '#10b981' },
-          { icon: Layers, label: t('imageService.health.queueJobs'), value: `${queue.wait ?? 0} / ${queue.active ?? 0}`, color: '#3b82f6' },
           { icon: Server, label: t('imageService.health.version'), value: `v${health?.version ?? '1.0.0'}`, color: '#8b5cf6' },
         ].map((s, i) => (
           <div key={i} className={`${themeConfig.card} rounded-lg p-4`}>
@@ -304,22 +282,6 @@ export default function HealthStatus() {
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-3 border-t border-white/5">
-            <h4 className={`text-xs font-semibold mb-2 ${themeConfig.text.secondary}`}>{t('imageService.health.queueStatus')}</h4>
-            <div className="grid grid-cols-4 gap-2 text-xs">
-              {[
-                { label: t('imageService.overview.queueWait'), value: queue.wait ?? 0, color: 'text-gray-400' },
-                { label: t('imageService.overview.queueActive'), value: queue.active ?? 0, color: 'text-blue-400' },
-                { label: t('imageService.overview.queueFailed'), value: queue.failed ?? 0, color: queue.failed > 0 ? 'text-red-400' : 'text-gray-400' },
-                { label: t('imageService.overview.queueDelayed'), value: queue.delayed ?? 0, color: 'text-purple-400' },
-              ].map((q, i) => (
-                <div key={i} className="text-center px-2 py-1.5 rounded-lg bg-white/5">
-                  <p className={`font-bold ${q.color}`}>{q.value}</p>
-                  <span className={themeConfig.text.secondary}>{q.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Verification */}
@@ -331,14 +293,8 @@ export default function HealthStatus() {
 
 const VERIFY_ENDPOINTS = [
   { name: 'Auth Session', path: '/auth/me' },
-  { name: 'Overview', path: '/processing-logs/stats', factory: true },
   { name: 'Cameras', path: '/cameras' },
-  { name: 'Images', path: '/images?limit=1', factory: true },
-  { name: 'Processing Logs', path: '/processing-logs?limit=1', factory: true },
-  { name: 'Storage Summary', path: '/storage/summary', factory: true },
-  { name: 'Storage Forecast', path: '/storage/forecast', factory: true },
   { name: 'Storage Providers', path: '/storage-providers' },
-  { name: 'Storage Profiles', path: '/storage-profiles', factory: true },
   { name: 'Backup Status', path: '/backup/status' },
   { name: 'Retention', path: '/retention-policies' },
   { name: 'Alerts', path: '/alerts' },
@@ -351,8 +307,6 @@ const VERIFY_ENDPOINTS = [
   { name: 'Roles', path: '/roles' },
   { name: 'Audit Logs', path: '/audit-logs' },
   { name: 'Health', path: '/health', noAuth: true },
-  { name: 'DLQ', path: '/processing-logs/dlq/summary', factory: true },
-  { name: 'Trends', path: '/processing-logs/trends?period=7d', factory: true },
   { name: 'Metrics', path: '/metrics' },
   { name: 'CCTV Devices', path: '/devices' },
   { name: 'CCTV Sites', path: '/sites' },
@@ -362,9 +316,7 @@ const VERIFY_ENDPOINTS = [
 
 function VerificationCard() {
   const { t } = useTranslation()
-  const { factoryModules } = useFeatures()
-  // Factory endpoints are not registered while the factory modules are off [R2.2].
-  const endpoints = (VERIFY_ENDPOINTS as any[]).filter(ep => factoryModules || !ep.factory)
+  const endpoints = VERIFY_ENDPOINTS as any[]
   const { themeConfig } = useTheme()
   const [results, setResults] = useState<Array<{ name: string; ok: boolean; ms: number; error?: string }>>([])
   const [running, setRunning] = useState(false)

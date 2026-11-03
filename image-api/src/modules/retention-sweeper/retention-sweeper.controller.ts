@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ScheduledTask } from 'node-cron';
 import cron from 'node-cron';
 import { logger } from '../../lib/logger.js';
-import { sweepExpiredImages, sweepExpiredRecordings, checkDiskHighWatermarkAndEvict } from './retention-sweeper.service.js';
+import { sweepExpiredRecordings, checkDiskHighWatermarkAndEvict } from './retention-sweeper.service.js';
 
 let cronTask: ScheduledTask | null = null;
 
@@ -13,10 +13,9 @@ export function startRetentionSweeper(): void {
   // batch size falls permanently behind. Also checks disk high-watermark every hour [ENH-03].
   cronTask = cron.schedule('0 * * * *', async () => {
     logger.info('Retention sweeper starting...');
-    const result = await sweepExpiredImages();
     const recResult = await sweepExpiredRecordings();
     const watermarkResult = await checkDiskHighWatermarkAndEvict();
-    logger.info({ result, recResult, watermarkResult }, 'Retention sweeper and disk monitor finished');
+    logger.info({ recResult, watermarkResult }, 'Retention sweeper and disk monitor finished');
   });
 
   logger.info('Retention sweeper scheduled (hourly)');
@@ -34,7 +33,7 @@ export function stopRetentionSweeper(): void {
 export async function retentionSweeperRoutes(app: FastifyInstance): Promise<void> {
   // Manual trigger endpoint (admin only)
   app.post('/trigger', { preHandler: [app.authenticate] }, async (_req, reply) => {
-    const result = await sweepExpiredImages();
+    const result = await sweepExpiredRecordings();
     return reply.send(result);
   });
 }

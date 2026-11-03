@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getPrisma } from '../../lib/prisma.js';
-import { config } from '../../config/index.js';
 
 async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
   const { q } = request.query as { q: string };
@@ -8,20 +7,12 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
 
   const prisma = getPrisma();
 
-  const [cameras, images, alerts, users] = await Promise.all([
+  const [cameras, alerts, users] = await Promise.all([
     prisma.camera.findMany({
       where: { OR: [{ name: { contains: q, mode: 'insensitive' } }, { ipAddress: { contains: q } }] },
       select: { id: true, name: true, status: true, ipAddress: true },
       take: 5,
     }),
-    // Factory images are only searched while the factory modules are enabled [R2.2].
-    config.factoryModulesEnabled
-      ? prisma.image.findMany({
-          where: { originalFilename: { contains: q, mode: 'insensitive' }, status: { not: 'deleted' } },
-          select: { id: true, originalFilename: true, status: true },
-          take: 5,
-        })
-      : Promise.resolve([]),
     prisma.alert.findMany({
       where: { OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
       select: { id: true, title: true, severity: true },
@@ -37,7 +28,6 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.send({
     results: [
       ...cameras.map(c => ({ type: 'camera', id: c.id, title: c.name, subtitle: `${c.status} · ${c.ipAddress}`, url: `/cctv/cameras?q=${encodeURIComponent(c.name)}` })),
-      ...images.map(i => ({ type: 'image', id: i.id, title: i.originalFilename, subtitle: i.status, url: `/cctv/search?q=${encodeURIComponent(q)}` })),
       ...alerts.map(a => ({ type: 'alert', id: a.id, title: a.title, subtitle: a.severity, url: `/cctv/alerts?q=${encodeURIComponent(a.title)}` })),
       ...users.map(u => ({ type: 'user', id: u.id, title: u.username, subtitle: u.role, url: `/cctv/users?q=${encodeURIComponent(u.username)}` })),
     ],

@@ -206,22 +206,6 @@ export async function deleteProvider(id: string) {
   const existing = await prisma.storageProvider.findUnique({ where: { id } });
   if (!existing || existing.deletedAt) throw new NotFoundError('StorageProvider', id);
 
-  const fileCount = await prisma.imageFile.count({ where: { storageProviderId: id } });
-  if (fileCount > 0) {
-    throw new ValidationError(
-      `Cannot delete provider with ${fileCount} files. Migrate files first.`,
-    );
-  }
-
-  const jobCount = await prisma.migrationJob.count({
-    where: {
-      OR: [{ sourceId: id }, { targetId: id }],
-      status: { in: ['pending', 'running'] },
-    },
-  });
-  if (jobCount > 0) {
-    throw new ValidationError('Cannot delete provider with active migration jobs');
-  }
 
   await prisma.storageProvider.update({
     where: { id },

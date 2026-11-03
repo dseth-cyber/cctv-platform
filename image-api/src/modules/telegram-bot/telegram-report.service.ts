@@ -3,14 +3,6 @@ import { getCameraDowntimeReport } from '../cameras/camera-analytics.service.js'
 import { getCameraById } from '../cameras/cameras.service.js';
 import { escapeHtml } from './telegram-api.js';
 
-const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-function localDayStart(daysAgo = 0): Date {
-  const nowLocal = new Date(Date.now() + TZ_OFFSET_MS);
-  const dayStartLocal = Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth(), nowLocal.getUTCDate() - daysAgo);
-  return new Date(dayStartLocal - TZ_OFFSET_MS);
-}
-
 function num(n: number): string {
   return Math.round(n).toLocaleString('en-US');
 }
@@ -100,49 +92,23 @@ export async function listCameraNames(): Promise<string[]> {
 
 export async function buildCameraReport(cameraId: string): Promise<string> {
   const prisma = getPrisma();
-  const row = await prisma.camera.findUnique({
+  const cam = await prisma.camera.findUnique({
     where: { id: cameraId },
-    select: {
-      id: true, name: true, status: true, operationalStatus: true, ipAddress: true, lastPolledAt: true,
-      // Source-buffer figures come from the factory SMB scanner [R2.3].
-      factorySettings: { select: { sourceOldestFileAt: true, sourceFileCount: true } },
-    },
+    select: { id: true, name: true, status: true, operationalStatus: true, ipAddress: true, lastPolledAt: true },
   });
-  if (!row) return '❌ ไม่พบกล้องนี้ในระบบ';
-  const cam = { ...row, sourceOldestFileAt: row.factorySettings?.sourceOldestFileAt ?? null, sourceFileCount: row.factorySettings?.sourceFileCount ?? null };
+  if (!cam) return '❌ ไม่พบกล้องนี้ในระบบ';
 
-  const todayStart = localDayStart();
-  const sevenDaysAgo = localDayStart(7);
-
-  const [todayCount, weekCount, latest, report, detail] = await Promise.all([
-    prisma.image.count({ where: { cameraId, capturedAt: { gte: todayStart } } }),
-    prisma.image.count({ where: { cameraId, capturedAt: { gte: sevenDaysAgo, lt: todayStart } } }),
-    prisma.image.findFirst({ where: { cameraId }, orderBy: { capturedAt: 'desc' }, select: { capturedAt: true } }),
+  const [report, detail] = await Promise.all([
     getCameraDowntimeReport(cameraId, '7'),
-    // Same source as the Camera Reports table — lifetime totals, age, incident history,
-    // technician and peak-problem hour. Note this also carries a decrypted SMB password
-    // for the workers, so only the named fields below are ever read out of it.
+    // Same source as the Camera Reports table — age, incident history, technician and peak-problem hour.
     getCameraById(cameraId),
   ]);
-
-  // Hours elapsed in the local day so far — dividing today's images by a flat 24 would
-  // understate the rate every morning and make the number useless for spotting a stall.
-  const hoursElapsed = Math.max(1, (Date.now() - todayStart.getTime()) / 3600000);
-  const avgPerHour = todayCount / hoursElapsed;
-  const avgPerDay = weekCount / 7;
 
   const lines = [
     `📊 <b>สรุป ${escapeHtml(cam.name)}</b>`,
     '',
     `สถานะ: ${OPERATIONAL_TH[cam.operationalStatus] ?? cam.operationalStatus} · ${STATUS_TH[cam.status] ?? cam.status}`,
     `IP: <code>${escapeHtml(cam.ipAddress ?? '-')}</code>`,
-    `งานเสียล่าสุด: ${latest?.capturedAt ? thaiTime(latest.capturedAt) : 'ไม่มีข้อมูล'}`,
-    '',
-    `📷 <b>งานเสียวันนี้: ${num(todayCount)}</b>`,
-    `งานเสียทั้งหมด: ${num(Number((detail as any)?.totalImagesCount ?? 0))}`,
-    `เฉลี่ย/ชั่วโมง (วันนี้): ${num(avgPerHour)}`,
-    `เฉลี่ย/วัน (7 วันย้อนหลัง): ${num(avgPerDay)}`,
-    `เฉลี่ย/วัน (ตลอดอายุกล้อง): ${num(Number((detail as any)?.averageImagesPerDay ?? 0))}`,
     '',
     `🩺 <b>ความพร้อมใช้งาน (7 วัน)</b>`,
     `Health Score: ${report.healthScore}/100 (${GRADE_TH[report.healthGrade] ?? report.healthGrade})`,
@@ -150,10 +116,6 @@ export async function buildCameraReport(cameraId: string): Promise<string> {
     `Downtime: ${duration(report.downtime.seconds)} · ออฟไลน์ ${num(report.offlineCount)} ครั้ง`,
     `MTBF: ${report.mtbf ? duration(report.mtbf) : '-'} · MTTR: ${report.mttr ? duration(report.mttr) : '-'}`,
   ];
-
-  if (report.estimatedLostImages > 0) {
-    lines.push(`ภาพที่คาดว่าหายไป: ${num(report.estimatedLostImages)}`);
-  }
 
   // Lifetime history, not the 7-day window above — "has this camera always been trouble,
   // and who has been fixing it" is a different question from "how is it doing this week".
@@ -172,13 +134,7 @@ export async function buildCameraReport(cameraId: string): Promise<string> {
     );
   }
   if (cam.lastPolledAt) {
-    lines.push(`สแกนล่าสุด: ${thaiTime(cam.lastPolledAt)}`);
-  }
-
-  // The camera overwrites its own oldest images, so this is the deadline for fetching.
-  if (cam.sourceOldestFileAt) {
-    const bufferDays = (Date.now() - new Date(cam.sourceOldestFileAt).getTime()) / 86400000;
-    lines.push(`ไฟล์บนเครื่องกล้องย้อนหลังได้: ${bufferDays.toFixed(1)} วัน (${num(Number(cam.sourceFileCount ?? 0))} ไฟล์)`);
+    lines.push(`ตรวจสอบล่าสุด: ${thaiTime(cam.lastPolledAt)}`);
   }
 
   return lines.join('\n');

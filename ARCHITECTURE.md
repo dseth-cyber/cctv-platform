@@ -1,3 +1,5 @@
+> **เอกสารของระบบเดิม (Image Service โรงงาน)** — ระบบนี้ถูกถอดออกจากโปรเจกต์ CCTV แล้ว 2026-11-03 (โค้ดเดิม: git tag `legacy-image-service-final`). เนื้อหาด้านล่างไม่ใช่สถานะของ iSmart CCTV — ดู README.md, Roadmap.md, HANDOFF.md
+
 # Image Service — Enterprise Architecture Design
 
 > **Version:** 1.0

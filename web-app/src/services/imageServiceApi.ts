@@ -4,89 +4,11 @@ const BASE = '/image-service/api/v1';
 
 export function createImageServiceApi(api: any) {
   return {
-    // Server feature switches [R2.2]
-    getFeatures: (): Promise<{ factoryModules: boolean }> =>
-      api.get(`${BASE}/features`).then((r: any) => r.data),
-
-    // Overview / Dashboard
-    getOverview: (timebase?: 'capture' | 'ingestion') =>
-      api.get(`${BASE}/processing-logs/stats`, { params: timebase ? { timebase } : {} }).then((r: any) => r.data),
-
 
     getTopIncidentCauses: (params: { days?: number }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/cameras/incidents/top-causes`, { params, ...options }).then((r: any) => r.data),
-    getDefectHeatmap: (params: { days?: number }) =>
-      api.get(`${BASE}/processing-logs/defect-heatmap`, { params }).then((r: any) => r.data),
     getIncidentMonthlyTrend: (params?: { months?: number }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/cameras/incidents/monthly-trend`, { params, ...options }).then((r: any) => r.data),
-
-    // Images
-    getImages: (params: {
-      page?: number; limit?: number; cameraId?: string; status?: string;
-      from?: string; to?: string; q?: string; tagKey?: string; tagValue?: string;
-      customer?: string; jobType?: string; orderNo?: string; partNo?: string; line?: string;
-      locked?: 'true' | 'false';
-      sort?: string; order?: string;
-    }) => api.get(`${BASE}/images`, { params }).then((r: any) => r.data),
-
-    getImage: (id: string) => api.get(`${BASE}/images/${id}`).then((r: any) => r.data),
-
-    updateImageMetadata: (id: string, data: Record<string, unknown>) =>
-      api.patch(`${BASE}/images/${id}/metadata`, data).then((r: any) => r.data),
-
-    deleteImage: (id: string) => api.delete(`${BASE}/images/${id}`).then((r: any) => r.data),
-
-    // Soft-deletes a checkbox-selected set of images in one request instead of one
-    // DELETE call per image — fast (single UPDATE, no storage I/O) even for a large
-    // selection.
-    bulkDeleteSelected: (ids: string[]) =>
-      api.post(`${BASE}/images/bulk-delete-selected`, { ids }).then((r: any) => r.data),
-
-    reprocessImage: (id: string) => api.post(`${BASE}/images/${id}/reprocess`).then((r: any) => r.data),
-
-    bulkDeletePreview: (days: number, cameraIds?: string[], fileTypes?: string[], deleteMode?: string) =>
-      api.get(`${BASE}/images/bulk-delete-preview`, {
-        params: {
-          days,
-          cameraIds: cameraIds?.join(','),
-          fileTypes: fileTypes?.join(','),
-          deleteMode
-        }
-      }).then((r: any) => r.data),
-
-    bulkDeleteByAge: (days: number, password: string, cameraIds?: string[], fileTypes?: string[], deleteMode?: string) =>
-      api.post(`${BASE}/images/bulk-delete`, { days, password, cameraIds, fileTypes, deleteMode }).then((r: any) => r.data),
-
-    // Progress polling for bulk-delete/trash-purge background jobs (see lib/bulk-job.ts
-    // on the backend) — returns { status, total, done, deletedBytes, errors, result? }.
-    getBulkJobStatus: (jobId: string) =>
-      api.get(`${BASE}/images/jobs/${jobId}`).then((r: any) => r.data),
-
-    // Trash
-    getTrashImages: (params?: {
-      page?: number;
-      limit?: number;
-      q?: string;
-      cameraId?: string;
-      startDate?: string;
-      endDate?: string;
-    }) =>
-      api.get(`${BASE}/images/trash`, { params }).then((r: any) => r.data),
-
-    restoreImage: (id: string) =>
-      api.post(`${BASE}/images/${id}/restore`).then((r: any) => r.data),
-
-    restoreAllImages: () =>
-      api.post(`${BASE}/images/trash/restore-all`).then((r: any) => r.data),
-
-    restoreImagesBulk: (ids: string[]) =>
-      api.post(`${BASE}/images/trash/restore-bulk`, { ids }).then((r: any) => r.data),
-
-    emptyTrash: (password: string) =>
-      api.post(`${BASE}/images/trash/empty`, { password }).then((r: any) => r.data),
-
-    deleteImagesBulkPermanently: (ids: string[], password?: string) =>
-      api.post(`${BASE}/images/trash/delete-bulk`, { ids, password }).then((r: any) => r.data),
 
     // Cameras
     getCameras: (params?: { status?: string; enabled?: boolean; limit?: number; page?: number }) =>
@@ -135,10 +57,6 @@ export function createImageServiceApi(api: any) {
 
     emptyCameraTrash: (password: string) =>
       api.post(`${BASE}/cameras/trash/empty`, { password }).then((r: any) => r.data),
-
-    scanNow: () => api.post(`${BASE}/cameras/scan-now`).then((r: any) => r.data),
-
-    scanCamera: (id: string) => api.post(`${BASE}/cameras/${id}/scan`).then((r: any) => r.data),
 
     getCameraStream: (id: string, params?: { profile?: 'main' | 'sub' }) =>
       api.get(`${BASE}/cameras/${id}/stream`, { params }).then((r: any) => r.data),
@@ -272,75 +190,6 @@ export function createImageServiceApi(api: any) {
     deleteRetentionPolicy: (id: string) =>
       api.delete(`${BASE}/retention-policies/${id}`),
 
-    // Storage
-    getStorageSummary: () =>
-      api.get(`${BASE}/storage/summary`).then((r: any) => r.data),
-
-    getCameraStorage: (cameraId: string) =>
-      api.get(`${BASE}/storage/cameras/${cameraId}`).then((r: any) => r.data),
-
-    getStorageGrowth: (days?: number) =>
-      api.get(`${BASE}/storage/growth`, { params: { days } }).then((r: any) => r.data),
-
-    // Processing Queue Management
-    purgeActiveQueue: () =>
-      api.post(`${BASE}/processing-logs/queue-purge`).then((r: any) => r.data),
-
-    getQueuePause: () =>
-      api.get(`${BASE}/processing-logs/queue-pause`).then((r: any) => r.data),
-
-    toggleQueuePause: (paused: boolean) =>
-      api.post(`${BASE}/processing-logs/queue-pause`, { paused }).then((r: any) => r.data),
-
-    recoverQueue: () =>
-      api.post(`${BASE}/processing-logs/queue-recover`).then((r: any) => r.data),
-
-    getStorageForecast: () =>
-      api.get(`${BASE}/storage/forecast`).then((r: any) => r.data),
-
-    // SMB
-    testSmbConnection: (data: {
-      smbSharePath: string; smbUsername: string; smbPasswordEncrypted: string; smbDomain?: string;
-    }) => api.post(`${BASE}/smb/test-connection`, data).then((r: any) => r.data),
-
-    listSmbShares: (data: {
-      host: string; smbUsername: string; smbPasswordEncrypted: string; smbDomain?: string;
-    }) => api.post(`${BASE}/smb/list-shares`, data).then((r: any) => r.data),
-
-    browseSmb: (data: {
-      smbSharePath: string; smbUsername: string; smbPasswordEncrypted: string;
-      smbDomain?: string; path?: string;
-    }) => api.post(`${BASE}/smb/browse`, data).then((r: any) => r.data),
-
-    // Processing Logs
-    getProcessingLogs: (params: {
-      page?: number; limit?: number; status?: string; jobType?: string;
-      cameraId?: string; from?: string; to?: string; q?: string;
-      sort?: string; order?: 'asc' | 'desc';
-    }) => api.get(`${BASE}/processing-logs`, { params }).then((r: any) => r.data),
-
-    retryJob: (jobId: string) =>
-      api.post(`${BASE}/processing-logs/${jobId}/retry`).then((r: any) => r.data),
-
-    rejectJob: (jobId: string) =>
-      api.post(`${BASE}/processing-logs/${jobId}/reject`).then((r: any) => r.data),
-
-    getDlqSummary: () =>
-      api.get(`${BASE}/processing-logs/dlq/summary`).then((r: any) => r.data),
-
-    bulkRetryDlq: (jobType?: string) =>
-      api.post(`${BASE}/processing-logs/dlq/bulk-retry`, null, { params: { jobType } }).then((r: any) => r.data),
-
-    bulkRejectDlq: (jobType?: string) =>
-      api.post(`${BASE}/processing-logs/dlq/bulk-reject`, null, { params: { jobType } }).then((r: any) => r.data),
-
-    // Image Tags
-    upsertImageTags: (id: string, tags: Record<string, string>) =>
-      api.post(`${BASE}/images/${id}/tags`, tags).then((r: any) => r.data),
-
-    deleteImageTag: (id: string, key: string) =>
-      api.delete(`${BASE}/images/${id}/tags/${key}`).then((r: any) => r.data),
-
     // Alerts
     getAlerts: (params?: { severity?: string; resolved?: boolean; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/alerts`, { params, ...options }).then((r: any) => r.data),
@@ -420,13 +269,11 @@ export function createImageServiceApi(api: any) {
     updateTelegramSettings: (data: Record<string, string>) =>
       api.patch(`${BASE}/settings/telegram`, data).then((r: any) => r.data),
 
-
     // LLM connection settings
     getLlmSettings: () => api.get(`${BASE}/settings/llm`).then((r: any) => r.data),
     updateLlmSettings: (data: Record<string, string>) =>
       api.patch(`${BASE}/settings/llm`, data).then((r: any) => r.data),
     clearLlmApiKey: () => api.delete(`${BASE}/settings/llm/key`).then((r: any) => r.data),
-
 
     // Telegram bot private-chat allowlist
     getTelegramUsers: () =>
@@ -481,16 +328,6 @@ export function createImageServiceApi(api: any) {
     updateRequiredFields: (data: Record<string, string[]>) =>
       api.put(`${BASE}/system-config/required-fields`, data).then((r: any) => r.data),
 
-    // Processing Logs Bulk Delete
-    bulkDeleteLogsPreview: (days: number) =>
-      api.get(`${BASE}/processing-logs/bulk-delete-preview`, { params: { days } }).then((r: any) => r.data),
-
-    bulkDeleteLogsByAge: (days: number, password: string) =>
-      api.post(`${BASE}/processing-logs/bulk-delete`, { days, password }).then((r: any) => r.data),
-
-    getQueueHealth: () =>
-      api.get(`${BASE}/processing-logs/queue-health`).then((r: any) => r.data),
-
     // Audit Logs
     getAuditLogs: (params: {
       page?: number; limit?: number; action?: string; entity?: string;
@@ -520,14 +357,6 @@ export function createImageServiceApi(api: any) {
     runRestoreTest: (id: string) =>
       api.post(`${BASE}/backup/${id}/restore-test`).then((r: any) => r.data),
 
-    // Image File Blob (for authenticated preview/download)
-    getImageFileBlob: (id: string, fileType: string) =>
-      api.get(`${BASE}/images/${id}/files/${fileType}`, { responseType: 'blob' }).then((r: any) => r.data),
-
-    // Trends (Executive Dashboard)
-    getTrends: (period: string, timebase?: 'capture' | 'ingestion') =>
-      api.get(`${BASE}/processing-logs/trends`, { params: { period, timebase } }).then((r: any) => r.data),
-
     // Storage Providers
     getStorageProviders: (params?: {}, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/storage-providers`, { params, ...options }).then((r: any) => r.data),
@@ -553,60 +382,6 @@ export function createImageServiceApi(api: any) {
     refreshStorageProviderCapacity: (id: string) =>
       api.post(`${BASE}/storage-providers/${id}/refresh-capacity`).then((r: any) => r.data),
 
-    // P26 — Storage Lifecycle / Cleanup Engine
-    getStoragePressureState: (id: string) =>
-      api.get(`${BASE}/storage-providers/${id}/pressure-state`).then((r: any) => r.data),
-
-    simulateCleanup: (id: string, trigger?: 'manual' | 'emergency') =>
-      api.post(`${BASE}/storage-providers/${id}/cleanup/simulate`, { trigger }).then((r: any) => r.data),
-
-    executeCleanup: (id: string, trigger: 'manual' | 'emergency', password: string) =>
-      api.post(`${BASE}/storage-providers/${id}/cleanup/execute`, { trigger, password }).then((r: any) => r.data),
-
-    getCleanupRuns: (id: string, params?: { page?: number; limit?: number }) =>
-      api.get(`${BASE}/storage-providers/${id}/cleanup-runs`, { params }).then((r: any) => r.data),
-
-    lockImage: (id: string, data: { reason?: string; expireAt?: string }) =>
-      api.post(`${BASE}/images/${id}/lock`, data).then((r: any) => r.data),
-
-    unlockImage: (id: string) =>
-      api.post(`${BASE}/images/${id}/unlock`).then((r: any) => r.data),
-
-    unlockAllImages: (password: string) =>
-      api.post(`${BASE}/images/unlock-all`, { password }).then((r: any) => r.data),
-
-    // Storage Profiles
-    getStorageProfiles: () =>
-      api.get(`${BASE}/storage-profiles`).then((r: any) => r.data),
-
-    getStorageProfile: (id: string) =>
-      api.get(`${BASE}/storage-profiles/${id}`).then((r: any) => r.data),
-
-    createStorageProfile: (data: any) =>
-      api.post(`${BASE}/storage-profiles`, data).then((r: any) => r.data),
-
-    updateStorageProfile: (id: string, data: any) =>
-      api.patch(`${BASE}/storage-profiles/${id}`, data).then((r: any) => r.data),
-
-    deleteStorageProfile: (id: string) =>
-      api.delete(`${BASE}/storage-profiles/${id}`).then((r: any) => r.data),
-
-    resolveStorageProfile: (params?: { fileType?: string; tagKey?: string; tagValue?: string; cameraId?: string }) =>
-      api.get(`${BASE}/storage-profiles/resolve`, { params }).then((r: any) => r.data),
-
-    // Migration Jobs
-    getMigrationJobs: (params?: { status?: string }) =>
-      api.get(`${BASE}/migrations`, { params }).then((r: any) => r.data),
-
-    createMigrationJob: (data: { sourceId: string; targetId: string; fileType?: string }) =>
-      api.post(`${BASE}/migrations`, data).then((r: any) => r.data),
-
-    runMigrationJob: (id: string) =>
-      api.post(`${BASE}/migrations/${id}/run`).then((r: any) => r.data),
-
-    cancelMigrationJob: (id: string) =>
-      api.post(`${BASE}/migrations/${id}/cancel`).then((r: any) => r.data),
-
     // Universal Search
     universalSearch: (q: string) =>
       api.get(`${BASE}/search`, { params: { q } }).then((r: any) => r.data),
@@ -618,10 +393,6 @@ export function createImageServiceApi(api: any) {
     getUnacknowledgedCount: () => api.get(`${BASE}/alerts/unacknowledged-count`).then((r: any) => r.data),
     snoozeAlert: (id: string, hours = 4) =>
       api.post(`${BASE}/alerts/${id}/snooze`, { hours }).then((r: any) => r.data),
-
-    // Admin
-    clearAllData: (data: { password: string; confirmation: string }) =>
-      api.post(`${BASE}/admin/clear-all-data`, data).then((r: any) => r.data),
 
     // Recordings & Playback (Phase 4)
     getRecordingTimeline: (cameraId: string, date?: string) =>

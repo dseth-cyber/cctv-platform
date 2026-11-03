@@ -1,83 +1,8 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
-import { decrypt } from '../../lib/encryption.js';
 import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
-import { config } from '../../config/index.js';
-import { factoryInclude, flattenFactory, toFactoryData, type FactorySettingsInput } from './camera-factory.js';
 import type { Prisma } from '@prisma/client';
-
-// System-wide defaults used when neither the camera nor its template specify a value.
-export const PROCESSING_DEFAULTS = {
-  acceptedExtensions: ['tif', 'tiff', 'ptif', 'ptiff'] as string[],
-  convertToPng: true,
-  keepSmaller: true,
-  generateThumbnail: true,
-  thumbnailSize: 512,
-  compressionQuality: 85,
-};
-
-type EffectiveConfig = {
-  acceptedExtensions: string[];
-  convertToPng: boolean;
-  keepSmaller: boolean;
-  generateThumbnail: boolean;
-  thumbnailSize: number;
-  compressionQuality: number;
-};
-
-interface ResolvableCamera {
-  acceptedExtensions?: string[] | null;
-  convertToPng?: boolean | null;
-  keepSmaller?: boolean | null;
-  generateThumbnail?: boolean | null;
-  thumbnailSize?: number | null;
-  compressionQuality?: number | null;
-  template?: {
-    acceptedExtensions?: string[] | null;
-    convertToPng?: boolean | null;
-    keepSmaller?: boolean | null;
-    generateThumbnail?: boolean | null;
-    thumbnailSize?: number | null;
-    compressionQuality?: number | null;
-  } | null;
-}
-
-// Resolve each processing field: camera override (non-null / non-empty) -> template -> system default.
-export function resolveEffectiveConfig(camera: ResolvableCamera): EffectiveConfig {
-  const t = camera.template ?? null;
-
-  const pickArray = (cam?: string[] | null, tpl?: string[] | null, def?: string[]): string[] => {
-    if (cam && cam.length > 0) return cam;
-    if (tpl && tpl.length > 0) return tpl;
-    return def ?? [];
-  };
-  const pick = <T>(cam: T | null | undefined, tpl: T | null | undefined, def: T): T => {
-    if (cam !== null && cam !== undefined) return cam;
-    if (tpl !== null && tpl !== undefined) return tpl;
-    return def;
-  };
-
-  return {
-    acceptedExtensions: pickArray(camera.acceptedExtensions, t?.acceptedExtensions, PROCESSING_DEFAULTS.acceptedExtensions),
-    convertToPng: pick(camera.convertToPng, t?.convertToPng, PROCESSING_DEFAULTS.convertToPng),
-    keepSmaller: pick(camera.keepSmaller, t?.keepSmaller, PROCESSING_DEFAULTS.keepSmaller),
-    generateThumbnail: pick(camera.generateThumbnail, t?.generateThumbnail, PROCESSING_DEFAULTS.generateThumbnail),
-    thumbnailSize: pick(camera.thumbnailSize, t?.thumbnailSize, PROCESSING_DEFAULTS.thumbnailSize),
-    compressionQuality: pick(camera.compressionQuality, t?.compressionQuality, PROCESSING_DEFAULTS.compressionQuality),
-  };
-}
-
-// Resolve the effective config for a camera by id (camera override -> template -> default).
-export async function getCameraEffectiveConfig(cameraId: string): Promise<EffectiveConfig> {
-  const prisma = getPrisma();
-  const camera = await prisma.camera.findUnique({
-    where: { id: cameraId },
-    include: { template: true, factorySettings: true },
-  });
-  if (!camera) throw new NotFoundError('Camera', cameraId);
-  return resolveEffectiveConfig({ ...(camera.factorySettings ?? {}), template: camera.template } as ResolvableCamera);
-}
 
 export async function listCameras(filters?: { status?: string; enabled?: boolean; deviceId?: string; siteId?: string; zoneId?: string }) {
   const prisma = getPrisma();
@@ -97,22 +22,13 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
       device: { select: { id: true, name: true, deviceType: true, ipAddress: true } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
-      ...factoryInclude(),
     },
     orderBy: { name: 'asc' },
   });
 
   const cameraIds = cameras.map(c => c.id);
 
-  const [counts, allIncidents] = await Promise.all([
-    // Factory image counts only exist while the factory modules are on [R2.3].
-    config.factoryModulesEnabled && cameraIds.length > 0
-      ? prisma.image.groupBy({
-          by: ['cameraId'],
-          where: { cameraId: { in: cameraIds }, deletedAt: null },
-          _count: { id: true },
-        })
-      : Promise.resolve([]),
+  const [allIncidents] = await Promise.all([
     cameraIds.length > 0
       ? (prisma as any).cameraIncident.findMany({
           where: { cameraId: { in: cameraIds } },
@@ -125,8 +41,6 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
         })
       : Promise.resolve([]),
   ]);
-
-  const countMap = new Map(counts.map(x => [x.cameraId, x._count.id]));
 
   const statsMap = new Map<string, {
     incidentCount: number;
@@ -190,37 +104,15 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
   return cameras.map((c) => {
     const cameraAgeDays = Math.max(1, Math.ceil((Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
     const stats = statsMap.get(c.id);
-    const base = {
-      ...flattenFactory(c),
+    return {
+      ...c,
       cameraAgeDays,
       incidentCount: stats?.incidentCount ?? 0,
       topTechnician: stats ? getMaxKey(stats.technicians) : '—',
       topReason: stats ? getMaxKey(stats.reasons) : '—',
       peakHour: stats ? getPeakHourStr(stats.hours) : '—',
     };
-    if (!config.factoryModulesEnabled) return base;
-    // Factory workers need the plaintext SMB password and the resolved processing config.
-    const totalImagesCount = countMap.get(c.id) ?? 0;
-    return { ...base, ...factoryExtras(base as any, totalImagesCount, cameraAgeDays) };
   });
-}
-
-// Image counts, raw overrides, decrypted SMB password and resolved processing config (factory only).
-function factoryExtras(camera: Record<string, any>, totalImagesCount: number, cameraAgeDays: number) {
-  return {
-    totalImagesCount,
-    averageImagesPerDay: Math.round((Number(totalImagesCount) / cameraAgeDays) * 100) / 100,
-    overrides: {
-      acceptedExtensions: camera.acceptedExtensions,
-      convertToPng: camera.convertToPng,
-      keepSmaller: camera.keepSmaller,
-      generateThumbnail: camera.generateThumbnail,
-      thumbnailSize: camera.thumbnailSize,
-      compressionQuality: camera.compressionQuality,
-    },
-    smbPasswordEncrypted: camera.smbPasswordEncrypted ? decrypt(camera.smbPasswordEncrypted) : camera.smbPasswordEncrypted,
-    ...resolveEffectiveConfig(camera as ResolvableCamera),
-  };
 }
 
 export async function getCameraEvents(cameraId: string, params: { since?: string; until?: string; limit?: number }) {
@@ -250,7 +142,6 @@ export async function getCameraById(id: string) {
       site: true,
       zone: true,
       mediaNode: true,
-      ...factoryInclude(),
     },
   });
 
@@ -309,23 +200,17 @@ export async function getCameraById(id: string) {
 
   const cameraAgeDays = Math.max(1, Math.ceil((Date.now() - new Date(camera.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
 
-  const base = {
-    ...flattenFactory(camera),
+  return {
+    ...camera,
     cameraAgeDays,
     incidentCount: incidents.length,
     topTechnician: getMaxKey(technicians),
     topReason: getMaxKey(reasons),
     peakHour: getPeakHourStr(hours),
   };
-  if (!config.factoryModulesEnabled) return base;
-
-  // Raw (possibly null) overrides are kept under `overrides` so the factory UI can tell
-  // "explicitly set" from "inherit from template".
-  const totalImagesCount = await prisma.image.count({ where: { cameraId: id, deletedAt: null } });
-  return { ...base, ...factoryExtras(base as any, totalImagesCount, cameraAgeDays) };
 }
 
-export async function createCamera(input: CreateCameraInput & { createdBy?: string }, factory: FactorySettingsInput | null = null) {
+export async function createCamera(input: CreateCameraInput & { createdBy?: string }) {
   const prisma = getPrisma();
 
   if (input.retentionPolicyId) {
@@ -369,7 +254,6 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       onvifProfileToken: input.onvifProfileToken ?? null,
-      ...(factory ? { factorySettings: { create: toFactoryData(factory) as any } } : {}),
     },
     include: {
       retentionPolicy: true,
@@ -377,14 +261,13 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       device: true,
       site: true,
       zone: true,
-      ...factoryInclude(),
     },
   });
 
-  return flattenFactory(camera);
+  return camera;
 }
 
-export async function updateCamera(id: string, input: UpdateCameraInput, factory: FactorySettingsInput | null = null) {
+export async function updateCamera(id: string, input: UpdateCameraInput) {
   const prisma = getPrisma();
 
   const existing = await prisma.camera.findUnique({ where: { id } });
@@ -433,10 +316,6 @@ export async function updateCamera(id: string, input: UpdateCameraInput, factory
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;
-  if (factory) {
-    const factoryData = toFactoryData(factory) as any;
-    data.factorySettings = { upsert: { create: factoryData, update: factoryData } };
-  }
 
   const updated = await prisma.camera.update({
     where: { id },
@@ -447,7 +326,6 @@ export async function updateCamera(id: string, input: UpdateCameraInput, factory
       device: true,
       site: true,
       zone: true,
-      ...factoryInclude(),
     },
   });
 
@@ -466,7 +344,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput, factory
     });
   }
 
-  return flattenFactory(updated);
+  return updated;
 }
 
 export async function deactivateCamera(id: string) {
@@ -527,7 +405,6 @@ async function purgeCameraDependents(
   await prisma.cameraIncident.deleteMany({ where: { cameraId: { in: ids } } });
   await prisma.cameraDailySummary.deleteMany({ where: { cameraId: { in: ids } } });
   await prisma.cameraEvent.deleteMany({ where: { cameraId: { in: ids } } });
-  await prisma.storageSnapshot.deleteMany({ where: { cameraId: { in: ids } } });
 }
 
 export async function permanentlyDeleteCamera(id: string) {

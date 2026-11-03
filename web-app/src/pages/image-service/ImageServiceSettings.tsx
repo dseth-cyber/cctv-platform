@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { useFeatures } from '@/hooks/useFeatures'
 import {
   Save, RotateCcw, Eye, EyeOff, RefreshCw, Bell,
   Shield, Database, Server, Plus, Trash2, MessageCircle, Pencil,
@@ -27,7 +26,6 @@ function saveSettings(settings: Record<string, unknown>) {
 }
 
 export default function ImageServiceSettings() {
-  const { factoryModules } = useFeatures()
   const { t, i18n } = useTranslation();
   const { themeConfig, theme, setTheme } = useTheme();
   const toast = useToast();
@@ -42,13 +40,6 @@ export default function ImageServiceSettings() {
   const [ruleModal, setRuleModal] = useState<{ open: boolean; editing?: any }>({ open: false });
   const [ruleToDelete, setRuleToDelete] = useState<any>(null);
   const [ruleForm, setRuleForm] = useState({ name: '', alertType: '', channels: [] as string[], cooldown: 60, enabled: true });
-
-  const { data: overview } = useQuery({
-    queryKey: ['image-service-overview'],
-    queryFn: () => imageServiceApi.getOverview(),
-    enabled: factoryModules,
-    staleTime: 1000 * 60 * 5,
-  });
 
   const { data: alerts = [] } = useQuery({
     queryKey: ['alerts-settings'],
@@ -243,14 +234,6 @@ export default function ImageServiceSettings() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className={themeConfig.text.secondary}>{t('imageService.settings.totalImages')}:</span>
-            <span className={`ml-2 font-medium ${themeConfig.text.primary}`}>{overview?.totalImages?.toLocaleString() ?? '—'}</span>
-          </div>
-          <div>
-            <span className={themeConfig.text.secondary}>{t('imageService.settings.activeCameras')}:</span>
-            <span className={`ml-2 font-medium ${themeConfig.text.primary}`}>{overview?.activeCameras ?? '—'}</span>
-          </div>
           <div>
             <span className={themeConfig.text.secondary}>{t('imageService.settings.totalAlerts')}:</span>
             <span className={`ml-2 font-medium ${themeConfig.text.primary}`}>{alertsArr.length}</span>

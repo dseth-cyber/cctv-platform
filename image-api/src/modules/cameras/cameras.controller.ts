@@ -1,7 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createCameraSchema, updateCameraSchema, cameraQuerySchema } from './cameras.schema.js';
-import { extractFactoryInput } from './camera-factory.js';
-import { config } from '../../config/index.js';
 import * as camerasService from './cameras.service.js';
 import * as cameraAnalytics from './camera-analytics.service.js';
 import * as incidentService from './camera-incident.service.js';
@@ -82,10 +80,9 @@ async function eventsHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 async function createHandler(request: FastifyRequest, reply: FastifyReply) {
-  const factory = extractFactoryInput(request.body);
   const input = createCameraSchema.parse(request.body);
   const user = (request as any).user;
-  const camera = await camerasService.createCamera({ ...input, createdBy: user?.username }, factory);
+  const camera = await camerasService.createCamera({ ...input, createdBy: user?.username });
   const redis = getRedisClient();
   await redis.set('sync:scan-now', 'all', 'EX', 60);
 
@@ -136,12 +133,11 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
     resolutionDesc: body.resolutionDesc as string | undefined,
     observers: body.observers as any[] | undefined,
   };
-  const factory = extractFactoryInput(body);
   const input = updateCameraSchema.parse(body);
   const user = (request as any).user;
 
   const beforeCamera = await camerasService.getCameraById(id);
-  const camera = await camerasService.updateCamera(id, { ...input, _changedBy: user?.username } as any, factory);
+  const camera = await camerasService.updateCamera(id, { ...input, _changedBy: user?.username } as any);
 
   if (input.status && input.status !== beforeCamera.status) {
     createAuditLog({
@@ -235,13 +231,9 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
 
     sendWebhook('camera.status_changed', { cameraId: id, cameraName: camera.name, previousStatus: beforeCamera.status, newStatus: input.status, changedBy: user?.username }).catch(() => {});
   } else if (Object.keys(input).length > 0 && user?.role !== 'system') {
-    // The sync-worker calls this same PATCH endpoint every poll cycle just to bump
-    // lastPolledAt/stats (see image-sync-worker/lib/api-client.ts updateCameraPoll),
-    // authenticated with the service API key (role 'system', not a real user session).
-    // Auditing that heartbeat produced 39,887 no-op-looking "camera updated" rows (19%
-    // of audit_logs) for a single camera — genuinely unreadable once fleet size grows
-    // toward ~100 cameras. Real admin edits (any non-system caller) are still audited.
-    // See incident_2026-08-07.
+    // Service-key callers (role 'system') update cameras as a heartbeat; auditing those
+    // flooded audit_logs with no-op rows (incident_2026-08-07, from the former factory sync
+    // worker). Real admin edits (any non-system caller) are still audited.
     createAuditLog({
       userId: user?.id,
       action: 'camera_update',
@@ -387,114 +379,6 @@ async function comparisonHandler(request: FastifyRequest, reply: FastifyReply) {
   const { period } = request.query as { period?: string };
   const result = await cameraAnalytics.getCameraComparisonReport(period || '7d');
   return reply.send(result);
-}
-
-async function scanNowHandler(_request: FastifyRequest, reply: FastifyReply) {
-  // Signals the factory SMB sync worker [R2.3].
-  if (!config.factoryModulesEnabled) {
-    return reply.status(409).send({ statusCode: 409, error: 'Conflict', message: 'SMB scan is part of the factory modules, which are disabled' });
-  }
-  const redis = getRedisClient();
-  await redis.set('sync:scan-now', 'all', 'EX', 60);
-
-  const prisma = (await import('../../lib/prisma.js')).getPrisma();
-  const offlineCount = await prisma.camera.count({
-    where: { enabled: true, deletedAt: null, operationalStatus: 'offline' },
-  });
-
-  return reply.status(200).send({ message: 'Scan triggered', offlineCount });
-}
-
-async function scanCameraHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
-  // "Scan now" asks the factory SMB sync worker to poll this camera [R2.3].
-  if (!config.factoryModulesEnabled) {
-    return reply.status(409).send({ statusCode: 409, error: 'Conflict', message: 'SMB scan is part of the factory modules, which are disabled' });
-  }
-  const prisma = (await import('../../lib/prisma.js')).getPrisma();
-  const found = await prisma.camera.findUnique({
-    where: { id },
-    select: { id: true, operationalStatus: true, factorySettings: true },
-  });
-  if (!found) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Camera not found' });
-  const camera = { ...(found.factorySettings ?? {}), ...found } as any;
-
-  const redis = getRedisClient();
-  await redis.sadd('sync:scan-now:ids', id);
-  await redis.expire('sync:scan-now:ids', 60);
-
-  // The health monitor's cached operationalStatus only refreshes on its 1-minute
-  // cron tick (plus a recovery grace period), so a camera that just came back
-  // online can still read as "offline" here for a couple of minutes. Probe it
-  // live instead of trusting the cache, so Scan Now reflects reality right now.
-  let operationalStatus = camera.operationalStatus;
-  if (camera.smbSharePath && camera.smbUsername && camera.smbPasswordEncrypted) {
-    try {
-      const { testConnection } = await import('../smb/smb.service.js');
-      const { decrypt } = await import('../../lib/encryption.js');
-      const result = await testConnection({
-        smbSharePath: camera.smbSharePath,
-        smbUsername: camera.smbUsername,
-        smbPasswordEncrypted: decrypt(camera.smbPasswordEncrypted),
-        smbDomain: camera.smbDomain ?? undefined,
-      });
-      operationalStatus = result.success ? 'online' : 'offline';
-      if (operationalStatus !== camera.operationalStatus) {
-        await prisma.camera.update({
-          where: { id },
-          data: {
-            operationalStatus,
-            operationalSince: new Date(),
-            ...(result.success ? { lastPolledAt: new Date() } : {}),
-          },
-        });
-      }
-    } catch (err) {
-      // Live probe itself failed to run (e.g. smbclient unavailable) — fall back to
-      // the cached status rather than blocking the scan trigger on it.
-      (await import('../../lib/logger.js')).logger.warn({ err, cameraId: id }, 'Live SMB probe failed during Scan Now');
-    }
-  }
-
-  return reply.status(200).send({
-    message: `Scan triggered for camera ${id}`,
-    operationalStatus,
-    warning: operationalStatus === 'offline' ? 'camera_offline' : undefined,
-  });
-}
-
-// P26 — resolves the storage provider a camera's files actually land on (from its most
-// recent upload) and reports that provider's current pressure state + backpressure
-// strategy, so the Sync Worker can decide whether to keep polling this camera.
-async function cameraStoragePressureHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
-  const prisma = (await import('../../lib/prisma.js')).getPrisma();
-
-  const camera = await prisma.camera.findUnique({ where: { id }, select: { id: true } });
-  if (!camera) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Camera not found' });
-
-  const recentFile = await prisma.imageFile.findFirst({
-    where: { image: { cameraId: id }, storageProviderId: { not: null } },
-    orderBy: { createdAt: 'desc' },
-    select: { storageProviderId: true },
-  });
-
-  const providerId = recentFile?.storageProviderId
-    ?? (await prisma.storageProvider.findFirst({ where: { isDefault: true, deletedAt: null }, select: { id: true } }))?.id;
-
-  if (!providerId) {
-    return reply.send({ providerId: null, state: 'normal', backpressureStrategy: 'continue_polling' });
-  }
-
-  const { readPressureState } = await import('../storage-lifecycle/storage-pressure.service.js');
-  const provider = await prisma.storageProvider.findUnique({ where: { id: providerId }, select: { backpressureStrategy: true } });
-  const state = await readPressureState(providerId);
-
-  return reply.send({
-    providerId,
-    state: state?.state ?? 'normal',
-    backpressureStrategy: provider?.backpressureStrategy ?? 'continue_polling',
-  });
 }
 
 // --- Incident Handlers ---
@@ -856,11 +740,6 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     comparisonHandler,
   );
-  app.post(
-    '/scan-now',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
-    scanNowHandler,
-  );
   app.get(
     '/trash',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
@@ -960,16 +839,6 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/:id/analytics',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     analyticsHandler,
-  );
-  app.post(
-    '/:id/scan',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
-    scanCameraHandler,
-  );
-  app.get(
-    '/:id/storage-pressure',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
-    cameraStoragePressureHandler,
   );
   app.post(
     '/:id/restore',

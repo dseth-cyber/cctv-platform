@@ -6,7 +6,6 @@ import type { StorageProvider } from '../../lib/storage/types.js';
 import { logger } from '../../lib/logger.js';
 import { createAlert, dispatchAlertNotifications } from '../alerts/alerts.service.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
-import { checkStoragePressure } from '../storage-lifecycle/storage-pressure-monitor.js';
 import { NotFoundError } from '../../lib/errors.js';
 
 let cronTask: ScheduledTask | null = null;
@@ -110,23 +109,13 @@ export function startMetricCollector(): void {
     logger.info('Provider metric collector starting...');
     const results = await collectMetrics();
     logger.info({ results }, 'Provider metric collector finished');
-    try {
-      await checkStoragePressure();
-    } catch (err) {
-      logger.error({ err }, 'Storage pressure check failed');
-    }
   });
 
   logger.info('Provider metric collector scheduled (every 15 minutes)');
 
   setTimeout(() => {
-    collectMetrics().then(async (results) => {
+    collectMetrics().then((results) => {
       logger.info({ results }, 'Initial metric collection done');
-      try {
-        await checkStoragePressure();
-      } catch (err) {
-        logger.error({ err }, 'Initial storage pressure check failed');
-      }
     }).catch((err) => {
       logger.error({ err }, 'Initial metric collection failed');
     });

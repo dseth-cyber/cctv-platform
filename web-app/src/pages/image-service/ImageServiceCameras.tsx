@@ -13,7 +13,6 @@ import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   RefreshCw, CheckCircle, Play, Undo2, Copy } from 'lucide-react';
 import { Modal, Button, SearchableSelect, TableSkeleton, ColumnSelector, ExportButton, DateTimePicker } from '@/components/ui';
 import { getLocalizedValue } from '@/utils/textUtils';
-import { useFeatures } from '@/hooks/useFeatures';
 import { useRequiredFields } from '@/hooks/useRequiredFields';
 import { catalogFieldsFor } from '@/config/requiredFieldsCatalog';
 
@@ -50,7 +49,6 @@ export default function ImageServiceCameras() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { factoryModules } = useFeatures();
   const canUpdate = hasPermission(user, 'cameras:update');
   const canDelete = hasPermission(user, 'cameras:delete');
   const hasUsersPermission = hasPermission(user, 'users:read');
@@ -733,39 +731,6 @@ export default function ImageServiceCameras() {
     }
   };
 
-  const [scanning, setScanning] = useState(false);
-  const [scanningCameras, setScanningCameras] = useState<Set<string>>(new Set());
-
-  const handleScanNow = async () => {
-    setScanning(true);
-    try {
-      const res = await imageServiceApi.scanNow();
-      if (res?.offlineCount > 0) {
-        toast.warning(t('imageService.cameras.scanTriggeredSomeOffline', { count: res.offlineCount }));
-      } else {
-        toast.success(t('imageService.cameras.scanTriggered'));
-      }
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['cameras-list'] }), 3000);
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-    finally { setScanning(false); }
-  };
-
-  const handleScanCamera = async (id: string) => {
-    setScanningCameras(prev => new Set(prev).add(id));
-    try {
-      const res = await imageServiceApi.scanCamera(id);
-      if (res?.warning === 'camera_offline') {
-        toast.warning(t('imageService.cameras.scanTriggeredOffline'));
-      } else {
-        toast.success(t('imageService.cameras.scanTriggered'));
-      }
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['cameras-list'] }), 3000);
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
-    finally {
-      setScanningCameras(prev => { const next = new Set(prev); next.delete(id); return next; });
-    }
-  };
-
   const filtered = cameras.filter((c: any) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -897,12 +862,6 @@ export default function ImageServiceCameras() {
               <Button onClick={openCreate}>
                 <Plus size={16} className="mr-1.5" /> {t('imageService.cameras.newCamera')}
               </Button>
-              {factoryModules && (
-                <Button variant="secondary" onClick={handleScanNow} disabled={scanning}>
-                  <RefreshCw size={16} className={`mr-1.5 ${scanning ? 'animate-spin' : ''}`} />
-                  {t('imageService.cameras.scanNow')}
-                </Button>
-              )}
               {canDelete && (
                 <button onClick={handleOpenCameraTrash}
                   className="px-3 py-2 rounded-md text-xs flex items-center gap-1.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors">
@@ -1049,13 +1008,6 @@ export default function ImageServiceCameras() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
-                        {factoryModules && (
-                          <button onClick={() => handleScanCamera(camera.id)}
-                            disabled={scanningCameras.has(camera.id)}
-                            className="p-2 rounded-lg hover:bg-green-500/20">
-                            <RefreshCw size={15} className={`${scanningCameras.has(camera.id) ? 'animate-spin text-green-400' : 'text-green-500'}`} />
-                          </button>
-                        )}
                         <button onClick={() => openEdit(camera)}
                           className="p-2 rounded-lg hover:bg-yellow-500/20"><Edit size={15} className="text-yellow-500" /></button>
                         {canDelete && (

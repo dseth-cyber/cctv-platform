@@ -8,7 +8,6 @@ import { getLocalizedValue } from '@/utils/textUtils'
 import { Button, Modal, TableSkeleton, SearchableSelect } from '@/components/ui'
 import { Plus, LayoutTemplate, Edit3, Trash2, CheckCircle, XCircle, Star } from 'lucide-react'
 
-const SOURCE_EXTENSIONS = ['tif', 'tiff', 'ptif', 'ptiff', 'jpg', 'jpeg', 'png', 'bmp']
 
 export default function CameraTemplates() {
   const { t } = useTranslation()
@@ -65,9 +64,6 @@ export default function CameraTemplates() {
             <thead className={`${themeConfig.tableHeader}`}>
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('imageService.cameraTemplates.name')}</th>
-                <th className="px-4 py-3 text-left font-medium">{t('imageService.cameraTemplates.acceptedExtensions')}</th>
-                <th className="px-4 py-3 text-center font-medium">{t('imageService.cameraTemplates.convertToPng')}</th>
-                <th className="px-4 py-3 text-center font-medium">{t('imageService.cameraTemplates.generateThumbnail')}</th>
                 <th className="px-4 py-3 text-center font-medium">{t('imageService.cameraTemplates.cameras')}</th>
                 <th className="px-4 py-3 text-center font-medium">{t('imageService.cameraTemplates.status')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('common.actions')}</th>
@@ -82,15 +78,6 @@ export default function CameraTemplates() {
                       {tpl.name}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {(tpl.acceptedExtensions || []).map((e: string) => (
-                        <span key={e} className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 uppercase">{e}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">{tpl.convertToPng ? <CheckCircle size={14} className="inline text-green-400" /> : <XCircle size={14} className="inline text-white/30" />}</td>
-                  <td className="px-4 py-3 text-center">{tpl.generateThumbnail ? <CheckCircle size={14} className="inline text-green-400" /> : <XCircle size={14} className="inline text-white/30" />}</td>
                   <td className="px-4 py-3 text-center">{tpl._count?.cameras ?? 0}</td>
                   <td className="px-4 py-3 text-center">{tpl.isActive ? <CheckCircle size={14} className="inline text-green-400" /> : <XCircle size={14} className="inline text-red-400" />}</td>
                   <td className="px-4 py-3 text-right">
@@ -136,14 +123,6 @@ function CameraTemplateFormModal({ isOpen, onClose, editTarget }: { isOpen: bool
 
   const [name, setName] = useState(editTarget?.name || '')
   const [description, setDescription] = useState(editTarget?.description || '')
-  const [acceptedExtensions, setAcceptedExtensions] = useState<string[]>(editTarget?.acceptedExtensions?.length ? editTarget.acceptedExtensions : ['tif', 'tiff', 'ptif', 'ptiff'])
-  const [convertToPng, setConvertToPng] = useState(editTarget?.convertToPng ?? true)
-  const [keepSmaller, setKeepSmaller] = useState(editTarget?.keepSmaller ?? true)
-  const [generateThumbnail, setGenerateThumbnail] = useState(editTarget?.generateThumbnail ?? true)
-  const [thumbnailSize, setThumbnailSize] = useState(editTarget?.thumbnailSize?.toString() || '512')
-  const [compressionQuality, setCompressionQuality] = useState(editTarget?.compressionQuality?.toString() || '85')
-  const [pollIntervalSeconds, setPollIntervalSeconds] = useState(editTarget?.pollIntervalSeconds?.toString() || '30')
-  const [captureMode, setCaptureMode] = useState(editTarget?.captureMode || 'periodic')
   const [retentionPolicyId, setRetentionPolicyId] = useState(editTarget?.retentionPolicyId || '')
   const [isDefault, setIsDefault] = useState(editTarget?.isDefault ?? false)
   const [sortOrder, setSortOrder] = useState(editTarget?.sortOrder?.toString() || '0')
@@ -155,13 +134,6 @@ function CameraTemplateFormModal({ isOpen, onClose, editTarget }: { isOpen: bool
     queryFn: () => imageServiceApi.getRetentionPolicies({ silent403: true }),
     staleTime: 1000 * 60 * 5,
   })
-
-  const { data: captureModesRaw } = useQuery({
-    queryKey: ['masterdata-capture-modes'],
-    queryFn: () => imageServiceApi.getMasterdata({ type: 'capture_mode' }, { silent403: true }),
-    staleTime: 1000 * 60 * 5,
-  })
-  const captureModes = (captureModesRaw?.data ?? captureModesRaw ?? []) as any[]
 
   const createMutation = useMutation({
     mutationFn: (data: any) => imageServiceApi.createCameraTemplate(data),
@@ -191,12 +163,6 @@ function CameraTemplateFormModal({ isOpen, onClose, editTarget }: { isOpen: bool
     const payload = {
       name: name.trim(),
       description: description.trim() || null,
-      acceptedExtensions,
-      convertToPng, keepSmaller, generateThumbnail,
-      thumbnailSize: parseInt(thumbnailSize, 10) || 512,
-      compressionQuality: parseInt(compressionQuality, 10) || 85,
-      pollIntervalSeconds: parseInt(pollIntervalSeconds, 10) || 30,
-      captureMode,
       retentionPolicyId: retentionPolicyId || null,
       isDefault,
       sortOrder: parseInt(sortOrder, 10) || 0,
@@ -229,60 +195,7 @@ function CameraTemplateFormModal({ isOpen, onClose, editTarget }: { isOpen: bool
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className={inputClass} />
         </div>
 
-        <div>
-          <label className={labelClass}>{t('imageService.cameraTemplates.acceptedExtensions')}</label>
-          <div className="flex flex-wrap gap-1.5">
-            {SOURCE_EXTENSIONS.map(ext => {
-              const active = acceptedExtensions.includes(ext)
-              return (
-                <button key={ext} type="button"
-                  onClick={() => setAcceptedExtensions(prev => active ? prev.filter(x => x !== ext) : [...prev, ext])}
-                  className={`px-3 py-1 rounded-full text-xs border ${active ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200' : 'border-white/30 text-white/60'}`}>
-                  {ext}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <label className="flex items-center gap-2 text-sm text-white">
-            <input type="checkbox" checked={convertToPng} onChange={e => setConvertToPng(e.target.checked)} className="rounded border-white/30 bg-white/10" />
-            {t('imageService.cameraTemplates.convertToPng')}
-          </label>
-          <label className="flex items-center gap-2 text-sm text-white">
-            <input type="checkbox" checked={keepSmaller} onChange={e => setKeepSmaller(e.target.checked)} className="rounded border-white/30 bg-white/10" />
-            {t('imageService.cameraTemplates.keepSmaller')}
-          </label>
-          <label className="flex items-center gap-2 text-sm text-white">
-            <input type="checkbox" checked={generateThumbnail} onChange={e => setGenerateThumbnail(e.target.checked)} className="rounded border-white/30 bg-white/10" />
-            {t('imageService.cameraTemplates.generateThumbnail')}
-          </label>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className={labelClass}>{t('imageService.cameraTemplates.thumbnailSize')}</label>
-            <input type="number" value={thumbnailSize} onChange={e => setThumbnailSize(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>{t('imageService.cameraTemplates.compressionQuality')}</label>
-            <input type="number" value={compressionQuality} onChange={e => setCompressionQuality(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>{t('imageService.cameraTemplates.pollIntervalSeconds')}</label>
-            <input type="number" value={pollIntervalSeconds} onChange={e => setPollIntervalSeconds(e.target.value)} className={inputClass} />
-          </div>
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>{t('imageService.cameraTemplates.captureMode')}</label>
-            <SearchableSelect value={captureMode} onChange={setCaptureMode}
-              options={captureModes.filter((cm: any) => cm.isActive).length > 0
-                ? captureModes.filter((cm: any) => cm.isActive).map((cm: any) => ({ value: cm.code, label: getLocalizedValue(cm, i18n.language) }))
-                : ['periodic', 'on_demand', 'continuous'].map(m => ({ value: m, label: m }))} />
-          </div>
           <div>
             <label className={labelClass}>{t('imageService.cameraTemplates.retentionPolicy')}</label>
             <SearchableSelect value={retentionPolicyId} onChange={setRetentionPolicyId}

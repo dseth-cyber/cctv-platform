@@ -169,40 +169,6 @@ services:
 
   # ── SMB Server (simulated camera SMB share) ────────────────────
 
-  smb-server:
-    profiles: ["factory"]
-    image: dperson/samba:latest
-    container_name: cctv-smb-server
-    environment:
-      - SHARE=images;/share;yes;no;no;camera
-      - USER=camera;smbpass
-      - WORKGROUP=WORKGROUP
-      - GLOBAL=ntlm auth = yes
-    ports:
-      - "127.0.0.1:9445:445"
-    volumes:
-      - ./mock_smb_shares:/share
-    restart: unless-stopped
-    networks:
-      - cctv-network
-
-  tiff-generator:
-    profiles: ["factory"]
-    image: python:3.12-slim
-    container_name: cctv-tiff-generator
-    depends_on:
-      - smb-server
-    volumes:
-      - ./mock_smb_shares:/share
-      - ./image-processing-worker/scripts:/scripts:ro
-    entrypoint: >
-      /bin/sh -c "
-      pip install Pillow --quiet &&
-      python /scripts/generate_test_tiff.py --output-dir /share
-      "
-    networks:
-      - cctv-network
-
   # ── Image API ──────────────────────────────────────────────────
 
   image-api-migrate:
@@ -284,8 +250,6 @@ services:
       MEDIAMTX_API_URL: ${MEDIAMTX_API_URL:-http://mediamtx:9997}
       # Set to true in .env only after confirming this host cannot reach legacy Image Service production.
       CCTV_ISOLATION_VERIFIED: ${CCTV_ISOLATION_VERIFIED:-false}
-      # [R2.2] Factory image pipeline routes and jobs stay off unless set to true.
-      FACTORY_MODULES_ENABLED: ${FACTORY_MODULES_ENABLED:-false}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:${WEB_HTTP_PORT:-8080},https://localhost:${WEB_HTTPS_PORT:-8443},http://127.0.0.1:${WEB_HTTP_PORT:-8080},https://127.0.0.1:${WEB_HTTPS_PORT:-8443}}
     depends_on:
       image-api-migrate:
@@ -300,161 +264,11 @@ services:
 
   # ── Image Sync Worker (SMB scanner + BullMQ producer) ──────────
 
-  image-sync-worker:
-    profiles: ["factory"]
-    build:
-      context: ./image-sync-worker
-      dockerfile: Dockerfile
-    container_name: cctv-sync-worker
-    environment:
-      NODE_OPTIONS: --openssl-legacy-provider
-      NODE_ENV: production
-      LOG_LEVEL: info
-      API_BASE_URL: http://image-api:3001
-      SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      POLL_INTERVAL_MS: 15000
-      POLL_CONCURRENCY: 5
-      CHECKSUM_ALGORITHM: md5
-      PROCESSED_TTL_DAYS: 7
-      RETRY_MAX_RETRIES: 3
-      RETRY_INITIAL_DELAY_MS: 1000
-      RETRY_MAX_DELAY_MS: 30000
-      HEALTH_PORT: 9100
-    depends_on:
-      redis:
-        condition: service_started
-      image-api:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - cctv-network
-
   # ── Kafka (Event Streaming for ERP Integration) ─────────────────
-
-  zookeeper:
-    profiles: ["factory"]
-    image: confluentinc/cp-zookeeper:7.7.0
-    container_name: cctv-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - cctv-network
-
-  kafka:
-    profiles: ["factory"]
-    image: confluentinc/cp-kafka:7.7.0
-    container_name: cctv-kafka
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_LOG_RETENTION_HOURS: 168
-      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
-    ports:
-      - "127.0.0.1:9093:9093"
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - cctv-network
 
   # ── Consumer Stubs (ERP Integration) ────────────────────────────
 
-  historian-consumer:
-    profiles: ["factory"]
-    image: python:3.12-slim
-    container_name: cctv-historian-consumer
-    volumes:
-      - ./consumer-stubs:/stubs:ro
-    depends_on:
-      kafka:
-        condition: service_healthy
-    command: sh -c "pip install aiokafka --quiet && python /stubs/historian_consumer.py"
-    restart: unless-stopped
-    networks:
-      - cctv-network
-
-  production-consumer:
-    profiles: ["factory"]
-    image: python:3.12-slim
-    container_name: cctv-production-consumer
-    volumes:
-      - ./consumer-stubs:/stubs:ro
-    depends_on:
-      kafka:
-        condition: service_healthy
-    command: sh -c "pip install aiokafka --quiet && python /stubs/production_consumer.py"
-    restart: unless-stopped
-    networks:
-      - cctv-network
-
   # ── Image Processing Worker (TIFF→PNG converter + MinIO) ───────
-
-  image-processing-worker:
-    profiles: ["factory"]
-    build:
-      context: ./image-processing-worker
-      dockerfile: Dockerfile
-    container_name: cctv-processing-worker
-    volumes:
-      - ./mock_smb_shares:/mnt/smb/image-smb-server/images
-      - local-storage-data:/data/images
-      - ./host-storage:/mnt/host-storage
-    environment:
-      WORKER_ID: processing-1
-      LOG_LEVEL: INFO
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      API_BASE_URL: http://image-api:3001
-      API_SERVICE_API_KEY: ${SERVICE_API_KEY:-dev-service-api-key-change-in-production}
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: ${MINIO_BUCKET:-image-service}
-      MINIO_USE_SSL: "false"
-      SMB_MOUNT_PATH: /mnt/smb
-      PROCESSING_CONCURRENCY: 4
-      PNG_COMPRESSION_LEVEL: 6
-      THUMBNAIL_SIZE: 512
-      TIFF_RESOLUTION_DPI: 300
-      MAX_RETRIES: 3
-      RETRY_DELAY_SECONDS: 5
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_TOPIC_IMAGE_PROCESSED: image.processed
-      KAFKA_CLIENT_ID: image-processing-worker
-      HEALTH_PORT: 9200
-    depends_on:
-      redis:
-        condition: service_started
-      minio:
-        condition: service_started
-      image-api:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - cctv-network
 
   # ── Web App (React Frontend) ────────────────────────────────────
 

@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTheme, themes } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { useFeatures } from '@/hooks/useFeatures'
 import { useToast } from '@/contexts/ToastContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { imageServiceApi } from '@/services/imageServiceApi'
@@ -12,14 +11,9 @@ import { setForbiddenHandler } from '@/lib/axios'
 import LoginPage from '@/pages/auth/LoginPage'
 
 // Core pages imported eagerly for instant navigation without lazy-loading delay
-import ImageServiceOverview from '@/pages/image-service/ImageServiceOverview'
 import ImageServiceCameras from '@/pages/image-service/ImageServiceCameras'
-import ImageServiceSearch from '@/pages/image-service/ImageServiceSearch'
-import ImageServiceProcessingMonitor from '@/pages/image-service/ImageServiceProcessingMonitor'
-import ImageServiceProcessingLogs from '@/pages/image-service/ImageServiceProcessingLogs'
 
 const ImageServiceCameraDetail = lazy(() => import('@/pages/image-service/ImageServiceCameraDetail'))
-const ImageServiceStorage = lazy(() => import('@/pages/image-service/ImageServiceStorage'))
 const ImageServiceRetention = lazy(() => import('@/pages/image-service/ImageServiceRetention'))
 const ImageServiceRoadmap = lazy(() => import('@/pages/image-service/ImageServiceRoadmap'))
 const ImageServiceSettings = lazy(() => import('@/pages/image-service/ImageServiceSettings'))
@@ -31,11 +25,9 @@ const ApiKeysManagement = lazy(() => import('@/pages/image-service/ApiKeysManage
 const MasterdataManagement = lazy(() => import('@/pages/image-service/MasterdataManagement'))
 const SystemConfigPage = lazy(() => import('@/pages/image-service/SystemConfigPage'))
 const RequiredFieldsSettings = lazy(() => import('@/pages/image-service/RequiredFieldsSettings'))
-const DeadLetterQueue = lazy(() => import('@/pages/image-service/DeadLetterQueue'))
 const AuditLogViewer = lazy(() => import('@/pages/image-service/AuditLogViewer'))
 const BackupDashboard = lazy(() => import('@/pages/image-service/BackupDashboard'))
 const StorageProvidersPage = lazy(() => import('@/pages/image-service/StorageProvidersPage'))
-const StorageProfilesPage = lazy(() => import('@/pages/image-service/StorageProfilesPage'))
 const CameraAnalytics = lazy(() => import('@/pages/image-service/CameraAnalytics'))
 const IncidentCenter = lazy(() => import('@/pages/image-service/IncidentCenter'))
 const CameraTemplates = lazy(() => import('@/pages/image-service/CameraTemplates'))
@@ -100,17 +92,11 @@ const navItems = [
   { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
   { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
   { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
-  { path: '/cctv/search', factory: true, labelKey: 'nav.search', icon: Image, permission: 'search:read' },
-  { path: '/cctv/processing', factory: true, labelKey: 'nav.processing', icon: Activity, permission: 'processing:read' },
-  { path: '/cctv/storage', factory: true, labelKey: 'nav.storage', icon: HardDrive, permission: 'storage:read' },
   { path: '/cctv/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
   { path: '/cctv/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
   { path: '/cctv/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
   { path: '/cctv/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
   { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
-  { path: '/cctv/storage-profiles', factory: true, labelKey: 'nav.storageProfiles', icon: Layers, permission: 'storage:read' },
-  { path: '/cctv/logs', factory: true, labelKey: 'nav.logs', icon: FileText, permission: 'logs:read' },
-  { path: '/cctv/dead-letter', factory: true, labelKey: 'nav.deadLetter', icon: AlertTriangle, permission: 'dead-letter:read' },
   { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
   { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
   { path: '/cctv/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
@@ -516,8 +502,7 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
   )
 }
 
-// `factory`: part of the factory image pipeline, shown only when the server enables it [R2.2].
-type NavItem = { path: string; labelKey: string; icon: any; permission: string; factory?: boolean }
+type NavItem = { path: string; labelKey: string; icon: any; permission: string }
 
 // [R2.4] UI routes moved from /image-service/* to /cctv/*; saved menu preferences may hold old paths.
 function migrateMenuPaths(paths: string[]): string[] {
@@ -601,11 +586,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
   updateHiddenMenuItems: (hiddenMenuItems: string[]) => Promise<void>
 }) {
   const { theme } = useTheme()
-  const { factoryModules } = useFeatures()
-  const visibleNav = useMemo(
-    () => navItems.filter(item => hasPermission(user, item.permission) && (!item.factory || factoryModules)),
-    [navItems, user, factoryModules],
-  )
+  const visibleNav = useMemo(() => navItems.filter(item => hasPermission(user, item.permission)), [navItems, user])
   const { ordered, reorder, reset } = useSidebarOrder(user?.username, visibleNav)
   const [reorderMode, setReorderMode] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -911,115 +892,10 @@ function ChangePasswordModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   )
 }
 
-function NavProcessing() {
-  const { data: health } = useQuery({
-    queryKey: ['queue-health-nav'],
-    queryFn: () => imageServiceApi.getQueueHealth(),
-    refetchInterval: 10000,
-    staleTime: 0,
-    retry: false,
-  })
-
-  const active = health?.active ?? 0
-  const waiting = health?.waiting ?? 0
-  const total = active + waiting
-  const busy = total > 0
-
-  return (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-      busy
-        ? 'bg-green-500/10 border-green-500/20 text-green-400'
-        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-    }`}>
-      <Hourglass size={13} className={busy ? 'animate-spin text-green-400' : 'text-amber-400'} style={busy ? { animationDuration: '1.5s' } : undefined} />
-      <span>{total}</span>
-    </div>
-  )
-}
-
-function QueueHealthBanner() {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const queryClient = useQueryClient()
-  const [recovering, setRecovering] = useState(false)
-
-  const { data: health } = useQuery({
-    queryKey: ['queue-health-global'],
-    queryFn: () => imageServiceApi.getQueueHealth(),
-    refetchInterval: 60000,
-    staleTime: 0,
-    retry: false,
-  })
-
-  const handleRecover = async () => {
-    setRecovering(true)
-    try {
-      const result = await imageServiceApi.recoverQueue()
-      toast.success(result.message || t('ui.app.queueRecovered'))
-      queryClient.invalidateQueries({ queryKey: ['queue-health-global'] })
-      queryClient.invalidateQueries({ queryKey: ['queue-health'] })
-      queryClient.invalidateQueries({ queryKey: ['processing-stats-initial'] })
-      queryClient.invalidateQueries({ queryKey: ['processing-logs'] })
-    } catch (e: any) {
-      if (!e?._handled) toast.error(t('common.error'))
-    } finally {
-      setRecovering(false) }
-  }
-
-  if (!health?.isStale) return null
-
-  // "jobs_failing" = worker alive but the source is broken (camera/SMB unreachable,
-  // bad files). Recover won't help — the real reason is in the Dead Letter Queue.
-  const jobsFailing = health.cause === 'jobs_failing'
-
-  return (
-    <div className={`mx-6 mt-4 px-4 py-3 rounded-lg border flex items-center justify-between gap-4 ${jobsFailing ? 'border-red-500/40 bg-red-500/10' : 'border-amber-500/40 bg-amber-500/10'}`}>
-      <div className="flex items-center gap-3">
-        <AlertTriangle size={18} className={`flex-shrink-0 ${jobsFailing ? 'text-red-400' : 'text-amber-400'}`} />
-        <div>
-          {jobsFailing ? (
-            <>
-              <p className="text-sm font-semibold text-red-300">
-                {t('ui.app.thereAre')}{' '}{health.recentFailed}{' '}{t('ui.app.failedJobsInTheLast')}
-              </p>
-              <p className="text-xs text-red-400/80 mt-0.5">
-                {t('ui.app.usuallyCausedByAnUnreachableCamera')}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-semibold text-amber-300">
-                {t('ui.app.processingQueueStuck')}{' '}{health.stale}{' '}{t('ui.app.jobsUnresponsiveForOver5Minutes')}
-              </p>
-              <p className="text-xs text-amber-400/80 mt-0.5">
-                {t('ui.app.theProcessingWorkerMayHaveStopped')}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-      {jobsFailing ? (
-        <Link to="/cctv/dead-letter"
-          className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-semibold text-sm rounded-lg flex items-center gap-2 transition-colors">
-          <AlertTriangle size={13} />{' '}{t('ui.app.viewDeadLetter')}
-        </Link>
-      ) : (
-        <button onClick={handleRecover} disabled={recovering}
-          className="flex-shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50">
-          {recovering
-            ? <><RefreshCw size={13} className="animate-spin" />{' '}{t('ui.app.recovering')}</>
-            : <><Play size={13} />{' '}{t('ui.app.recoverQueue')}</>}
-        </button>
-      )}
-    </div>
-  )
-}
-
 export default function App() {
   const { t, i18n } = useTranslation()
   const { themeConfig, theme, setTheme } = useTheme()
   const { isAuthenticated, user, logout, updateHiddenMenuItems } = useAuth()
-  const { factoryModules } = useFeatures()
   const toast = useToast()
   const location = useLocation()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
@@ -1113,11 +989,6 @@ export default function App() {
         </div>
         <div className="flex items-center gap-1">
           {/* Processing indicator */}
-          {factoryModules && (
-            <div className="hidden sm:flex">
-              <NavProcessing />
-            </div>
-          )}
           {/* Search */}
           <div className="hidden md:block">
             <NavSearch />
@@ -1183,7 +1054,6 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          {factoryModules && <QueueHealthBanner />}
           <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" /></div>}>
           <Routes>
             <Route path="/cctv/overview" element={
@@ -1228,26 +1098,8 @@ export default function App() {
             <Route path="/cctv/camera-templates" element={
               hasPermission(user, 'cameras:read') ? <CameraTemplates /> : <UnauthorizedPage />
             } />
-            <Route path="/cctv/search" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'search:read') ? <ImageServiceSearch /> : <UnauthorizedPage />
-            } />
-            <Route path="/cctv/processing" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'processing:read') ? <ImageServiceProcessingMonitor /> : <UnauthorizedPage />
-            } />
-            <Route path="/cctv/storage" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'storage:read') ? <ImageServiceStorage /> : <UnauthorizedPage />
-            } />
             <Route path="/cctv/storage-providers" element={
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
-            } />
-            <Route path="/cctv/storage-profiles" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'storage:read') ? <StorageProfilesPage /> : <UnauthorizedPage />
-            } />
-            <Route path="/cctv/logs" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'logs:read') ? <ImageServiceProcessingLogs /> : <UnauthorizedPage />
-            } />
-            <Route path="/cctv/dead-letter" element={
-              !factoryModules ? <Navigate to="/cctv/overview" replace /> : hasPermission(user, 'dead-letter:read') ? <DeadLetterQueue /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/audit-log" element={
               hasPermission(user, 'audit-log:read') ? <AuditLogViewer /> : <UnauthorizedPage />

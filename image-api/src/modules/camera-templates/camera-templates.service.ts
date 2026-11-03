@@ -52,14 +52,6 @@ export async function createCameraTemplate(input: CreateCameraTemplateInput) {
     data: {
       name: input.name,
       description: input.description ?? null,
-      acceptedExtensions: input.acceptedExtensions,
-      convertToPng: input.convertToPng,
-      keepSmaller: input.keepSmaller,
-      generateThumbnail: input.generateThumbnail,
-      thumbnailSize: input.thumbnailSize,
-      compressionQuality: input.compressionQuality,
-      pollIntervalSeconds: input.pollIntervalSeconds,
-      captureMode: input.captureMode,
       retentionPolicyId: input.retentionPolicyId ?? null,
       isDefault: input.isDefault,
       sortOrder: input.sortOrder,
@@ -90,14 +82,6 @@ export async function updateCameraTemplate(id: string, input: UpdateCameraTempla
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.description !== undefined) data.description = input.description;
-  if (input.acceptedExtensions !== undefined) data.acceptedExtensions = input.acceptedExtensions;
-  if (input.convertToPng !== undefined) data.convertToPng = input.convertToPng;
-  if (input.keepSmaller !== undefined) data.keepSmaller = input.keepSmaller;
-  if (input.generateThumbnail !== undefined) data.generateThumbnail = input.generateThumbnail;
-  if (input.thumbnailSize !== undefined) data.thumbnailSize = input.thumbnailSize;
-  if (input.compressionQuality !== undefined) data.compressionQuality = input.compressionQuality;
-  if (input.pollIntervalSeconds !== undefined) data.pollIntervalSeconds = input.pollIntervalSeconds;
-  if (input.captureMode !== undefined) data.captureMode = input.captureMode;
   if (input.retentionPolicyId !== undefined) data.retentionPolicyId = input.retentionPolicyId;
   if (input.isDefault !== undefined) data.isDefault = input.isDefault;
   if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
