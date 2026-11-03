@@ -89,7 +89,8 @@ services:
       - "127.0.0.1:8554:8554"
       - "127.0.0.1:8888:8888"
       - "127.0.0.1:8889:8889"
-      - "127.0.0.1:8189:8189/udp"
+      # WebRTC media (UDP). MEDIA_UDP_BIND=<LAN IP> lets browsers on the LAN receive live video.
+      - "${MEDIA_UDP_BIND:-127.0.0.1}:8189:8189/udp"
       - "127.0.0.1:9997:9997"
     volumes:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
@@ -97,6 +98,8 @@ services:
     environment:
       # Sent by runOnReady/runOnNotReady hooks; must match image-api's value or the webhook gets 401
       MEDIA_WEBHOOK_SECRET: ${MEDIA_WEBHOOK_SECRET:-dev-media-webhook-secret-change-in-production}
+      # Extra address MediaMTX offers as a WebRTC candidate (the LAN IP when serving LAN browsers).
+      MTX_WEBRTCADDITIONALHOSTS: ${MEDIA_WEBRTC_HOST:-}
     restart: unless-stopped
     networks:
       - cctv-network
@@ -464,6 +467,10 @@ services:
       # Localhost-only in Dev to avoid exposing ports to the entire LAN
       - "127.0.0.1:${WEB_HTTP_PORT:-8080}:80"
       - "127.0.0.1:${WEB_HTTPS_PORT:-8443}:443"
+      # Optional LAN access on ONE chosen address (WEB_LAN_ADDRESS in .env). The defaults only add
+      # extra localhost ports; never bind 0.0.0.0, and never the legacy Image Service subnet.
+      - "${WEB_LAN_ADDRESS:-127.0.0.1}:${WEB_LAN_HTTP_PORT:-8081}:80"
+      - "${WEB_LAN_ADDRESS:-127.0.0.1}:${WEB_LAN_HTTPS_PORT:-8444}:443"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
