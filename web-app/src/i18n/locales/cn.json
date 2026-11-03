@@ -88,7 +88,8 @@
       "validation": {
         "nameDuplicateError": "该摄像头名称已存在 (摄像头名称必须唯一)",
         "ipDuplicateWarning": "警告: IP 地址已被摄像头 \"{{name}}\" 使用",
-        "duplicateValue": "某些值与其他摄像机重复（如 Stream path），请留空由系统设置或修改"
+        "duplicateValue": "某些值与其他摄像机重复（如 Stream path），请留空由系统设置或修改",
+        "nameInTrash": "此名称已被回收站中的摄像机使用，请先恢复该摄像机或从回收站永久删除"
       },
       "clone": "克隆",
       "bulkClone": "批量克隆",

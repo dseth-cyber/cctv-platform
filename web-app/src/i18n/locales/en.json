@@ -93,7 +93,8 @@
       "validation": {
         "nameDuplicateError": "This camera name already exists (Camera names must be unique)",
         "ipDuplicateWarning": "Warning: IP address is already used by camera \"{{name}}\"",
-        "duplicateValue": "A value is already used by another camera (e.g. the stream path) — leave it blank to let the system choose, or change it"
+        "duplicateValue": "A value is already used by another camera (e.g. the stream path) — leave it blank to let the system choose, or change it",
+        "nameInTrash": "This name belongs to a camera in the trash — restore that camera, or delete it permanently from the trash first"
       },
       "clone": "Clone",
       "bulkClone": "Bulk Clone",

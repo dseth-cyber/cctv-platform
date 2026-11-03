@@ -242,6 +242,23 @@ async function generateStreamPath(name: string): Promise<string> {
   return `${base}-${randomBytes(3).toString('hex')}`;
 }
 
+/**
+ * Camera names are unique across active and trashed cameras, so a restore never produces two
+ * cameras with the same name and the trash never holds two look-alikes. The error says which.
+ */
+async function assertCameraNameFree(name: string, exceptId?: string) {
+  const prisma = getPrisma();
+  const taken = await prisma.camera.findFirst({
+    where: { name, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { deletedAt: true },
+  });
+  if (!taken) return;
+  if (taken.deletedAt) {
+    throw new ConflictError(`Camera name '${name}' is used by a camera in the trash`, { code: 'CAMERA_NAME_IN_TRASH' });
+  }
+  throw new ConflictError(`Camera with name '${name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
+}
+
 export async function createCamera(input: CreateCameraInput & { createdBy?: string }) {
   const prisma = getPrisma();
 
@@ -252,11 +269,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
     }
   }
 
-  // Cameras in the trash do not hold their name; restoreCamera checks for a clash instead.
-  const existing = await prisma.camera.findFirst({ where: { name: input.name, deletedAt: null } });
-  if (existing) {
-    throw new ConflictError(`Camera with name '${input.name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
-  }
+  await assertCameraNameFree(input.name);
 
   let streamPath = input.streamPath ?? null;
   if (!streamPath && input.deviceId && input.channelNumber) {
@@ -321,10 +334,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   }
 
   if (input.name !== undefined && input.name !== existing.name) {
-    const nameConflict = await prisma.camera.findFirst({ where: { name: input.name, deletedAt: null } });
-    if (nameConflict) {
-      throw new ConflictError(`Camera with name '${input.name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
-    }
+    await assertCameraNameFree(input.name, id);
   }
 
   if (input.retentionPolicyId) {

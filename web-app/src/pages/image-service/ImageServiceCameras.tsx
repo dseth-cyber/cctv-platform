@@ -62,6 +62,7 @@ const isRedactedRtsp = (url?: string | null) => !!url && url.includes('********'
 function cameraErrorMessage(e: any, t: (k: string, o?: any) => string): string {
   const data = e?.response?.data;
   if (data?.details?.code === 'CAMERA_NAME_TAKEN') return t('imageService.cameras.validation.nameDuplicateError');
+  if (data?.details?.code === 'CAMERA_NAME_IN_TRASH') return t('imageService.cameras.validation.nameInTrash');
   if (data?.details?.code === 'UNIQUE_VIOLATION') return t('imageService.cameras.validation.duplicateValue');
   if (e?.response?.status === 400 && data?.message) return `${t('common.error')}: ${data.message}`;
   return t('common.error');
