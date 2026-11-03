@@ -41,6 +41,16 @@ export async function errorHandler(
       });
       return;
     }
+    // Malformed id (e.g. not a UUID): such a record cannot exist.
+    if (error.code === 'P2023' && /UUID/i.test(error.message)) {
+      logger.warn({ meta: error.meta }, 'Malformed record id');
+      await reply.status(404).send({
+        statusCode: 404,
+        error: 'NotFoundError',
+        message: 'The requested record was not found.',
+      });
+      return;
+    }
     if (error.code === 'P2025') {
       logger.warn({ meta: error.meta }, 'Record not found for Prisma operation');
       await reply.status(404).send({
