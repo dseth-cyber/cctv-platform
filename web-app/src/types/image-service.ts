@@ -54,12 +54,8 @@ export interface RetentionPolicy {
   id: string;
   name: string;
   description?: string;
-  rawRetentionDays: number;
-  processedRetentionDays: number;
-  thumbnailRetentionDays: number;
-  archiveEnabled: boolean;
-  archiveRawDays?: number;
-  coldStorageClass?: string;
+  recordingRetentionDays: number;
+  isDefault: boolean;
   cameras?: Camera[];
   createdAt: string;
   updatedAt: string;

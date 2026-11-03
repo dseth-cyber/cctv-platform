@@ -556,51 +556,23 @@
       "editPolicy": "编辑策略",
       "policyName": "策略名称",
       "description": "描述",
-      "rawRetentionDays": "原始保留（天）",
-      "processedRetentionDays": "处理后保留（天）",
-      "thumbnailRetentionDays": "缩略图保留（天）",
-      "archiveEnabled": "启用归档",
-      "archiveRawDays": "归档原始文件于（天后）",
-      "coldStorageClass": "冷存储类型",
       "camerasUsing": "使用此策略的摄像头",
       "deleteConfirm": "确定要删除此策略吗？",
       "deleteDisabled": "无法删除正在被摄像头使用的策略",
       "created": "策略创建成功",
       "updated": "策略更新成功",
       "deleted": "策略已删除",
-      "on": "开",
-      "off": "关",
       "days": "天",
-      "hot": "热",
-      "warm": "温",
-      "cold": "冷",
       "defaultName": "默认保留策略",
       "defaultDesc": "生产摄像头的标准保留策略",
       "longTermName": "长期保留策略",
       "longTermDesc": "质量检查摄像头的延长保留策略",
-      "cleanupModeLabel": "清理模式",
-      "cleanupMode": {
-        "retention_only": "仅按保留期限",
-        "retention_watermark": "保留期限 + 水位线",
-        "circular": "循环存储 (Circular)",
-        "read_only": "只读（不删除）",
-        "manual": "仅手动清理"
-      },
-      "cleanupModeDesc": {
-        "retention_only": "严格按天数保留数据。如果存储空间用满，系统将停止接收新图像并发出告警，而不会删除任何数据。适合绝不允许删除数据的工厂。",
-        "retention_watermark": "正常保留数据，但一旦存储达到设定阈值，将先删除已过期的数据，再删除最旧的剩余数据，直至释放足够空间。",
-        "circular": "存储空间用满时自动删除最旧的数据，类似 DVR，完全忽略保留天数设置。",
-        "read_only": "绝不删除任何数据。存储空间达到严重水平时，系统仅停止处理并发出告警。适合审计/合规数据。",
-        "manual": "不自动删除，必须由管理员手动触发清理。"
-      },
-      "allowEmergencyCleanup": "允许纳入紧急清理",
-      "deleteOrderLabel": "空间不足时的文件删除顺序",
-      "deleteOrderHint": "最左侧先删除 — 默认先删缩略图，原始文件保留最久",
-      "fileType": {
-        "thumbnail": "缩略图",
-        "processed": "已处理",
-        "raw": "原始文件"
-      }
+      "recordingRetentionDays": "录像保留（天）",
+      "recordingRetentionHint": "超过此天数的录像将移至隔离区（默认 30 天）",
+      "ruleExpire": "超过策略天数的录像将移至隔离区（仍可恢复）",
+      "ruleQuarantine": "隔离区中的录像在 7 天后永久删除，每次删除均记录审计日志",
+      "ruleDisk": "磁盘使用率达到 92% 时，先删除最旧的录像（优先隔离区），直到低于 85%",
+      "ruleLegalHold": "处于法律保留（Legal Hold）的录像永不移动或删除"
     },
     "processing": {
       "title": "处理监控",
@@ -2997,10 +2969,6 @@
       "field_nameJp": "名称（日文）",
       "field_providerId": "存储提供商",
       "field_routingRules": "路由规则",
-      "field_rawRetentionDays": "原始文件保留（天）",
-      "field_processedRetentionDays": "处理后文件保留（天）",
-      "field_thumbnailRetentionDays": "缩略图保留（天）",
-      "field_archiveEnabled": "启用归档",
       "field_alertType": "告警类型",
       "field_cooldownMinutes": "冷却时间（分钟）",
       "field_notificationChannels": "通知渠道",
@@ -3011,7 +2979,8 @@
       "groupStream": "视频流来源",
       "field_rtspUrl": "RTSP URL（主码流）",
       "field_rtspUrlSub": "RTSP URL（子码流）",
-      "field_streamPath": "流路径"
+      "field_streamPath": "流路径",
+      "field_recordingRetentionDays": "录像保留（天）"
     },
     "productionRuns": {
       "title": "生产批次",

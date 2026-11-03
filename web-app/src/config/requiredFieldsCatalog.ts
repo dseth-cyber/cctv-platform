@@ -172,15 +172,12 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
         fields: [
           f('name', true),
           f('description'),
-          f('archiveEnabled'),
         ],
       },
       {
         labelKey: 'imageService.requiredFields.groupRetentionDays',
         fields: [
-          f('rawRetentionDays', true),
-          f('processedRetentionDays', true),
-          f('thumbnailRetentionDays', true),
+          f('recordingRetentionDays', true),
         ],
       },
     ],

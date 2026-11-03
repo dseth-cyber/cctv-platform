@@ -222,7 +222,9 @@ services:
       NODE_ENV: production
       RECORDINGS_DIR: /recordings
       # Recording cleanup stays off until a retention policy is approved (AGENTS.md); when on, files move to quarantine
-      RECORDINGS_CLEANUP_ENABLED: ${RECORDINGS_CLEANUP_ENABLED:-false}
+      RECORDINGS_CLEANUP_ENABLED: ${RECORDINGS_CLEANUP_ENABLED:-true}
+      RECORDING_RETENTION_DAYS: ${RECORDING_RETENTION_DAYS:-30}
+      RECORDINGS_QUARANTINE_PURGE_DAYS: ${RECORDINGS_QUARANTINE_PURGE_DAYS:-7}
       RECORDINGS_QUARANTINE_DIR: ${RECORDINGS_QUARANTINE_DIR:-/recordings/.quarantine}
       HOST: 0.0.0.0
       PORT: 3001

@@ -27,14 +27,6 @@ enum ProviderType {
   @@map("provider_type")
 }
 
-enum StorageClass {
-  hot
-  warm
-  cold
-
-  @@map("storage_class")
-}
-
 enum CameraStatus {
   active
   inactive
@@ -84,16 +76,6 @@ enum CameraOperationalStatus {
 }
 
 // P26 — Intelligent Data Lifecycle & Storage Governance
-enum CleanupMode {
-  retention_only
-  retention_watermark
-  circular
-  read_only
-  manual
-
-  @@map("cleanup_mode")
-}
-
 enum BackpressureStrategy {
   stop_polling
   continue_polling
@@ -214,24 +196,16 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+/// Video retention: recordings of cameras using this policy are kept recordingRetentionDays, then moved
+/// to quarantine and purged after RECORDINGS_QUARANTINE_PURGE_DAYS. Legal Hold always wins.
 model RetentionPolicy {
-  id                     String       @id @default(uuid()) @db.Uuid
-  name                   String       @db.VarChar(128)
-  description            String?      @db.Text
-  rawRetentionDays       Int          @map("raw_retention_days")
-  processedRetentionDays Int          @map("processed_retention_days")
-  thumbnailRetentionDays Int          @map("thumbnail_retention_days")
-  archiveRawDays         Int?         @map("archive_raw_days")
-  archiveEnabled         Boolean      @default(false) @map("archive_enabled")
-  coldStorageClass       StorageClass @default(cold) @map("cold_storage_class")
-  // P26: cleanup behavior only — capacity % thresholds live on StorageProvider, not here,
-  // since disk capacity belongs to the provider while retention/cleanup behavior is per-camera.
-  cleanupMode            CleanupMode  @default(retention_only) @map("cleanup_mode")
-  deleteOrder            Json         @default("[\"thumbnail\", \"processed\", \"raw\"]") @map("delete_order")
-  allowEmergencyCleanup  Boolean      @default(false) @map("allow_emergency_cleanup")
-  isDefault              Boolean      @default(false) @map("is_default")
-  createdAt              DateTime     @default(now()) @map("created_at")
-  updatedAt              DateTime     @updatedAt @map("updated_at")
+  id                     String   @id @default(uuid()) @db.Uuid
+  name                   String   @db.VarChar(128)
+  description            String?  @db.Text
+  recordingRetentionDays Int      @default(30) @map("recording_retention_days")
+  isDefault              Boolean  @default(false) @map("is_default")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   cameras Camera[]
   cameraTemplates CameraTemplate[]
@@ -728,6 +702,8 @@ model CameraRecording {
   incidentCount   Int       @default(0) @map("incident_count")
   legalHold       Boolean   @default(false) @map("legal_hold")
   isArchived      Boolean   @default(false) @map("is_archived")
+  // When cleanup moved the file to quarantine; it is purged RECORDINGS_QUARANTINE_PURGE_DAYS later.
+  archivedAt      DateTime? @map("archived_at")
   retentionUntil  DateTime? @map("retention_until")
   storageType     String    @default("local") @map("storage_type") @db.VarChar(32)
   storageNode     String?   @map("storage_node") @db.VarChar(64)

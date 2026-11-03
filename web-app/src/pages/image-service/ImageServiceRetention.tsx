@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { Plus, Edit, Trash2, Shield, Clock, Archive, HardDrive, ImageIcon } from 'lucide-react';
-import { Modal, Button, TableSkeleton, SearchableSelect } from '@/components/ui';
+import { Plus, Edit, Trash2, Shield, Clock, Info } from 'lucide-react';
+import { Modal, Button, TableSkeleton } from '@/components/ui';
 
 const POLICY_NAME_KEYS: Record<string, { name: string; desc: string }> = {
   'Default Retention': { name: 'imageService.retention.defaultName', desc: 'imageService.retention.defaultDesc' },
@@ -14,32 +14,11 @@ const POLICY_NAME_KEYS: Record<string, { name: string; desc: string }> = {
   'การจัดเก็บระยะยาว (Long-Term)': { name: 'imageService.retention.longTermName', desc: 'imageService.retention.longTermDesc' },
 };
 
-const CLEANUP_MODE_COLORS: Record<string, string> = {
-  retention_only: 'text-cyan-400',
-  retention_watermark: 'text-emerald-400',
-  circular: 'text-amber-400',
-  read_only: 'text-red-400',
-  manual: 'text-violet-400',
-};
-
 const emptyForm = () => ({
-  name: '', description: '', rawRetentionDays: 7,
-  processedRetentionDays: 90, thumbnailRetentionDays: 365,
-  archiveEnabled: false, archiveRawDays: null as number | null,
-  coldStorageClass: 'cold',
-  cleanupMode: 'retention_only',
-  deleteOrder: ['thumbnail', 'processed', 'raw'] as string[],
-  allowEmergencyCleanup: false,
+  name: '', description: '',
+  recordingRetentionDays: 30,
   isDefault: false,
 });
-
-// Sensible orders for space-pressure cleanup. First entry = deleted first.
-const DELETE_ORDER_PRESETS: string[][] = [
-  ['thumbnail', 'processed', 'raw'],
-  ['processed', 'thumbnail', 'raw'],
-  ['raw', 'processed', 'thumbnail'],
-  ['processed', 'raw', 'thumbnail'],
-];
 
 export default function ImageServiceRetention() {
   const { t } = useTranslation();
@@ -62,17 +41,7 @@ export default function ImageServiceRetention() {
   const openEdit = (item: any) => {
     setForm({
       name: item.name, description: item.description ?? '',
-      rawRetentionDays: item.rawRetentionDays,
-      processedRetentionDays: item.processedRetentionDays,
-      thumbnailRetentionDays: item.thumbnailRetentionDays,
-      archiveEnabled: item.archiveEnabled,
-      archiveRawDays: item.archiveRawDays,
-      coldStorageClass: item.coldStorageClass,
-      cleanupMode: item.cleanupMode ?? 'retention_only',
-      deleteOrder: Array.isArray(item.deleteOrder) && item.deleteOrder.length === 3
-        ? item.deleteOrder
-        : ['thumbnail', 'processed', 'raw'],
-      allowEmergencyCleanup: item.allowEmergencyCleanup ?? false,
+      recordingRetentionDays: item.recordingRetentionDays,
       isDefault: item.isDefault ?? false,
     });
     setModal({ open: true, item });
@@ -80,7 +49,7 @@ export default function ImageServiceRetention() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.rawRetentionDays || !form.processedRetentionDays || !form.thumbnailRetentionDays) {
+    if (!form.name || !form.recordingRetentionDays) {
       toast.warning(t('common.requiredFields')); return;
     }
     try {
@@ -123,6 +92,16 @@ export default function ImageServiceRetention() {
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.retention.subtitle')}</p>
       </div>
 
+      <div className={`${themeConfig.card} rounded-lg p-4 mb-5 flex gap-3`}>
+        <Info size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+        <ul className={`text-xs space-y-1 ${themeConfig.text.secondary}`}>
+          <li>{t('imageService.retention.ruleExpire')}</li>
+          <li>{t('imageService.retention.ruleQuarantine')}</li>
+          <li>{t('imageService.retention.ruleDisk')}</li>
+          <li>{t('imageService.retention.ruleLegalHold')}</li>
+        </ul>
+      </div>
+
       <div className="flex justify-end mb-5">
         <Button onClick={openCreate}>
           <Plus size={16} className="mr-1.5" /> {t('imageService.retention.newPolicy')}
@@ -149,9 +128,6 @@ export default function ImageServiceRetention() {
                       {t(POLICY_NAME_KEYS[policy.name]?.desc ?? policy.description)}
                     </p>
                   )}
-                  <span className={`inline-block mt-1.5 text-[11px] font-medium ${CLEANUP_MODE_COLORS[policy.cleanupMode] ?? CLEANUP_MODE_COLORS.retention_only}`}>
-                    {t(`imageService.retention.cleanupMode.${policy.cleanupMode ?? 'retention_only'}`)}
-                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => openEdit(policy)}
@@ -161,36 +137,13 @@ export default function ImageServiceRetention() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className={`px-3 py-2.5 rounded-lg ${themeConfig.progressTrack} bg-opacity-50`}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Clock size={13} className="text-cyan-400" />
-                    <span className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.retention.rawRetentionDays')}</span>
+                    <span className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.retention.recordingRetentionDays')}</span>
                   </div>
-                  <span className="text-lg font-bold text-cyan-400">{policy.rawRetentionDays}<span className="text-xs ml-0.5">{t('imageService.retention.days')}</span></span>
-                </div>
-                <div className={`px-3 py-2.5 rounded-lg ${themeConfig.progressTrack} bg-opacity-50`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <ImageIcon size={13} className="text-violet-400" />
-                    <span className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.retention.processedRetentionDays')}</span>
-                  </div>
-                  <span className="text-lg font-bold text-violet-400">{policy.processedRetentionDays}<span className="text-xs ml-0.5">{t('imageService.retention.days')}</span></span>
-                </div>
-                <div className={`px-3 py-2.5 rounded-lg ${themeConfig.progressTrack} bg-opacity-50`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <ImageIcon size={13} className="text-amber-400" />
-                    <span className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.retention.thumbnailRetentionDays')}</span>
-                  </div>
-                  <span className="text-lg font-bold text-amber-400">{policy.thumbnailRetentionDays}<span className="text-xs ml-0.5">{t('imageService.retention.days')}</span></span>
-                </div>
-                <div className={`px-3 py-2.5 rounded-lg ${themeConfig.progressTrack} bg-opacity-50`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Archive size={13} className="text-emerald-400" />
-                    <span className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.retention.archiveEnabled')}</span>
-                  </div>
-                  <span className={`text-lg font-bold ${policy.archiveEnabled ? 'text-emerald-400' : themeConfig.text.secondary}`}>
-                    {policy.archiveEnabled ? t('imageService.retention.on') : t('imageService.retention.off')}
-                  </span>
+                  <span className="text-lg font-bold text-cyan-400">{policy.recordingRetentionDays}<span className="text-xs ml-0.5">{t('imageService.retention.days')}</span></span>
                 </div>
               </div>
 
@@ -228,106 +181,15 @@ export default function ImageServiceRetention() {
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} resize-none`} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.retention.rawRetentionDays')} <span className="text-red-400">*</span>
-              </label>
-              <input type="number" min={1} value={form.rawRetentionDays}
-                onChange={e => setForm(p => ({ ...p, rawRetentionDays: parseInt(e.target.value) || 1 }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.retention.processedRetentionDays')} <span className="text-red-400">*</span>
-              </label>
-              <input type="number" min={1} value={form.processedRetentionDays}
-                onChange={e => setForm(p => ({ ...p, processedRetentionDays: parseInt(e.target.value) || 1 }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.retention.thumbnailRetentionDays')} <span className="text-red-400">*</span>
-              </label>
-              <input type="number" min={1} value={form.thumbnailRetentionDays}
-                onChange={e => setForm(p => ({ ...p, thumbnailRetentionDays: parseInt(e.target.value) || 1 }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
-            </div>
-          </div>
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input type="checkbox" checked={form.archiveEnabled}
-              onChange={e => setForm(p => ({ ...p, archiveEnabled: e.target.checked }))}
-              className="w-4 h-4 rounded accent-cyan-500" />
-            <span className={`text-sm font-medium ${themeConfig.text.primary}`}>
-              {t('imageService.retention.archiveEnabled')}
-            </span>
-          </label>
-          {form.archiveEnabled && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                  {t('imageService.retention.archiveRawDays')}
-                </label>
-                <input type="number" value={form.archiveRawDays ?? ''}
-                  onChange={e => setForm(p => ({ ...p, archiveRawDays: e.target.value ? parseInt(e.target.value) : null }))}
-                  className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                  {t('imageService.retention.coldStorageClass')}
-                </label>
-                <SearchableSelect value={form.coldStorageClass} onChange={v => setForm(p => ({ ...p, coldStorageClass: v }))}
-                  placeholder={t('common.select')}
-                  options={[
-                    { value: 'hot', label: t('imageService.retention.hot') },
-                    { value: 'warm', label: t('imageService.retention.warm') },
-                    { value: 'cold', label: t('imageService.retention.cold') },
-                  ]} />
-              </div>
-            </div>
-          )}
-          <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div>
             <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-              {t('imageService.retention.cleanupModeLabel')}
+              {t('imageService.retention.recordingRetentionDays')} <span className="text-red-400">*</span>
             </label>
-            <SearchableSelect value={form.cleanupMode} onChange={v => setForm(p => ({ ...p, cleanupMode: v }))}
-              placeholder={t('common.select')}
-              options={[
-                { value: 'retention_only', label: t('imageService.retention.cleanupMode.retention_only') },
-                { value: 'retention_watermark', label: t('imageService.retention.cleanupMode.retention_watermark') },
-                { value: 'circular', label: t('imageService.retention.cleanupMode.circular') },
-                { value: 'read_only', label: t('imageService.retention.cleanupMode.read_only') },
-                { value: 'manual', label: t('imageService.retention.cleanupMode.manual') },
-              ]} />
-            <p className={`text-xs mt-1.5 ${themeConfig.text.secondary}`}>
-              {t(`imageService.retention.cleanupModeDesc.${form.cleanupMode}`)}
-            </p>
+            <input type="number" min={1} max={3650} value={form.recordingRetentionDays}
+              onChange={e => setForm(p => ({ ...p, recordingRetentionDays: parseInt(e.target.value) || 1 }))}
+              className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
+            <p className={`text-xs mt-1.5 ${themeConfig.text.secondary}`}>{t('imageService.retention.recordingRetentionHint')}</p>
           </div>
-          {(form.cleanupMode === 'retention_watermark' || form.cleanupMode === 'circular') && (
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.retention.deleteOrderLabel', 'ลำดับการลบไฟล์เมื่อพื้นที่ใกล้เต็ม')}
-              </label>
-              <SearchableSelect value={form.deleteOrder.join(',')}
-                onChange={(v: string) => setForm(p => ({ ...p, deleteOrder: v.split(',') }))}
-                showSearch={false}
-                options={DELETE_ORDER_PRESETS.map((order) => ({
-                  value: order.join(','),
-                  label: order.map((ft) => t(`imageService.retention.fileType.${ft}`, ft)).join(' → '),
-                }))} />
-              <p className={`text-xs mt-1.5 ${themeConfig.text.secondary}`}>
-                {t('imageService.retention.deleteOrderHint', 'ซ้ายสุดถูกลบก่อน — ค่าเริ่มต้นลบภาพย่อก่อนและเก็บไฟล์ต้นฉบับไว้นานที่สุด')}
-              </p>
-            </div>
-          )}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input type="checkbox" checked={form.allowEmergencyCleanup}
-              onChange={e => setForm(p => ({ ...p, allowEmergencyCleanup: e.target.checked }))}
-              className="w-4 h-4 rounded accent-red-500" />
-            <span className={`text-sm font-medium ${themeConfig.text.primary}`}>
-              {t('imageService.retention.allowEmergencyCleanup')}
-            </span>
-          </label>
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input type="checkbox" checked={form.isDefault}
               onChange={e => setForm(p => ({ ...p, isDefault: e.target.checked }))}

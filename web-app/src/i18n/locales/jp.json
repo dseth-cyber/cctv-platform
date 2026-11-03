@@ -556,51 +556,23 @@
       "editPolicy": "ポリシー編集",
       "policyName": "ポリシー名",
       "description": "説明",
-      "rawRetentionDays": "Raw保存日数",
-      "processedRetentionDays": "処理後保存日数",
-      "thumbnailRetentionDays": "サムネイル保存日数",
-      "archiveEnabled": "アーカイブ有効",
-      "archiveRawDays": "アーカイブ実行（日後）",
-      "coldStorageClass": "コールドストレージクラス",
       "camerasUsing": "このポリシーを使用するカメラ",
       "deleteConfirm": "このポリシーを削除してもよろしいですか？",
       "deleteDisabled": "カメラが使用中のポリシーは削除できません",
       "created": "ポリシーを作成しました",
       "updated": "ポリシーを更新しました",
       "deleted": "ポリシーを削除しました",
-      "on": "オン",
-      "off": "オフ",
       "days": "日",
-      "hot": "ホット",
-      "warm": "ウォーム",
-      "cold": "コールド",
       "defaultName": "デフォルト保持",
       "defaultDesc": "本番カメラ用の標準保持ポリシー",
       "longTermName": "長期保持",
       "longTermDesc": "品質検査カメラ用の延長保持ポリシー",
-      "cleanupModeLabel": "クリーンアップモード",
-      "cleanupMode": {
-        "retention_only": "保持期間のみ",
-        "retention_watermark": "保持期間 + ウォーターマーク",
-        "circular": "循環ストレージ (Circular)",
-        "read_only": "読み取り専用（削除しない）",
-        "manual": "手動のみ"
-      },
-      "cleanupModeDesc": {
-        "retention_only": "設定された日数のみでデータを厳密に保持します。ストレージが満杯になった場合、システムは新しい画像の受け入れを停止しアラートを出しますが、データは削除しません。データを絶対に削除できない工場に最適です。",
-        "retention_watermark": "通常どおりデータを保持しますが、ストレージが設定されたしきい値に達すると、期限切れのデータを最初に削除し、次に最も古い残りのデータを、十分な空き容量が確保されるまで削除します。",
-        "circular": "ストレージが満杯になると、DVRのように最も古いデータを自動的に削除します。保持日数は完全に無視されます。",
-        "read_only": "データを一切削除しません。ストレージが危機的な状態になると、システムは処理を停止しアラートを出すだけです。監査・コンプライアンスデータに最適です。",
-        "manual": "自動削除は行われません。管理者が手動でクリーンアップを実行する必要があります。"
-      },
-      "allowEmergencyCleanup": "緊急クリーンアップへの組み込みを許可",
-      "deleteOrderLabel": "容量逼迫時のファイル削除順",
-      "deleteOrderHint": "左端から削除 — 既定ではサムネイルを先に削除し、元ファイルを最後まで保持",
-      "fileType": {
-        "thumbnail": "サムネイル",
-        "processed": "変換済み",
-        "raw": "元ファイル"
-      }
+      "recordingRetentionDays": "録画保存期間（日）",
+      "recordingRetentionHint": "これより古い録画は隔離領域へ移動します（既定 30 日）",
+      "ruleExpire": "ポリシーの日数より古い録画は隔離領域へ移動します（復元可能）",
+      "ruleQuarantine": "隔離領域の録画は 7 日後に完全削除され、削除はすべて監査ログに記録されます",
+      "ruleDisk": "ディスク使用率が 92% に達すると、最も古い録画（隔離領域を優先）から 85% 未満になるまで削除します",
+      "ruleLegalHold": "Legal Hold 中の録画は移動・削除されません"
     },
     "processing": {
       "title": "処理モニター",
@@ -2997,10 +2969,6 @@
       "field_nameJp": "名称（日本語）",
       "field_providerId": "ストレージプロバイダー",
       "field_routingRules": "ルーティングルール",
-      "field_rawRetentionDays": "元ファイル保持（日）",
-      "field_processedRetentionDays": "処理済み保持（日）",
-      "field_thumbnailRetentionDays": "サムネイル保持（日）",
-      "field_archiveEnabled": "アーカイブ有効化",
       "field_alertType": "アラート種類",
       "field_cooldownMinutes": "クールダウン（分）",
       "field_notificationChannels": "通知チャネル",
@@ -3011,7 +2979,8 @@
       "groupStream": "ストリーム元",
       "field_rtspUrl": "RTSP URL（メイン）",
       "field_rtspUrlSub": "RTSP URL（サブ）",
-      "field_streamPath": "ストリームパス"
+      "field_streamPath": "ストリームパス",
+      "field_recordingRetentionDays": "録画保存期間（日）"
     },
     "productionRuns": {
       "title": "生産ラン",

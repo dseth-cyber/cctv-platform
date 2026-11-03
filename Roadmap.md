@@ -41,6 +41,8 @@
 
 - [A] R2.5 (2026-11-03) ถอดระบบ Image Service โรงงานออกจากโปรเจกต์ทั้งหมด (โค้ด API/เว็บ, service ใน compose, ตารางและคอลัมน์ใน DB ผ่าน SQL ที่มี backup และ guard) — tag `legacy-image-service-final` เก็บโค้ดเดิม; ตรวจใน container: CCTV 200 ครบ, endpoint เดิม 404, ตารางเดิม 0
 
+- [x] R2.6 (2026-11-03) นโยบายเก็บไฟล์บันทึกวิดีโอ: 30 วัน → quarantine → ลบถาวรหลัง 7 วัน, ดิสก์ 92% ลบเก่าสุดจน < 85%, audit ทุกการลบ, Legal Hold ชนะเสมอ — ตรวจใน container แล้ว (CRUD/สิทธิ์/sweep) แต่การลบถาวรจริงยังพิสูจน์แค่ใน unit test; รอผู้ใช้ยอมรับ
+
 ### Phase R3 — Recording → Index → Playback → Export ครบวงจร
 
 เกณฑ์ผ่าน: segment ที่ MediaMTX เขียนจริงถูกลงดัชนีอัตโนมัติ, เล่นย้อนหลังจากไฟล์จริงในเบราว์เซอร์ได้, export ได้ไฟล์ที่เล่นได้และ hash ตรง, ไม่มี seed จำลองในเส้นทางหลัก

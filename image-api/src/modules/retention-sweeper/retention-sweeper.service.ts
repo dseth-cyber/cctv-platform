@@ -3,12 +3,26 @@ import path from 'node:path';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { createAlert } from '../alerts/alerts.service.js';
+import { createAuditLog } from '../audit/audit.service.js';
 
-// ── CCTV recording cleanup [R1.6] ──────────────────────────────────────────────
-// AGENTS.md forbids permanent deletion and requires an approved retention policy
-// before cleanup runs, so recording cleanup is opt-in (RECORDINGS_CLEANUP_ENABLED)
-// and moves segments into a recoverable quarantine directory instead of unlinking.
-// Purging the quarantine is a separate, explicitly approved operation.
+// ── CCTV recording retention (policy approved 2026-11-03) ─────────────────────
+// 1. A recording older than its camera's RetentionPolicy.recordingRetentionDays (default 30) is
+//    moved to quarantine (recoverable).
+// 2. A quarantined recording is deleted permanently RECORDINGS_QUARANTINE_PURGE_DAYS (default 7) later.
+// 3. When the recordings disk reaches the critical watermark (92%), the oldest recordings are deleted
+//    permanently — quarantined ones first — until usage is below the warning watermark (85%).
+// Legal Hold always wins, every permanent deletion is written to the audit log, and nothing runs
+// unless RECORDINGS_CLEANUP_ENABLED=true.
+
+export function getDefaultRecordingRetentionDays(): number {
+  const days = parseInt(process.env.RECORDING_RETENTION_DAYS ?? '30', 10);
+  return Number.isFinite(days) && days > 0 ? days : 30;
+}
+
+export function getQuarantinePurgeDays(): number {
+  const days = parseInt(process.env.RECORDINGS_QUARANTINE_PURGE_DAYS ?? '7', 10);
+  return Number.isFinite(days) && days >= 0 ? days : 7;
+}
 
 export interface RecordingCleanupDirs {
   recordingsDir: string;
@@ -64,7 +78,7 @@ export async function restoreRecordingFromQuarantine(
     logger.error({ err, recordingId: rec.id, quarantinePath: quarantined }, 'Failed to restore recording from quarantine');
     return 'error';
   }
-  await getPrisma().cameraRecording.updateMany({ where: { id: rec.id }, data: { isArchived: false } });
+  await getPrisma().cameraRecording.updateMany({ where: { id: rec.id }, data: { isArchived: false, archivedAt: null } });
   logger.info({ recordingId: rec.id, filePath: original }, 'Recording restored from quarantine for Legal Hold');
   return 'restored';
 }
@@ -84,12 +98,12 @@ export async function quarantineRecording(
 
   const claim = await prisma.cameraRecording.updateMany({
     where: { id: rec.id, legalHold: false, isArchived: false },
-    data: { isArchived: true },
+    data: { isArchived: true, archivedAt: new Date() },
   });
   if (claim.count === 0) return 'skipped_legal_hold';
 
   const release = () =>
-    prisma.cameraRecording.updateMany({ where: { id: rec.id }, data: { isArchived: false } });
+    prisma.cameraRecording.updateMany({ where: { id: rec.id }, data: { isArchived: false, archivedAt: null } });
 
   if (!rec.filePath || !fs.existsSync(rec.filePath)) {
     // Index row with no file on disk; archiving the row is all there is to do.
@@ -127,49 +141,138 @@ export async function quarantineRecording(
   return 'moved';
 }
 
+export type DeleteOutcome = 'deleted' | 'skipped_legal_hold' | 'skipped_outside_root' | 'error';
+
 /**
- * Archives expired CCTV recording segments into quarantine while strictly respecting Legal Hold.
+ * Deletes one recording permanently: its file (from quarantine when archived, else from its place)
+ * and its index row. Re-checks Legal Hold right before touching the file.
+ */
+export async function deleteRecordingPermanently(
+  rec: { id: string; filePath: string | null; isArchived: boolean },
+  dirs: RecordingCleanupDirs,
+): Promise<DeleteOutcome> {
+  const prisma = getPrisma();
+  const current = await prisma.cameraRecording.findFirst({ where: { id: rec.id, legalHold: false }, select: { id: true } });
+  if (!current) return 'skipped_legal_hold';
+
+  if (rec.filePath) {
+    const original = path.resolve(rec.filePath);
+    const rel = path.relative(dirs.recordingsDir, original);
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+      logger.warn({ recordingId: rec.id, filePath: original }, 'Recording file is outside RECORDINGS_DIR; refusing to delete it');
+      return 'skipped_outside_root';
+    }
+    const target = rec.isArchived ? path.join(dirs.quarantineDir, rel) : original;
+    try {
+      if (fs.existsSync(target)) fs.unlinkSync(target);
+    } catch (err) {
+      logger.error({ err, recordingId: rec.id, filePath: target }, 'Failed to delete recording file');
+      return 'error';
+    }
+  }
+  const removed = await prisma.cameraRecording.deleteMany({ where: { id: rec.id, legalHold: false } });
+  if (removed.count === 0) {
+    // A hold arrived between the check and the delete: the row stays, the file is already gone.
+    logger.error({ recordingId: rec.id }, 'Legal Hold placed while the recording was being deleted; file already removed');
+    return 'skipped_legal_hold';
+  }
+  return 'deleted';
+}
+
+async function auditPermanentDeletion(reason: string, ids: string[], extra: Record<string, unknown> = {}) {
+  if (ids.length === 0) return;
+  await createAuditLog({
+    action: 'recording_purge',
+    entity: 'camera_recording',
+    description: `${ids.length} recording segment(s) deleted permanently (${reason})`,
+    metadata: { reason, count: ids.length, recordingIds: ids.slice(0, 200), truncated: ids.length > 200, ...extra },
+  }).catch((err) => logger.error({ err, reason, count: ids.length }, 'Failed to write recording purge audit log'));
+}
+
+/**
+ * Deletes quarantined recordings permanently once they have sat in quarantine for the purge period.
+ */
+export async function purgeQuarantinedRecordings(options?: {
+  enabled?: boolean;
+  dirs?: Partial<RecordingCleanupDirs>;
+  purgeDays?: number;
+  now?: Date;
+}): Promise<{ enabled: boolean; deleted: number; skippedLegalHold: number; errors: number }> {
+  const result = { enabled: options?.enabled ?? isRecordingCleanupEnabled(), deleted: 0, skippedLegalHold: 0, errors: 0 };
+  if (!result.enabled) return result;
+  const prisma = getPrisma();
+  const dirs = getRecordingCleanupDirs(options?.dirs);
+  const days = options?.purgeDays ?? getQuarantinePurgeDays();
+  const cutoff = new Date((options?.now ?? new Date()).getTime() - days * 86_400_000);
+
+  const due = await prisma.cameraRecording.findMany({
+    where: { isArchived: true, legalHold: false, archivedAt: { lte: cutoff } },
+    select: { id: true, filePath: true, isArchived: true },
+    orderBy: { archivedAt: 'asc' },
+    take: 500,
+  });
+  const deletedIds: string[] = [];
+  for (const rec of due) {
+    const outcome = await deleteRecordingPermanently(rec, dirs);
+    if (outcome === 'deleted') deletedIds.push(rec.id);
+    else if (outcome === 'skipped_legal_hold') result.skippedLegalHold++;
+    else result.errors++;
+  }
+  result.deleted = deletedIds.length;
+  await auditPermanentDeletion('quarantine_expired', deletedIds, { purgeDays: days });
+  if (result.deleted || result.errors) logger.info(result, 'Quarantine purge completed');
+  return result;
+}
+
+/**
+ * Moves recordings older than their camera's retention period into quarantine, respecting Legal Hold.
  */
 export async function sweepExpiredRecordings(options?: {
   defaultRetentionDays?: number;
   dirs?: Partial<RecordingCleanupDirs>;
   enabled?: boolean;
+  now?: Date;
 }): Promise<{ enabled: boolean; quarantined: number; missingFiles: number; errors: number; skippedLegalHold: number }> {
   const result = { enabled: options?.enabled ?? isRecordingCleanupEnabled(), quarantined: 0, missingFiles: 0, errors: 0, skippedLegalHold: 0 };
   if (!result.enabled) return result;
 
   const prisma = getPrisma();
   const dirs = getRecordingCleanupDirs(options?.dirs);
-  const retentionDays = options?.defaultRetentionDays ?? 7;
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-  const now = new Date();
-  const expiredWhere = {
-    OR: [
-      { retentionUntil: { lte: now } },
-      { createdAt: { lte: cutoffDate } },
-    ],
-  };
+  const now = options?.now ?? new Date();
 
   try {
-    const expiredRecordings = await prisma.cameraRecording.findMany({
-      where: { legalHold: false, isArchived: false, ...expiredWhere },
-      select: { id: true, filePath: true },
-      orderBy: { startTime: 'asc' },
-      take: 500,
+    // Retention period per camera: its policy, else the default policy, else RECORDING_RETENTION_DAYS.
+    const defaultPolicy = await prisma.retentionPolicy.findFirst({ where: { isDefault: true }, select: { recordingRetentionDays: true } });
+    const fallbackDays = options?.defaultRetentionDays ?? defaultPolicy?.recordingRetentionDays ?? getDefaultRecordingRetentionDays();
+    const cameras = await prisma.camera.findMany({
+      select: { id: true, retentionPolicy: { select: { recordingRetentionDays: true } } },
     });
-
-    for (const rec of expiredRecordings) {
-      const outcome = await quarantineRecording(rec, dirs);
-      if (outcome === 'moved') result.quarantined++;
-      else if (outcome === 'missing_file') result.missingFiles++;
-      else if (outcome === 'skipped_legal_hold') result.skippedLegalHold++;
-      else result.errors++;
+    const byDays = new Map<number, string[]>();
+    for (const cam of cameras) {
+      const days = cam.retentionPolicy?.recordingRetentionDays ?? fallbackDays;
+      byDays.set(days, [...(byDays.get(days) ?? []), cam.id]);
     }
 
-    result.skippedLegalHold += await prisma.cameraRecording.count({
-      where: { legalHold: true, isArchived: false, ...expiredWhere },
-    });
+    for (const [days, cameraIds] of byDays) {
+      const cutoff = new Date(now.getTime() - days * 86_400_000);
+      const expiredWhere = { cameraId: { in: cameraIds }, endTime: { lte: cutoff } };
+      const expired = await prisma.cameraRecording.findMany({
+        where: { legalHold: false, isArchived: false, ...expiredWhere },
+        select: { id: true, filePath: true },
+        orderBy: { startTime: 'asc' },
+        take: 500,
+      });
+      for (const rec of expired) {
+        const outcome = await quarantineRecording(rec, dirs);
+        if (outcome === 'moved') result.quarantined++;
+        else if (outcome === 'missing_file') result.missingFiles++;
+        else if (outcome === 'skipped_legal_hold') result.skippedLegalHold++;
+        else result.errors++;
+      }
+      result.skippedLegalHold += await prisma.cameraRecording.count({
+        where: { legalHold: true, isArchived: false, ...expiredWhere },
+      });
+    }
 
     if (result.quarantined > 0 || result.missingFiles > 0 || result.errors > 0) {
       logger.info(result, 'Recording retention sweep completed');
@@ -208,14 +311,14 @@ function readStatfs(dirPath: string): StatfsInfo {
   return { totalBytes, freeBytes, usedPercent };
 }
 
-/** Stop evicting when this many consecutive moves free no space (quarantine on the same filesystem). */
+/** Stop evicting when this many consecutive deletions free no space (e.g. files already missing). */
 const INEFFECTIVE_EVICTION_LIMIT = 10;
 
 /**
  * Checks disk high-watermark for the CCTV recordings directory [ENH-03].
  * At the critical threshold, and only when cleanup is enabled, the oldest non-legal-hold
- * segments are moved to quarantine until usage drops below the warning threshold.
- * Usage is re-measured from the filesystem after every move rather than estimated from DB sizes.
+ * recordings are deleted permanently — quarantined ones first — until usage drops below the
+ * warning threshold, so cameras can keep recording. Usage is re-measured after every deletion.
  */
 export async function checkDiskHighWatermarkAndEvict(options?: {
   directoryPath?: string;
@@ -295,23 +398,24 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
     return { status: 'critical_cleanup_disabled', usedPercent, totalBytes, freeBytes, ...base };
   }
 
-  logger.warn({ usedPercent, critThreshold }, 'Disk usage critical — initiating emergency FIFO eviction to quarantine');
+  logger.warn({ usedPercent, critThreshold }, 'Disk usage critical — deleting oldest recordings');
   await createAlert({
     alertType: 'disk_space',
     severity: 'critical',
     source: 'disk_watermark_monitor',
     title: 'Emergency FIFO Eviction Triggered',
-    message: `Recording disk usage is critical at ${usedPercent.toFixed(1)}% (Threshold: ${critThreshold}%). Moving oldest non-legal-hold recordings to quarantine until usage < ${targetPercent}%.`,
+    message: `Recording disk usage is critical at ${usedPercent.toFixed(1)}% (Threshold: ${critThreshold}%). Deleting the oldest non-legal-hold recordings (quarantined first) until usage < ${targetPercent}%.`,
     details: { usedPercent, critThreshold, targetPercent, totalBytes, freeBytes, dirPath, quarantineDir: dirs.quarantineDir },
     skipDedup: true,
   });
 
-  const candidateRecordings = await prisma.cameraRecording.findMany({
-    where: { legalHold: false, isArchived: false },
-    select: { id: true, filePath: true },
-    orderBy: { startTime: 'asc' },
-    take: 500,
-  });
+  // Already-expired (quarantined) recordings go first, then the oldest live ones.
+  const select = { id: true, filePath: true, isArchived: true } as const;
+  const candidateRecordings = [
+    ...(await prisma.cameraRecording.findMany({ where: { legalHold: false, isArchived: true }, select, orderBy: { startTime: 'asc' }, take: 500 })),
+    ...(await prisma.cameraRecording.findMany({ where: { legalHold: false, isArchived: false }, select, orderBy: { startTime: 'asc' }, take: 500 })),
+  ];
+  const deletedIds: string[] = [];
 
   let current = diskInfo;
   let evictedCount = 0;
@@ -322,11 +426,12 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
   for (const rec of candidateRecordings) {
     if (current.usedPercent < targetPercent) break;
 
-    const outcome = await quarantineRecording(rec, dirs);
+    const outcome = await deleteRecordingPermanently(rec, dirs);
     if (outcome === 'skipped_legal_hold') skippedLegalHold++;
-    if (outcome !== 'moved') continue;
+    if (outcome !== 'deleted') continue;
 
     evictedCount++;
+    deletedIds.push(rec.id);
     const before = current.freeBytes;
     current = await measure();
     movesWithoutGain = current.freeBytes > before ? 0 : movesWithoutGain + 1;
@@ -336,8 +441,13 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
     }
   }
 
-  skippedLegalHold += await prisma.cameraRecording.count({ where: { legalHold: true, isArchived: false } });
+  skippedLegalHold += await prisma.cameraRecording.count({ where: { legalHold: true } });
   const bytesFreed = Math.max(0, current.freeBytes - freeBytes);
+  await auditPermanentDeletion('disk_critical', deletedIds, {
+    usedPercentBefore: usedPercent,
+    usedPercentAfter: current.usedPercent,
+    criticalThresholdPercent: critThreshold,
+  });
 
   if (ineffective || (evictedCount > 0 && current.freeBytes <= freeBytes)) {
     ineffective = true;
@@ -346,15 +456,15 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
       severity: 'critical',
       source: 'disk_watermark_monitor',
       title: 'Emergency Eviction Did Not Free Space',
-      message: `Moved ${evictedCount} recordings to quarantine but usage is still ${current.usedPercent.toFixed(1)}%. Quarantine (${dirs.quarantineDir}) is likely on the same filesystem; purge or relocate it after approval.`,
-      details: { evictedCount, usedPercent: current.usedPercent, dirPath, quarantineDir: dirs.quarantineDir },
+      message: `Deleted ${evictedCount} recordings but usage is still ${current.usedPercent.toFixed(1)}%. Something other than recordings is filling ${dirPath}, or the remaining recordings are on Legal Hold.`,
+      details: { evictedCount, usedPercent: current.usedPercent, dirPath },
       skipDedup: true,
     });
   }
 
   logger.warn(
     { evictedCount, bytesFreed, initialUsedPercent: usedPercent, finalUsedPercent: current.usedPercent, skippedLegalHold, ineffective },
-    'Emergency FIFO eviction completed'
+    'Emergency recording deletion completed'
   );
 
   return {

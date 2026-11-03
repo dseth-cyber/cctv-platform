@@ -25,7 +25,7 @@ describe('Legal Hold restores a quarantined segment', () => {
       expect(outcome).toBe('restored');
       expect(fs.readFileSync(original, 'utf8')).toBe('evidence');
       expect(fs.existsSync(quarantined)).toBe(false);
-      expect(updateMany).toHaveBeenCalledWith({ where: { id: 'r1' }, data: { isArchived: false } });
+      expect(updateMany).toHaveBeenCalledWith({ where: { id: 'r1' }, data: { isArchived: false, archivedAt: null } });
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

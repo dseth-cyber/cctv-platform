@@ -137,11 +137,6 @@ async function main() {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'การจัดเก็บเริ่มต้น (Default)',
       description: 'Standard retention policy for production cameras',
-      rawRetentionDays: 7,
-      processedRetentionDays: 90,
-      thumbnailRetentionDays: 365,
-      archiveEnabled: false,
-      coldStorageClass: 'cold',
       isDefault: true,
     },
   });
@@ -154,12 +149,7 @@ async function main() {
       id: '00000000-0000-0000-0000-000000000002',
       name: 'การจัดเก็บระยะยาว (Long-Term)',
       description: 'Extended retention for quality inspection cameras',
-      rawRetentionDays: 30,
-      processedRetentionDays: 365,
-      thumbnailRetentionDays: 730,
-      archiveEnabled: true,
-      archiveRawDays: 25,
-      coldStorageClass: 'cold',
+      recordingRetentionDays: 90,
     },
   });
   console.log(`  Long-term retention policy: ${longTermPolicy.name}`);

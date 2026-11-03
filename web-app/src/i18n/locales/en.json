@@ -662,51 +662,23 @@
       "editPolicy": "Edit Policy",
       "policyName": "Policy Name",
       "description": "Description",
-      "rawRetentionDays": "Raw Retention (Days)",
-      "processedRetentionDays": "Processed Retention (Days)",
-      "thumbnailRetentionDays": "Thumbnail Retention (Days)",
-      "archiveEnabled": "Archive Enabled",
-      "archiveRawDays": "Archive Raw After (Days)",
-      "coldStorageClass": "Cold Storage Class",
       "camerasUsing": "Cameras Using This Policy",
       "deleteConfirm": "Are you sure you want to delete this policy?",
       "deleteDisabled": "Cannot delete a policy that is in use by cameras",
       "created": "Policy created successfully",
       "updated": "Policy updated successfully",
       "deleted": "Policy deleted successfully",
-      "on": "ON",
-      "off": "OFF",
       "days": "d",
-      "hot": "Hot",
-      "warm": "Warm",
-      "cold": "Cold",
       "defaultName": "Default Retention",
       "defaultDesc": "Standard retention policy for production cameras",
       "longTermName": "Long-Term Retention",
       "longTermDesc": "Extended retention for quality inspection cameras",
-      "cleanupModeLabel": "Cleanup Mode",
-      "cleanupMode": {
-        "retention_only": "Retention Only",
-        "retention_watermark": "Retention + Watermark",
-        "circular": "Circular Storage",
-        "read_only": "Read Only",
-        "manual": "Manual Only"
-      },
-      "cleanupModeDesc": {
-        "retention_only": "Keeps data strictly by day count. If storage fills up, the system stops accepting new images and alerts instead of deleting anything. Best for factories that must never delete data.",
-        "retention_watermark": "Retains data normally, but once storage hits the configured threshold, expired data is deleted first, then the oldest remaining data, until enough space is freed.",
-        "circular": "Automatically deletes the oldest data when storage fills up, like a DVR — ignores retention days entirely.",
-        "read_only": "Never deletes anything. When storage becomes critical, the system only stops processing and alerts. Best for audit/compliance data.",
-        "manual": "No automatic deletion — an administrator must trigger cleanup manually."
-      },
-      "allowEmergencyCleanup": "Allow inclusion in Emergency Cleanup",
-      "deleteOrderLabel": "File deletion order under space pressure",
-      "deleteOrderHint": "Leftmost is deleted first — the default removes thumbnails first and keeps originals longest",
-      "fileType": {
-        "thumbnail": "Thumbnail",
-        "processed": "Processed",
-        "raw": "Original (Raw)"
-      }
+      "recordingRetentionDays": "Keep recordings (days)",
+      "recordingRetentionHint": "Older recordings move to quarantine (default 30 days)",
+      "ruleExpire": "Recordings older than the policy days are moved to quarantine (still restorable)",
+      "ruleQuarantine": "Quarantined recordings are permanently deleted after 7 days, and every deletion is audited",
+      "ruleDisk": "At 92% disk usage the oldest recordings are deleted first (quarantine first) until below 85%",
+      "ruleLegalHold": "Recordings under Legal Hold are never moved or deleted"
     },
     "processing": {
       "title": "Processing Monitor",
@@ -3079,10 +3051,6 @@
       "field_nameJp": "Name (JP)",
       "field_providerId": "Storage Provider",
       "field_routingRules": "Routing Rules",
-      "field_rawRetentionDays": "Raw Retention (Days)",
-      "field_processedRetentionDays": "Processed Retention (Days)",
-      "field_thumbnailRetentionDays": "Thumbnail Retention (Days)",
-      "field_archiveEnabled": "Enable Archive",
       "field_alertType": "Alert Type",
       "field_cooldownMinutes": "Cooldown (Minutes)",
       "field_notificationChannels": "Notification Channels",
@@ -3093,7 +3061,8 @@
       "groupStream": "Stream source",
       "field_rtspUrl": "RTSP URL (main)",
       "field_rtspUrlSub": "RTSP URL (sub)",
-      "field_streamPath": "Stream path"
+      "field_streamPath": "Stream path",
+      "field_recordingRetentionDays": "Keep recordings (days)"
     },
     "productionRuns": {
       "title": "Production Runs",

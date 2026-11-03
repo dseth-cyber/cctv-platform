@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createRetentionPolicySchema, updateRetentionPolicySchema } from './retention.schema.js';
 import * as retentionService from './retention.service.js';
-import { sweepExpiredRecordings } from '../retention-sweeper/retention-sweeper.service.js';
+import { sweepExpiredRecordings, purgeQuarantinedRecordings } from '../retention-sweeper/retention-sweeper.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { requirePermission } from '../../middleware/rbac.js';
 
@@ -71,7 +71,7 @@ export async function retentionRoutes(app: FastifyInstance): Promise<void> {
   app.delete('/:id', { preHandler: [app.authenticate, requirePermission('retention:delete')] }, deleteHandler);
   app.post('/sweep', { preHandler: [app.authenticate, requirePermission('retention:update')] }, async (_req, reply) => {
     // Recording retention (quarantine, Legal Hold respected); a no-op while cleanup is disabled.
-    const result = await sweepExpiredRecordings();
+    const result = { sweep: await sweepExpiredRecordings(), purge: await purgeQuarantinedRecordings() };
     return reply.send(result);
   });
 }

@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 2) — นโยบายเก็บไฟล์บันทึกวิดีโอ (อนุมัติ 2026-11-03)
+
+- นโยบาย: เก็บ 30 วัน (ปรับรายนโยบายได้ 1–3650) → ย้ายไป quarantine → ลบถาวรหลัง 7 วัน; ดิสก์ ≥ 92% ลบไฟล์เก่าสุดที่ไม่ติด Legal Hold (quarantine ก่อน) จน < 85%; ทุกการลบถาวรเขียน audit `recording_purge` (reason `quarantine_expired` / `disk_critical`); Legal Hold ชนะเสมอ (ตรวจซ้ำก่อนลบ + `deleteMany` แบบมีเงื่อนไข legalHold=false)
+- RetentionPolicy เหลือ name, description, recordingRetentionDays, isDefault; `camera_recordings.archived_at` = เวลาที่ย้ายเข้า quarantine. SQL `prisma/sql/2026-11-03_video_retention.sql` (ลบคอลัมน์ภาพเดิม + enum storage_class/cleanup_mode)
+- ตารางเวลา: sweep + purge ทุกชั่วโมง, ตรวจดิสก์ทุก 10 นาที; ENV `RECORDINGS_CLEANUP_ENABLED` (compose default true), `RECORDING_RETENTION_DAYS=30`, `RECORDINGS_QUARANTINE_PURGE_DAYS=7` (ถ้าไม่ตั้ง ENV เลย โค้ดถือว่าปิด)
+- Web: หน้า Retention เหลือช่องเดียว "เก็บไฟล์บันทึก (วัน)" + กล่องอธิบายกฎ 4 ข้อ, locale 5 ภาษา, required-fields catalog
+- Dev DB migrate แล้ว (backup: `C:\Users\SC34111\AppData\Local\Temp\claude\d--Qwen-DVR\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_video_retention.dump`, 29 ตาราง). นโยบายเดิมทั้ง 2 อันได้ 30 วัน — Long-Term ปรับเป็นค่าที่ต้องการในหน้า Retention
+- ตรวจ: tsc API/web, vitest 93 passed; ใน container: list/create(45)/patch(60)/delete 204, 0 วัน → 400, viewer sweep → 403, sweep+purge ทำงาน (ตอนนี้ไม่มีไฟล์เก่ากว่า 30 วัน จึงไม่มีอะไรถูกย้าย/ลบ), bundle เว็บไม่มี key เดิม
+- ยังไม่ได้พิสูจน์บนข้อมูลจริง: การลบถาวรจริงจาก quarantine และการลบตอนดิสก์ 92% (ครอบคลุมด้วย unit test เท่านั้น); quarantine อยู่ดิสก์เดียวกับ recordings จึงไม่คืนพื้นที่จนกว่าจะ purge
+- พบระหว่างทาง: id ที่ไม่ใช่ UUID ใน `/:id` ทุกโมดูลได้ 500 (Prisma P2023) แทน 404 — ยังไม่แก้
+
 ## งานล่าสุด (2026-11-03) — ถอดระบบ Image Service เดิมออกจากโปรเจกต์
 
 - git tag `legacy-image-service-final` (push แล้ว) = commit สุดท้ายที่ยังมีโค้ดเดิม — กู้ได้ด้วย `git checkout legacy-image-service-final -- <path>`

@@ -662,51 +662,23 @@
       "editPolicy": "แก้ไขนโยบาย",
       "policyName": "ชื่อนโยบาย",
       "description": "คำอธิบาย",
-      "rawRetentionDays": "เก็บภาพต้นฉบับ (วัน)",
-      "processedRetentionDays": "เก็บภาพประมวลผล (วัน)",
-      "thumbnailRetentionDays": "เก็บ Thumbnail (วัน)",
-      "archiveEnabled": "เปิดใช้งานการ Archive",
-      "archiveRawDays": "Archive ภาพต้นฉบับหลังจาก (วัน)",
-      "coldStorageClass": "ประเภท Cold Storage",
       "camerasUsing": "กล้องที่ใช้นโยบายนี้",
       "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบนโยบายนี้?",
       "deleteDisabled": "ไม่สามารถลบนโยบายที่มีกล้องใช้งานอยู่",
       "created": "เพิ่มนโยบายสำเร็จ",
       "updated": "อัปเดตนโยบายสำเร็จ",
       "deleted": "ลบนโยบายสำเร็จ",
-      "on": "เปิด",
-      "off": "ปิด",
       "days": "วัน",
-      "hot": "ร้อน",
-      "warm": "อุ่น",
-      "cold": "เย็น",
       "defaultName": "ค่าเริ่มต้น",
       "defaultDesc": "นโยบายมาตรฐานสำหรับกล้องถ่ายภาพในการผลิต",
       "longTermName": "ระยะยาว",
       "longTermDesc": "นโยบายขยายเวลาสำหรับกล้องตรวจสอบคุณภาพ",
-      "cleanupModeLabel": "โหมดการล้างข้อมูล",
-      "cleanupMode": {
-        "retention_only": "เก็บตามระยะเวลาเท่านั้น",
-        "retention_watermark": "เก็บตามระยะเวลา + จำกัดพื้นที่",
-        "circular": "วนเขียนทับ (Circular)",
-        "read_only": "อ่านอย่างเดียว (ไม่ลบ)",
-        "manual": "ล้างข้อมูลด้วยตนเองเท่านั้น"
-      },
-      "cleanupModeDesc": {
-        "retention_only": "เก็บข้อมูลตามจำนวนวันที่กำหนดเท่านั้น หากพื้นที่จัดเก็บเต็ม ระบบจะหยุดรับภาพใหม่และแจ้งเตือน แทนที่จะลบข้อมูล เหมาะกับโรงงานที่ห้ามลบข้อมูล",
-        "retention_watermark": "เก็บตามระยะเวลาปกติ แต่หากพื้นที่จัดเก็บถึงเกณฑ์ที่กำหนด ระบบจะเริ่มลบข้อมูลเก่าที่หมดอายุก่อน แล้วจึงลบข้อมูลเก่าที่สุดถัดไปจนกว่าพื้นที่จะเพียงพอ",
-        "circular": "ลบข้อมูลเก่าที่สุดโดยอัตโนมัติเมื่อพื้นที่เต็ม คล้ายกล้องวงจรปิดแบบ DVR ไม่สนใจระยะเวลาการเก็บ",
-        "read_only": "ไม่ลบข้อมูลใดๆ เลย เมื่อพื้นที่จัดเก็บวิกฤต ระบบจะหยุดประมวลผลและแจ้งเตือนเท่านั้น เหมาะกับข้อมูลตรวจสอบ (Audit/Compliance)",
-        "manual": "ไม่ลบข้อมูลอัตโนมัติ ต้องให้ผู้ดูแลระบบสั่งล้างข้อมูลด้วยตนเองเท่านั้น"
-      },
-      "allowEmergencyCleanup": "อนุญาตให้รวมอยู่ในการล้างข้อมูลฉุกเฉิน",
-      "deleteOrderLabel": "ลำดับการลบไฟล์เมื่อพื้นที่ใกล้เต็ม",
-      "deleteOrderHint": "ซ้ายสุดถูกลบก่อน — ค่าเริ่มต้นลบภาพย่อก่อนและเก็บไฟล์ต้นฉบับไว้นานที่สุด",
-      "fileType": {
-        "thumbnail": "ภาพย่อ",
-        "processed": "ไฟล์แปลงแล้ว",
-        "raw": "ไฟล์ต้นฉบับ"
-      }
+      "recordingRetentionDays": "เก็บไฟล์บันทึก (วัน)",
+      "recordingRetentionHint": "ไฟล์ที่เก่ากว่านี้จะถูกย้ายไป quarantine (ค่าเริ่มต้น 30 วัน)",
+      "ruleExpire": "ไฟล์บันทึกที่เก่ากว่าจำนวนวันของนโยบาย จะถูกย้ายไป quarantine (ยังกู้คืนได้)",
+      "ruleQuarantine": "ไฟล์ใน quarantine จะถูกลบถาวรหลัง 7 วัน และบันทึกลง Audit Log ทุกครั้ง",
+      "ruleDisk": "เมื่อดิสก์ใช้ถึง 92% ระบบจะลบไฟล์เก่าที่สุดก่อน (เริ่มจาก quarantine) จนต่ำกว่า 85%",
+      "ruleLegalHold": "ไฟล์ที่ติด Legal Hold จะไม่ถูกย้ายหรือลบในทุกกรณี"
     },
     "processing": {
       "title": "จอภาพการประมวลผล",
@@ -3082,10 +3054,6 @@
       "field_nameJp": "ชื่อ (ญี่ปุ่น)",
       "field_providerId": "ผู้ให้บริการจัดเก็บ",
       "field_routingRules": "กฎการจัดเส้นทาง",
-      "field_rawRetentionDays": "เก็บไฟล์ดิบ (วัน)",
-      "field_processedRetentionDays": "เก็บไฟล์ที่ประมวลผล (วัน)",
-      "field_thumbnailRetentionDays": "เก็บภาพย่อ (วัน)",
-      "field_archiveEnabled": "เปิดใช้การจัดเก็บถาวร",
       "field_alertType": "ประเภทการแจ้งเตือน",
       "field_cooldownMinutes": "ระยะเวลาหน่วง (นาที)",
       "field_notificationChannels": "ช่องทางการแจ้งเตือน",
@@ -3096,7 +3064,8 @@
       "groupStream": "แหล่งสตรีม",
       "field_rtspUrl": "RTSP URL (สตรีมหลัก)",
       "field_rtspUrlSub": "RTSP URL (สตรีมรอง)",
-      "field_streamPath": "Stream path"
+      "field_streamPath": "Stream path",
+      "field_recordingRetentionDays": "เก็บไฟล์บันทึก (วัน)"
     },
     "productionRuns": {
       "title": "รอบการผลิต",
