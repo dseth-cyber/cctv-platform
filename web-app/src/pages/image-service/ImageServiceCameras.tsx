@@ -58,6 +58,15 @@ function previewRtspUrl(tpl: any, ip: string, port: string, channel: string, use
 // A stored RTSP URL comes back redacted (user:********@); sending it back means "unchanged".
 const isRedactedRtsp = (url?: string | null) => !!url && url.includes('********');
 
+// Save/restore errors the operator can act on, in their language; anything else stays generic.
+function cameraErrorMessage(e: any, t: (k: string, o?: any) => string): string {
+  const data = e?.response?.data;
+  if (data?.details?.code === 'CAMERA_NAME_TAKEN') return t('imageService.cameras.validation.nameDuplicateError');
+  if (data?.details?.code === 'UNIQUE_VIOLATION') return t('imageService.cameras.validation.duplicateValue');
+  if (e?.response?.status === 400 && data?.message) return `${t('common.error')}: ${data.message}`;
+  return t('common.error');
+}
+
 export default function ImageServiceCameras() {
   const { t, i18n } = useTranslation();
   const { themeConfig } = useTheme();
@@ -354,7 +363,7 @@ export default function ImageServiceCameras() {
       }
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
       setModal({ open: false });
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
+    } catch (e: any) { if (!e?._handled) toast.error(cameraErrorMessage(e, t)); }
     finally { setSubmitting(false); }
   };
 
@@ -531,7 +540,7 @@ export default function ImageServiceCameras() {
       fetchCameraTrash();
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
     } catch (e: any) {
-      if (!e?._handled) toast.error(t('common.error'));
+      if (!e?._handled) toast.error(cameraErrorMessage(e, t));
       fetchCameraTrash();
     } finally { setTrashBulkRestoring(false); }
   }, [trashSelected, t, toast, queryClient, fetchCameraTrash]);
@@ -581,7 +590,7 @@ export default function ImageServiceCameras() {
       toast.success(t('imageService.cameras.restoreCameraSuccess'));
       fetchCameraTrash();
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
-    } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
+    } catch (e: any) { if (!e?._handled) toast.error(cameraErrorMessage(e, t)); }
   }, [t, toast, queryClient, fetchCameraTrash]);
 
   const handleRestoreAllCameraTrash = useCallback(async () => {
@@ -595,7 +604,7 @@ export default function ImageServiceCameras() {
       fetchCameraTrash();
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
     } catch (e: any) {
-      if (!e?._handled) toast.error(t('common.error'));
+      if (!e?._handled) toast.error(cameraErrorMessage(e, t));
       fetchCameraTrash();
     } finally { setRestoringAllTrash(false); }
   }, [filteredTrashData, t, toast, queryClient, fetchCameraTrash]);

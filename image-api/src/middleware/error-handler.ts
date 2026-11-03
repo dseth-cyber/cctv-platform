@@ -51,6 +51,17 @@ export async function errorHandler(
       });
       return;
     }
+    if (error.code === 'P2002') {
+      const fields = (error.meta?.target as string[] | string | undefined) ?? [];
+      logger.warn({ meta: error.meta }, 'Unique constraint violation');
+      await reply.status(409).send({
+        statusCode: 409,
+        error: 'ConflictError',
+        message: `A record with the same ${Array.isArray(fields) ? fields.join(', ') : fields} already exists.`,
+        details: { code: 'UNIQUE_VIOLATION', fields },
+      });
+      return;
+    }
     if (error.code === 'P2025') {
       logger.warn({ meta: error.meta }, 'Record not found for Prisma operation');
       await reply.status(404).send({

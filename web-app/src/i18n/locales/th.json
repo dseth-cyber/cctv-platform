@@ -92,7 +92,8 @@
       "wrongPassword": "รหัสผ่านไม่ถูกต้อง",
       "validation": {
         "nameDuplicateError": "ชื่อกล้องนี้มีอยู่แล้วในระบบ (ชื่อกล้องห้ามซ้ำ)",
-        "ipDuplicateWarning": "คำเตือน: ที่อยู่ IP ซ้ำกับกล้อง \"{{name}}\""
+        "ipDuplicateWarning": "คำเตือน: ที่อยู่ IP ซ้ำกับกล้อง \"{{name}}\"",
+        "duplicateValue": "ค่าบางช่องซ้ำกับกล้องอื่น (เช่น Stream path) — เว้นว่างให้ระบบตั้งให้ หรือเปลี่ยนค่า"
       },
       "clone": "โคลน",
       "bulkClone": "โคลนกลุ่ม",

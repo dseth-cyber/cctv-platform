@@ -24,6 +24,13 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 10) — บันทึกกล้องแล้วได้ "เกิดข้อผิดพลาด"
+
+- สาเหตุ: ชื่อ `IT-SERVER-001` ถูกจองโดยกล้องทดสอบที่ session นี้สร้างแล้วลบ (อยู่ในถังขยะ) — create เช็กชื่อรวมกล้องในถังขยะ แต่ฟอร์มเตือนเฉพาะกล้องที่ใช้งาน และแสดงแค่ "เกิดข้อผิดพลาด"
+- แก้: กล้องในถังขยะไม่จองชื่อ (create/update เช็กเฉพาะ `deletedAt: null`); กู้คืนแล้วชื่อชนกับกล้องที่ใช้งาน → 409 `CAMERA_NAME_TAKEN`; error handler แปลง Prisma P2002 (unique ซ้ำ เช่น stream path) เป็น 409 `UNIQUE_VIOLATION` แทน 500; `ConflictError` รับ details ได้; หน้าเว็บแสดงข้อความตามสาเหตุ (ชื่อซ้ำ / ค่าซ้ำ / ข้อความ validation) ทั้งตอนบันทึกและกู้คืน
+- ตรวจใน container: สร้างด้วยชื่อที่อยู่แค่ในถังขยะ → 201; ชื่อซ้ำกับกล้องที่ใช้งาน → 409; กู้คืนชื่อชน → 409; stream path ซ้ำ → 409 (เดิม 500); vitest 119 passed
+- ถังขยะกล้องตอนนี้มีแต่กล้องทดสอบ (r23-verify-2, zod4-verify ×2, IT-SERVER-001, IT server 001, กล้องประตูหน้า) — ผู้ใช้ล้างได้จากหน้าถังขยะ
+
 ## งานล่าสุด (2026-11-03, รอบ 9) — เพิ่มกล้องแบบ iVMS: ชื่อ / IP / ผู้ใช้ / รหัส แล้วระบบหาเอง
 
 - ฟอร์มหลักเหลือ ชื่อ, IP, ชื่อผู้ใช้, รหัสผ่าน + ปุ่ม "ค้นหาและทดสอบกล้อง"; ยี่ห้อ/พอร์ต/ช่อง/URL เอง/คำอธิบาย/เทมเพลต/SLA/stream path/นโยบายจัดเก็บ ย้ายไป "ตั้งค่าเพิ่มเติม"

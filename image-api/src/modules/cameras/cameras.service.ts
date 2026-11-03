@@ -252,9 +252,10 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
     }
   }
 
-  const existing = await prisma.camera.findFirst({ where: { name: input.name } });
+  // Cameras in the trash do not hold their name; restoreCamera checks for a clash instead.
+  const existing = await prisma.camera.findFirst({ where: { name: input.name, deletedAt: null } });
   if (existing) {
-    throw new ConflictError(`Camera with name '${input.name}' already exists`);
+    throw new ConflictError(`Camera with name '${input.name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
   }
 
   let streamPath = input.streamPath ?? null;
@@ -320,9 +321,9 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   }
 
   if (input.name !== undefined && input.name !== existing.name) {
-    const nameConflict = await prisma.camera.findFirst({ where: { name: input.name } });
+    const nameConflict = await prisma.camera.findFirst({ where: { name: input.name, deletedAt: null } });
     if (nameConflict) {
-      throw new ConflictError(`Camera with name '${input.name}' already exists`);
+      throw new ConflictError(`Camera with name '${input.name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
     }
   }
 
@@ -430,6 +431,10 @@ export async function restoreCamera(id: string) {
   const prisma = getPrisma();
   const camera = await prisma.camera.findUnique({ where: { id } });
   if (!camera) throw new NotFoundError('Camera', id);
+  const clash = await prisma.camera.findFirst({ where: { name: camera.name, deletedAt: null, id: { not: id } } });
+  if (clash) {
+    throw new ConflictError(`Camera with name '${camera.name}' already exists`, { code: 'CAMERA_NAME_TAKEN' });
+  }
 
   await prisma.camera.update({
     where: { id },

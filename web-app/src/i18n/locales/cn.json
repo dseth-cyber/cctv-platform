@@ -87,7 +87,8 @@
       "wrongPassword": "密码不正确",
       "validation": {
         "nameDuplicateError": "该摄像头名称已存在 (摄像头名称必须唯一)",
-        "ipDuplicateWarning": "警告: IP 地址已被摄像头 \"{{name}}\" 使用"
+        "ipDuplicateWarning": "警告: IP 地址已被摄像头 \"{{name}}\" 使用",
+        "duplicateValue": "某些值与其他摄像机重复（如 Stream path），请留空由系统设置或修改"
       },
       "clone": "克隆",
       "bulkClone": "批量克隆",

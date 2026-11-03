@@ -87,7 +87,8 @@
       "wrongPassword": "パスワードが正しくありません",
       "validation": {
         "nameDuplicateError": "このカメラ名は既に存在します (カメラ名は一意である必要があります)",
-        "ipDuplicateWarning": "警告: IP アドレスは既にカメラ \"{{name}}\" で使用されています"
+        "ipDuplicateWarning": "警告: IP アドレスは既にカメラ \"{{name}}\" で使用されています",
+        "duplicateValue": "他のカメラと重複している値があります（例: Stream path）。空欄にして自動設定にするか、変更してください"
       },
       "clone": "複製",
       "bulkClone": "一括複製",
