@@ -37,7 +37,23 @@ const emptyForm = () => ({
   rtspUrl: '', rtspUrlSub: '', streamPath: '',
   templateId: '',
   slaTargetPercent: '',
+  // Simple setup: the server builds the RTSP URLs from these. 'manual' = type the full URLs.
+  connMode: 'simple' as 'simple' | 'manual',
+  brand: 'Hikvision', rtspPort: '554', channel: '1', username: 'admin', password: '',
 });
+
+// Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
+function previewRtspUrl(tpl: any, ip: string, port: string, channel: string, username: string, sub = false): string {
+  if (!tpl || !ip) return '';
+  const pattern: string = sub ? tpl.subStreamPattern : tpl.mainStreamPattern;
+  const credsInPath = /\{username\}|\{password\}/.test(pattern);
+  const auth = !credsInPath && username ? `${encodeURIComponent(username)}:********@` : '';
+  const path = pattern
+    .replace(/\{channel\}/g, channel || '1')
+    .replace(/\{username\}/g, encodeURIComponent(username))
+    .replace(/\{password\}/g, '********');
+  return `rtsp://${auth}${ip}:${port || '554'}${path}`;
+}
 
 // A stored RTSP URL comes back redacted (user:********@); sending it back means "unchanged".
 const isRedactedRtsp = (url?: string | null) => !!url && url.includes('********');
@@ -78,6 +94,13 @@ export default function ImageServiceCameras() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<{ open: boolean; item?: any | null }>({ open: false });
   const [form, setForm] = useState(emptyForm());
+  const [probe, setProbe] = useState<{ state: 'idle' | 'running' | 'ok' | 'fail'; latencyMs?: number }>({ state: 'idle' });
+  const { data: brandTemplates = [] } = useQuery({
+    queryKey: ['device-templates'],
+    queryFn: () => imageServiceApi.getDeviceTemplates(),
+    staleTime: Infinity,
+  });
+  const brandTemplate = (brandTemplates as any[]).find((b: any) => b.brand === form.brand);
   const [submitting, setSubmitting] = useState(false);
 
   // Delete camera state
@@ -210,18 +233,27 @@ export default function ImageServiceCameras() {
     if (defaultRetention) {
       formInit.retentionPolicyId = defaultRetention.id;
     }
+    setProbe({ state: 'idle' });
     setForm(formInit);
     setModal({ open: true, item: null });
   };
-  const formFromCamera = (item: any) => ({
-    name: item.name, ipAddress: item.ipAddress ?? '',
-    retentionPolicyId: item.retentionPolicyId ?? '', description: item.description ?? '',
-    rtspUrl: item.rtspUrl ?? '', rtspUrlSub: item.rtspUrlSub ?? '', streamPath: item.streamPath ?? '',
-    templateId: item.templateId ?? '',
-    slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
-  });
+  const formFromCamera = (item: any) => {
+    // Cameras saved through the simple setup keep brand/port/channel/username (never the password) in metadata.
+    const conn = item.metadata?.connection;
+    return {
+      name: item.name, ipAddress: item.ipAddress ?? '',
+      retentionPolicyId: item.retentionPolicyId ?? '', description: item.description ?? '',
+      rtspUrl: item.rtspUrl ?? '', rtspUrlSub: item.rtspUrlSub ?? '', streamPath: item.streamPath ?? '',
+      templateId: item.templateId ?? '',
+      slaTargetPercent: item.slaTargetPercent != null ? String(item.slaTargetPercent) : '',
+      connMode: (conn || !item.rtspUrl ? 'simple' : 'manual') as 'simple' | 'manual',
+      brand: conn?.brand ?? 'Hikvision', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
+      username: conn?.username ?? 'admin', password: '',
+    };
+  };
 
   const openEdit = (item: any) => {
+    setProbe({ state: 'idle' });
     setForm(formFromCamera(item));
     setModal({ open: true, item });
   };
@@ -242,8 +274,16 @@ export default function ImageServiceCameras() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // A new camera needs a stream source; on edit a redacted URL means "unchanged".
-    if (!form.name || !form.retentionPolicyId || (!modal.item && !form.rtspUrl)) {
+    const simple = form.connMode === 'simple';
+    if (!form.name || !form.retentionPolicyId || (!simple && !modal.item && !form.rtspUrl)) {
       toast.warning(t('common.requiredFields')); return;
+    }
+    if (simple && !form.ipAddress.trim()) {
+      toast.warning(t('imageService.cameras.conn.ipRequired')); return;
+    }
+    // A new camera (including a clone) has no stored password to fall back on.
+    if (simple && !modal.item && form.username.trim() && !form.password) {
+      toast.warning(t('imageService.cameras.conn.passwordRequired')); return;
     }
     const isNameDuplicate = cameras.some((c: any) => c.id !== modal.item?.id && c.name.trim().toLowerCase() === form.name.trim().toLowerCase());
     if (isNameDuplicate) {
@@ -252,7 +292,9 @@ export default function ImageServiceCameras() {
     }
     // Enforce admin-configured required fields for the camera form (only fields
     // that have an input in this modal).
-    const cameraFormKeys = ['name', 'ipAddress', 'rtspUrl', 'rtspUrlSub', 'streamPath', 'retentionPolicyId', 'templateId', 'description'];
+    // In simple mode the RTSP URLs are generated, so they always count as filled in.
+    const cameraFormKeys = ['name', 'ipAddress', 'streamPath', 'retentionPolicyId', 'templateId', 'description',
+      ...(simple ? [] : ['rtspUrl', 'rtspUrlSub'])];
     for (const fd of catalogFieldsFor('camera')) {
       if (!cameraFormKeys.includes(fd.key) || !isCameraFieldRequired(fd.key)) continue;
       const val = (form as any)[fd.key];
@@ -270,10 +312,21 @@ export default function ImageServiceCameras() {
           retentionPolicyId: form.retentionPolicyId || null,
           description: form.description,
           templateId: form.templateId || null,
-          rtspUrl: form.rtspUrl || null,
-          rtspUrlSub: form.rtspUrlSub || null,
           slaTargetPercent: form.slaTargetPercent === '' ? null : parseFloat(form.slaTargetPercent),
         };
+        if (simple) {
+          payload.connection = {
+            brand: form.brand,
+            port: parseInt(form.rtspPort, 10) || 554,
+            channel: parseInt(form.channel, 10) || 1,
+            username: form.username.trim(),
+            // Blank on edit keeps the stored password.
+            ...(form.password ? { password: form.password } : {}),
+          };
+        } else {
+          payload.rtspUrl = form.rtspUrl || null;
+          payload.rtspUrlSub = form.rtspUrlSub || null;
+        }
         // Leave the stream path to the server when blank; it is unique and drives MediaMTX.
         if (form.streamPath) payload.streamPath = form.streamPath;
         return payload;
@@ -289,6 +342,17 @@ export default function ImageServiceCameras() {
       setModal({ open: false });
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }
     finally { setSubmitting(false); }
+  };
+
+  const runProbe = async () => {
+    if (!form.ipAddress.trim()) { toast.warning(t('imageService.cameras.conn.ipRequired')); return; }
+    setProbe({ state: 'running' });
+    try {
+      const r = await imageServiceApi.probeDevice({ ipAddress: form.ipAddress.trim(), rtspPort: parseInt(form.rtspPort, 10) || 554 });
+      setProbe(r?.rtspOpen ? { state: 'ok', latencyMs: r.latencyMs } : { state: 'fail' });
+    } catch {
+      setProbe({ state: 'fail' });
+    }
   };
 
   const handleDeactivate = async (id: string) => {
@@ -1140,6 +1204,69 @@ export default function ImageServiceCameras() {
                 </p>
               )}
             </div>
+            {form.connMode === 'simple' ? (
+              <>
+                <div className="col-span-2">
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.brand')}</label>
+                  <SearchableSelect value={form.brand} showSearch={false}
+                    onChange={v => { setProbe({ state: 'idle' }); setForm(p => ({ ...p, brand: v })); }}
+                    options={(brandTemplates as any[]).map((b: any) => ({ value: b.brand, label: b.label }))} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.port')}</label>
+                  <input type="number" min={1} max={65535} value={form.rtspPort}
+                    onChange={e => { setProbe({ state: 'idle' }); setForm(p => ({ ...p, rtspPort: e.target.value })); }}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.channel')}</label>
+                  <input type="number" min={1} max={256} value={form.channel}
+                    onChange={e => setForm(p => ({ ...p, channel: e.target.value }))}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <p className={`col-span-2 -mt-2 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.channelHint')}</p>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.username')}</label>
+                  <input value={form.username} autoComplete="off"
+                    onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.password')}</label>
+                  <input type="password" value={form.password} autoComplete="new-password"
+                    placeholder={modal.item ? t('imageService.cameras.conn.passwordKeep') : ''}
+                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                </div>
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="secondary" onClick={runProbe} disabled={probe.state === 'running'}>
+                      {probe.state === 'running' ? t('imageService.cameras.conn.testing') : t('imageService.cameras.conn.test')}
+                    </Button>
+                    {probe.state === 'ok' && (
+                      <span className="text-xs text-emerald-400">{t('imageService.cameras.conn.testOk', { port: form.rtspPort, ms: probe.latencyMs ?? 0 })}</span>
+                    )}
+                    {probe.state === 'fail' && (
+                      <span className="text-xs text-red-400">{t('imageService.cameras.conn.testFail', { ip: form.ipAddress, port: form.rtspPort })}</span>
+                    )}
+                  </div>
+                  <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.testNote')}</p>
+                </div>
+                {form.ipAddress && brandTemplate && (
+                  <div className="col-span-2">
+                    <p className={`text-xs mb-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.preview')}</p>
+                    <code className={`block text-xs break-all px-3 py-2 rounded-md ${themeConfig.inputBg} ${themeConfig.text.primary}`}>
+                      {previewRtspUrl(brandTemplate, form.ipAddress.trim(), form.rtspPort, form.channel, form.username.trim())}
+                    </code>
+                  </div>
+                )}
+                <button type="button" className="col-span-2 text-left text-xs text-cyan-400 hover:underline"
+                  onClick={() => setForm(p => ({ ...p, connMode: 'manual' }))}>
+                  {t('imageService.cameras.conn.manualToggle')}
+                </button>
+              </>
+            ) : (
+              <>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                 {t('ui.imageServiceCameras.rtspUrlMain')}{!modal.item && <span className="text-red-400"> *</span>}{cameraStar('rtspUrl')}
@@ -1159,6 +1286,12 @@ export default function ImageServiceCameras() {
                 placeholder="rtsp://user:password@192.168.1.64:554/Streaming/Channels/102"
                 className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
             </div>
+                <button type="button" className="col-span-2 text-left text-xs text-cyan-400 hover:underline"
+                  onClick={() => setForm(p => ({ ...p, connMode: 'simple' }))}>
+                  {t('imageService.cameras.conn.simpleToggle')}
+                </button>
+              </>
+            )}
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                 {t('ui.imageServiceCameras.streamPath')}{cameraStar('streamPath')}

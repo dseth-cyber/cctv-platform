@@ -1,6 +1,8 @@
 import { getPrisma } from '../../lib/prisma.js';
-import { NotFoundError, ConflictError } from '../../lib/errors.js';
-import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
+import { randomBytes } from 'node:crypto';
+import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
+import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js';
+import { buildChannelRtspUrl, findDeviceTemplate } from '../devices/devices.service.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
 
@@ -210,6 +212,36 @@ export async function getCameraById(id: string) {
   };
 }
 
+type CameraConnection = NonNullable<CreateCameraInput['connection']>;
+
+/**
+ * RTSP URLs built from the simple setup fields. The password is never stored in metadata — only in
+ * the sealed URLs; a blank password reuses the one in `currentRtspUrl` (editing without retyping it).
+ */
+function urlsFromConnection(conn: CameraConnection, ip: string | null | undefined, currentRtspUrl?: string | null) {
+  if (!ip) throw new ValidationError('ipAddress is required to build the RTSP URL');
+  const password = conn.password ? conn.password : extractRtspPassword(currentRtspUrl);
+  const brand = findDeviceTemplate(conn.brand).brand;
+  const build = (sub: 'main' | 'sub') => buildChannelRtspUrl(brand, ip, conn.port, conn.channel, conn.username || null, password, sub);
+  return {
+    rtspUrl: build('main'),
+    rtspUrlSub: build('sub'),
+    connectionMeta: { brand, port: conn.port, channel: conn.channel, username: conn.username },
+  };
+}
+
+/** A unique MediaMTX path such as `cam/gate-1`, derived from the camera name. */
+async function generateStreamPath(name: string): Promise<string> {
+  const prisma = getPrisma();
+  const slug = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  const base = `cam/${slug || randomBytes(3).toString('hex')}`;
+  for (let i = 1; i < 100; i++) {
+    const candidate = i === 1 ? base : `${base}-${i}`;
+    if (!(await prisma.camera.findFirst({ where: { streamPath: candidate }, select: { id: true } }))) return candidate;
+  }
+  return `${base}-${randomBytes(3).toString('hex')}`;
+}
+
 export async function createCamera(input: CreateCameraInput & { createdBy?: string }) {
   const prisma = getPrisma();
 
@@ -229,6 +261,18 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
   if (!streamPath && input.deviceId && input.channelNumber) {
     streamPath = `device_${input.deviceId.substring(0, 8)}_ch${input.channelNumber}`;
   }
+  // Without a path the camera is never registered in MediaMTX (no live view, no recording).
+  if (!streamPath) streamPath = await generateStreamPath(input.name);
+
+  let rtspUrl = input.rtspUrl;
+  let rtspUrlSub = input.rtspUrlSub;
+  let metadata = input.metadata as Record<string, unknown>;
+  if (input.connection) {
+    const built = urlsFromConnection(input.connection, input.ipAddress);
+    rtspUrl = built.rtspUrl;
+    rtspUrlSub = built.rtspUrlSub;
+    metadata = { ...metadata, connection: built.connectionMeta };
+  }
 
   const camera = await prisma.camera.create({
     data: {
@@ -238,14 +282,14 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       timezone: input.timezone,
       retentionPolicyId: input.retentionPolicyId ?? null,
       templateId: input.templateId ?? null,
-      metadata: input.metadata as object,
+      metadata: metadata as object,
       slaTargetPercent: input.slaTargetPercent ?? null,
       createdBy: input.createdBy ?? null,
       status: 'inactive',
       deviceId: input.deviceId ?? null,
       channelNumber: input.channelNumber ?? null,
-      rtspUrl: sealRtspUrl(input.rtspUrl) ?? null,
-      rtspUrlSub: sealRtspUrl(input.rtspUrlSub) ?? null,
+      rtspUrl: sealRtspUrl(rtspUrl) ?? null,
+      rtspUrlSub: sealRtspUrl(rtspUrlSub) ?? null,
       streamProfile: input.streamProfile ?? undefined,
       mediaNodeId: input.mediaNodeId ?? null,
       streamPath,
@@ -316,6 +360,14 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;
+  if (input.connection) {
+    const ip = input.ipAddress !== undefined ? input.ipAddress : existing.ipAddress;
+    const built = urlsFromConnection(input.connection, ip, existing.rtspUrl);
+    data.rtspUrl = sealRtspUrl(built.rtspUrl);
+    data.rtspUrlSub = sealRtspUrl(built.rtspUrlSub);
+    const base = (input.metadata ?? existing.metadata ?? {}) as Record<string, unknown>;
+    data.metadata = { ...base, connection: built.connectionMeta };
+  }
 
   const updated = await prisma.camera.update({
     where: { id },

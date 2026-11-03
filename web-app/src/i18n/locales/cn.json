@@ -108,7 +108,26 @@
       "templateNone": "无模板（使用系统默认值）",
       "deleteCamera": "删除摄像机",
       "deleteCameraConfirm": "请输入密码以确认删除此摄像机",
-      "deleteCameraSuccess": "摄像机已删除"
+      "deleteCameraSuccess": "摄像机已删除",
+      "conn": {
+        "brand": "摄像机/录像机品牌",
+        "port": "RTSP 端口",
+        "channel": "通道",
+        "channelHint": "单个摄像机填 1；DVR/NVR 请填写通道号",
+        "username": "摄像机用户名",
+        "password": "摄像机密码",
+        "passwordKeep": "留空则保留原密码",
+        "passwordRequired": "请输入摄像机密码",
+        "ipRequired": "请输入摄像机 IP 地址",
+        "test": "测试连接",
+        "testing": "正在测试…",
+        "testOk": "端口 {{port}} 可连接（{{ms}} ms）",
+        "testFail": "无法连接 {{ip}}:{{port}}，请检查 IP、端口或网络",
+        "testNote": "仅检查摄像机端口是否可达，不验证用户名/密码，保存后请在实时画面中确认",
+        "preview": "系统将使用的 URL（已隐藏密码，保存前加密）",
+        "manualToggle": "手动输入 RTSP URL（高级）",
+        "simpleToggle": "返回简易设置（品牌/用户名/密码）"
+      }
     },
     "storageProviders": {
       "title": "存储提供商",
@@ -2894,7 +2913,7 @@
       "rtspUrlHint": "URL 中的账号密码会在保存前加密，之后不会再显示",
       "rtspUrlRedactedHint": "密码已隐藏；保持不变即沿用原值，或输入完整新 URL 以更改",
       "streamPath": "流路径 (MediaMTX)",
-      "streamPathHint": "用于实时查看和录像的路径，必须唯一。DVR/NVR 通道可留空"
+      "streamPathHint": "可留空，系统会根据摄像机名称生成（如 cam/it-server-001）。用于实时画面和录像，不能重复"
     },
     "storageProvidersPage": {
       "nameIsRequired": "名称为必填项",

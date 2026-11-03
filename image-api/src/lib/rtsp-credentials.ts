@@ -56,3 +56,18 @@ export function redactRtspUrl(stored: string | null | undefined): string | null 
 export function isMaskedRtspUrl(url: string | null | undefined): boolean {
   return Boolean(url && url.includes(SECRET_MASK));
 }
+
+/** The password inside a stored RTSP URL (userinfo or a password= path/query param), or null. */
+export function extractRtspPassword(stored: string | null | undefined): string | null {
+  const url = openRtspUrl(stored);
+  if (!url) return null;
+  const userinfo = url.match(/^[a-z][a-z0-9+.-]*:\/\/[^/@:]*:([^/@]*)@/i);
+  const param = userinfo ? null : url.match(/(?:^|[?&;/])(?:password|passwd|pwd|pass)=([^&;/]*)/i);
+  const raw = userinfo?.[1] ?? param?.[1];
+  if (raw === undefined) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}

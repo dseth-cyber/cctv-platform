@@ -4,8 +4,27 @@ import { NotFoundError, ConflictError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
 import type { CreateDeviceInput, UpdateDeviceInput, DeviceQueryInput } from './devices.schema.js';
 
+/** Vendor template for a brand name ("Hikvision", "hilook", "IMOU", ...); unknown brands get Generic. */
+export function findDeviceTemplate(brand: string | null | undefined): DeviceVendorTemplate {
+  const templates = getDeviceTemplates();
+  const b = (brand ?? '').trim().toLowerCase();
+  const exact = templates.find((t) => t.brand.toLowerCase() === b);
+  if (exact) return exact;
+  const alias: [RegExp, string][] = [
+    [/hik|hilook/, 'Hikvision'],
+    [/dahua|imou/, 'Dahua'],
+    [/uniview|\bunv\b/, 'Uniview'],
+    [/hanwha|samsung|wisenet/, 'Hanwha'],
+    [/tiandy/, 'Tiandy'],
+    [/xiongmai|xmeye|\bxm\b/, 'Xiongmai'],
+  ];
+  const hit = alias.find(([re]) => re.test(b));
+  return templates.find((t) => t.brand === (hit?.[1] ?? 'Generic'))!;
+}
+
 /**
- * Builds standard RTSP URL for DVR/NVR channels based on common vendor URL schemes.
+ * Builds the RTSP URL of one camera/channel from the brand's stream pattern (getDeviceTemplates).
+ * Credentials go in the userinfo, or into the path when the pattern has {username}/{password}.
  */
 export function buildChannelRtspUrl(
   brand: string | null | undefined,
@@ -16,29 +35,17 @@ export function buildChannelRtspUrl(
   password?: string | null,
   subtype: 'main' | 'sub' = 'main',
 ): string {
-  const auth = username ? (password ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@` : `${encodeURIComponent(username)}@`) : '';
-  const b = (brand ?? 'generic').toLowerCase();
-
-  // Hikvision / Hilook: rtsp://user:pass@ip:port/Streaming/Channels/{channel}01 (main) or {channel}02 (sub)
-  if (b.includes('hik') || b.includes('hilook')) {
-    const streamCode = subtype === 'main' ? '01' : '02';
-    return `rtsp://${auth}${ip}:${port}/Streaming/Channels/${channel}${streamCode}`;
-  }
-
-  // Dahua / IMOU: rtsp://user:pass@ip:port/cam/realmonitor?channel={channel}&subtype=0 (main) or 1 (sub)
-  if (b.includes('dahua') || b.includes('imou')) {
-    const st = subtype === 'main' ? 0 : 1;
-    return `rtsp://${auth}${ip}:${port}/cam/realmonitor?channel=${channel}&subtype=${st}`;
-  }
-
-  // Uniview / UNV: rtsp://user:pass@ip:port/unicast/c{channel}/s0/live (main) or s1 (sub)
-  if (b.includes('uni') || b.includes('unv')) {
-    const st = subtype === 'main' ? 0 : 1;
-    return `rtsp://${auth}${ip}:${port}/unicast/c${channel}/s${st}/live`;
-  }
-
-  // Generic / Default
-  return `rtsp://${auth}${ip}:${port}/ch${channel}/${subtype}`;
+  const tpl = findDeviceTemplate(brand);
+  const pattern = subtype === 'main' ? tpl.mainStreamPattern : tpl.subStreamPattern;
+  const user = encodeURIComponent(username ?? '');
+  const pass = encodeURIComponent(password ?? '');
+  const credsInPath = /\{username\}|\{password\}/.test(pattern);
+  const auth = !credsInPath && username ? (password ? `${user}:${pass}@` : `${user}@`) : '';
+  const path = pattern
+    .replace(/\{channel\}/g, String(channel))
+    .replace(/\{username\}/g, user)
+    .replace(/\{password\}/g, pass);
+  return `rtsp://${auth}${ip}:${port}${path}`;
 }
 
 export async function listDevices(filters?: DeviceQueryInput) {

@@ -24,6 +24,15 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 8) — เพิ่มกล้องแบบกรอกง่าย (ยี่ห้อ / ชื่อผู้ใช้ / รหัสผ่าน)
+
+- ฟอร์มกล้องค่าเริ่มต้นเป็นแบบง่าย: ยี่ห้อ (จาก `GET /devices/templates` 7 แบบ), IP, พอร์ต RTSP, ช่อง, ชื่อผู้ใช้, รหัสผ่าน + ปุ่ม "ทดสอบการเชื่อมต่อ" (`POST /devices/probe` — ตรวจแค่ TCP) + ตัวอย่าง URL (ซ่อนรหัส); ยังกรอก RTSP URL เต็มเองได้ที่ "ขั้นสูง"
+- API: `connection: { brand, port, channel, username, password? }` บน create/update — server สร้าง rtspUrl/rtspUrlSub เองแล้วเข้ารหัส (client ไม่ต้องใส่รหัสใน URL); แก้ไขโดยเว้นรหัสว่าง = ใช้รหัสเดิม (`extractRtspPassword()`); `metadata.connection` เก็บ brand/port/channel/username **ไม่เก็บรหัส**
+- `buildChannelRtspUrl()` ใช้ pattern จาก `getDeviceTemplates()` ทั้ง 7 ยี่ห้อ (เดิม hard-code 3 ยี่ห้อ, Hanwha/Tiandy/Xiongmai ตกไป generic); URL ของ Hikvision/Dahua/Uniview/Generic เหมือนเดิม
+- **บั๊กที่แก้ไปด้วย:** กล้องเดี่ยวที่เว้น stream path ว่างได้ `null` → path-sync ไม่ลงทะเบียน → ไม่มีภาพสด/ไม่บันทึก; ตอนนี้ server ตั้ง `cam/<ชื่อกล้อง>` ให้ (ไม่ซ้ำ, ชื่อภาษาไทยได้ `cam/<hex>`)
+- ตรวจ: tsc API/web, vitest 110 passed (+ test URL ทุกยี่ห้อ, Xiongmai ใส่รหัสใน path, extractRtspPassword); ใน container ด้วย IP TEST-NET 192.0.2.x (enabled=false): สร้าง → URL ถูก, DB เป็น ciphertext, metadata ไม่มีรหัส; แก้ช่องโดยไม่กรอกรหัส → รหัสเดิมยังอยู่ทั้ง main/sub; path ซ้ำ → `-2`; ไม่มี IP → 400; ลบกล้องทดสอบแล้ว
+- ยังไม่ได้: ทดสอบกับกล้องจริง (ต้องมีอุปกรณ์), ผู้ใช้ยังไม่ได้ลองฟอร์มใหม่
+
 ## งานล่าสุด (2026-11-03, รอบ 7) — ย้ายการเปิด LAN จาก 192.168.60.77 ไป 192.168.30.77
 
 - **แก้ความเข้าใจผิด:** session ก่อนหน้าถือว่าวง 192.168.30.x เป็นวง production เดิม (มาจาก IP ตัวอย่าง `192.168.30.248` ใน `ssl/generate-cert.sh`). ผู้ใช้ยืนยัน 2026-11-03 ว่า production อยู่วง 60 — ตรงกับบันทึกเดิมในไฟล์นี้: `imageservice` 192.168.60.99 และ share กล้อง 192.168.60.70

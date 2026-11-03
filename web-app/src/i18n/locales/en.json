@@ -108,7 +108,26 @@
       "statusActive": "Online",
       "statusError": "Error",
       "statusInactive": "Offline",
-      "statusMaintenance": "Maintenance"
+      "statusMaintenance": "Maintenance",
+      "conn": {
+        "brand": "Camera / recorder brand",
+        "port": "RTSP port",
+        "channel": "Channel",
+        "channelHint": "Use 1 for a standalone camera; for a DVR/NVR enter the channel number",
+        "username": "Camera username",
+        "password": "Camera password",
+        "passwordKeep": "Leave blank to keep the current password",
+        "passwordRequired": "Please enter the camera password",
+        "ipRequired": "Please enter the camera IP address",
+        "test": "Test connection",
+        "testing": "Testing…",
+        "testOk": "Port {{port}} is reachable ({{ms}} ms)",
+        "testFail": "Cannot reach {{ip}}:{{port}} — check the IP, port or network",
+        "testNote": "Only checks that the camera port is reachable, not the username/password — check Live view after saving",
+        "preview": "URL the system will use (password hidden; encrypted before saving)",
+        "manualToggle": "Enter the RTSP URL manually (advanced)",
+        "simpleToggle": "Back to simple setup (brand / username / password)"
+      }
     },
     "incidents": {
       "title": "Incident Management",
@@ -2897,7 +2916,7 @@
       "rtspUrlHint": "Credentials in the URL are encrypted before saving and never shown again",
       "rtspUrlRedactedHint": "The password is hidden; leave it to keep the stored URL, or type a full new URL to change it",
       "streamPath": "Stream path (MediaMTX)",
-      "streamPathHint": "Path used for live view and recording; must be unique. May be left blank for DVR/NVR channels"
+      "streamPathHint": "May be left blank — the system derives it from the camera name (e.g. cam/it-server-001). Used for live view and recording; must be unique"
     },
     "storageProvidersPage": {
       "nameIsRequired": "Name is required",

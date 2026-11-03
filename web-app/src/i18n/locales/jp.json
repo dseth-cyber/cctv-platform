@@ -108,7 +108,26 @@
       "templateNone": "テンプレートなし（システム既定値を使用）",
       "deleteCamera": "カメラを削除",
       "deleteCameraConfirm": "このカメラを削除するにはパスワードを入力してください",
-      "deleteCameraSuccess": "カメラを削除しました"
+      "deleteCameraSuccess": "カメラを削除しました",
+      "conn": {
+        "brand": "カメラ／レコーダーのメーカー",
+        "port": "RTSP ポート",
+        "channel": "チャンネル",
+        "channelHint": "単体カメラは 1、DVR/NVR の場合はチャンネル番号を入力",
+        "username": "カメラのユーザー名",
+        "password": "カメラのパスワード",
+        "passwordKeep": "空欄のままなら現在のパスワードを使用",
+        "passwordRequired": "カメラのパスワードを入力してください",
+        "ipRequired": "カメラの IP アドレスを入力してください",
+        "test": "接続テスト",
+        "testing": "テスト中…",
+        "testOk": "ポート {{port}} に接続できました（{{ms}} ms）",
+        "testFail": "{{ip}}:{{port}} に接続できません。IP、ポート、ネットワークを確認してください",
+        "testNote": "カメラのポートに到達できるかのみ確認し、ユーザー名／パスワードは確認しません。保存後にライブ画面で確認してください",
+        "preview": "システムが使用する URL（パスワードは非表示、保存前に暗号化）",
+        "manualToggle": "RTSP URL を手動で入力（詳細）",
+        "simpleToggle": "簡単設定に戻る（メーカー／ユーザー名／パスワード）"
+      }
     },
     "storageProviders": {
       "title": "ストレージプロバイダー",
@@ -2894,7 +2913,7 @@
       "rtspUrlHint": "URL 内の認証情報は保存前に暗号化され、再表示されません",
       "rtspUrlRedactedHint": "パスワードは非表示です。そのままで既存の URL を維持、変更する場合は新しい URL を入力してください",
       "streamPath": "ストリームパス (MediaMTX)",
-      "streamPathHint": "ライブ表示と録画に使うパス（一意）。DVR/NVR チャンネルは空欄可"
+      "streamPathHint": "空欄可。カメラ名から自動設定されます（例: cam/it-server-001）。ライブ表示と録画に使用し、重複不可"
     },
     "storageProvidersPage": {
       "nameIsRequired": "名前は必須です",

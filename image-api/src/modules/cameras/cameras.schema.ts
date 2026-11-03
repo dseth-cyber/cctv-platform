@@ -3,6 +3,16 @@ import { z } from 'zod';
 // [R2.3] Factory fields (SMB, polling, image processing) are not part of the camera schema any more;
 // see camera-factory.ts.
 
+// Simple camera setup: the server builds rtspUrl/rtspUrlSub from these (see cameras.service.ts).
+// A blank password on update keeps the one already stored.
+export const cameraConnectionSchema = z.object({
+  brand: z.string().min(1).max(32),
+  port: z.number().int().min(1).max(65535).default(554),
+  channel: z.number().int().min(1).max(256).default(1),
+  username: z.string().max(128).default(''),
+  password: z.string().max(256).optional(),
+});
+
 export const createCameraSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().optional(),
@@ -25,6 +35,7 @@ export const createCameraSchema = z.object({
   longitude: z.number().min(-180).max(180).optional().nullable(),
   onvifProfileToken: z.string().max(256).optional().nullable(),
   templateId: z.guid().optional().nullable(),
+  connection: cameraConnectionSchema.optional(),
 });
 
 export const updateCameraSchema = z.object({
@@ -53,6 +64,7 @@ export const updateCameraSchema = z.object({
   longitude: z.number().min(-180).max(180).optional().nullable(),
   onvifProfileToken: z.string().max(256).optional().nullable(),
   templateId: z.guid().optional().nullable(),
+  connection: cameraConnectionSchema.optional(),
 });
 
 export const cameraQuerySchema = z.object({
