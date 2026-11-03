@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 13) — โหมดบันทึกรายกล้อง (DVR/NVR มี HDD ของตัวเอง)
+
+- หลักการที่ผู้ใช้อนุมัติ: Server เป็นตัวดู/ค้น, การเก็บไฟล์เป็นหน้าที่ของ DVR/NVR; บันทึกลง Server เฉพาะกล้องที่ตั้งใจเลือก
+- `cameras.recording_mode` (`live_only` ค่าเริ่มต้น | `continuous`) — SQL `2026-11-03_camera_recording_mode.sql`, กล้องเดิมทั้งหมดเป็น live_only (Dev DB backup: `C:\Users\SC34111\AppData\Local\Temp\claude\d--Qwen-DVR\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_recording_mode.dump`); live_only = MediaMTX `sourceOnDemand: true, record: false` (ดึงเมื่อมีคนดู ไม่เก็บไฟล์), continuous = ดึงตลอด + บันทึก; สตรีมรองเป็น on-demand ไม่บันทึกเสมอ; path-sync เทียบทั้ง source และโหมด แล้ว register ใหม่เมื่อโหมดเปลี่ยน
+- สถานะ: webhook `not_ready` ของสตรีม on-demand (กล้อง live_only และทุก `_sub`) ไม่ทำให้กล้อง offline แล้ว (เดิมปิดหน้าดูแล้วกล้องขึ้น offline/flapping); ความพร้อมใช้งานมาจาก health check ทุก 1 นาที (TCP probe)
+- **บั๊ก MediaMTX v1.21.3:** PATCH ที่ถูกปฏิเสธครั้งเดียวทำให้ config ในหน่วยความจำเสีย — การแก้ config ผ่าน API ล้มทุกครั้งจน restart (ยืนยันใน MediaMTX ชั่วคราว). ตัวกระตุ้นคือหน้า live view ของกล้องที่ใช้ `sim/ch1` ไป PATCH path sim ด้วย source RTSP → `registerStreamPath()` ไม่แตะ `sim/` อีก (+ test)
+- เว็บ: ฟอร์มกล้องมีช่อง "บันทึกวิดีโอลง Server ตลอด 24 ชม." (ปิดเป็นค่าเริ่มต้น) พร้อมคำอธิบายผลกระทบดิสก์; รายการกล้องมีป้าย "บันทึก"/"ดูสด"; หน้าย้อนหลังของกล้อง live_only อธิบายว่าให้ดูย้อนหลังจาก DVR/NVR
+- ปิดกล้องทดสอบ r1-accept-cam, longtest-cam (enabled=false); IT-SERVER-001 = live_only (ผู้ใช้: เครื่องหลักบันทึกอยู่แล้ว) — ไฟล์ที่บันทึกไปแล้วยังอยู่
+- ตรวจ: vitest 124 passed; ใน container: IT-SERVER-001 path เป็น onDemand/record=false, เปิดสตรีมผ่าน token ได้ (ภาพแรก ~3 วิ), ปิดแล้ว 30 วิ ยัง online ไม่มี event/ไฟล์ใหม่; สลับโหมดผ่าน API continuous → live_only มีผลใน 25/55 วิ ไม่มี "Failed to configure"
+- ถัดไป (รอผู้ใช้ส่งข้อมูล DVR/NVR): ดูย้อนหลังและตัดคลิปจาก HDD ของ DVR/NVR (Hikvision RTSP playback / ISAPI search, Dahua playback / CGI)
+
 ## งานล่าสุด (2026-11-03, รอบ 12) — สถานะกล้องไม่ตรงกันระหว่างหน้า
 
 - สาเหตุ: Live Grid และ Map ใช้ query key `['cameras']` ร่วมกันแต่ไม่ refresh; Dashboard ดึงกล้องทั้งหมดรวมที่ปิดอยู่ (รายการ "ต้องตรวจสอบ" มี r1-legacy-*, pathsync-test ที่ disabled) → แผนที่ค้าง offline ขณะภาพสดเล่นอยู่. แก้: hook กลาง `useCctvCameras()` (กล้อง enabled, refresh ทุก 10 วิ) ใช้ใน Live Grid / Map / Dashboard; หน้าจัดการกล้อง invalidate `cctv-cameras` หลังบันทึก/ลบ; dashboard-summary กรอง `deletedAt: null` ด้วย
