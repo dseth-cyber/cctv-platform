@@ -5,6 +5,8 @@ import { z } from 'zod';
 
 // Simple camera setup: the server builds rtspUrl/rtspUrlSub from these (see cameras.service.ts).
 // A blank password on update keeps the one already stored.
+export const recordingModeSchema = z.enum(['live_only', 'continuous']);
+
 export const cameraConnectionSchema = z.object({
   brand: z.string().min(1).max(32),
   port: z.number().int().min(1).max(65535).default(554),
@@ -36,6 +38,7 @@ export const createCameraSchema = z.object({
   onvifProfileToken: z.string().max(256).optional().nullable(),
   templateId: z.guid().optional().nullable(),
   connection: cameraConnectionSchema.optional(),
+  recordingMode: recordingModeSchema.optional(),
 });
 
 export const updateCameraSchema = z.object({
@@ -65,6 +68,7 @@ export const updateCameraSchema = z.object({
   onvifProfileToken: z.string().max(256).optional().nullable(),
   templateId: z.guid().optional().nullable(),
   connection: cameraConnectionSchema.optional(),
+  recordingMode: recordingModeSchema.optional(),
 });
 
 // Find the stream URL pattern a camera answers to. On edit, cameraId lets a blank password reuse

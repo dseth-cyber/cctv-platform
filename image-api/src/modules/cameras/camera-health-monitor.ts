@@ -379,7 +379,7 @@ export async function handleStreamStatusEvent(
     // Fallback scan: check synthetic path camera_${camera.id.replace(/-/g, '').substring(0, 12)}
     const allCams = await prisma.camera.findMany({
       where: { enabled: true },
-      select: { id: true, name: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true },
+      select: { id: true, name: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true, recordingMode: true },
     });
     for (const c of allCams) {
       const synthetic = `camera_${c.id.replace(/-/g, '').substring(0, 12)}`;
@@ -404,6 +404,14 @@ export async function handleStreamStatusEvent(
   const autoResolveEnabled = configs.camera_auto_resolve_enabled?.value === true;
   const recoveryGraceMs = Number(configs.camera_recovery_grace_minutes?.value ?? 1) * 60 * 1000;
   const prev = camera.operationalStatus;
+
+  // Live-only main streams and every sub stream are pulled only while someone watches, so their
+  // stream closing just means the last viewer left. Reachability for those comes from the
+  // 1-minute health check (TCP probe), not from this event.
+  const onDemand = cleanPath.endsWith('_sub') || (camera as any).recordingMode !== 'continuous';
+  if (status === 'not_ready' && onDemand) {
+    return { success: true, cameraId: camera.id, status: prev ?? 'unknown', message: 'On-demand stream closed (no viewers)' };
+  }
 
   // Stream went down (not_ready)
   if (status === 'not_ready') {

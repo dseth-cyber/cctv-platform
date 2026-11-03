@@ -751,7 +751,9 @@ export const CctvPlayback: React.FC = () => {
                   {currentStatus.gap ? t('ui.cctvPlayback.noRecordingInThisPeriodData') : t('ui.cctvPlayback.noRecordingDataAtThisTime')}
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  {currentStatus.gap?.reason || t('ui.cctvPlayback.theDeviceMayBeOffThe')}
+                  {selectedCamera && selectedCamera.recordingMode !== 'continuous'
+                    ? t('imageService.cameras.recording.playbackLiveOnly')
+                    : currentStatus.gap?.reason || t('ui.cctvPlayback.theDeviceMayBeOffThe')}
                 </p>
               </div>
             )}

@@ -16,6 +16,14 @@ describe('MediaMtxService.registerStreamPath', () => {
     expect(init.headers.Authorization).toMatch(/^Basic /);
   });
 
+  it('never touches the static sim/ paths (a rejected PATCH breaks MediaMTX config until restart)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await MediaMtxService.registerStreamPath('sim/ch1', 'rtsp://127.0.0.1:8554/sim/ch1')).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('pulls sub streams on demand and never records them', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal('fetch', fetchMock);

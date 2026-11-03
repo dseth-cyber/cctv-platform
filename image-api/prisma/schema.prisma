@@ -375,6 +375,9 @@ model Camera {
   streamProfile          String?                 @default("main") @map("stream_profile") @db.VarChar(32)
   mediaNodeId            String?                 @map("media_node_id") @db.Uuid
   streamPath             String?                 @unique @map("stream_path") @db.VarChar(128)
+  // live_only: pulled from the camera/DVR only while someone watches, never recorded here (the
+  // DVR/NVR keeps its own HDD). continuous: pulled all the time and recorded on this server.
+  recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
   latitude               Float?                  @map("latitude")

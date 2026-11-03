@@ -312,6 +312,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       onvifProfileToken: input.onvifProfileToken ?? null,
+      recordingMode: input.recordingMode ?? 'live_only',
     },
     include: {
       retentionPolicy: true,
@@ -371,6 +372,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;
+  if (input.recordingMode !== undefined) data.recordingMode = input.recordingMode;
   if (input.connection) {
     const ip = input.ipAddress !== undefined ? input.ipAddress : existing.ipAddress;
     const built = urlsFromConnection(input.connection, ip, existing.rtspUrl);

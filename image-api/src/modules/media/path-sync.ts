@@ -14,21 +14,25 @@ export function cameraBasePath(camera: { id: string; streamPath: string | null }
   return camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
 }
 
-export const isSubStreamPath = (name: string) => name.endsWith('_sub');
+export interface DesiredPath {
+  source: string;
+  /** Pulled only while watched and never recorded (live-only cameras and every sub stream). */
+  liveOnly: boolean;
+}
 
-export async function desiredCameraPaths(): Promise<Map<string, string>> {
+export async function desiredCameraPaths(): Promise<Map<string, DesiredPath>> {
   const cameras = await getPrisma().camera.findMany({
     where: { enabled: true, deletedAt: null, rtspUrl: { not: null } },
-    select: { id: true, streamPath: true, rtspUrl: true, rtspUrlSub: true },
+    select: { id: true, streamPath: true, rtspUrl: true, rtspUrlSub: true, recordingMode: true },
   });
-  const desired = new Map<string, string>();
+  const desired = new Map<string, DesiredPath>();
   for (const cam of cameras) {
     const base = cameraBasePath(cam).replace(/^\/+/, '');
     if (base.startsWith('sim/')) continue;
     const main = openRtspUrl(cam.rtspUrl);
-    if (main) desired.set(base, main);
+    if (main) desired.set(base, { source: main, liveOnly: cam.recordingMode !== 'continuous' });
     const sub = openRtspUrl(cam.rtspUrlSub);
-    if (sub) desired.set(`${base}_sub`, sub);
+    if (sub) desired.set(`${base}_sub`, { source: sub, liveOnly: true });
   }
   return desired;
 }
@@ -38,16 +42,20 @@ export async function syncCameraPaths() {
   const res = await MediaMtxService.apiFetch('/v3/config/paths/list?itemsPerPage=1000');
   if (!res.ok) throw new Error(`MediaMTX config list failed: HTTP ${res.status}`);
   const configured = ((await res.json()) as any)?.items ?? [];
-  const current = new Map<string, string>(configured.map((p: any) => [String(p.name), String(p.source ?? '')]));
+  const current = new Map<string, { source: string; liveOnly: boolean }>(configured.map((p: any) => [
+    String(p.name),
+    { source: String(p.source ?? ''), liveOnly: p.sourceOnDemand === true && p.record === false },
+  ]));
 
   const summary = { registered: 0, removed: 0, failed: 0 };
-  for (const [name, source] of desired) {
-    if (current.get(name) === source) continue;
-    if (await MediaMtxService.registerStreamPath(name, source, { liveOnly: isSubStreamPath(name) })) summary.registered++;
+  for (const [name, want] of desired) {
+    const have = current.get(name);
+    if (have && have.source === want.source && have.liveOnly === want.liveOnly) continue;
+    if (await MediaMtxService.registerStreamPath(name, want.source, { liveOnly: want.liveOnly })) summary.registered++;
     else summary.failed++;
   }
   // Camera pulls (rtsp sources) that no enabled camera wants any more: disabled, deleted or renamed.
-  for (const [name, source] of current) {
+  for (const [name, { source }] of current) {
     if (desired.has(name) || name.startsWith('sim/') || !/^rtsps?:\/\//i.test(source)) continue;
     if (await MediaMtxService.removeStreamPath(name)) summary.removed++;
     else summary.failed++;

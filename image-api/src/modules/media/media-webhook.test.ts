@@ -155,6 +155,7 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       status: 'active',
       operationalStatus: 'online',
       operationalSince: new Date(Date.now() - 3600000),
+      recordingMode: 'continuous',
     };
 
     it('updates a camera mapped to a sim/ test stream instead of only acknowledging it', async () => {
@@ -176,6 +177,21 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       const calls = mockPrisma.camera.findFirst.mock.calls;
       const where = calls[calls.length - 1][0].where;
       expect(where.OR).toEqual([{ streamPath: 'sim/ch1' }, { streamPath: 'sim/ch1' }]);
+    });
+
+    it('ignores not_ready from on-demand streams (live-only camera, or any sub stream)', async () => {
+      for (const [cam, path] of [[{ ...mockCamera, recordingMode: 'live_only' }, 'camera_gate1'], [mockCamera, 'camera_gate1_sub']] as const) {
+        mockPrisma.camera.findFirst.mockResolvedValueOnce(cam);
+        mockPrisma.camera.update.mockClear();
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/media/events/stream-status',
+          headers: { 'x-media-webhook-secret': SECRET },
+          payload: { path, status: 'not_ready' },
+        });
+        expect(res.json()).toMatchObject({ success: true, status: 'online', message: expect.stringMatching(/no viewers/) });
+        expect(mockPrisma.camera.update).not.toHaveBeenCalled();
+      }
     });
 
     it('transitions camera to OFFLINE instantly when status is not_ready', async () => {

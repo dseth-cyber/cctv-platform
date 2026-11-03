@@ -133,6 +133,14 @@
         "advanced": "More settings (brand, port, channel, description, retention, …)",
         "brandAuto": "Automatic (let the system find it)",
         "portHint": "The RTSP port is usually 554 — not the 8000 shown in iVMS/HiLook; a standalone camera uses channel 1, a DVR/NVR uses its channel number"
+      },
+      "recording": {
+        "toggle": "Record video on this server 24/7",
+        "offHint": "Off = live view only: the server pulls video only while someone watches and keeps no files — for cameras a DVR/NVR or another machine already records",
+        "onHint": "The server pulls video all the time and records it, about 8–40 GB per camera per day (depends on resolution) — for cameras with no other recorder",
+        "badgeRecord": "Recording",
+        "badgeLive": "Live only",
+        "playbackLiveOnly": "This camera is set to \"live view only\" — the server does not record it; use its DVR/NVR or recorder for playback"
       }
     },
     "incidents": {

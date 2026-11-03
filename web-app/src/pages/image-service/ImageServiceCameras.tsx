@@ -40,6 +40,8 @@ const emptyForm = () => ({
   // Simple setup: the server builds the RTSP URLs from these. 'manual' = type the full URLs.
   connMode: 'simple' as 'simple' | 'manual',
   brand: 'auto', rtspPort: '554', channel: '1', username: 'admin', password: '',
+  // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
+  recordingMode: 'live_only' as 'live_only' | 'continuous',
 });
 
 // Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
@@ -264,6 +266,7 @@ export default function ImageServiceCameras() {
       connMode: (conn || !item.rtspUrl ? 'simple' : 'manual') as 'simple' | 'manual',
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
+      recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
     };
   };
 
@@ -337,6 +340,7 @@ export default function ImageServiceCameras() {
           description: form.description,
           templateId: form.templateId || null,
           slaTargetPercent: form.slaTargetPercent === '' ? null : parseFloat(form.slaTargetPercent),
+          recordingMode: form.recordingMode,
         };
         if (simple) {
           payload.connection = {
@@ -1065,6 +1069,11 @@ export default function ImageServiceCameras() {
                           className="hover:text-cyan-300 transition-colors text-left">
                           {camera.name}
                         </button>
+                        {camera.recordingMode === 'continuous' ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">● {t('imageService.cameras.recording.badgeRecord')}</span>
+                        ) : (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded border border-white/10 ${themeConfig.text.secondary}`}>{t('imageService.cameras.recording.badgeLive')}</span>
+                        )}
                       </div>
                     </td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>
@@ -1261,6 +1270,17 @@ export default function ImageServiceCameras() {
                 </div>
               </>
             )}
+            <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
+              <input type="checkbox" checked={form.recordingMode === 'continuous'}
+                onChange={e => setForm(p => ({ ...p, recordingMode: e.target.checked ? 'continuous' : 'live_only' }))}
+                className="w-4 h-4 mt-0.5 rounded accent-red-500" />
+              <span>
+                <span className={`block text-sm font-medium ${themeConfig.text.primary}`}>{t('imageService.cameras.recording.toggle')}</span>
+                <span className={`block text-[11px] mt-0.5 ${themeConfig.text.secondary}`}>
+                  {form.recordingMode === 'continuous' ? t('imageService.cameras.recording.onHint') : t('imageService.cameras.recording.offHint')}
+                </span>
+              </span>
+            </label>
             <button type="button" className="col-span-2 flex items-center gap-1 text-left text-xs text-cyan-400 hover:underline"
               onClick={() => setShowAdvanced(v => !v)}>
               {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />} {t('imageService.cameras.conn.advanced')}

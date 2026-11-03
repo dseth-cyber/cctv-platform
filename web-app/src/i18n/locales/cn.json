@@ -133,6 +133,14 @@
         "advanced": "更多设置（品牌、端口、通道、描述、保留策略等）",
         "brandAuto": "自动（由系统识别）",
         "portHint": "RTSP 端口通常为 554，而不是 iVMS/HiLook 中显示的 8000；单个摄像机通道为 1，DVR/NVR 请填写通道号"
+      },
+      "recording": {
+        "toggle": "在本服务器 24 小时录像",
+        "offHint": "关闭 = 仅实时查看：服务器只在有人观看时拉流，不保存文件，适用于已由 DVR/NVR 或其他设备录像的摄像机",
+        "onHint": "服务器持续拉流并录像，每台摄像机每天约 8–40 GB（视分辨率而定），适用于没有其他录像设备的摄像机",
+        "badgeRecord": "录像",
+        "badgeLive": "仅实时",
+        "playbackLiveOnly": "此摄像机设为“仅实时查看”，服务器不录像，请在其 DVR/NVR 或录像设备上回放"
       }
     },
     "storageProviders": {

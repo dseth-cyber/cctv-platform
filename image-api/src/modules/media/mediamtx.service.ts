@@ -96,6 +96,10 @@ export class MediaMtxService {
     opts: { liveOnly?: boolean } = {},
   ): Promise<boolean> {
     const cleanPath = streamPath.replace(/^\/+/, '');
+    // sim/ paths are static runOnDemand publishers from mediamtx.yml. MediaMTX rejects giving them an
+    // RTSP source, and in v1.21.3 one rejected PATCH leaves its in-memory config broken: every later
+    // config change fails until MediaMTX restarts. Never touch them.
+    if (cleanPath.startsWith('sim/')) return true;
     const payload: MediaMtxPathConfig = opts.liveOnly
       ? { source: rtspSourceUrl, sourceOnDemand: true, record: false }
       : { source: rtspSourceUrl, sourceOnDemand: false, record: true };
