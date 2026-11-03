@@ -31,14 +31,12 @@ export function suggestRootCause(message: string): { rootCause: string; confiden
   if (/etimedout|econnrefused|enetunreach|ehostunreach|network is unreachable|\btimeout\b/.test(text)) {
     return { rootCause: 'network', confidence: 'high' };
   }
+  // Before the generic RTSP match: an RTSP 401 is a credential problem, not a stream fault.
+  if (/\b401\b|unauthorized|authentication|invalid credentials/.test(text)) {
+    return { rootCause: 'credentials', confidence: 'medium' };
+  }
   if (/rtsp|554|stream connection|whep/.test(text)) {
     return { rootCause: 'rtsp_stream', confidence: 'high' };
-  }
-  if (/logon_failure|access_denied|authentication|permission denied|invalid credentials/.test(text)) {
-    return { rootCause: 'smb', confidence: 'medium' };
-  }
-  if (/bad_network_name|enoent|share not found|no such file or directory/.test(text)) {
-    return { rootCause: 'smb', confidence: 'medium' };
   }
   return null;
 }
@@ -176,8 +174,8 @@ export async function checkCameraHealth(): Promise<void> {
             cameraId: cam.id,
             fromStatus: cam.status,
             toStatus: cam.status,
-            reason: cam.rtspUrl ? 'rtsp_unreachable' : 'smb_unreachable',
-            rootCause: suggestion?.rootCause ?? (cam.rtspUrl ? 'rtsp_stream' : 'smb'),
+            reason: 'rtsp_unreachable',
+            rootCause: suggestion?.rootCause ?? 'rtsp_stream',
             description: `Auto-detected: ${probeResult.reason || `no response for over ${offlineThresholdMin} minute(s)`}.`,
             priority: 'medium',
             impact: 'none',

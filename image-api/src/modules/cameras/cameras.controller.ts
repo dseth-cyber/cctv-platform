@@ -250,7 +250,7 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
 
 async function deleteCameraHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const { password } = request.body as { password: string };
+  const { password } = (request.body ?? {}) as { password: string };
   const user = (request as any).user;
 
   // Verify password
@@ -293,7 +293,7 @@ async function deleteCameraHandler(request: FastifyRequest, reply: FastifyReply)
 
 async function permanentDeleteCameraHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const { password } = request.body as { password: string };
+  const { password } = (request.body ?? {}) as { password: string };
   const user = (request as any).user;
 
   const authService = await import('../auth/auth.service.js');
@@ -343,7 +343,7 @@ async function restoreCameraHandler(request: FastifyRequest, reply: FastifyReply
 }
 
 async function emptyCameraTrashHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { password } = request.body as { password: string };
+  const { password } = (request.body ?? {}) as { password: string };
   const user = (request as any).user;
 
   const authService = await import('../auth/auth.service.js');
@@ -646,7 +646,7 @@ async function deleteIncidentHandler(request: FastifyRequest, reply: FastifyRepl
 
 async function clearAllIncidentsHandler(request: FastifyRequest, reply: FastifyReply) {
   const user = (request as any).user;
-  const { password, retentionYears } = request.body as { password?: string; retentionYears?: number };
+  const { password, retentionYears } = (request.body ?? {}) as { password?: string; retentionYears?: number };
   if (!password) {
     return reply.status(400).send({ error: 'Password required', code: 'PASSWORD_REQUIRED' });
   }

@@ -57,6 +57,10 @@ describe('Camera Health Monitor & Alert Timing [AUDIT-HIGH-08]', () => {
       expect(res?.rootCause).toBe('storage');
     });
 
+    it('detects camera credential failures', () => {
+      expect(suggestRootCause('RTSP/1.0 401 Unauthorized')?.rootCause).toBe('credentials');
+    });
+
     it('returns null for unknown error messages', () => {
       expect(suggestRootCause('random unmapped error')).toBeNull();
     });

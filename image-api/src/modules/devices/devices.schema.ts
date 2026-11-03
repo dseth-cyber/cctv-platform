@@ -17,7 +17,7 @@ export const createDeviceSchema = z.object({
   password: z.string().optional().nullable(),
   totalChannels: z.number().int().min(1).max(256).default(1),
   enabled: z.boolean().default(true),
-  siteId: z.string().uuid().optional().nullable(),
+  siteId: z.guid().optional().nullable(),
   // Option to auto-provision camera channels upon device creation
   autoCreateCameras: z.boolean().default(false),
 });
@@ -38,12 +38,12 @@ export const updateDeviceSchema = z.object({
   totalChannels: z.number().int().min(1).max(256).optional(),
   enabled: z.boolean().optional(),
   status: z.string().max(32).optional(),
-  siteId: z.string().uuid().optional().nullable(),
+  siteId: z.guid().optional().nullable(),
 });
 
 export const deviceQuerySchema = z.object({
   deviceType: deviceTypeEnum.optional(),
-  siteId: z.string().uuid().optional(),
+  siteId: z.guid().optional(),
   enabled: z.coerce.boolean().optional(),
 });
 

@@ -28,7 +28,7 @@ async function bulkDeletePreviewHandler(request: FastifyRequest, reply: FastifyR
 }
 
 async function bulkDeleteHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { days, password } = request.body as { days: number; password: string };
+  const { days, password } = (request.body ?? {}) as { days: number; password: string };
   const user = (request as any).user;
 
   // Verify password

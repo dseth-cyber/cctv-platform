@@ -46,7 +46,7 @@ const OPERATIONAL_TH: Record<string, string> = {
   online: '🟢 ออนไลน์', offline: '🔴 ออฟไลน์', recovering: '🟡 กำลังกลับมา', unknown: '⚪ ไม่ทราบ',
 };
 /**
- * Incident reasons are stored as codes ("smb_unreachable"). The web report resolves them
+ * Incident reasons are stored as codes ("rtsp_unreachable"). The web report resolves them
  * through i18n; the bot has no per-viewer language, so it reads the same masterdata rows
  * the Telegram alert translator uses — which also means an admin editing the label in
  * Masterdata changes it here too, with no code change.

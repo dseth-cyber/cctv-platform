@@ -15,7 +15,7 @@ export const updateSiteSchema = z.object({
 });
 
 export const createZoneSchema = z.object({
-  siteId: z.string().uuid(),
+  siteId: z.guid(),
   name: z.string().min(1).max(128),
   code: z.string().max(64).optional().nullable(),
   floor: z.number().int().default(1).optional(),

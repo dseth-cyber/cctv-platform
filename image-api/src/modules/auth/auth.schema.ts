@@ -45,7 +45,7 @@ export const updateMenuPreferencesSchema = z.object({
 
 // Partial preferences to shallow-merge, keyed by page id (e.g. { imageSearch: {...} }).
 export const updatePreferencesSchema = z.object({
-  patch: z.record(z.unknown()),
+  patch: z.record(z.string(), z.unknown()),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

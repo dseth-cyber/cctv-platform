@@ -70,7 +70,7 @@ async function acknowledgeAllHandler(request: FastifyRequest, reply: FastifyRepl
 
 async function clearAllHandler(request: FastifyRequest, reply: FastifyReply) {
   const user = (request as any).user;
-  const { password } = request.body as { password?: string };
+  const { password } = (request.body ?? {}) as { password?: string };
   if (!password) {
     return reply.status(400).send({ error: 'Password required', code: 'PASSWORD_REQUIRED' });
   }

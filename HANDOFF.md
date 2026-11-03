@@ -24,6 +24,14 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-03, รอบ 5) — zod v4 และตัวเลือก incident ของ CCTV
+
+- image-api ใช้ zod 4.6.7: `z.string().uuid()` → `z.guid()` (seed ใช้ id แบบ non-RFC เช่น `00000000-...-0001` ซึ่ง `z.uuid()` ของ v4 ปฏิเสธ), `z.record(x)` → `z.record(z.string(), x)`; test `cameras.schema.test.ts` กันการเปลี่ยนกลับ และยืนยันว่า update schema ไม่ใส่ค่า default
+- Incident: health monitor สร้าง incident ด้วย `rtsp_unreachable` / `rtsp_stream` ซึ่งเดิมไม่มีใน masterdata (แสดงเป็น code ดิบ). แทน smb_unreachable → rtsp_unreachable, worker_down → media_server_down, smb → rtsp_stream, worker → software, เพิ่ม credentials; RTSP 401 → root cause `credentials` (ตรวจก่อน pattern RTSP); ตัด branch SMB ออกจาก health monitor. SQL เพิ่ม/ลบผ่าน `2026-11-03_cleanup_legacy_leftovers.sql` (seed รันเฉพาะ `RUN_SEED=true` จึงไม่พึ่ง seed)
+- DELETE กล้อง/ถังขยะ/alerts/audit ที่ไม่มี body เคยได้ 500 (destructure `request.body` ที่เป็น undefined) → ตอนนี้ 401 Invalid password
+- Dev DB backup ก่อน migrate: `C:\Users\SC34111\AppData\Local\Temp\claude\d--Qwen-DVR\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_zod4.dump`; migrate รัน 3 รอบไม่ซ้ำ (incident_reason 13, incident_root_cause 11)
+- ตรวจ: tsc API/web, vitest 100 passed; ใน container: zod 4.6.7, สร้าง/แก้กล้องด้วย policy id ที่ seed ไว้ได้, id ผิด → 400 "Invalid GUID", type ผิด/email ผิด/รหัสผ่านง่าย → 400 พร้อมข้อความ, probe ได้ค่า default 554/80, ลบกล้องต้องมีรหัสผ่าน (ไม่มี → 401, มี → ลบได้)
+
 ## งานล่าสุด (2026-11-03, รอบ 4) — เก็บกวาดของจากระบบเดิม
 
 - Storage Provider: ลบช่อง pressure/backpressure (schema, API, ฟอร์ม, locale) และ enum `backpressure_strategy` / `storage_pressure_state`
@@ -32,7 +40,7 @@
 - Web: ลบ `types/image-service.ts` (ไม่มีใครใช้), ฟิลด์ภาพใน required-fields catalog (cameraTemplate processing, storageProfile), case ภาพในหน้า Reports; locale ลบ 19 section ที่ไม่มีโค้ดใช้เลย (docs, executive, shifts, migrations, storageProfiles, processingLogs, deadLetter, ui.imageServiceSearch ฯลฯ) + common.clearData* + แท็บ masterdata เดิม
 - AGENTS.md: ส่วน legacy เปลี่ยนเป็น "Conventions" — ตัดกฎเฉพาะระบบภาพ (image_files, Kafka image event, BullMQ, SMB/scan-worker fixes); กฎ recording cleanup อัปเดตตามนโยบายที่อนุมัติ 2026-11-03 (มี `deleteRecordingPermanently()` แล้ว)
 - ตรวจ: tsc API/web, vitest 95 passed, web build; ใน container: masterdata เหลือ 4 type, คอลัมน์ pressure 0, enum 0, provider list/patch 200, masterdata camera_type → 400, endpoint หลัก 200, bundle ไม่มี key เดิม
-- ยังเหลือ: locale ~380 key ที่ไม่ได้ใช้กระจายอยู่ใน section ที่ยังใช้บางส่วน (เช่น imageService.search/overview/storage) — ไม่ลบเพราะเสี่ยงกับ key ที่ประกอบแบบ dynamic; incident_reason ยังมี smb_unreachable / worker_down (ไม่ลบเพื่อไม่ให้ incident เก่าขาด label)
+- ยังเหลือ: locale ~380 key ที่ไม่ได้ใช้กระจายอยู่ใน section ที่ยังใช้บางส่วน (เช่น imageService.search/overview/storage) — ไม่ลบเพราะเสี่ยงกับ key ที่ประกอบแบบ dynamic
 
 ## งานล่าสุด (2026-11-03, รอบ 3) — แก้ 502 หลัง restart API และ 500 จาก id ผิดรูปแบบ
 
