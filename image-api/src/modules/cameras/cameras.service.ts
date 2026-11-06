@@ -21,7 +21,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
     include: {
       retentionPolicy: { select: { id: true, name: true } },
       template: true,
-      device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true } },
+      device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true, totalChannels: true } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
       groupMemberships: { select: { group: { select: { id: true, name: true } } } },
@@ -315,6 +315,8 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       onvifProfileToken: input.onvifProfileToken ?? null,
       recordingMode: input.recordingMode ?? 'live_only',
       cameraType: input.cameraType || null,
+      cameraBrand: input.cameraBrand || null,
+      cameraModel: input.cameraModel || null,
     },
     include: {
       retentionPolicy: true,
@@ -376,6 +378,8 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;
   if (input.recordingMode !== undefined) data.recordingMode = input.recordingMode;
   if (input.cameraType !== undefined) data.cameraType = input.cameraType || null;
+  if (input.cameraBrand !== undefined) data.cameraBrand = input.cameraBrand || null;
+  if (input.cameraModel !== undefined) data.cameraModel = input.cameraModel || null;
   if (input.connection) {
     const ip = input.ipAddress !== undefined ? input.ipAddress : existing.ipAddress;
     const built = urlsFromConnection(input.connection, ip, existing.rtspUrl);

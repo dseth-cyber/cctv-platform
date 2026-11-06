@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { masterdataLabel } from '@/hooks/useMasterdataOptions';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -21,6 +22,10 @@ const CAMERA_STATUS_LABELS: Record<string, string> = {
 const DEFAULT_COLUMNS = [
   { id: 'name', labelKey: 'imageService.reports.colName', defaultLabel: 'ชื่อกล้อง', visible: true },
   { id: 'status', labelKey: 'imageService.reports.colStatus', defaultLabel: 'สถานะ', visible: true },
+  { id: 'cameraType', labelKey: 'imageService.cameras.cameraType', defaultLabel: 'ประเภทกล้อง', visible: true },
+  { id: 'cameraBrand', labelKey: 'imageService.cameras.cameraBrand', defaultLabel: 'ยี่ห้อกล้อง', visible: true },
+  { id: 'cameraModel', labelKey: 'imageService.cameras.cameraModel', defaultLabel: 'รุ่นกล้อง', visible: true },
+  { id: 'deviceName', labelKey: 'imageService.cameras.columnDevice', defaultLabel: 'อุปกรณ์', visible: true },
   { id: 'ipAddress', labelKey: 'imageService.reports.colIp', defaultLabel: 'IP Address', visible: true },
   { id: 'cameraAgeDays', labelKey: 'imageService.reports.colAgeDays', defaultLabel: 'อายุกล้อง (วัน)', visible: true },
   { id: 'incidentCount', labelKey: 'imageService.reports.colIncidentsCount', defaultLabel: 'จำนวนที่พบปัญหา (ครั้ง)', visible: true },
@@ -125,6 +130,9 @@ export default function ImageServiceReports() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const { data: typeItems = [] } = useQuery<any[]>({ queryKey: ['masterdata-options-raw', 'camera_type'], queryFn: () => imageServiceApi.getMasterdataOptions('camera_type'), staleTime: 60_000 });
+  const { data: brandItems = [] } = useQuery<any[]>({ queryKey: ['masterdata-options-raw', 'device_brand'], queryFn: () => imageServiceApi.getMasterdataOptions('device_brand'), staleTime: 60_000 });
+
   // Fetch cameras data
   const { data: cameras = [], isLoading } = useQuery({
     queryKey: ['reports-cameras'],
@@ -133,7 +141,8 @@ export default function ImageServiceReports() {
   });
 
   const camerasArr = useMemo(() => {
-    return Array.isArray(cameras?.data) ? cameras.data : (Array.isArray(cameras) ? cameras : []);
+    const rows = Array.isArray(cameras?.data) ? cameras.data : (Array.isArray(cameras) ? cameras : []);
+    return rows.map((c: any) => ({ ...c, deviceName: c.device?.name ?? null }));
   }, [cameras]);
 
   // HTML5 Drag and Drop Handlers
@@ -191,6 +200,10 @@ export default function ImageServiceReports() {
     if (val === null || val === undefined) return '—';
 
     switch (colId) {
+      case 'cameraType':
+        return masterdataLabel(typeItems.find((o: any) => o.code === val), i18n.language) || String(val);
+      case 'cameraBrand':
+        return masterdataLabel(brandItems.find((o: any) => o.code.toLowerCase() === String(val).toLowerCase()), i18n.language) || String(val);
       case 'status':
         return t(`imageService.cameras.${val}`, CAMERA_STATUS_LABELS[val] || val);
       case 'topReason':

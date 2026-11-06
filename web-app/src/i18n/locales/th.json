@@ -38,6 +38,9 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "cameraBrand": "ยี่ห้อกล้อง",
+      "cameraModel": "รุ่นกล้อง",
+      "cameraInfoHint": "ใช้สำหรับค้นหาและรายงาน ไม่มีผลต่อการเชื่อมต่อ กล้องที่ต่อผ่าน DVR/NVR เชื่อมต่อตามยี่ห้อของเครื่องบันทึก",
       "offlineReason": {
         "no_signal": "ไม่มีสัญญาณภาพ",
         "recorder_lost_camera": "เครื่องบันทึกติดต่อกล้องไม่ได้",
@@ -2515,6 +2518,10 @@
       "vendorStreamUrlCh": "URL สตรีมตามยี่ห้อ (ช่อง 1):"
     },
     "cctvPlayback": {
+      "liveNow": "ดูสด",
+      "liveHint": "ดูภาพสดของกล้องนี้ในหน้านี้",
+      "liveExit": "ออกจากภาพสด กลับไปที่เวลาเดิม",
+      "liveFailed": "เปิดภาพสดของกล้องนี้ไม่ได้",
       "deviceClock": "นาฬิกา DVR",
       "deviceSource": "เล่นจาก HDD ของ DVR/NVR โดยตรง Server ไม่ได้เก็บไฟล์",
       "deviceClockNote": "เวลาในหน้านี้เป็นนาฬิกาของเครื่อง ตรงกับเวลาบนภาพ",
@@ -2840,6 +2847,8 @@
       "camerasConfigured": "กล้องที่ตั้งค่าไว้",
       "deletePreset": "ลบชุดมุมมอง",
       "filter": {
+        "deviceInfo": "{{ip}} · {{n}} ช่อง",
+        "countHint": "เลือกแล้ว {{a}} จาก {{b}} ช่องที่เปิดใช้งาน",
         "all": "ตัวกรอง: ทั้งหมด",
         "selected": "เลือก {{count}} กล้อง",
         "searchPlaceholder": "พิมพ์ค้นหา: ชื่อกล้อง, DVR/NVR, ยี่ห้อ, สถานที่, IP…",

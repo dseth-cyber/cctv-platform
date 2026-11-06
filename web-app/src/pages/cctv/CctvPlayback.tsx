@@ -325,7 +325,7 @@ export const CctvPlayback: React.FC = () => {
   const { data: serverTimeline, isLoading: isTimelineLoading } = useQuery<TimelineData>({
     queryKey: ['cctv-recording-timeline', selectedCameraId, selectedDate],
     queryFn: () => imageServiceApi.getRecordingTimeline(selectedCameraId, selectedDate),
-    enabled: !!selectedCameraId && (!wantsDevice || deviceTimeline?.supported === false),
+    enabled: !!selectedCamera && (!wantsDevice || deviceTimeline?.supported === false),
     staleTime: 1000 * 30,
   });
   const timelineData: TimelineData | undefined = isDeviceMode ? deviceTimeline : serverTimeline;
@@ -466,6 +466,28 @@ export const CctvPlayback: React.FC = () => {
     return () => clearTimeout(timer);
   }, [devicePlayback, playingSince, handleDeviceStreamFailed]);
 
+  // Live video of this camera right here, without going back to the live room.
+  const [liveView, setLiveView] = useState<{ url: string; profile: 'main' | 'sub'; hasSub: boolean; fellBack: boolean } | null>(null);
+  const liveOnRef = useRef(false);
+  liveOnRef.current = !!liveView;
+  const openLive = useCallback(async (profile: 'main' | 'sub' = 'main', fellBack = false) => {
+    if (!selectedCameraId) return;
+    closeDeviceSession();
+    setPlayback(null);
+    setIsPlaying(false);
+    setPlaybackError(null);
+    setIsLoadingPlayback(true);
+    try {
+      const stream = await imageServiceApi.getCameraStream(selectedCameraId, { profile });
+      setLiveView({ url: stream.webrtcWhepUrl, profile: stream.profile || profile, hasSub: Boolean(stream.hasSubStream), fellBack });
+    } catch (err: any) {
+      setLiveView(null);
+      setPlaybackError(err?.response?.data?.details?.code === 'LIVE_LIMIT' ? t('ui.cctvPlayback.deviceError_LIMIT_LIVE') : t('ui.cctvPlayback.liveFailed'));
+    } finally {
+      setIsLoadingPlayback(false);
+    }
+  }, [selectedCameraId, closeDeviceSession, t]);
+
   const startPlayback = useCallback(async (atSec: number) => {
     if (!selectedCameraId) return;
     setIsLoadingPlayback(true);
@@ -483,7 +505,37 @@ export const CctvPlayback: React.FC = () => {
     }
   }, [selectedCameraId, selectedDate, t]);
 
+  const leaveLiveAndPlay = (atSec: number) => {
+    setLiveView(null);
+    if (isDeviceMode) startDevicePlayback(atSec);
+    else startPlayback(atSec);
+  };
+
+  // Choosing a time on the timeline ends the live view and plays from there.
+  const liveFromSecRef = useRef(currentTimeSec);
+  useEffect(() => {
+    if (!liveView) {
+      liveFromSecRef.current = currentTimeSec;
+      return;
+    }
+    if (isDraggingPlayhead || currentTimeSec === liveFromSecRef.current) return;
+    leaveLiveAndPlay(currentTimeSec);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTimeSec, isDraggingPlayhead]);
+
+  // Another camera while live: stay live, on that camera.
+  const liveCameraRef = useRef(selectedCameraId);
+  useEffect(() => {
+    if (liveCameraRef.current === selectedCameraId) return;
+    liveCameraRef.current = selectedCameraId;
+    if (liveOnRef.current) openLive();
+  }, [selectedCameraId, openLive]);
+
   const handleTogglePlay = () => {
+    if (liveView) {
+      leaveLiveAndPlay(currentTimeSec);
+      return;
+    }
     if (isDeviceMode) {
       reopenCountRef.current = 0;
       retriedRef.current = false;
@@ -515,7 +567,16 @@ export const CctvPlayback: React.FC = () => {
     closeDeviceSession();
     setIsPlaying(false);
     setPlaybackError(null);
-  }, [selectedCameraId, selectedDate, closeDeviceSession]);
+    setLiveView(null);
+  }, [selectedDate, closeDeviceSession]);
+
+  useEffect(() => {
+    setPlayback(null);
+    closeDeviceSession();
+    setIsPlaying(false);
+    setPlaybackError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCameraId]);
 
   // The stream carries no time of its own: the playhead follows the clock from the moment video moves.
   useEffect(() => {
@@ -903,7 +964,7 @@ export const CctvPlayback: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
           >
             <Radio size={14} className="animate-pulse" />
-            <span>{t('ui.cctvPlayback.switchToLive')}</span>
+            <span>{t('imageService.nav.liveGrid')}</span>
           </Link>
         </div>
       </div>
@@ -970,7 +1031,29 @@ export const CctvPlayback: React.FC = () => {
             </div>
           )}
 
-          {!playback && !devicePlayback && (
+          {liveView && (
+            <div className="absolute inset-0 bg-black">
+              <WhepPlayer
+                key={liveView.url}
+                streamUrl={liveView.url}
+                cameraName={selectedCamera?.name || ''}
+                streamProfile={liveView.profile}
+                hasSubStream={liveView.hasSub}
+                onToggleProfile={(next) => openLive(next)}
+                onFatalError={() => {
+                  if (liveView.profile === 'main' && liveView.hasSub) openLive('sub', true);
+                }}
+                className="w-full h-full"
+              />
+              {liveView.fellBack && (
+                <div className="absolute bottom-16 left-4 z-20 px-2.5 py-1 rounded-lg bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
+                  {t('ui.liveGrid.mainStreamFellBack')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!playback && !devicePlayback && !liveView && (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-950/80 to-slate-950 flex items-center justify-center">
             {playbackError ? (
               <div className="text-center p-6 space-y-2">
@@ -1015,7 +1098,7 @@ export const CctvPlayback: React.FC = () => {
               <span className="font-bold text-cyan-400">{selectedCamera?.name || '—'}</span>
               <span className="text-slate-500">|</span>
               <span className="text-white font-semibold">
-                {selectedDate} {formatSeconds(currentTimeSec)}
+                {liveView ? t('ui.cctvPlayback.liveNow') : `${selectedDate} ${formatSeconds(currentTimeSec)}`}
               </span>
               <span className="text-slate-500">|</span>
               <span className="text-slate-300">{isDeviceMode ? t('ui.cctvPlayback.deviceClock') : t('ui.cctvPlayback.asiaBangkokUtc')}</span>
@@ -1030,8 +1113,8 @@ export const CctvPlayback: React.FC = () => {
               )}
 
               <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-slate-300 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                <span className="font-mono uppercase">{isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed }) : 'PAUSED'}</span>
+                <span className={`w-2 h-2 rounded-full ${isPlaying || liveView ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span className="font-mono uppercase">{liveView ? 'LIVE' : isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed }) : 'PAUSED'}</span>
               </div>
             </div>
           </div>
@@ -1118,6 +1201,17 @@ export const CctvPlayback: React.FC = () => {
               title={t('ui.cctvPlayback.n1Min2')}
             >
               <FastForward size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => (liveView ? setLiveView(null) : openLive())}
+              aria-pressed={!!liveView}
+              title={liveView ? t('ui.cctvPlayback.liveExit') : t('ui.cctvPlayback.liveHint')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${liveView ? 'bg-rose-500 text-white hover:bg-rose-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20'}`}
+            >
+              <Radio size={14} className={liveView ? 'animate-pulse' : ''} />
+              <span>{t('ui.cctvPlayback.liveNow')}</span>
             </button>
 
             <div className="h-6 w-px bg-slate-800 mx-1" />

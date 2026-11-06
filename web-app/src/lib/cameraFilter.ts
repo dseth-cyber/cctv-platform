@@ -15,6 +15,8 @@ export function cameraSearchText(cam: any, statusLabel = ''): string {
     cam.device?.ipAddress,
     cam.metadata?.connection?.brand,
     cam.cameraType,
+    cam.cameraBrand,
+    cam.cameraModel,
     cam.site?.name,
     cam.site?.code,
     cam.zone?.name,
@@ -50,6 +52,8 @@ export interface CameraGroup {
   /** Device id, or null for cameras that are not a DVR/NVR channel. */
   id: string | null;
   name: string | null;
+  /** The recorder itself, for its address and channel count. */
+  device?: any;
   cameras: any[];
 }
 
@@ -62,7 +66,7 @@ export function groupCamerasByDevice(cameras: any[]): CameraGroup[] {
       standalone.push(cam);
       continue;
     }
-    const group: CameraGroup = groups.get(cam.deviceId) ?? { id: cam.deviceId, name: cam.device?.name ?? cam.deviceId, cameras: [] };
+    const group: CameraGroup = groups.get(cam.deviceId) ?? { device: cam.device, id: cam.deviceId, name: cam.device?.name ?? cam.deviceId, cameras: [] };
     group.cameras.push(cam);
     groups.set(cam.deviceId, group);
   }

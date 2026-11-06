@@ -38,6 +38,9 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "cameraBrand": "カメラのブランド",
+      "cameraModel": "カメラの型番",
+      "cameraInfoHint": "検索とレポート用です。DVR/NVR 経由のカメラは録画機のブランドに従って接続します",
       "offlineReason": {
         "no_signal": "映像信号なし",
         "recorder_lost_camera": "録画機がカメラに接続できません",
@@ -2509,6 +2512,10 @@
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
     "cctvPlayback": {
+      "liveNow": "ライブ",
+      "liveHint": "このページでカメラのライブ映像を見る",
+      "liveExit": "ライブを終了して元の時刻に戻る",
+      "liveFailed": "このカメラのライブ映像を開けませんでした",
       "deviceClock": "DVR の時計",
       "deviceSource": "DVR/NVR の HDD から直接再生しています。サーバーにファイルは保存されません",
       "deviceClockNote": "このページの時刻は機器の時計で、映像上の時刻と一致します",
@@ -2834,6 +2841,8 @@
       "camerasConfigured": "台のカメラを設定済み",
       "deletePreset": "プリセットを削除",
       "filter": {
+        "deviceInfo": "{{ip}} · {{n}} チャンネル",
+        "countHint": "使用中 {{b}} チャンネルのうち {{a}} を選択",
         "all": "フィルター: すべて",
         "selected": "{{count}} 台を選択",
         "searchPlaceholder": "検索: カメラ、DVR/NVR、メーカー、拠点、IP…",

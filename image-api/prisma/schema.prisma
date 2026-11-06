@@ -419,6 +419,9 @@ model Camera {
   // DVR/NVR keeps its own HDD). continuous: pulled all the time and recorded on this server.
   // Code from masterdata type camera_type.
   cameraType             String?                 @map("camera_type") @db.VarChar(64)
+  // The camera itself. The recorder's brand decides how to connect; these are for finding and reporting.
+  cameraBrand            String?                 @map("camera_brand") @db.VarChar(64)
+  cameraModel            String?                 @map("camera_model") @db.VarChar(64)
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid

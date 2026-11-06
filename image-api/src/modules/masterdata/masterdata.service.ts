@@ -213,7 +213,13 @@ function validateChannelCount(code: string) {
 async function countUses(type: string, code: string): Promise<number> {
   const prisma = getPrisma();
   if (type === 'camera_type') return prisma.camera.count({ where: { cameraType: code, deletedAt: null } });
-  if (type === 'device_brand') return prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } });
+  if (type === 'device_brand') {
+    const [devices, cameras] = await Promise.all([
+      prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } }),
+      prisma.camera.count({ where: { cameraBrand: { equals: code, mode: 'insensitive' }, deletedAt: null } }),
+    ]);
+    return devices + cameras;
+  }
   return 0;
 }
 

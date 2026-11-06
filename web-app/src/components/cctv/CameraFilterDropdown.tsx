@@ -235,8 +235,14 @@ export function CameraFilterDropdown({ cameras, selectedIds, onlyOffline, onAppl
                       className="w-3.5 h-3.5 accent-cyan-500 shrink-0"
                     />
                     <HardDrive className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span className="font-semibold text-slate-200 truncate flex-1" title={group.name ?? ''}>{group.name}</span>
-                    <span className="text-[10px] font-mono text-slate-500 shrink-0">{checkedCount}/{ids.length}</span>
+                    <span className="font-semibold text-slate-200 truncate" title={group.name ?? ''}>{group.name}</span>
+                    {group.device && (
+                      <span className="text-[10px] font-mono text-slate-500 truncate" title={t('ui.liveGrid.filter.deviceInfo', { ip: group.device.ipAddress, n: group.device.totalChannels })}>
+                        {t('ui.liveGrid.filter.deviceInfo', { ip: group.device.ipAddress, n: group.device.totalChannels })}
+                      </span>
+                    )}
+                    <span className="flex-1" />
+                    <span className="text-[10px] font-mono text-slate-500 shrink-0" title={t('ui.liveGrid.filter.countHint', { a: checkedCount, b: ids.length })}>{checkedCount}/{ids.length}</span>
                   </div>
                   {isOpen && <div className="pl-5">{group.cameras.map(row)}</div>}
                 </div>

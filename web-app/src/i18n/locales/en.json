@@ -38,6 +38,9 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "cameraBrand": "Camera brand",
+      "cameraModel": "Camera model",
+      "cameraInfoHint": "For searching and reports only. A camera behind a DVR/NVR connects according to the recorder's brand",
       "offlineReason": {
         "no_signal": "No video signal",
         "recorder_lost_camera": "Recorder cannot reach camera",
@@ -2512,6 +2515,10 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "cctvPlayback": {
+      "liveNow": "Live",
+      "liveHint": "Watch this camera live on this page",
+      "liveExit": "Leave live and return to the same time",
+      "liveFailed": "Live video of this camera could not be opened",
       "deviceClock": "DVR clock",
       "deviceSource": "Playing directly from the DVR/NVR HDD; nothing is stored on the server",
       "deviceClockNote": "Times on this page are the recorder clock, matching the time on the picture",
@@ -2837,6 +2844,8 @@
       "camerasConfigured": "cameras configured",
       "deletePreset": "Delete Preset",
       "filter": {
+        "deviceInfo": "{{ip}} · {{n}} channels",
+        "countHint": "{{a}} selected of {{b}} channels in use",
         "all": "Filter: all",
         "selected": "{{count}} cameras selected",
         "searchPlaceholder": "Search: camera, DVR/NVR, brand, site, IP…",

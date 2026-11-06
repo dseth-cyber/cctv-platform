@@ -43,7 +43,7 @@ const emptyForm = () => ({
   brand: 'auto', rtspPort: '554', channel: '1', username: 'admin', password: '',
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
-  cameraType: '',
+  cameraType: '', cameraBrand: '', cameraModel: '',
 });
 
 // Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
@@ -80,6 +80,8 @@ export default function ImageServiceCameras() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { options: cameraTypeOptions } = useMasterdataOptions('camera_type');
+  const { options: cameraBrandOptions } = useMasterdataOptions('device_brand');
+  const cameraBrandLabel = (code?: string | null) => (code ? cameraBrandOptions.find((o) => o.value.toLowerCase() === code.toLowerCase())?.label ?? code : '—');
   const cameraTypeLabel = (code?: string | null) => (code ? cameraTypeOptions.find((o) => o.value === code)?.label ?? code : '—');
 
   // Which columns this person wants, in this browser. The ones a CCTV operator rarely needs start hidden.
@@ -87,9 +89,9 @@ export default function ImageServiceCameras() {
   const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(columnsKey) ?? 'null');
-      return Array.isArray(saved) ? saved : ['retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+      return Array.isArray(saved) ? saved : ['cameraModel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
     } catch {
-      return ['retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+      return ['cameraModel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
     }
   });
   const showColumn = (key: string) => !hiddenColumns.includes(key);
@@ -283,7 +285,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
-      cameraType: item.cameraType ?? '',
+      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '',
     };
   };
 
@@ -359,6 +361,8 @@ export default function ImageServiceCameras() {
           slaTargetPercent: form.slaTargetPercent === '' ? null : parseFloat(form.slaTargetPercent),
           recordingMode: form.recordingMode,
           cameraType: form.cameraType || null,
+          cameraBrand: form.cameraBrand || null,
+          cameraModel: form.cameraModel.trim() || null,
         };
         if (simple) {
           payload.connection = {
@@ -476,6 +480,9 @@ export default function ImageServiceCameras() {
           ipAddress: item.ipAddress ?? null,
           retentionPolicyId: item.retentionPolicyId,
           description: item.description ?? '',
+          cameraType: item.cameraType ?? null,
+          cameraBrand: item.cameraBrand ?? null,
+          cameraModel: item.cameraModel ?? null,
           templateId: item.templateId || null,
           rtspUrl: isRedactedRtsp(item.rtspUrl) ? null : item.rtspUrl ?? null,
           rtspUrlSub: isRedactedRtsp(item.rtspUrlSub) ? null : item.rtspUrlSub ?? null,
@@ -898,16 +905,20 @@ export default function ImageServiceCameras() {
     name: camera.name,
     ipAddress: camera.ipAddress,
     cameraType: cameraTypeLabel(camera.cameraType),
+    cameraBrand: cameraBrandLabel(camera.cameraBrand),
+    cameraModel: camera.cameraModel ?? '',
     description: camera.description ?? '',
     device: camera.device?.name ?? '',
     status: camera.status,
     lastPolledAt: camera.lastPolledAt ? new Date(camera.lastPolledAt).toLocaleString() : '-',
     createdAt: camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '-',
     createdBy: camera.createdBy || '-',
-  })), [sorted, i18n.language, cameraTypeOptions]);
+  })), [sorted, i18n.language, cameraTypeOptions, cameraBrandOptions]);
 
   const cameraColumns = [
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
+    { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
+    { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
     { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
@@ -923,6 +934,8 @@ export default function ImageServiceCameras() {
     { key: 'name', label: t('imageService.cameras.cameraName') },
     { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
+    { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
+    { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
     { key: 'status', label: t('imageService.cameras.status') },
@@ -1063,6 +1076,8 @@ export default function ImageServiceCameras() {
                     {sortCol === 'name' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
                 {showColumn('cameraType') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraType')}</th>}
+                {showColumn('cameraBrand') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraBrand')}</th>}
+                {showColumn('cameraModel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</th>}
                 {showColumn('description') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.description')}</th>}
                 {showColumn('device') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.columnDevice')}</th>}
                 {showColumn('ipAddress') && (
@@ -1144,6 +1159,8 @@ export default function ImageServiceCameras() {
                       </div>
                     </td>
                     {showColumn('cameraType') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraTypeLabel(camera.cameraType)}</td>}
+                    {showColumn('cameraBrand') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraBrandLabel(camera.cameraBrand)}</td>}
+                    {showColumn('cameraModel') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.cameraModel || '—'}</td>}
                     {showColumn('description') && <td className={`px-4 py-3 text-sm max-w-xs truncate ${themeConfig.text.secondary}`} title={camera.description ?? ''}>{camera.description || '—'}</td>}
                     {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}
                     {showColumn('ipAddress') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>}
@@ -1366,6 +1383,17 @@ export default function ImageServiceCameras() {
               <SearchableSelect value={form.cameraType} showSearch={false} onChange={v => setForm(p => ({ ...p, cameraType: v }))}
                 options={[{ value: '', label: t('imageService.cameras.cameraTypeNone') }, ...cameraTypeOptions.map((o) => ({ value: o.value, label: o.label }))]} />
             </div>
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraBrand')}</label>
+              <SearchableSelect value={form.cameraBrand} onChange={v => setForm(p => ({ ...p, cameraBrand: v }))}
+                options={[{ value: '', label: t('imageService.cameras.cameraTypeNone') }, ...cameraBrandOptions.map((o) => ({ value: o.value, label: o.label })), ...(form.cameraBrand && !cameraBrandOptions.some((o) => o.value === form.cameraBrand) ? [{ value: form.cameraBrand, label: form.cameraBrand }] : [])]} />
+            </div>
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</label>
+              <input value={form.cameraModel} maxLength={64} onChange={e => setForm(p => ({ ...p, cameraModel: e.target.value }))}
+                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+            </div>
+            <p className={`col-span-2 -mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.cameraInfoHint')}</p>
             <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
               <input type="checkbox" checked={form.recordingMode === 'continuous'}
                 onChange={e => setForm(p => ({ ...p, recordingMode: e.target.checked ? 'continuous' : 'live_only' }))}
