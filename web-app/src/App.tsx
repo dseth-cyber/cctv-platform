@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { useTranslation } from 'react-i18next'
 import { useTheme, themes } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -1066,6 +1067,7 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
+          <PageErrorBoundary key={location.pathname}>
           <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" /></div>}>
           <Routes>
             <Route path="/cctv/overview" element={
@@ -1160,6 +1162,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/cctv/overview" replace />} />
           </Routes>
           </Suspense>
+          </PageErrorBoundary>
         </main>
       </div>
       <ChangePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />

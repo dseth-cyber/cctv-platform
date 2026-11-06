@@ -2137,6 +2137,11 @@
     }
   },
   "common": {
+    "pageError": {
+      "title": "This page could not be shown",
+      "body": "Something went wrong on this page. The rest of the system is still running. Reload the page or choose another menu, and tell your administrator if it keeps happening.",
+      "reload": "Reload page"
+    },
     "actions": "Actions",
     "cancel": "Cancel",
     "close": "Close",

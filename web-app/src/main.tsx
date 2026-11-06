@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import App from '@/App'
+import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import '@/i18n'
 import '@/App.css'
 
@@ -34,7 +35,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
-              <App />
+              <PageErrorBoundary>
+                <App />
+              </PageErrorBoundary>
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
