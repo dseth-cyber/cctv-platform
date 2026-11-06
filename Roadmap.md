@@ -62,12 +62,6 @@
 - [ ] R4.3 Failover ที่ย้ายสตรีมจริงบน media node ปลายทาง + load test จริงตามขนาดที่จะรับรอง — ต้องมี media node ที่สองและกล้องจริง
 - [x] R4.4 ปรับ HANDOFF/Roadmap แยก "ทำโค้ดแล้ว" กับ "ตรวจรับผ่านแล้ว"
 
-## เป้าหมายและขอบเขต
-
-พัฒนา WebApp มอนิเตอร์ DVR/NVR/IP Camera เป้าหมาย 200–1000+ ช่อง แยก media node ตามผลทดสอบจริง มี Live View, Dashboard, Map/ผังอาคาร, สถานะ, Telegram, บันทึกเสริมและคลิปเหตุการณ์ ระบบ Image-Service-main ที่ใช้งานจริงบน Server เป็นระบบอีกชุดหนึ่ง ห้ามแก้ไขหรือเชื่อมทรัพยากรร่วมกับ Image Service Production เดิมโดยเด็ดขาด; การอนุมัติปลายทางใหม่หมายถึง Dev หรือ CCTV ที่แยกต่างหากเท่านั้น
-
-แนวทาง: ใช้ Fastify/TypeScript, React, PostgreSQL และ Redis จากฐานเดิม เพิ่ม MediaMTX สำหรับ media plane แบบ pass-through โดยปกติไม่ transcode ทดสอบ codec/browser compatibility (แนะนำ H.264/Opus/G.711 สำหรับ WebRTC latency ต่ำ และ H.265 เมื่อเปิดใช้ Hardware Acceleration) ส่วนคำสั่ง ONVIF PTZ และ Digest Auth ระดับฮาร์ดแวร์จริงต้องทดสอบกับอุปกรณ์จริงใน Pilot Wave 1
-
 ### Phase R5 — ห้องภาพสดสำหรับกล้องหลายร้อยตัว (อนุมัติแนวทาง 2026-11-06, ยังไม่เริ่ม)
 
 หลักการ: แสดงกล้องให้ครบ แต่ไม่สตรีมพร้อมกันทั้งหมด; ดึงภาพจากอุปกรณ์เท่าที่มีคนดู
@@ -84,6 +78,12 @@
 - [ ] R5.7 ภาพสดตามโควตา: กล้องติดดาวก่อน แล้วตามด้วยที่กำลังเลือก/อยู่บนจอ; ป้าย "สด" กับ "ภาพนิ่ง" แยกชัด
 
 ผลวัดกล้องจริง HiLook 1 ตัว (2026-11-06): ภาพนิ่งผ่าน ISAPI 0.28–0.45 วิ / 46 KB; ผ่าน RTSP 1.3 วิ / 24 KB — ยังไม่ได้วัดกับ NVR
+
+## เป้าหมายและขอบเขต
+
+พัฒนา WebApp มอนิเตอร์ DVR/NVR/IP Camera เป้าหมาย 200–1000+ ช่อง แยก media node ตามผลทดสอบจริง มี Live View, Dashboard, Map/ผังอาคาร, สถานะ, Telegram, บันทึกเสริมและคลิปเหตุการณ์ ระบบ Image-Service-main ที่ใช้งานจริงบน Server เป็นระบบอีกชุดหนึ่ง ห้ามแก้ไขหรือเชื่อมทรัพยากรร่วมกับ Image Service Production เดิมโดยเด็ดขาด; การอนุมัติปลายทางใหม่หมายถึง Dev หรือ CCTV ที่แยกต่างหากเท่านั้น
+
+แนวทาง: ใช้ Fastify/TypeScript, React, PostgreSQL และ Redis จากฐานเดิม เพิ่ม MediaMTX สำหรับ media plane แบบ pass-through โดยปกติไม่ transcode ทดสอบ codec/browser compatibility (แนะนำ H.264/Opus/G.711 สำหรับ WebRTC latency ต่ำ และ H.265 เมื่อเปิดใช้ Hardware Acceleration) ส่วนคำสั่ง ONVIF PTZ และ Digest Auth ระดับฮาร์ดแวร์จริงต้องทดสอบกับอุปกรณ์จริงใน Pilot Wave 1
 
 ## สถานะปัจจุบันที่แท้จริง (Audit Remediated)
 
