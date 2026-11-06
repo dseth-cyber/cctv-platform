@@ -110,7 +110,7 @@ export function SpareChannelsModal({ devices, onClose }: { devices: any[]; onClo
             </div>
           </>
         )}
-        <p className="text-[11px] text-slate-500">{t('ui.spareChannels.caution')}</p>
+        <p className="text-[11px] text-amber-300">{t('ui.spareChannels.caution')}</p>
       </div>
     </Modal>
   );

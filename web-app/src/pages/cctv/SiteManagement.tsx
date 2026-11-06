@@ -16,9 +16,14 @@ import {
   HardDrive,
   Map,
   Search,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { LocationStatsRow } from '@/components/cctv/LocationStatsRow';
+import { summarizeLocations } from '@/lib/locationSummary';
+import { NO_LOCATION } from '@/lib/cameraFilter';
 export default function SiteManagement() {
   const { t } = useTranslation()
   const { themeConfig } = useTheme();
@@ -212,7 +217,18 @@ export default function SiteManagement() {
   });
 
   const totalZonesCount = sites.reduce((sum: number, s: any) => sum + (s.zones?.length || 0), 0);
-  const totalCamerasCount = sites.reduce((sum: number, s: any) => sum + (s._count?.cameras || 0), 0);
+  // Every camera, so the counts match the rest of the system: in use apart from switched off, and no trash.
+  const { data: allCameras = [] } = useQuery<any[]>({
+    queryKey: ['sites-page-cameras'],
+    queryFn: () => imageServiceApi.getCameras(),
+    refetchInterval: 15_000,
+  });
+  const { data: allDevices = [] } = useQuery<any[]>({
+    queryKey: ['cctv-devices'],
+    queryFn: () => imageServiceApi.getDevices(),
+  });
+  const summary = summarizeLocations(allCameras as any[], allDevices as any[]);
+  const totalCamerasCount = summary.inUse;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -280,6 +296,16 @@ export default function SiteManagement() {
       </div>
 
       {/* Search */}
+      {(summary.noSite > 0 || summary.noZone > 0) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 rounded-xl bg-amber-950/30 border border-amber-700/40 text-xs text-amber-200">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="flex-1 min-w-[16rem]">{t('ui.location.unplacedNotice', { site: summary.noSite, zone: summary.noZone })}</span>
+          <Link to={`/cctv/cameras?zone=${NO_LOCATION}&on=1`} className="px-2.5 py-1 rounded-md border border-amber-600/50 font-semibold hover:bg-amber-500/10">
+            {t('ui.location.unplacedOpen')}
+          </Link>
+        </div>
+      )}
+
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -335,7 +361,7 @@ export default function SiteManagement() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
-                    {site._count?.devices || 0}{' '}{t('ui.siteManagement.devices')}{' '}{site._count?.cameras || 0}{' '}{t('ui.siteManagement.cameras')}
+                    {summary.bySite.get(site.id)?.devices ?? 0}{' '}{t('ui.siteManagement.devices')}{' '}· {t('ui.location.statCameras', { n: summary.bySite.get(site.id)?.inUse ?? 0 })}
                   </span>
 
                   <Button
@@ -367,6 +393,14 @@ export default function SiteManagement() {
 
               {/* Zones in this site */}
               <div className="p-4">
+                <div className="mb-3 pb-3 border-b border-slate-800/60">
+                  <LocationStatsRow stats={summary.bySite.get(site.id)} query={`site=${site.id}`} />
+                  {(summary.noZoneBySite.get(site.id) ?? 0) > 0 && (
+                    <Link to={`/cctv/cameras?site=${site.id}&zone=${NO_LOCATION}&on=1`} className="inline-block mt-2 text-[11px] text-amber-300 hover:text-amber-200">
+                      {t('ui.location.noZoneInSite', { n: summary.noZoneBySite.get(site.id) })}
+                    </Link>
+                  )}
+                </div>
                 {!site.zones || site.zones.length === 0 ? (
                   <p className="text-xs text-slate-500 italic py-2">
                     {t('ui.siteManagement.noPhysicalZonesDefinedForThis')}
@@ -376,8 +410,10 @@ export default function SiteManagement() {
                     {site.zones.map((zone: any) => (
                       <div
                         key={zone.id}
-                        className="p-3 bg-slate-950/70 border border-slate-800 rounded-lg hover:border-slate-700 transition flex items-center justify-between"
+                        data-zone-id={zone.id}
+                      className="p-3 bg-slate-950/70 border border-slate-800 rounded-lg hover:border-slate-700 transition space-y-2.5"
                       >
+                        <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-1.5">
                             <Layers className="w-3.5 h-3.5 text-indigo-400" />
@@ -405,6 +441,8 @@ export default function SiteManagement() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                        </div>
+                        <LocationStatsRow stats={summary.byZone.get(zone.id)} query={`site=${site.id}&zone=${zone.id}`} />
                       </div>
                     ))}
                   </div>

@@ -38,6 +38,7 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "retentionNeededForRecording": "サーバーに録画するカメラには保存ポリシーが必要です（詳細設定内）",
       "searchAllColumns": "すべての列を検索",
       "cameraBrand": "カメラのブランド",
       "cameraModel": "カメラの型番",
@@ -2520,6 +2521,20 @@
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
     "location": {
+      "statCameras": "カメラ {{n}}",
+      "statOnline": "オンライン {{n}}",
+      "statProblem": "問題あり {{n}}",
+      "statOff": "無効 {{n}}",
+      "statDevices": "機器 {{n}}",
+      "statSpare": "空き {{n}}",
+      "openLive": "ライブ",
+      "openCameras": "カメラ一覧",
+      "unplacedNotice": "使用中のカメラのうち {{site}} 台は拠点が、{{zone}} 台はゾーンが未指定のため、集計に含まれません",
+      "unplacedOpen": "これらのカメラを見る",
+      "noZoneInSite": "ゾーン未指定 {{n}} 台",
+      "noZoneCount": "ゾーン未指定 {{n}}",
+      "noZoneLabel": "ゾーン未指定",
+      "clearFilter": "この絞り込みを解除",
       "allSites": "すべての拠点",
       "allZones": "すべてのゾーン",
       "withCameras": "カメラ使用中 {{n}}",
@@ -2547,7 +2562,7 @@
       "spare": "空き",
       "spareList": "空きチャンネル",
       "openDevices": "機器ページへ",
-      "caution": "移設前の注意: DVR はアナログカメラ、NVR は IP カメラ用で直接入れ替えできません。現地でケーブル長、PoE ポート、HDD 容量を確認してください。数値はシステムに設定したチャンネル数に基づきます"
+      "caution": "注意: DVR はアナログカメラ、NVR は IP カメラ用です。移設前に現地を確認してください"
     },
     "cctvPlayback": {
       "liveNow": "ライブ",

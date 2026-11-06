@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCameraFavorites } from '@/hooks/useCameraFavorites';
 import { CameraQuickActions } from '@/components/cctv/CameraQuickActions';
@@ -116,7 +117,16 @@ export default function LiveGrid() {
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [cameraFilter, setCameraFilter] = useState(readSavedFilter);
   const locationKey = `${LOCATION_STORAGE_KEY}:${userKey}`;
+  const [urlParams, setUrlParams] = useSearchParams();
   const [locationFilter, setLocationFilter] = useState<{ sites: string[]; zones: string[] }>(() => {
+    // A link from a place decides; it also becomes the remembered choice.
+    const linkedSite = urlParams.get('site');
+    const linkedZone = urlParams.get('zone');
+    if (linkedSite || linkedZone) {
+      const linked = { sites: linkedSite ? [linkedSite] : [], zones: linkedZone ? [linkedZone] : [] };
+      store(locationKey, JSON.stringify(linked));
+      return linked;
+    }
     try {
       const saved = JSON.parse(readStored(locationKey) ?? '{}');
       return { sites: Array.isArray(saved.sites) ? saved.sites : [], zones: Array.isArray(saved.zones) ? saved.zones : [] };
@@ -124,6 +134,10 @@ export default function LiveGrid() {
       return { sites: [], zones: [] };
     }
   });
+  useEffect(() => {
+    if (urlParams.get('site') || urlParams.get('zone')) setUrlParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const chooseLocation = (next: { sites: string[]; zones: string[] }) => {
     setLocationFilter(next);
     store(locationKey, JSON.stringify(next));

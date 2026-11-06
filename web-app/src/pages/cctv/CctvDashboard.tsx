@@ -77,6 +77,7 @@ export default function CctvDashboard() {
   const zoneCount = allSites.reduce((sum: number, site: any) => sum + (site.zones?.length ?? 0), 0);
   const sitesInUse = new Set((cameras as any[]).map((c) => c.siteId).filter(Boolean)).size;
   const zonesInUse = new Set((cameras as any[]).map((c) => c.zoneId).filter(Boolean)).size;
+  const camerasNoZone = (cameras as any[]).filter((c) => !c.zoneId).length;
   const spareRows = useMemo(() => spareChannels(devices as any[]), [devices]);
   const spareTotal = spareRows.reduce((sum, row) => sum + row.spare.length, 0);
   const channelTotal = (devices as any[]).reduce((sum, d) => sum + (Number(d.totalChannels) || 0), 0);
@@ -389,7 +390,10 @@ export default function CctvDashboard() {
             <MapPin size={15} className="text-cyan-400" />
           </div>
           <div className="text-2xl font-extrabold text-white tracking-tight">{zoneCount.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 mt-1">{t('ui.location.withCameras', { n: zonesInUse })}</div>
+          <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between gap-2">
+            <span>{t('ui.location.withCameras', { n: zonesInUse })}</span>
+            {camerasNoZone > 0 && <span className="text-amber-300 whitespace-nowrap">{t('ui.location.noZoneCount', { n: camerasNoZone })}</span>}
+          </div>
         </button>
         <button type="button" onClick={() => setSpareOpen(true)} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-emerald-500/50 transition">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
@@ -455,7 +459,7 @@ export default function CctvDashboard() {
                   return (
                     <div
                       key={site.id}
-                      onClick={() => navigate('/cctv/live-grid')}
+                      onClick={() => navigate(`/cctv/live-grid?site=${site.id}`)}
                       className="p-3.5 rounded-xl bg-slate-800/40 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center justify-between mb-2">

@@ -7,13 +7,14 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { LocationFields } from '@/components/cctv/LocationFields';
-import { cameraSearchText, matchesCameraQuery } from '@/lib/cameraFilter';
+import { applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
+import { useSearchParams } from 'react-router-dom';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
 import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Edit, Trash2, Eye, Camera, Activity, Wifi, WifiOff, AlertTriangle, Wrench,
-  RefreshCw, CheckCircle, Play, Undo2, Copy } from 'lucide-react';
+  RefreshCw, CheckCircle, Play, Undo2, Copy , X } from 'lucide-react';
 import { Modal, Button, SearchableSelect, TableSkeleton, ColumnSelector, ExportButton, DateTimePicker } from '@/components/ui';
 import { getLocalizedValue } from '@/utils/textUtils';
 import { useRequiredFields } from '@/hooks/useRequiredFields';
@@ -118,6 +119,11 @@ export default function ImageServiceCameras() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
+  // Arriving from a place, e.g. /cctv/cameras?site=…&zone=…
+  const [urlParams, setUrlParams] = useSearchParams();
+  const siteParam = urlParams.get('site');
+  const zoneParam = urlParams.get('zone');
+  const inUseOnly = urlParams.get('on') === '1';
   const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
@@ -318,8 +324,19 @@ export default function ImageServiceCameras() {
     let form = formState;
     // A new camera needs a stream source; on edit a redacted URL means "unchanged".
     const simple = form.connMode === 'simple';
-    if (!form.name || !form.retentionPolicyId || (!simple && !modal.item && !form.rtspUrl)) {
+    if (!form.name) {
       toast.warning(t('common.requiredFields')); return;
+    }
+    // Both live under "more settings", so open it: otherwise nothing on screen shows what is missing.
+    if (!simple && !modal.item && !form.rtspUrl) {
+      setShowAdvanced(true);
+      toast.warning(t('common.requiredFields')); return;
+    }
+    // Only recordings kept on this server need a policy. A camera that is only watched keeps no files here,
+    // and channels created from a DVR/NVR have none, so asking for it stopped them being saved at all.
+    if (form.recordingMode === 'continuous' && !form.retentionPolicyId) {
+      setShowAdvanced(true);
+      toast.warning(t('imageService.cameras.retentionNeededForRecording')); return;
     }
     if (simple && !form.ipAddress.trim()) {
       toast.warning(t('imageService.cameras.conn.ipRequired')); return;
@@ -347,11 +364,14 @@ export default function ImageServiceCameras() {
       ...(simple ? [] : ['rtspUrl', 'rtspUrlSub'])];
     for (const fd of catalogFieldsFor('camera')) {
       if (!cameraFormKeys.includes(fd.key) || !isCameraFieldRequired(fd.key)) continue;
+      // A camera that is only watched keeps no files on this server, so it has nothing for a policy to govern.
+      if (fd.key === 'retentionPolicyId' && form.recordingMode !== 'continuous') continue;
       const val = (form as any)[fd.key];
       const empty = val === undefined || val === null
         || (typeof val === 'string' && val.trim() === '')
         || (Array.isArray(val) && val.length === 0);
-      if (empty) { toast.warning(t('imageService.requiredFields.missingField', { field: t(fd.labelKey) })); return; }
+      // Most of these live under "more settings": open it, so the empty field can be seen.
+      if (empty) { setShowAdvanced(true); toast.warning(t('imageService.requiredFields.missingField', { field: t(fd.labelKey) })); return; }
     }
     try {
       setSubmitting(true);
@@ -899,7 +919,14 @@ export default function ImageServiceCameras() {
     c.lastPolledAt ? formatDateTime(c.lastPolledAt, i18n.language) : '',
     c.createdAt ? formatDateTime(c.createdAt, i18n.language) : '',
   ].filter(Boolean).join(' ').normalize('NFC').toLocaleLowerCase();
-  const filtered = cameras.filter((c: any) => !search.trim() || matchesCameraQuery(searchTextOf(c), search));
+  const filtered = applyLocationFilter(cameras as any[], siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
+    .filter((c: any) => (!inUseOnly || c.enabled !== false) && (!search.trim() || matchesCameraQuery(searchTextOf(c), search)));
+  const locationChip = (() => {
+    if (!siteParam && !zoneParam) return null;
+    const anyCamera = (cameras as any[]).find((c) => (siteParam && c.siteId === siteParam) || (zoneParam && c.zoneId === zoneParam));
+    const zoneName = zoneParam === NO_LOCATION ? t('ui.location.noZoneLabel') : (cameras as any[]).find((c) => c.zoneId === zoneParam)?.zone?.name;
+    return [siteParam ? anyCamera?.site?.name : null, zoneName].filter(Boolean).join(' / ') || '—';
+  })();
 
   const getSortValue = (camera: any, col: string) => {
     switch (col) {
@@ -1044,6 +1071,17 @@ export default function ImageServiceCameras() {
               title={t('imageService.cameras.searchAllColumns')}
               className={`pl-8 pr-3 py-1.5 w-64 rounded-lg text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} w-52`} />
           </div>
+          {locationChip && (
+            <button
+              type="button"
+              onClick={() => setUrlParams({})}
+              title={t('ui.location.clearFilter')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/15 border border-cyan-500/40 text-cyan-200 hover:bg-cyan-500/25"
+            >
+              <span>{locationChip}</span>
+              <X size={12} />
+            </button>
+          )}
           <div className="w-36">
             <SearchableSelect value={statusFilter} onChange={setStatusFilter}
               placeholder={t('imageService.search.allStatus')}

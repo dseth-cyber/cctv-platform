@@ -38,6 +38,7 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "retentionNeededForRecording": "A camera recording to the server needs a retention policy (under more settings)",
       "searchAllColumns": "Search all columns",
       "cameraBrand": "Camera brand",
       "cameraModel": "Camera model",
@@ -2523,6 +2524,20 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "location": {
+      "statCameras": "{{n}} cameras",
+      "statOnline": "{{n}} online",
+      "statProblem": "{{n}} with problems",
+      "statOff": "{{n}} switched off",
+      "statDevices": "{{n}} devices",
+      "statSpare": "{{n}} free channels",
+      "openLive": "Live",
+      "openCameras": "Camera list",
+      "unplacedNotice": "{{site}} cameras in use have no site and {{zone}} have no zone, so the summaries of those places leave them out",
+      "unplacedOpen": "See these cameras",
+      "noZoneInSite": "{{n}} with no zone",
+      "noZoneCount": "{{n}} with no zone",
+      "noZoneLabel": "No zone",
+      "clearFilter": "Clear this filter",
       "allSites": "All sites",
       "allZones": "All zones",
       "withCameras": "{{n}} with cameras in use",
@@ -2550,7 +2565,7 @@
       "spare": "Free",
       "spareList": "Free channels",
       "openDevices": "Go to devices",
-      "caution": "Before moving anything: a DVR takes analog cameras and an NVR takes IP cameras, so they do not swap directly. Check cable length, PoE ports and HDD space on site. Counts come from the channel number set in the system"
+      "caution": "Caution: a DVR takes analog cameras and an NVR takes IP cameras. Check on site before moving anything"
     },
     "cctvPlayback": {
       "liveNow": "Live",

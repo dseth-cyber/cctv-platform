@@ -38,6 +38,7 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "retentionNeededForRecording": "录像到服务器的摄像机需要选择保留策略（在更多设置中）",
       "searchAllColumns": "搜索所有列",
       "cameraBrand": "摄像机品牌",
       "cameraModel": "摄像机型号",
@@ -2520,6 +2521,20 @@
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
     },
     "location": {
+      "statCameras": "摄像机 {{n}}",
+      "statOnline": "在线 {{n}}",
+      "statProblem": "有问题 {{n}}",
+      "statOff": "已停用 {{n}}",
+      "statDevices": "设备 {{n}}",
+      "statSpare": "空闲通道 {{n}}",
+      "openLive": "实时",
+      "openCameras": "摄像机列表",
+      "unplacedNotice": "使用中的摄像机有 {{site}} 台未指定地点，{{zone}} 台未指定区域，因此未计入相应汇总",
+      "unplacedOpen": "查看这些摄像机",
+      "noZoneInSite": "{{n}} 台未指定区域",
+      "noZoneCount": "未指定区域 {{n}}",
+      "noZoneLabel": "未指定区域",
+      "clearFilter": "清除此筛选",
       "allSites": "所有地点",
       "allZones": "所有区域",
       "withCameras": "{{n}} 个有摄像机在用",
@@ -2547,7 +2562,7 @@
       "spare": "空闲",
       "spareList": "空闲通道",
       "openDevices": "前往设备页",
-      "caution": "移动前请注意：DVR 使用模拟摄像机，NVR 使用 IP 摄像机，不能直接互换。请现场检查线缆长度、PoE 端口和硬盘空间。数字来自系统中设置的通道数"
+      "caution": "注意：DVR 用于模拟摄像机，NVR 用于 IP 摄像机。移动前请现场检查"
     },
     "cctvPlayback": {
       "liveNow": "实时",
