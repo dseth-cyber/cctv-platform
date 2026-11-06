@@ -1051,40 +1051,16 @@ export default function ImageServiceCameras() {
 
   return (
     <div className="pt-6 px-6 pb-2.5">
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-3 flex items-start justify-between">
         <div>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
             iSmart CCTV · {t('imageService.cameras.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.cameras.title')}</h1>
-          <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.subtitle')}</p>
         </div>
-        <ExportButton
-          filename="camera-list"
-          title={t('imageService.cameras.title')}
-          sections={[
-            { title: t('imageService.cameras.title'), columns: cameraExportColumns, data: cameraExportData },
-            { title: t('imageService.cameras.cameraInfo'), columns: [
-              { key: 'label', label: t('ui.imageServiceCameras.metric') }, { key: 'value', label: t('ui.imageServiceCameras.value') },
-            ], data: (() => {
-              const total = sorted.length;
-              const active = sorted.filter((c: any) => c.status === 'active').length;
-              const maint = sorted.filter((c: any) => c.status === 'maintenance').length;
-              const inactive = sorted.filter((c: any) => c.status === 'inactive').length;
-              const error = sorted.filter((c: any) => c.status === 'error').length;
-              return [
-                { label: t('imageService.cameras.totalImages'), value: String(total) },
-                { label: t('imageService.cameras.active'), value: `${active} (${total ? ((active/total)*100).toFixed(0) : 0}%)` },
-                { label: t('imageService.cameras.maintenance'), value: `${maint}` },
-                { label: t('imageService.cameras.inactive'), value: `${inactive}` },
-                { label: t('imageService.cameras.error'), value: `${error}` },
-              ];
-            })() },
-          ]}
-        />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <ColumnSelector
             align="left"
@@ -1165,13 +1141,36 @@ export default function ImageServiceCameras() {
               )}
             </>
           )}
+          <ExportButton
+            filename="camera-list"
+            title={t('imageService.cameras.title')}
+            sections={[
+              { title: t('imageService.cameras.title'), columns: cameraExportColumns, data: cameraExportData },
+              { title: t('imageService.cameras.cameraInfo'), columns: [
+                { key: 'label', label: t('ui.imageServiceCameras.metric') }, { key: 'value', label: t('ui.imageServiceCameras.value') },
+              ], data: (() => {
+                const total = sorted.length;
+                const active = sorted.filter((c: any) => c.status === 'active').length;
+                const maint = sorted.filter((c: any) => c.status === 'maintenance').length;
+                const inactive = sorted.filter((c: any) => c.status === 'inactive').length;
+                const error = sorted.filter((c: any) => c.status === 'error').length;
+                return [
+                  { label: t('imageService.cameras.totalImages'), value: String(total) },
+                  { label: t('imageService.cameras.active'), value: `${active} (${total ? ((active/total)*100).toFixed(0) : 0}%)` },
+                  { label: t('imageService.cameras.maintenance'), value: `${maint}` },
+                  { label: t('imageService.cameras.inactive'), value: `${inactive}` },
+                  { label: t('imageService.cameras.error'), value: `${error}` },
+                ];
+              })() },
+            ]}
+          />
         </div>
       </div>
 
       <div ref={contentRef}>
       {isLoading ? <TableSkeleton rows={8} /> : (
-        <div className={`${themeConfig.card} rounded-lg overflow-hidden flex flex-col mb-2`}>
-          <div className="overflow-x-auto overflow-y-auto relative" style={{ height: 'calc(100vh - 385px)', maxHeight: 'calc(100vh - 385px)' }}>
+        <div className={`${themeConfig.card} rounded-lg overflow-hidden flex flex-col`}>
+          <div className="overflow-x-auto overflow-y-auto relative" style={{ height: 'calc(100vh - 265px)', maxHeight: 'calc(100vh - 265px)' }}>
             <table className="w-full relative border-collapse">
               <thead className={`${themeConfig.tableHeader} sticky top-0 z-10 shadow-sm`}>
               <tr>
