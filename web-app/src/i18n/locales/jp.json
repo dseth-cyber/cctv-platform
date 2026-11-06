@@ -2206,6 +2206,7 @@
       "whepRtspFlowing": "WHEP と RTSP が正常に流れています",
       "videoStalled": "映像停止",
       "socketOkZeroFrames": "接続 OK / フレームなし",
+      "offlineCameras": "オフラインのカメラ",
       "offlineDevices": "オフラインのデバイス",
       "offlineNone": "オフラインのカメラはありません",
       "estBandwidth": "推定帯域幅",
@@ -2385,6 +2386,12 @@
       "estimateResourcesAt": "10・50・200・500・1000 チャンネルでのリソースを見積もり、ハードウェア、NIC 帯域、ディスク容量を決めます"
     },
     "deviceManagement": {
+      "cloneDevice": "機器をコピー",
+      "cloneTitle": "{{name}} のコピー",
+      "ipInvalid": "192.168.1.100 のような IP アドレスを入力してください",
+      "clonePasswordNeeded": "この機器のパスワードを入力してください",
+      "nameTaken": "同じ名前の機器があります",
+      "addressTaken": "この IP とポートは「{{device}}」で使用中です",
       "channelsInUse": "{{total}} チャンネル中 {{n}} を使用",
       "channelsInUseShort": "使用チャンネル",
       "channelsAll": "すべて選択",
@@ -2513,6 +2520,10 @@
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
     "location": {
+      "allSites": "すべての拠点",
+      "allZones": "すべてのゾーン",
+      "withCameras": "カメラ使用中 {{n}}",
+      "description": "説明",
       "site": "拠点",
       "zone": "ゾーン",
       "none": "未指定",
@@ -2520,6 +2531,23 @@
       "fromDevice": "機器の場所を使う",
       "deviceHasNone": "機器の場所は未設定です",
       "deviceHint": "全チャンネルに自動で適用されます。個別に場所を設定したカメラは変わりません"
+    },
+    "spareChannels": {
+      "card": "未使用のチャンネル",
+      "cardSub": "{{devices}} 台の録画機、全 {{total}} チャンネル中",
+      "details": "詳細を見る",
+      "title": "未使用のチャンネル",
+      "hint": "新しい機器を購入する前に、空きのある録画機を確認できます。カメラが故障中でも有効なチャンネルは空きに含みません",
+      "none": "すべてのチャンネルを使用中です",
+      "byType": "録画機の種類別",
+      "bySite": "拠点別",
+      "search": "録画機、IP、拠点、ゾーンを検索",
+      "type": "種類",
+      "inUse": "使用中",
+      "spare": "空き",
+      "spareList": "空きチャンネル",
+      "openDevices": "機器ページへ",
+      "caution": "移設前の注意: DVR はアナログカメラ、NVR は IP カメラ用で直接入れ替えできません。現地でケーブル長、PoE ポート、HDD 容量を確認してください。数値はシステムに設定したチャンネル数に基づきます"
     },
     "cctvPlayback": {
       "liveNow": "ライブ",

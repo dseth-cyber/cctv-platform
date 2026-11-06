@@ -106,3 +106,12 @@ export function camerasForEmptySlots<T extends { id: string }>(ordered: T[], onS
   const empty = onScreen.filter((id) => !id).length;
   return ordered.filter((c) => !taken.has(c.id)).slice(0, empty);
 }
+
+/** Stands for "no site" or "no zone" in the location filter: cameras nobody has placed yet. */
+export const NO_LOCATION = '__none__';
+
+/** Empty lists mean no restriction. */
+export function applyLocationFilter<T extends { siteId?: string | null; zoneId?: string | null }>(cameras: T[], sites: string[], zones: string[]): T[] {
+  const matches = (chosen: string[], value: string | null | undefined) => chosen.length === 0 || chosen.includes(value ?? NO_LOCATION);
+  return cameras.filter((c) => matches(sites, c.siteId) && matches(zones, c.zoneId));
+}

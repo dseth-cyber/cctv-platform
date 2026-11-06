@@ -8,7 +8,8 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
 import { LiveOverview } from '@/components/cctv/LiveOverview';
-import { applyCameraSelection, camerasForEmptySlots, favoritesFirst } from '@/lib/cameraFilter';
+import { applyCameraSelection, applyLocationFilter, camerasForEmptySlots, favoritesFirst, NO_LOCATION } from '@/lib/cameraFilter';
+import { SearchableSelect } from '@/components/ui';
 import {
   Grid2X2,
   Square,
@@ -66,6 +67,7 @@ interface SavedPreset {
 const FILTER_STORAGE_KEY = 'cctv_live_filter';
 const VIEW_STORAGE_KEY = 'cctv_live_view';
 const LAYOUT_STORAGE_KEY = 'cctv_live_layout';
+const LOCATION_STORAGE_KEY = 'cctv_live_location';
 // Past this many cameras the page opens on the overview instead of a few tiles.
 const OVERVIEW_DEFAULT_ABOVE = 16;
 
@@ -113,6 +115,19 @@ export default function LiveGrid() {
   const [cameraSearch, setCameraSearch] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [cameraFilter, setCameraFilter] = useState(readSavedFilter);
+  const locationKey = `${LOCATION_STORAGE_KEY}:${userKey}`;
+  const [locationFilter, setLocationFilter] = useState<{ sites: string[]; zones: string[] }>(() => {
+    try {
+      const saved = JSON.parse(readStored(locationKey) ?? '{}');
+      return { sites: Array.isArray(saved.sites) ? saved.sites : [], zones: Array.isArray(saved.zones) ? saved.zones : [] };
+    } catch {
+      return { sites: [], zones: [] };
+    }
+  });
+  const chooseLocation = (next: { sites: string[]; zones: string[] }) => {
+    setLocationFilter(next);
+    store(locationKey, JSON.stringify(next));
+  };
   const [savedView, setSavedView] = useState<'overview' | 'grid' | null>(() => {
     const saved = readStored(viewKey);
     return saved === 'overview' || saved === 'grid' ? saved : null;
@@ -338,7 +353,18 @@ export default function LiveGrid() {
       selectedSiteFilter === 'all' || c.siteId === selectedSiteFilter;
     return matchesSearch && matchesSite;
   });
-  const filteredCameras = favoritesFirst(applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline), favorites);
+  const filteredCameras = favoritesFirst(
+    applyCameraSelection(applyLocationFilter(drawerCameras, locationFilter.sites, locationFilter.zones), cameraFilter.ids, cameraFilter.onlyOffline),
+    favorites,
+  );
+  const siteOptions = [{ value: NO_LOCATION, label: t('ui.location.none') }, ...(sites as any[]).map((site) => ({ value: site.id, label: site.name }))];
+  // The zones of the chosen sites; with no site chosen, every zone says which site it is in.
+  const zoneOptions = [
+    { value: NO_LOCATION, label: t('ui.location.none') },
+    ...(sites as any[])
+      .filter((site) => locationFilter.sites.length === 0 || locationFilter.sites.includes(site.id))
+      .flatMap((site) => (site.zones ?? []).map((zone: any) => ({ value: zone.id, label: locationFilter.sites.length === 1 ? zone.name : `${zone.name} (${site.name})` }))),
+  ];
 
   // Calculate tour pages for hundreds of cameras
   const totalTourPages = Math.max(1, Math.ceil(filteredCameras.length / slotCount));
@@ -376,13 +402,13 @@ export default function LiveGrid() {
 
   // A changed filter restarts paging at its first page. It keys on the filter itself: the camera list
   // refreshes every 10 s and that must not reload the streams on screen.
-  const filterKey = JSON.stringify(cameraFilter);
+  const filterKey = JSON.stringify(cameraFilter) + JSON.stringify(locationFilter);
   const appliedFilterKey = useRef(filterKey);
   useEffect(() => {
     if (appliedFilterKey.current === filterKey) return;
     appliedFilterKey.current = filterKey;
     try {
-      localStorage.setItem(FILTER_STORAGE_KEY, filterKey);
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(cameraFilter));
     } catch {
       // Only a convenience: the filter still applies for this visit.
     }
@@ -573,8 +599,31 @@ export default function LiveGrid() {
             )}
           </div>
 
+          <div className="w-36" title={t('ui.location.site')}>
+            <SearchableSelect
+              isMulti
+              selectedValues={locationFilter.sites}
+              placeholder={t('ui.location.allSites')}
+              options={siteOptions}
+              onMultiChange={(next) => {
+                // A zone of a site no longer chosen would hide everything.
+                const allowed = new Set((sites as any[]).filter((x) => next.length === 0 || next.includes(x.id)).flatMap((x) => (x.zones ?? []).map((z: any) => z.id)));
+                chooseLocation({ sites: next, zones: locationFilter.zones.filter((z) => z === NO_LOCATION || allowed.has(z)) });
+              }}
+            />
+          </div>
+          <div className="w-36" title={t('ui.location.zone')}>
+            <SearchableSelect
+              isMulti
+              selectedValues={locationFilter.zones}
+              placeholder={t('ui.location.allZones')}
+              options={zoneOptions}
+              onMultiChange={(next) => chooseLocation({ ...locationFilter, zones: next })}
+            />
+          </div>
+
           <CameraFilterDropdown
-            cameras={cameras}
+            cameras={applyLocationFilter(cameras, locationFilter.sites, locationFilter.zones)}
             selectedIds={cameraFilter.ids}
             onlyOffline={cameraFilter.onlyOffline}
             onApply={(ids, onlyOffline) => setCameraFilter({ ids, onlyOffline })}

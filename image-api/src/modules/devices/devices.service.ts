@@ -121,6 +121,12 @@ async function assertDeviceNameFree(name: string, exceptId?: string) {
   if (clash) throw new ConflictError(`Device with name '${name}' already exists`, { code: 'DEVICE_NAME_TAKEN' });
 }
 
+/** One address and RTSP port is one machine. A different port is allowed, for recorders behind port forwarding. */
+async function assertDeviceAddressFree(ipAddress: string, rtspPort: number, exceptId?: string) {
+  const clash = await getPrisma().device.findFirst({ where: { ipAddress, rtspPort, ...(exceptId ? { id: { not: exceptId } } : {}) }, select: { name: true } });
+  if (clash) throw new ConflictError(`Device "${clash.name}" already uses ${ipAddress}:${rtspPort}`, { code: 'DEVICE_ADDRESS_TAKEN', device: clash.name });
+}
+
 export async function createDevice(input: CreateDeviceInput) {
   const prisma = getPrisma();
 
@@ -128,6 +134,7 @@ export async function createDevice(input: CreateDeviceInput) {
 
   // Channel cameras take their names from the device, so two devices cannot share one.
   await assertDeviceNameFree(input.name);
+  await assertDeviceAddressFree(input.ipAddress, input.rtspPort);
 
   const encryptedPassword = input.password ? encrypt(input.password) : null;
 
@@ -262,6 +269,9 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (!existing) throw new NotFoundError('Device', id);
 
   if (input.name !== undefined && input.name !== existing.name) await assertDeviceNameFree(input.name, id);
+  if (input.ipAddress !== undefined || input.rtspPort !== undefined) {
+    await assertDeviceAddressFree(input.ipAddress ?? existing.ipAddress, input.rtspPort ?? existing.rtspPort, id);
+  }
 
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;

@@ -8,6 +8,9 @@ import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Button, Modal } from '@/components/ui';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { useSitesWithZones } from '@/components/cctv/LocationFields';
+import { SpareChannelsModal } from '@/components/cctv/SpareChannelsModal';
+import { spareChannels } from '@/lib/deviceChannels';
 import {
   Activity,
   Radio,
@@ -50,6 +53,7 @@ export default function CctvDashboard() {
   const [previewCamera, setPreviewCamera] = useState<{ id: string; name: string } | null>(null);
   const [probingCameraId, setProbingCameraId] = useState<string | null>(null);
   const [probeResultModal, setProbeResultModal] = useState<any | null>(null);
+  const [spareOpen, setSpareOpen] = useState(false);
 
   // Queries
   const {
@@ -69,6 +73,13 @@ export default function CctvDashboard() {
   });
 
   const { data: cameras = [] } = useCctvCameras();
+  const { data: allSites = [] } = useSitesWithZones();
+  const zoneCount = allSites.reduce((sum: number, site: any) => sum + (site.zones?.length ?? 0), 0);
+  const sitesInUse = new Set((cameras as any[]).map((c) => c.siteId).filter(Boolean)).size;
+  const zonesInUse = new Set((cameras as any[]).map((c) => c.zoneId).filter(Boolean)).size;
+  const spareRows = useMemo(() => spareChannels(devices as any[]), [devices]);
+  const spareTotal = spareRows.reduce((sum, row) => sum + row.spare.length, 0);
+  const channelTotal = (devices as any[]).reduce((sum, d) => sum + (Number(d.totalChannels) || 0), 0);
 
   // Probe single camera on the fly
   const probeCameraMutation = useMutation({
@@ -312,7 +323,7 @@ export default function CctvDashboard() {
         {/* Offline / Unreachable */}
         <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-rose-500/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
-            <span>{t('ui.cctvDashboard.offlineDevices')}</span>
+            <span>{t('ui.cctvDashboard.offlineCameras')}</span>
             <XCircle size={15} className="text-rose-400" />
           </div>
           <div className="text-2xl md:text-3xl font-extrabold text-rose-400 tracking-tight">
@@ -361,6 +372,38 @@ export default function CctvDashboard() {
           />
         </div>
       </div>
+
+      {/* Places, and room for more cameras */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <button type="button" onClick={() => navigate('/cctv/sites')} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-cyan-500/50 transition">
+          <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
+            <span>{t('ui.location.site')}</span>
+            <Building2 size={15} className="text-cyan-400" />
+          </div>
+          <div className="text-2xl font-extrabold text-white tracking-tight">{allSites.length.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{t('ui.location.withCameras', { n: sitesInUse })}</div>
+        </button>
+        <button type="button" onClick={() => navigate('/cctv/sites')} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-cyan-500/50 transition">
+          <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
+            <span>{t('ui.location.zone')}</span>
+            <MapPin size={15} className="text-cyan-400" />
+          </div>
+          <div className="text-2xl font-extrabold text-white tracking-tight">{zoneCount.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{t('ui.location.withCameras', { n: zonesInUse })}</div>
+        </button>
+        <button type="button" onClick={() => setSpareOpen(true)} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-emerald-500/50 transition">
+          <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
+            <span>{t('ui.spareChannels.card')}</span>
+            <Layers size={15} className="text-emerald-400" />
+          </div>
+          <div className="text-2xl font-extrabold text-emerald-400 tracking-tight">{spareTotal.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between gap-2">
+            <span>{t('ui.spareChannels.cardSub', { total: channelTotal, devices: (devices as any[]).length })}</span>
+            <span className="text-cyan-400 whitespace-nowrap">{t('ui.spareChannels.details')}</span>
+          </div>
+        </button>
+      </div>
+      {spareOpen && <SpareChannelsModal devices={devices as any[]} onClose={() => setSpareOpen(false)} />}
 
       {/* Main Grid: Sites Breakdown & Live Incident Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

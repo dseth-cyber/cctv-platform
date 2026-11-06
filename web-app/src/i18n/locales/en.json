@@ -2209,6 +2209,7 @@
       "whepRtspFlowing": "WHEP & RTSP Flowing",
       "videoStalled": "Video Stalled",
       "socketOkZeroFrames": "Socket OK / Zero Frames",
+      "offlineCameras": "Cameras offline",
       "offlineDevices": "Offline Devices",
       "offlineNone": "No camera is offline",
       "estBandwidth": "Est. Bandwidth",
@@ -2388,6 +2389,12 @@
       "estimateResourcesAt": "Estimate resources at 10, 50, 200, 500 and 1000 channels to size hardware, NIC bandwidth and disk capacity"
     },
     "deviceManagement": {
+      "cloneDevice": "Copy device",
+      "cloneTitle": "Copy of {{name}}",
+      "ipInvalid": "Must be an IP address such as 192.168.1.100",
+      "clonePasswordNeeded": "Enter this machine's password",
+      "nameTaken": "A device with this name already exists",
+      "addressTaken": "This IP and port are already used by \"{{device}}\"",
       "channelsInUse": "{{n}} of {{total}} channels in use",
       "channelsInUseShort": "channels in use",
       "channelsAll": "Select all",
@@ -2516,6 +2523,10 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "location": {
+      "allSites": "All sites",
+      "allZones": "All zones",
+      "withCameras": "{{n}} with cameras in use",
+      "description": "Description",
       "site": "Site",
       "zone": "Zone",
       "none": "Not set",
@@ -2523,6 +2534,23 @@
       "fromDevice": "Use the device's location",
       "deviceHasNone": "The device has no location yet",
       "deviceHint": "All its channels follow this automatically. A camera given its own location keeps it"
+    },
+    "spareChannels": {
+      "card": "Channels not in use",
+      "cardSub": "of {{total}} channels on {{devices}} recorders",
+      "details": "View details",
+      "title": "Channels not in use",
+      "hint": "Shows which recorders have room, before deciding to buy another. A channel whose camera is broken but still switched on is not counted as free",
+      "none": "Every channel is in use",
+      "byType": "By recorder type",
+      "bySite": "By site",
+      "search": "Search recorder, IP, site, zone",
+      "type": "Type",
+      "inUse": "In use",
+      "spare": "Free",
+      "spareList": "Free channels",
+      "openDevices": "Go to devices",
+      "caution": "Before moving anything: a DVR takes analog cameras and an NVR takes IP cameras, so they do not swap directly. Check cable length, PoE ports and HDD space on site. Counts come from the channel number set in the system"
     },
     "cctvPlayback": {
       "liveNow": "Live",

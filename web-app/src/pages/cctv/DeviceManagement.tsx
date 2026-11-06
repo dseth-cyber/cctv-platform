@@ -30,6 +30,7 @@ import {
   Wifi,
   WifiOff,
   Loader2,
+  Copy,
 } from 'lucide-react';
 import { ChannelChecklist } from '@/components/cctv/ChannelChecklist';
 import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
@@ -38,6 +39,7 @@ import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/App';
 import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib/csv';
+import { cloneIpPlaceholder, isValidIPv4, uniqueCopyName } from '@/lib/deviceChannels';
 
 import { useTranslation } from 'react-i18next';
 export default function DeviceManagement() {
@@ -89,6 +91,7 @@ export default function DeviceManagement() {
   });
   // Channels with a camera in use, for a new device. Null: all of them, following the channel count.
   const [enabledChannels, setEnabledChannels] = useState<number[] | null>(null);
+  const [cloneSource, setCloneSource] = useState<string | null>(null);
   const { user } = useAuth();
   const canEditChannels = hasPermission(user, 'cameras:update');
   const { options: brandOptions } = useMasterdataOptions('device_brand');
@@ -106,6 +109,13 @@ export default function DeviceManagement() {
     queryFn: () => imageServiceApi.getDeviceTemplates(),
   });
 
+  const deviceErrorText = (err: any, fallback: string) => {
+    const details = err?.response?.data?.details;
+    if (details?.code === 'DEVICE_NAME_TAKEN') return t('ui.deviceManagement.nameTaken');
+    if (details?.code === 'DEVICE_ADDRESS_TAKEN') return t('ui.deviceManagement.addressTaken', { device: details.device });
+    return err?.response?.data?.message || fallback;
+  };
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: typeof formData) => imageServiceApi.createDevice(data),
@@ -117,7 +127,7 @@ export default function DeviceManagement() {
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToCreateDevice'));
+      toast.error(deviceErrorText(err, t('ui.deviceManagement.failedToCreateDevice')));
     },
   });
 
@@ -130,7 +140,7 @@ export default function DeviceManagement() {
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || t('ui.deviceManagement.failedToUpdateDevice'));
+      toast.error(deviceErrorText(err, t('ui.deviceManagement.failedToUpdateDevice')));
     },
   });
 
@@ -235,6 +245,10 @@ export default function DeviceManagement() {
         errors.push(`Row ${i + 2}: Name and IP address are required`);
         return;
       }
+      if (!isValidIPv4(row.ipaddress)) {
+        errors.push(`Row ${i + 2}: "${row.ipaddress}" is not an IPv4 address`);
+        return;
+      }
       // By name or code, as typed on the sites page. An unknown place is reported, never dropped silently.
       const same = (a?: string | null, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
       const site = row.site ? sites.find((x: any) => same(x.name, row.site) || same(x.code, row.site)) : null;
@@ -300,6 +314,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
   const resetForm = () => {
     setEnabledChannels(null);
+    setCloneSource(null);
     setEditingDevice(null);
     setProbeState({ loading: false, result: null, error: null });
     setFormData({
@@ -327,7 +342,36 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
     setIsModalOpen(true);
   };
 
+  // Everything but what makes a machine itself: its address and its password are for the person to fill in.
+  const openCloneModal = (dev: any) => {
+    setEditingDevice(null);
+    setCloneSource(dev.name);
+    setProbeState({ loading: false, result: null, error: null });
+    setFormData({
+      name: uniqueCopyName(dev.name, devices.map((d: any) => d.name)),
+      description: dev.description || '',
+      deviceType: dev.deviceType || 'dvr',
+      brand: dev.brand || 'Generic',
+      model: dev.model || '',
+      serialNumber: '',
+      ipAddress: cloneIpPlaceholder(dev.ipAddress),
+      rtspPort: dev.rtspPort || 554,
+      httpPort: dev.httpPort || 80,
+      onvifPort: dev.onvifPort || 8000,
+      username: dev.username || 'admin',
+      password: '',
+      totalChannels: dev.totalChannels || 16,
+      autoCreateCameras: true,
+      siteId: dev.siteId || '',
+      zoneId: dev.zoneId || '',
+    });
+    setEnabledChannels(dev.enabledChannels ?? null);
+    setIsModalOpen(true);
+  };
+
   const openEditModal = (dev: any) => {
+    setEnabledChannels(null);
+    setCloneSource(null);
     setEditingDevice(dev);
     setProbeState({ loading: false, result: null, error: null });
     setFormData({
@@ -351,15 +395,19 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
     setIsModalOpen(true);
   };
 
+  const ipValid = isValidIPv4(formData.ipAddress);
+  const passwordMissing = !!cloneSource && !formData.password;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!ipValid || passwordMissing) return;
     if (editingDevice) {
-      const payload: any = { ...formData, siteId: formData.siteId || null, zoneId: formData.zoneId || null };
+      const payload: any = { ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null };
       if (!payload.password) delete payload.password;
       delete payload.autoCreateCameras;
       updateMutation.mutate({ id: editingDevice.id, data: payload });
     } else {
-      createMutation.mutate({ ...formData, siteId: formData.siteId || null, zoneId: formData.zoneId || null, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
+      createMutation.mutate({ ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
     }
   };
 
@@ -605,6 +653,15 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                       )}
 
                       <button
+                        onClick={() => openCloneModal(dev)}
+                        className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-cyan-300 transition"
+                        title={t('ui.deviceManagement.cloneDevice')}
+                        aria-label={t('ui.deviceManagement.cloneDevice')}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+
+                      <button
                         onClick={() => openEditModal(dev)}
                         className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
                         title={t('ui.deviceManagement.editDevice')}
@@ -649,7 +706,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingDevice ? t('ui.deviceManagement.editRecordingDevice') : t('ui.deviceManagement.addRecordingDeviceDvrNvrIp')}
+        title={cloneSource ? t('ui.deviceManagement.cloneTitle', { name: cloneSource }) : editingDevice ? t('ui.deviceManagement.editRecordingDevice') : t('ui.deviceManagement.addRecordingDeviceDvrNvrIp')}
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-slate-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -744,8 +801,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder="192.168.1.100"
                 value={formData.ipAddress}
                 onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                aria-invalid={!!formData.ipAddress && !ipValid}
+                className={`w-full bg-slate-950 border rounded-lg ${formData.ipAddress && !ipValid ? 'border-rose-500' : 'border-slate-800'} px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500`}
               />
+              {formData.ipAddress && !ipValid && (
+                <p className="mt-1 text-[11px] text-rose-400">{t('ui.deviceManagement.ipInvalid')}</p>
+              )}
             </div>
 
             <div>
@@ -824,7 +885,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             <p className="text-[11px] text-slate-500">{t('ui.location.deviceHint')}</p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">{t('imageService.cameras.description')}</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.location.description')}</label>
             <input
               type="text"
               value={formData.description}
@@ -873,6 +934,9 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
+              {passwordMissing && (
+                <p className="mt-1 text-[11px] text-amber-400">{t('ui.deviceManagement.clonePasswordNeeded')}</p>
+              )}
             </div>
           </div>
 
@@ -907,7 +971,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             </Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending || !ipValid || passwordMissing}
               className="bg-cyan-600 hover:bg-cyan-500 text-white"
             >
               {editingDevice ? t('ui.deviceManagement.saveChanges') : t('ui.deviceManagement.createDevice')}

@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 export const deviceTypeEnum = z.enum(['dvr', 'nvr', 'ip_camera', 'other']);
 
+const ipv4 = z.string().trim().regex(
+  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/,
+  'Must be an IPv4 address such as 192.168.1.100',
+);
+
 export const createDeviceSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().optional(),
@@ -9,7 +14,7 @@ export const createDeviceSchema = z.object({
   brand: z.string().max(64).optional(),
   model: z.string().max(64).optional(),
   serialNumber: z.string().max(128).optional(),
-  ipAddress: z.string().min(1).max(45),
+  ipAddress: ipv4,
   rtspPort: z.number().int().min(1).max(65535).default(554),
   httpPort: z.number().int().min(1).max(65535).default(80).optional(),
   onvifPort: z.number().int().min(1).max(65535).optional().nullable(),
@@ -32,7 +37,7 @@ export const updateDeviceSchema = z.object({
   brand: z.string().max(64).optional(),
   model: z.string().max(64).optional(),
   serialNumber: z.string().max(128).optional(),
-  ipAddress: z.string().min(1).max(45).optional(),
+  ipAddress: ipv4.optional(),
   rtspPort: z.number().int().min(1).max(65535).optional(),
   httpPort: z.number().int().min(1).max(65535).optional().nullable(),
   onvifPort: z.number().int().min(1).max(65535).optional().nullable(),

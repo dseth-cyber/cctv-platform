@@ -2206,6 +2206,7 @@
       "whepRtspFlowing": "WHEP 和 RTSP 正常传输",
       "videoStalled": "视频停滞",
       "socketOkZeroFrames": "连接正常 / 无视频帧",
+      "offlineCameras": "离线摄像机",
       "offlineDevices": "离线设备",
       "offlineNone": "没有离线摄像机",
       "estBandwidth": "预估带宽",
@@ -2385,6 +2386,12 @@
       "estimateResourcesAt": "估算 10、50、200、500、1000 个通道的资源用量，用于规划硬件、网卡带宽和磁盘容量"
     },
     "deviceManagement": {
+      "cloneDevice": "复制设备",
+      "cloneTitle": "复制自 {{name}}",
+      "ipInvalid": "必须是 IP 地址，例如 192.168.1.100",
+      "clonePasswordNeeded": "请输入此设备的密码",
+      "nameTaken": "已有同名设备",
+      "addressTaken": "此 IP 和端口已被设备\"{{device}}\"使用",
       "channelsInUse": "使用 {{n}} / {{total}} 个通道",
       "channelsInUseShort": "使用中的通道",
       "channelsAll": "全选",
@@ -2513,6 +2520,10 @@
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
     },
     "location": {
+      "allSites": "所有地点",
+      "allZones": "所有区域",
+      "withCameras": "{{n}} 个有摄像机在用",
+      "description": "说明",
       "site": "地点",
       "zone": "区域",
       "none": "未指定",
@@ -2520,6 +2531,23 @@
       "fromDevice": "使用设备的位置",
       "deviceHasNone": "设备尚未指定位置",
       "deviceHint": "所有通道自动沿用此设置。单独设置了位置的摄像机不会改变"
+    },
+    "spareChannels": {
+      "card": "未使用的通道",
+      "cardSub": "共 {{total}} 通道，{{devices}} 台录像机",
+      "details": "查看详情",
+      "title": "未使用的通道",
+      "hint": "在决定购买新设备前，查看哪些录像机还有空闲通道。摄像机损坏但仍启用的通道不算空闲",
+      "none": "所有通道都在使用",
+      "byType": "按录像机类型",
+      "bySite": "按地点",
+      "search": "搜索录像机、IP、地点、区域",
+      "type": "类型",
+      "inUse": "使用中",
+      "spare": "空闲",
+      "spareList": "空闲通道",
+      "openDevices": "前往设备页",
+      "caution": "移动前请注意：DVR 使用模拟摄像机，NVR 使用 IP 摄像机，不能直接互换。请现场检查线缆长度、PoE 端口和硬盘空间。数字来自系统中设置的通道数"
     },
     "cctvPlayback": {
       "liveNow": "实时",
