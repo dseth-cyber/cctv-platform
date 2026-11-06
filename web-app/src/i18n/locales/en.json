@@ -767,7 +767,14 @@
         "system_developer": "Developer",
         "system_copyright": "Copyright",
         "audit_logs_retention_days": "Audit Log retention (days)",
-        "alerts_retention_days": "Alert retention (days)"
+        "alerts_retention_days": "Alert retention (days)",
+        "live_max_streams_per_user": "Live tiles per viewer",
+        "live_max_streams_total": "Live streams, whole system",
+        "live_snapshot_refresh_seconds": "Still image refresh (seconds)",
+        "live_snapshot_stale_seconds": "Flag a still as old after (seconds)",
+        "live_snapshot_device_concurrency": "Fetches at once per device",
+        "live_snapshot_global_concurrency": "Fetches at once in total",
+        "live_snapshot_cache_mb": "Memory for stills (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "Disk usage percentage for critical alert",
@@ -793,7 +800,14 @@
         "system_developer": "Developer / company name",
         "system_copyright": "Copyright notice text",
         "audit_logs_retention_days": "Auto-delete Audit Log entries older than this many days. 0 = keep forever.",
-        "alerts_retention_days": "Auto-delete resolved Alerts older than this many days (unresolved alerts are never auto-deleted). 0 = keep forever."
+        "alerts_retention_days": "Auto-delete resolved Alerts older than this many days (unresolved alerts are never auto-deleted). 0 = keep forever.",
+        "live_max_streams_per_user": "The viewer's computer decodes each video; the rest show as stills",
+        "live_max_streams_total": "Protects the server: past it viewers get stills. Measure on your hardware before raising",
+        "live_snapshot_refresh_seconds": "Only for cameras someone is viewing. Suggested: 10, 30 or 60",
+        "live_snapshot_stale_seconds": "Older images dim and get a warning label, so nobody mistakes them for now",
+        "live_snapshot_device_concurrency": "For one camera or DVR/NVR; too high can slow the device down",
+        "live_snapshot_global_concurrency": "The server's overall limit",
+        "live_snapshot_cache_mb": "Kept in memory only, never on disk; when full the unwatched go first"
       },
       "title": "System Configuration",
       "subtitle": "Manage all system settings",
@@ -825,6 +839,19 @@
         "too_long": "Too long (a logo should be about 1.5 MB at most)",
         "unknown": "Unknown setting",
         "order": "Must not be more than \"{{other}}\""
+      },
+      "categoryLive": "Live Room",
+      "liveAdvice": {
+        "title": "Advice for this system",
+        "load": "{{cameras}} cameras (busiest device {{busiest}}). If all are viewed at once: {{ips}} images/s, about {{mbps}} Mbps",
+        "ok": "This keeps up: every camera can be fetched in about {{s}} s",
+        "slow": "{{set}} s cannot keep up. Nothing breaks, but images will arrive about every {{s}} s (held by the {{limit}}). Suggested: {{rec}} s",
+        "limit_device": "per-device limit",
+        "limit_global": "overall limit",
+        "apply": "Use {{rec}} s",
+        "measured": "Based on this system's own measurements ({{samples}} images: average {{ms}} ms, {{kb}} KB)",
+        "assumed": "Not enough measurements yet, using an estimate ({{ms}} ms, {{kb}} KB). It gets accurate once the overview is used",
+        "now": "Now: {{n}} cameras being viewed, {{perMin}} images/min, {{mb}} MB of image memory"
       }
     },
     "about": {
@@ -2741,6 +2768,30 @@
         "applyCount": "Show {{count}} cameras",
         "applyAll": "Show all",
         "groups": "Camera groups"
+      },
+      "overview": {
+        "view": "Overview",
+        "viewHint": "See every camera: live video up to your quota, still images for the rest",
+        "liveCount": "Live {{n}}/{{quota}}",
+        "stillCount": "Stills {{n}}",
+        "refreshEvery": "refreshed every {{n}} s",
+        "hint": "Click a still for live video · star a camera to get live first",
+        "behind": "The server is behind on still images: they will arrive late, everything else is fine",
+        "limitReached": "Live streams have reached the system limit, the rest stay as stills",
+        "badgeStill": "Still {{age}}",
+        "ageSeconds": "{{n}} s ago",
+        "ageMinutes": "{{n}} min ago",
+        "clickForLive": "Click for live video",
+        "backToStill": "Back to still image",
+        "star": "Star",
+        "unstar": "Remove star",
+        "state": {
+          "waiting": "Waiting for an image…",
+          "no_source": "No video source set",
+          "auth_failed": "Wrong password: paused so the camera does not lock the account",
+          "unreachable": "Cannot reach it",
+          "failed": "Could not get an image"
+        }
       }
     },
     "cctvMap": {

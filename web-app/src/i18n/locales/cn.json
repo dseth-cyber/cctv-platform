@@ -565,7 +565,14 @@
         "system_description": "系统描述",
         "system_version": "版本",
         "system_developer": "开发者",
-        "system_copyright": "版权"
+        "system_copyright": "版权",
+        "live_max_streams_per_user": "每位用户实时画面数",
+        "live_max_streams_total": "全系统实时流数",
+        "live_snapshot_refresh_seconds": "静态图刷新（秒）",
+        "live_snapshot_stale_seconds": "静态图过期提示（秒）",
+        "live_snapshot_device_concurrency": "每台设备同时获取数",
+        "live_snapshot_global_concurrency": "全系统同时获取数",
+        "live_snapshot_cache_mb": "静态图内存（MB）"
       },
       "descriptions": {
         "alert_critical_threshold": "用于严重告警的磁盘空间使用百分比",
@@ -591,7 +598,14 @@
         "system_description": "应用描述",
         "system_version": "系统版本标签",
         "system_developer": "开发者/公司名称",
-        "system_copyright": "版权声明文字"
+        "system_copyright": "版权声明文字",
+        "live_max_streams_per_user": "观看电脑需解码每路视频，超出显示静态图",
+        "live_max_streams_total": "保护服务器：超出后显示静态图。提高前请实测",
+        "live_snapshot_refresh_seconds": "仅针对正在查看的摄像机。建议 10、30 或 60",
+        "live_snapshot_stale_seconds": "更旧的图片会变暗并提示，避免误认为当前画面",
+        "live_snapshot_device_concurrency": "单台摄像机或 DVR/NVR；过高可能拖慢设备",
+        "live_snapshot_global_concurrency": "服务器总上限",
+        "live_snapshot_cache_mb": "仅存于内存，不写磁盘；满时先删未查看的"
       },
       "problems": {
         "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
@@ -605,6 +619,19 @@
         "too_long": "过长（徽标应不超过约 1.5 MB）",
         "unknown": "未知设置",
         "order": "不能大于“{{other}}”"
+      },
+      "categoryLive": "实时画面",
+      "liveAdvice": {
+        "title": "本系统建议",
+        "load": "{{cameras}} 台摄像机（最多的设备 {{busiest}} 台）。全部同时查看时：{{ips}} 张/秒，约 {{mbps}} Mbps",
+        "ok": "可以跟上：约 {{s}} 秒可获取全部摄像机",
+        "slow": "{{set}} 秒跟不上。系统不会崩溃，但图片约每 {{s}} 秒更新（受{{limit}}限制）。建议 {{rec}} 秒",
+        "limit_device": "每台设备上限",
+        "limit_global": "总上限",
+        "apply": "使用 {{rec}} 秒",
+        "measured": "基于本系统实测（{{samples}} 张：平均 {{ms}} ms，{{kb}} KB）",
+        "assumed": "实测不足，使用估算值（{{ms}} ms，{{kb}} KB）。使用总览后会更准确",
+        "now": "当前：{{n}} 台正在查看，{{perMin}} 张/分钟，图片内存 {{mb}} MB"
       }
     },
     "about": {
@@ -2738,6 +2765,30 @@
         "applyCount": "显示 {{count}} 台摄像机",
         "applyAll": "显示全部",
         "groups": "摄像机分组"
+      },
+      "overview": {
+        "view": "总览",
+        "viewHint": "查看所有摄像机：配额内为实时画面，其余为静态图",
+        "liveCount": "实时 {{n}}/{{quota}}",
+        "stillCount": "静态图 {{n}}",
+        "refreshEvery": "每 {{n}} 秒刷新",
+        "hint": "点击静态图查看实时 · 加星优先实时",
+        "behind": "服务器静态图更新滞后：图片会延迟，其他功能正常",
+        "limitReached": "实时流已达系统上限，其余显示静态图",
+        "badgeStill": "静态图 {{age}}",
+        "ageSeconds": "{{n}} 秒前",
+        "ageMinutes": "{{n}} 分钟前",
+        "clickForLive": "点击查看实时",
+        "backToStill": "返回静态图",
+        "star": "加星",
+        "unstar": "取消星标",
+        "state": {
+          "waiting": "等待图片…",
+          "no_source": "未设置视频源",
+          "auth_failed": "密码错误：已暂停以免摄像机锁定账户",
+          "unreachable": "无法连接",
+          "failed": "获取图片失败"
+        }
       }
     },
     "cctvMap": {

@@ -71,3 +71,29 @@ export function extractRtspPassword(stored: string | null | undefined): string |
     return raw;
   }
 }
+
+/** Host and login from a plain RTSP URL (userinfo, or user=/password= in the path). */
+export function parseRtspLogin(url: string | null | undefined): { host: string | null; username: string | null; password: string | null } {
+  if (!url) return { host: null, username: null, password: null };
+  const decode = (v: string | undefined) => {
+    if (v === undefined) return null;
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  };
+  const authority = url.match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i)?.[1] ?? '';
+  const at = authority.lastIndexOf('@');
+  const hostPort = at >= 0 ? authority.slice(at + 1) : authority;
+  const host = hostPort.replace(/:\d+$/, '') || null;
+  if (at >= 0) {
+    const [username, password] = authority.slice(0, at).split(/:(.*)/s);
+    return { host, username: decode(username), password: decode(password) };
+  }
+  return {
+    host,
+    username: decode(url.match(/[?&;/](?:user|username)=([^&;/]*)/i)?.[1]),
+    password: decode(url.match(/[?&;/](?:password|passwd|pwd|pass)=([^&;/]*)/i)?.[1]),
+  };
+}

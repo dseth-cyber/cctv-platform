@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, Info, Zap } from 'lucide-react';
+import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, Info, Zap, Radio } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Modal } from '@/components/ui';
+import { LiveSettingsAdvice } from '@/components/cctv/LiveSettingsAdvice';
 
 // JSON settings come back parsed; String() would turn them into "[object Object]" on the next save.
 const toFormValue = (value: unknown) =>
@@ -17,6 +18,7 @@ const CATEGORIES: { key: string; icon: any; labelKey: string; color: string }[] 
   { key: 'retention', icon: Database, labelKey: 'imageService.systemConfig.categoryRetention', color: 'text-blue-400 bg-blue-500/10' },
   { key: 'alert', icon: Bell, labelKey: 'imageService.systemConfig.categoryAlert', color: 'text-red-400 bg-red-500/10' },
   { key: 'storage', icon: Server, labelKey: 'imageService.systemConfig.categoryStorageLimit', color: 'text-teal-400 bg-teal-500/10' },
+  { key: 'live', icon: Radio, labelKey: 'imageService.systemConfig.categoryLive', color: 'text-emerald-400 bg-emerald-500/10' },
   { key: 'automation', icon: Zap, labelKey: 'imageService.systemConfig.categoryAutomation', color: 'text-cyan-400 bg-cyan-500/10' },
 ];
 
@@ -197,6 +199,14 @@ export default function SystemConfigPage() {
                   <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t(cat.labelKey)}</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  {cat.key === 'live' && (
+                    <LiveSettingsAdvice
+                      refreshSeconds={values.live_snapshot_refresh_seconds ?? ''}
+                      deviceConcurrency={values.live_snapshot_device_concurrency ?? ''}
+                      globalConcurrency={values.live_snapshot_global_concurrency ?? ''}
+                      onApplyRefresh={(seconds) => setValues(v => ({ ...v, live_snapshot_refresh_seconds: String(seconds) }))}
+                    />
+                  )}
                   {items.map(([key, cfg]) => {
                     const labelKey = `imageService.systemConfig.labels.${key}`;
                     const descKey = `imageService.systemConfig.descriptions.${key}`;

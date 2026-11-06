@@ -19,6 +19,22 @@ export function createImageServiceApi(api: any) {
     getCameraEvents: (id: string, params?: { since?: string; until?: string; limit?: number }) =>
       api.get(`${BASE}/cameras/${id}/events`, { params }).then((r: any) => r.data),
 
+    getCameraFavorites: (): Promise<string[]> =>
+      api.get(`${BASE}/cameras/favorites`).then((r: any) => r.data),
+    addCameraFavorite: (id: string) =>
+      api.put(`${BASE}/cameras/${id}/favorite`),
+    removeCameraFavorite: (id: string) =>
+      api.delete(`${BASE}/cameras/${id}/favorite`),
+
+    requestSnapshots: (ids: string[]) =>
+      api.post(`${BASE}/snapshots/request`, { ids }).then((r: any) => r.data),
+    getSnapshotImage: (id: string): Promise<Blob> =>
+      api.get(`${BASE}/snapshots/image/${id}`, { responseType: 'blob' }).then((r: any) => r.data),
+    getSnapshotSettings: () =>
+      api.get(`${BASE}/snapshots/settings`).then((r: any) => r.data),
+    getSnapshotAdvice: (params: Record<string, string>) =>
+      api.get(`${BASE}/snapshots/advice`, { params }).then((r: any) => r.data),
+
     getCameraGroups: () =>
       api.get(`${BASE}/camera-groups`).then((r: any) => r.data),
     createCameraGroup: (data: Record<string, unknown>) =>

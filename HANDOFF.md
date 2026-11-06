@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06, รอบ 5) — มุมมองภาพรวม, โควตาภาพสด, ตั้งค่า admin (R5.6–R5.8)
+
+- `modules/snapshots`: `SnapshotScheduler` ดึงเฉพาะกล้องที่หน้าเว็บขอใน 30 วิล่าสุด; จำกัดต่อเครื่องและรวม; ภาพอยู่ในหน่วยความจำเท่านั้น (ลบภาพที่ไม่มีคนขอนานสุดเมื่อเต็ม); รหัสผิดหยุดทั้งเครื่อง 30 นาทีหรือจนเปลี่ยนรหัส; เครื่องที่ล้มเหลวต่อเนื่อง 5 ครั้งถูกพัก 1–10 นาที; ffmpeg สูงสุด 4 โปรเซส
+- API: `POST /snapshots/request`, `GET /snapshots/image/:id`, `GET /snapshots/settings` (`cameras:read`), `GET /snapshots/advice` (`system-config:read`); ดาว `GET /cameras/favorites`, `PUT|DELETE /cameras/:id/favorite`; `GET /cameras/:id/stream` ตอบ 429 `LIVE_LIMIT` เมื่อถึง `live_max_streams_total`
+- เว็บ: `LiveOverview` (ปุ่ม "ภาพรวม", ค่าเริ่มต้นเมื่อกล้องเกิน 16 ตัว), `lib/liveAllocation.ts`, `LiveSettingsAdvice` ในหน้า System Config; ไม่ดึงภาพ/ไม่สตรีมเมื่อสลับแท็บหรือช่องอยู่นอกจอ; ตาราง `camera_favorites`
+- Dev DB backup: `C:\Users\SC34111\AppData\Local\Temp\claude\6d244687310e9a00\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_snapshots.dump`
+- ทดสอบโหลดด้วย API จริงกับอุปกรณ์จำลอง (`fake-nvr`, ลบแล้ว): กล้อง 300 ตัวบน 11 เครื่อง 70 วิ, พร้อมกันต่อเครื่องสูงสุด 3, ไม่มี error, `GET /cameras` p50 6 ms สูงสุด 24 ms, API CPU ราว 9%, หน่วยความจำ 140 MB, ไม่ restart; เครื่องรหัสผิด login ผิด 1 ครั้ง; เครื่องล่มกลางคันโดนลอง 6 ครั้งแล้วพัก; เครื่องช้า 3 วิไม่กระทบเครื่องอื่น; ลบกล้องทดสอบแล้ว
+- ตรวจกล้องจริง: ภาพนิ่ง 54 KB ผ่าน ISAPI, ภาพสดเล่นในมุมมองภาพรวม; Chrome + กล้องจำลอง 300 ตัว: สด 16/16, ขอเฉพาะช่องบนจอ, เลื่อนจอแล้วสตรีมย้ายตาม, ติดดาวขึ้นก่อน, ซ่อนแท็บแล้วหยุด, สตรีมเปิดไม่ได้ถอยเป็นภาพนิ่ง; vitest 154 passed
+- **ยังไม่ได้พิสูจน์:** NVR จริงหลายช่อง (รูปแบบ URL ช่อง, จำนวนพร้อมกันที่รับได้), Dahua CGI, จำนวนภาพสดที่เครื่องดูและ Server รับได้ (ค่าเริ่มต้น 16/64 เป็นการตั้งเผื่อ ไม่ใช่ผลวัด), โควตาต่อผู้ใช้บังคับฝั่งเว็บ ส่วนเพดานรวมบังคับที่ Server
+
+
 ## งานล่าสุด (2026-11-06, รอบ 4) — R5.2 กลุ่มกล้อง
 
 - ตาราง `camera_groups`, `camera_group_members` (สร้างด้วย db push ไม่กระทบข้อมูลเดิม, Dev DB backup: `C:\Users\SC34111\AppData\Local\Temp\claude\6d244687310e9a00\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_camera_groups.dump`); API `/camera-groups` (อ่าน `cameras:read`, เขียน `cameras:update`, audit ทุกการเขียน); ชื่อห้ามซ้ำแบบไม่สนตัวพิมพ์; กล้องที่ไม่มีหรืออยู่ในถังขยะ → 400

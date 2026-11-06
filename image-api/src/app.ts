@@ -22,6 +22,7 @@ import { authRoutes } from './modules/auth/auth.controller.js';
 import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
 import { cameraGroupRoutes } from './modules/camera-groups/camera-groups.controller.js';
+import { snapshotRoutes, startSnapshotScheduler, stopSnapshotScheduler } from './modules/snapshots/snapshots.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
 import { recordingsRoutes } from './modules/recordings/recordings.controller.js';
 import { mediaAuthRoutes } from './modules/media/media-auth.controller.js';
@@ -140,6 +141,7 @@ export async function buildApp() {
       await api.register(cameraRoutes, { prefix: '/api/v1/cameras' });
       await api.register(deviceRoutes, { prefix: '/api/v1/devices' });
       await api.register(cameraGroupRoutes, { prefix: '/api/v1/camera-groups' });
+      await api.register(snapshotRoutes, { prefix: '/api/v1/snapshots' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
       await api.register(recordingsRoutes, { prefix: '/api/v1/recordings' });
       await api.register(mediaAuthRoutes, { prefix: '/api/v1/media' });
@@ -196,6 +198,7 @@ export async function startApp() {
   startCameraHealthMonitor();
   startRecordingReconciler();
   startCameraPathSync();
+  startSnapshotScheduler();
   startSystemCleanup();
   startTelegramBot();
 
@@ -230,6 +233,7 @@ export async function startApp() {
     stopCameraHealthMonitor();
     stopRecordingReconciler();
     stopCameraPathSync();
+    stopSnapshotScheduler();
     stopSystemCleanup();
     stopTelegramBot();
     await app.close();

@@ -4,6 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
+import { LiveOverview } from '@/components/cctv/LiveOverview';
 import { applyCameraSelection } from '@/lib/cameraFilter';
 import {
   Grid2X2,
@@ -58,6 +59,18 @@ interface SavedPreset {
 }
 
 const FILTER_STORAGE_KEY = 'cctv_live_filter';
+const VIEW_STORAGE_KEY = 'cctv_live_view';
+// Past this many cameras the page opens on the overview instead of a few tiles.
+const OVERVIEW_DEFAULT_ABOVE = 16;
+
+function readSavedView(): 'overview' | 'grid' | null {
+  try {
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+    return saved === 'overview' || saved === 'grid' ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 function readSavedFilter(): { ids: string[]; onlyOffline: boolean } {
   try {
@@ -79,6 +92,7 @@ export default function LiveGrid() {
   const [cameraSearch, setCameraSearch] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [cameraFilter, setCameraFilter] = useState(readSavedFilter);
+  const [savedView, setSavedView] = useState(readSavedView);
   const [isWallFullscreen, setIsWallFullscreen] = useState(false);
 
   // Auto-Tour / Patrol Mode state for hundreds of cameras
@@ -129,6 +143,19 @@ export default function LiveGrid() {
 
   // Queries
   const { data: cameras = [], isLoading: isLoadingCameras } = useCctvCameras();
+  const isOverview = (savedView ?? (cameras.length > OVERVIEW_DEFAULT_ABOVE ? 'overview' : 'grid')) === 'overview';
+  const chooseView = (view: 'overview' | 'grid') => {
+    setSavedView(view);
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch {
+      // Only a convenience: the choice still applies for this visit.
+    }
+  };
+  const chooseLayout = (next: GridLayout) => {
+    setLayout(next);
+    chooseView('grid');
+  };
 
   const { data: devices = [] } = useQuery({
     queryKey: ['cctv-devices'],
@@ -282,12 +309,12 @@ export default function LiveGrid() {
     }
     setTourPageIndex(0);
     setTourCountdown(tourIntervalSeconds);
-    loadTourPage(0);
-  }, [filterKey, loadTourPage, tourIntervalSeconds]);
+    if (!isOverview) loadTourPage(0);
+  }, [filterKey, loadTourPage, tourIntervalSeconds, isOverview]);
 
   // Tour Mode countdown & auto-advance timer
   useEffect(() => {
-    if (!isTourActive || filteredCameras.length <= slotCount) return;
+    if (isOverview || !isTourActive || filteredCameras.length <= slotCount) return;
 
     const interval = setInterval(() => {
       setTourCountdown((prev) => {
@@ -305,7 +332,7 @@ export default function LiveGrid() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage]);
+  }, [isOverview, isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage]);
 
   // Handle manual next/prev tour page
   const handleNextTourPage = () => {
@@ -423,13 +450,13 @@ export default function LiveGrid() {
 
   // Initial fill if slots empty
   useEffect(() => {
-    if (cameras.length > 0 && cells.every((c) => !c.cameraId)) {
+    if (!isOverview && cameras.length > 0 && cells.every((c) => !c.cameraId)) {
       const initialCount = Math.min(filteredCameras.length, 4);
       for (let i = 0; i < initialCount; i++) {
         assignCameraToSlot(filteredCameras[i], i);
       }
     }
-  }, [cameras, assignCameraToSlot]);
+  }, [cameras, assignCameraToSlot, isOverview]);
 
   // Online / offline stats
   const onlineCount = cameras.filter((c: any) => c.operationalStatus === 'online').length;
@@ -477,7 +504,7 @@ export default function LiveGrid() {
         </div>
 
         {/* Center: Auto-Tour / Patrol Controls (For Hundreds of Cameras) */}
-        {filteredCameras.length > slotCount && (
+        {!isOverview && filteredCameras.length > slotCount && (
           <div className="hidden md:flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800">
             <button
               onClick={() => {
@@ -540,36 +567,45 @@ export default function LiveGrid() {
           {/* Grid Selectors */}
           <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
             <button
-              onClick={() => setLayout('1x1')}
+              onClick={() => chooseView('overview')}
+              className={`px-2 py-1 rounded text-xs font-medium transition ${
+                isOverview ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title={t('ui.liveGrid.overview.viewHint')}
+            >
+              {t('ui.liveGrid.overview.view')}
+            </button>
+            <button
+              onClick={() => chooseLayout('1x1')}
               className={`p-1.5 rounded transition ${
-                layout === '1x1' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                !isOverview && layout === '1x1' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
               title={t('ui.liveGrid.n1x1SingleCamera')}
             >
               <Square className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setLayout('2x2')}
+              onClick={() => chooseLayout('2x2')}
               className={`p-1.5 rounded transition ${
-                layout === '2x2' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                !isOverview && layout === '2x2' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
               title={t('ui.liveGrid.n2x24Cameras')}
             >
               <Grid2X2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setLayout('3x3')}
+              onClick={() => chooseLayout('3x3')}
               className={`p-1.5 rounded transition ${
-                layout === '3x3' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                !isOverview && layout === '3x3' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
               title={t('ui.liveGrid.n3x39CamerasAutoSubStream')}
             >
               <Grid3X3 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setLayout('4x4')}
+              onClick={() => chooseLayout('4x4')}
               className={`p-1.5 rounded transition ${
-                layout === '4x4' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                !isOverview && layout === '4x4' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
               title={t('ui.liveGrid.n4x416CamerasAutoSubStream')}
             >
@@ -624,6 +660,9 @@ export default function LiveGrid() {
 
       {/* Main Grid Viewport */}
       <div className="flex-1 flex overflow-hidden relative">
+        {isOverview ? (
+          <LiveOverview cameras={filteredCameras} />
+        ) : (
         <div className="flex-1 p-2 overflow-auto flex items-center justify-center">
           <div
             className={`w-full h-full max-h-full grid gap-2 ${
@@ -692,6 +731,7 @@ export default function LiveGrid() {
             })}
           </div>
         </div>
+        )}
 
         {/* Camera Selection Drawer (Hierarchical Tree for Hundreds of Cameras) */}
         {drawerOpen && (

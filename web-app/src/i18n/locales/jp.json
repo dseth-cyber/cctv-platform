@@ -565,7 +565,14 @@
         "system_description": "システム説明",
         "system_version": "バージョン",
         "system_developer": "開発者",
-        "system_copyright": "著作権"
+        "system_copyright": "著作権",
+        "live_max_streams_per_user": "ユーザーあたりのライブ数",
+        "live_max_streams_total": "システム全体のライブ数",
+        "live_snapshot_refresh_seconds": "静止画の更新間隔（秒）",
+        "live_snapshot_stale_seconds": "静止画を古いと表示する秒数",
+        "live_snapshot_device_concurrency": "機器ごとの同時取得数",
+        "live_snapshot_global_concurrency": "全体の同時取得数",
+        "live_snapshot_cache_mb": "静止画用メモリ (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "致命的なアラートを発信するためのディスク使用率",
@@ -591,7 +598,14 @@
         "system_description": "アプリケーションの説明",
         "system_version": "システムバージョン表記",
         "system_developer": "開発者／会社名",
-        "system_copyright": "著作権表示テキスト"
+        "system_copyright": "著作権表示テキスト",
+        "live_max_streams_per_user": "視聴 PC が映像をデコードします。超過分は静止画",
+        "live_max_streams_total": "サーバー保護の上限。超過分は静止画。上げる前に実測してください",
+        "live_snapshot_refresh_seconds": "表示中のカメラのみ取得。推奨 10、30、60",
+        "live_snapshot_stale_seconds": "古い画像は暗くなり警告が付きます（現在の映像と誤認しないため）",
+        "live_snapshot_device_concurrency": "カメラまたは DVR/NVR 1 台あたり。高すぎると機器が遅くなることがあります",
+        "live_snapshot_global_concurrency": "サーバー全体の上限",
+        "live_snapshot_cache_mb": "メモリのみ（ディスクに保存しません）。満杯時は見られていないものから削除"
       },
       "problems": {
         "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
@@ -605,6 +619,19 @@
         "too_long": "長すぎます（ロゴは約 1.5 MB まで）",
         "unknown": "不明な設定です",
         "order": "「{{other}}」以下にしてください"
+      },
+      "categoryLive": "ライブルーム",
+      "liveAdvice": {
+        "title": "このシステムへの助言",
+        "load": "カメラ {{cameras}} 台（最多の機器 {{busiest}} 台）。全台同時表示時: {{ips}} 枚/秒、約 {{mbps}} Mbps",
+        "ok": "間に合います: 約 {{s}} 秒で全カメラを取得できます",
+        "slow": "{{set}} 秒では間に合いません。停止はしませんが約 {{s}} 秒ごとになります（{{limit}}による）。推奨 {{rec}} 秒",
+        "limit_device": "機器ごとの上限",
+        "limit_global": "全体の上限",
+        "apply": "{{rec}} 秒にする",
+        "measured": "このシステムの実測値に基づく（{{samples}} 枚: 平均 {{ms}} ms、{{kb}} KB）",
+        "assumed": "実測が不足のため推定値（{{ms}} ms、{{kb}} KB）。一覧を使うと正確になります",
+        "now": "現在: 表示中 {{n}} 台、{{perMin}} 枚/分、画像メモリ {{mb}} MB"
       }
     },
     "about": {
@@ -2738,6 +2765,30 @@
         "applyCount": "{{count}} 台を表示",
         "applyAll": "すべて表示",
         "groups": "カメラグループ"
+      },
+      "overview": {
+        "view": "一覧",
+        "viewHint": "すべてのカメラを表示: 上限までライブ、残りは静止画",
+        "liveCount": "ライブ {{n}}/{{quota}}",
+        "stillCount": "静止画 {{n}}",
+        "refreshEvery": "{{n}} 秒ごとに更新",
+        "hint": "静止画をクリックでライブ · 星を付けると優先",
+        "behind": "サーバーの静止画取得が遅れています（他は正常です）",
+        "limitReached": "ライブ配信がシステム上限に達しました（残りは静止画）",
+        "badgeStill": "静止画 {{age}}",
+        "ageSeconds": "{{n}} 秒前",
+        "ageMinutes": "{{n}} 分前",
+        "clickForLive": "クリックでライブ表示",
+        "backToStill": "静止画に戻す",
+        "star": "星を付ける",
+        "unstar": "星を外す",
+        "state": {
+          "waiting": "画像を待っています…",
+          "no_source": "映像ソース未設定",
+          "auth_failed": "パスワード誤り: アカウントロック防止のため停止中",
+          "unreachable": "接続できません",
+          "failed": "画像を取得できません"
+        }
       }
     },
     "cctvMap": {

@@ -143,6 +143,8 @@ model User {
 
   roleRelation CustomRole? @relation(fields: [role], references: [code])
 
+  cameraFavorites CameraFavorite[]
+
   @@map("users")
 }
 
@@ -271,6 +273,19 @@ model CameraGroupMember {
   @@id([groupId, cameraId])
   @@index([cameraId])
   @@map("camera_group_members")
+}
+
+// A viewer's starred cameras: they get live video first in the Live Room.
+model CameraFavorite {
+  userId    String   @map("user_id") @db.Uuid
+  cameraId  String   @map("camera_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cameraId])
+  @@map("camera_favorites")
 }
 
 // ── CCTV Foundation Models (Phase 1) ──────────────────────────
@@ -428,6 +443,7 @@ model Camera {
   dailySummaries   CameraDailySummary[]
   incidents        CameraIncident[]
   groupMemberships CameraGroupMember[]
+  favorites        CameraFavorite[]
   recordings       CameraRecording[]
   recordingClips   RecordingClip[]
 

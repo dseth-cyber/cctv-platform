@@ -155,6 +155,22 @@ export class MediaMtxService {
   /**
    * Check live status of paths from MediaMTX.
    */
+  private static webrtcCount: { value: number; at: number } | null = null;
+
+  /** WebRTC viewers right now, cached briefly since every opened tile asks. Null when MediaMTX cannot say. */
+  static async countWebrtcSessions(): Promise<number | null> {
+    if (this.webrtcCount && Date.now() - this.webrtcCount.at < 2000) return this.webrtcCount.value;
+    try {
+      const res = await this.apiFetch('/v3/webrtcsessions/list?itemsPerPage=1');
+      if (!res.ok) return null;
+      const value = Number(((await res.json()) as any)?.itemCount ?? 0);
+      this.webrtcCount = { value, at: Date.now() };
+      return value;
+    } catch {
+      return null;
+    }
+  }
+
   static async getLivePaths(): Promise<any[]> {
     try {
       const res = await this.apiFetch('/v3/paths/list');

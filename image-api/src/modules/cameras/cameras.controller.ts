@@ -47,6 +47,13 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(404).send({ error: 'Camera not found' });
   }
 
+  // The hard stop on total load: past it viewers get still images instead of slowing everyone down.
+  const limit = Number((await getAllConfigs()).live_max_streams_total?.value ?? 64);
+  const sessions = await MediaMtxService.countWebrtcSessions();
+  if (sessions !== null && sessions >= limit) {
+    return reply.status(429).send({ statusCode: 429, error: 'LiveLimit', message: 'Live stream limit reached', details: { code: 'LIVE_LIMIT', limit } });
+  }
+
   const isSub = profile === 'sub' && Boolean(camera.rtspUrlSub);
   const targetRtsp = openRtspUrl(isSub ? camera.rtspUrlSub : camera.rtspUrl);
   const basePath = camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
@@ -731,6 +738,39 @@ async function clearAllIncidentsHandler(request: FastifyRequest, reply: FastifyR
   return reply.send({ success: true, count: result.count });
 }
 
+function favoriteUserId(request: FastifyRequest): string | null {
+  const id = (request as any).user?.id;
+  // API keys and service tokens have no user row to attach stars to.
+  return typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}
+
+async function listFavoritesHandler(request: FastifyRequest, reply: FastifyReply) {
+  const userId = favoriteUserId(request);
+  if (!userId) return reply.send([]);
+  const rows = await getPrisma().cameraFavorite.findMany({ where: { userId }, select: { cameraId: true } });
+  return reply.send(rows.map((r) => r.cameraId));
+}
+
+async function setFavoriteHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const userId = favoriteUserId(request);
+  if (!userId) return reply.status(400).send({ message: 'Favorites need a user account' });
+  await getPrisma().cameraFavorite.upsert({
+    where: { userId_cameraId: { userId, cameraId: id } },
+    update: {},
+    create: { userId, cameraId: id },
+  });
+  return reply.status(204).send();
+}
+
+async function removeFavoriteHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const userId = favoriteUserId(request);
+  if (!userId) return reply.status(400).send({ message: 'Favorites need a user account' });
+  await getPrisma().cameraFavorite.deleteMany({ where: { userId, cameraId: id } });
+  return reply.status(204).send();
+}
+
 async function detectStreamHandler(request: FastifyRequest, reply: FastifyReply) {
   const input = detectStreamSchema.parse(request.body);
   let password = input.password || null;
@@ -813,6 +853,10 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     relatedIncidentsHandler,
   );
+  // A viewer's own stars, so reading cameras is all it takes.
+  app.get('/favorites', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, listFavoritesHandler);
+  app.put('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, setFavoriteHandler);
+  app.delete('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, removeFavoriteHandler);
   app.post(
     '/detect-stream',
     { preHandler: [app.authenticate, requirePermission('cameras:update')] },

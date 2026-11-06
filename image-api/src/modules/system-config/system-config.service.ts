@@ -1,3 +1,4 @@
+import os from 'node:os';
 import { getPrisma } from '../../lib/prisma.js';
 import { ValidationError } from '../../lib/errors.js';
 import { SECRET_MASK } from '../../lib/rtsp-credentials.js';
@@ -37,6 +38,16 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   system_version: { value: '1.0.0', description: 'System version label', valueType: 'string', category: 'general' },
   system_developer: { value: 'Chiotron', description: 'Developer / company name', valueType: 'string', category: 'general' },
   system_copyright: { value: '© 2026 Chiotron. All rights reserved.', description: 'Copyright notice text', valueType: 'string', category: 'general' },
+
+  // Live Room limits: going over any of them slows the page down, it never overloads the server.
+  live_max_streams_per_user: { value: '16', description: 'Live video tiles one viewer can have open at once; the rest show still images', valueType: 'number', category: 'live', min: 1, max: 64 },
+  live_max_streams_total: { value: '64', description: 'Live video streams across all viewers; past this, viewers see still images', valueType: 'number', category: 'live', min: 1, max: 1000 },
+  live_snapshot_refresh_seconds: { value: '30', description: 'How often still images are refreshed while someone is looking at them', valueType: 'number', category: 'live', min: 10, max: 600 },
+  live_snapshot_stale_seconds: { value: '120', description: 'A still image older than this is flagged as out of date', valueType: 'number', category: 'live', min: 30, max: 3600 },
+  live_snapshot_device_concurrency: { value: '3', description: 'Still images fetched at once from one camera or DVR/NVR', valueType: 'number', category: 'live', min: 1, max: 16 },
+  live_snapshot_global_concurrency: { value: '16', description: 'Still images fetched at once in total', valueType: 'number', category: 'live', min: 1, max: 64 },
+  // Never more than a quarter of this machine's memory, whatever is typed in.
+  live_snapshot_cache_mb: { value: '128', description: 'Memory for still images; the ones asked for longest ago are dropped first', valueType: 'number', category: 'live', min: 16, max: Math.min(1024, Math.floor(os.totalmem() / 1048576 / 4)) },
 
   // Saved from Camera Analytics ("save as default layout").
   dashboard_layout_analytics: { value: '', description: 'Default Camera Analytics layout (JSON)', valueType: 'json', category: 'dashboard' },

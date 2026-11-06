@@ -34,6 +34,8 @@ interface WhepPlayerProps {
   iceServers?: RTCIceServer[];
   onToggleProfile?: (nextProfile: 'main' | 'sub') => void;
   onSnapshot?: (dataUrl: string) => void;
+  /** The stream cannot be opened: lets a wall of tiles fall back instead of keeping an error on screen. */
+  onFatalError?: () => void;
 }
 
 export const WhepPlayer: React.FC<WhepPlayerProps> = ({
@@ -46,6 +48,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   hasSubStream = false,
   iceServers,
   onToggleProfile,
+  onFatalError,
   onSnapshot,
 }) => {
   const { t } = useTranslation()
@@ -58,6 +61,11 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
 
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  useEffect(() => {
+    if (status === 'error') onFatalError?.();
+    // Only when the status changes; a new callback from the parent is not a new failure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
   const [isMuted, setIsMuted] = useState(muted);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [, setIsFullscreen] = useState(false);

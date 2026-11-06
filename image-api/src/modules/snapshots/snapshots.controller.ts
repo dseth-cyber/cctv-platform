@@ -1,0 +1,160 @@
+import crypto from 'node:crypto';
+import { z } from 'zod';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { getPrisma } from '../../lib/prisma.js';
+import { openRtspUrl, parseRtspLogin } from '../../lib/rtsp-credentials.js';
+import { logger } from '../../lib/logger.js';
+import { requirePermission } from '../../middleware/rbac.js';
+import { getAllConfigs } from '../system-config/system-config.service.js';
+import { computeSnapshotAdvice } from './snapshot-advice.js';
+import { SnapshotScheduler, type SchedulerSettings } from './snapshot-scheduler.js';
+import { fetchSnapshot, type SnapshotTarget } from './snapshot-sources.js';
+
+const MAX_IDS_PER_REQUEST = 500;
+const TARGET_CACHE_MS = 30_000;
+const SETTINGS_CACHE_MS = 15_000;
+const RTSP_CONCURRENCY = 4;
+
+let settings: SchedulerSettings & { staleSeconds: number; maxStreamsPerUser: number } = {
+  refreshSeconds: 30, deviceConcurrency: 3, globalConcurrency: 16, rtspConcurrency: RTSP_CONCURRENCY,
+  cacheBytes: 128 * 1024 * 1024, staleSeconds: 120, maxStreamsPerUser: 16,
+};
+let settingsLoadedAt = 0;
+
+async function refreshSettings() {
+  if (Date.now() - settingsLoadedAt < SETTINGS_CACHE_MS) return settings;
+  settingsLoadedAt = Date.now();
+  const c = await getAllConfigs();
+  settings = {
+    refreshSeconds: Number(c.live_snapshot_refresh_seconds?.value ?? 30),
+    deviceConcurrency: Number(c.live_snapshot_device_concurrency?.value ?? 3),
+    globalConcurrency: Number(c.live_snapshot_global_concurrency?.value ?? 16),
+    rtspConcurrency: RTSP_CONCURRENCY,
+    cacheBytes: Number(c.live_snapshot_cache_mb?.value ?? 128) * 1024 * 1024,
+    staleSeconds: Number(c.live_snapshot_stale_seconds?.value ?? 120),
+    maxStreamsPerUser: Number(c.live_max_streams_per_user?.value ?? 16),
+  };
+  return settings;
+}
+
+const scheduler = new SnapshotScheduler(fetchSnapshot, () => settings);
+let timer: NodeJS.Timeout | null = null;
+let sweepTimer: NodeJS.Timeout | null = null;
+
+export function startSnapshotScheduler() {
+  if (timer) return;
+  timer = setInterval(() => scheduler.pump(), 1000);
+  sweepTimer = setInterval(() => scheduler.sweep(), 60_000);
+  timer.unref();
+  sweepTimer.unref();
+}
+
+export function stopSnapshotScheduler() {
+  if (timer) clearInterval(timer);
+  if (sweepTimer) clearInterval(sweepTimer);
+  timer = sweepTimer = null;
+}
+
+/** What it takes to fetch a camera, decrypted only here and kept in memory for a short while. */
+const targetCache = new Map<string, { target: SnapshotTarget | null; loadedAt: number }>();
+
+async function loadTargets(ids: string[]): Promise<{ id: string; target: SnapshotTarget | null }[]> {
+  const now = Date.now();
+  const stale = ids.filter((id) => now - (targetCache.get(id)?.loadedAt ?? 0) > TARGET_CACHE_MS);
+  if (stale.length > 0) {
+    const rows = await getPrisma().camera.findMany({
+      where: { id: { in: stale }, deletedAt: null },
+      select: {
+        id: true, ipAddress: true, channelNumber: true, metadata: true, rtspUrl: true, rtspUrlSub: true,
+        device: { select: { ipAddress: true, brand: true, httpPort: true } },
+      },
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    for (const id of stale) {
+      const row = byId.get(id);
+      targetCache.set(id, { target: row ? toTarget(row) : null, loadedAt: now });
+    }
+  }
+  return ids.map((id) => ({ id, target: targetCache.get(id)?.target ?? null }));
+}
+
+function toTarget(row: any): SnapshotTarget | null {
+  const rtspUrl = openRtspUrl(row.rtspUrlSub) ?? openRtspUrl(row.rtspUrl);
+  const login = parseRtspLogin(rtspUrl);
+  const host = row.device?.ipAddress ?? row.ipAddress ?? login.host;
+  if (!host || !rtspUrl) return null;
+  const connection = row.metadata?.connection;
+  return {
+    cameraId: row.id,
+    host,
+    httpPort: row.device?.httpPort ?? 80,
+    loginKey: crypto.createHash('sha256').update(`${login.username}:${login.password}`).digest('hex'),
+    username: login.username,
+    password: login.password,
+    brand: row.device?.brand ?? connection?.brand ?? null,
+    channel: row.channelNumber ?? connection?.channel ?? 1,
+    rtspUrl,
+  };
+}
+
+const requestSchema = z.object({ ids: z.array(z.guid()).max(MAX_IDS_PER_REQUEST) });
+
+async function requestHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { ids } = requestSchema.parse(request.body);
+  const current = await refreshSettings();
+  const items = scheduler.request(await loadTargets(ids));
+  return reply.send({ items, refreshSeconds: current.refreshSeconds, behind: scheduler.stats().behind });
+}
+
+async function imageHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const held = scheduler.image(id);
+  if (!held) return reply.status(404).send({ message: 'No image yet' });
+  // Live evidence of a site: not to be kept by shared caches or on disk by the browser.
+  return reply.header('cache-control', 'private, no-store').header('x-captured-at', String(held.capturedAt)).type('image/jpeg').send(held.image);
+}
+
+async function settingsHandler(_request: FastifyRequest, reply: FastifyReply) {
+  const { refreshSeconds, staleSeconds, maxStreamsPerUser } = await refreshSettings();
+  return reply.send({ refreshSeconds, staleSeconds, maxStreamsPerUser });
+}
+
+const adviceSchema = z.object({
+  refreshSeconds: z.coerce.number().min(1).max(86_400).optional(),
+  deviceConcurrency: z.coerce.number().int().min(1).max(1000).optional(),
+  globalConcurrency: z.coerce.number().int().min(1).max(1000).optional(),
+});
+
+async function adviceHandler(request: FastifyRequest, reply: FastifyReply) {
+  const q = adviceSchema.parse(request.query);
+  const current = await refreshSettings();
+  const cameras = await getPrisma().camera.findMany({
+    where: { enabled: true, deletedAt: null, rtspUrl: { not: null } },
+    select: { id: true, deviceId: true, ipAddress: true },
+  });
+  const perDevice = new Map<string, number>();
+  for (const c of cameras) {
+    const key = c.deviceId ?? c.ipAddress ?? c.id;
+    perDevice.set(key, (perDevice.get(key) ?? 0) + 1);
+  }
+  const stats = scheduler.stats();
+  const advice = computeSnapshotAdvice({
+    cameras: cameras.length,
+    busiestDeviceCameras: Math.max(0, ...perDevice.values()),
+    refreshSeconds: q.refreshSeconds ?? current.refreshSeconds,
+    deviceConcurrency: q.deviceConcurrency ?? current.deviceConcurrency,
+    globalConcurrency: q.globalConcurrency ?? current.globalConcurrency,
+    avgMs: stats.avgMs,
+    avgBytes: stats.avgBytes,
+    samples: stats.samples,
+  });
+  return reply.send({ advice, now: { demanded: stats.demanded, imagesPerMinute: stats.imagesPerMinute, behind: stats.behind, cacheMb: Math.round(stats.cacheBytes / 1048576) } });
+}
+
+export async function snapshotRoutes(app: FastifyInstance): Promise<void> {
+  app.post('/request', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, requestHandler);
+  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, imageHandler);
+  app.get('/settings', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, settingsHandler);
+  app.get('/advice', { preHandler: [app.authenticate, requirePermission('system-config:read')] }, adviceHandler);
+  refreshSettings().catch((err) => logger.warn({ err }, 'Could not load snapshot settings yet'));
+}

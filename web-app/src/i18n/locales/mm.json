@@ -565,7 +565,14 @@
         "system_description": "စနစ် ဖော်ပြချက်",
         "system_version": "ဗားရှင်း",
         "system_developer": "ဖန်တီးသူ",
-        "system_copyright": "မူပိုင်ခွင့်"
+        "system_copyright": "မူပိုင်ခွင့်",
+        "live_max_streams_per_user": "အသုံးပြုသူတစ်ဦး Live အရေအတွက်",
+        "live_max_streams_total": "စနစ်တစ်ခုလုံး Live အရေအတွက်",
+        "live_snapshot_refresh_seconds": "ဓာတ်ပုံပြန်ယူချိန် (စက္ကန့်)",
+        "live_snapshot_stale_seconds": "ဓာတ်ပုံဟောင်းသတိပေးချိန် (စက္ကန့်)",
+        "live_snapshot_device_concurrency": "စက်တစ်လုံးချင်း တစ်ပြိုင်နက်ယူမှု",
+        "live_snapshot_global_concurrency": "စုစုပေါင်း တစ်ပြိုင်နက်ယူမှု",
+        "live_snapshot_cache_mb": "ဓာတ်ပုံမှတ်ဉာဏ် (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "အရေးကြီးသတိပေးချက်အတွက် အသုံးပြုထားသောဒစ်စပေ့ရာခိုင်နှုန်း",
@@ -591,7 +598,14 @@
         "system_description": "Application ဖော်ပြချက်",
         "system_version": "စနစ် ဗားရှင်း အညွှန်း",
         "system_developer": "ဖန်တီးသူ / ကုမ္ပဏီအမည်",
-        "system_copyright": "မူပိုင်ခွင့် ကြေညာချက်"
+        "system_copyright": "မူပိုင်ခွင့် ကြေညာချက်",
+        "live_max_streams_per_user": "ကြည့်သည့်စက်က decode လုပ်ရသည်၊ ကျော်လျှင် ဓာတ်ပုံ",
+        "live_max_streams_total": "Server ကာကွယ်ရန်: ကျော်လျှင် ဓာတ်ပုံ။ မတိုးမီ စမ်းသပ်ပါ",
+        "live_snapshot_refresh_seconds": "ကြည့်နေသော ကင်မရာသာ။ အကြံပြု 10, 30, 60",
+        "live_snapshot_stale_seconds": "ဟောင်းလျှင် မှိန်ပြီး သတိပေးမည်",
+        "live_snapshot_device_concurrency": "ကင်မရာ/DVR/NVR တစ်လုံး; များလွန်းလျှင် နှေးနိုင်သည်",
+        "live_snapshot_global_concurrency": "Server စုစုပေါင်းကန့်သတ်ချက်",
+        "live_snapshot_cache_mb": "မှတ်ဉာဏ်တွင်သာ၊ ဒစ်ခ်မသိမ်း၊ ပြည့်လျှင် မကြည့်သည်ကို ဖျက်"
       },
       "problems": {
         "summary": "မသိမ်းရသေးပါ — ပြင်ရန် {{count}} ခု ရှိသည်၊ အနီရောင်စာကို ကြည့်ပါ",
@@ -605,6 +619,19 @@
         "too_long": "ရှည်လွန်းသည် (လိုဂိုသည် 1.5 MB ခန့်ထက် မကျော်သင့်ပါ)",
         "unknown": "မသိသော ဆက်တင်",
         "order": "\"{{other}}\" ထက် မများရပါ"
+      },
+      "categoryLive": "Live ခန်း",
+      "liveAdvice": {
+        "title": "ဤစနစ်အတွက် အကြံပြုချက်",
+        "load": "ကင်မရာ {{cameras}} လုံး (အများဆုံးစက် {{busiest}})။ အားလုံးကြည့်လျှင်: {{ips}} ပုံ/စက္ကန့်၊ ~{{mbps}} Mbps",
+        "ok": "မီပါသည်: ~{{s}} စက္ကန့်အတွင်း အားလုံးယူနိုင်",
+        "slow": "{{set}} စက္ကန့်မမီပါ။ မပျက်ပါ၊ ~{{s}} စက္ကန့်တိုင်း ရမည် ({{limit}})။ အကြံပြု {{rec}}",
+        "limit_device": "စက်တစ်လုံးချင်းကန့်သတ်ချက်",
+        "limit_global": "စုစုပေါင်းကန့်သတ်ချက်",
+        "apply": "{{rec}} စက္ကန့်သုံးရန်",
+        "measured": "ဤစနစ်၏ တိုင်းတာချက်အရ ({{samples}} ပုံ: {{ms}} ms, {{kb}} KB)",
+        "assumed": "တိုင်းတာချက်မလုံလောက်သေး၊ ခန့်မှန်းတန်ဖိုး ({{ms}} ms, {{kb}} KB)",
+        "now": "ယခု: {{n}} လုံးကြည့်နေ၊ {{perMin}} ပုံ/မိနစ်၊ {{mb}} MB"
       }
     },
     "about": {
@@ -2733,6 +2760,30 @@
         "applyCount": "ကင်မရာ {{count}} လုံး ပြရန်",
         "applyAll": "အားလုံးပြရန်",
         "groups": "ကင်မရာအုပ်စုများ"
+      },
+      "overview": {
+        "view": "ခြုံငုံကြည့်",
+        "viewHint": "ကင်မရာအားလုံးကြည့်ရန်: ခွင့်ပြုသလောက် Live ကျန်သည် ဓာတ်ပုံ",
+        "liveCount": "Live {{n}}/{{quota}}",
+        "stillCount": "ဓာတ်ပုံ {{n}}",
+        "refreshEvery": "{{n}} စက္ကန့်တိုင်း ပြန်ယူ",
+        "hint": "ဓာတ်ပုံကိုနှိပ်ပါ Live ကြည့်ရန် · ကြယ်ပေးပါ ဦးစားပေးရန်",
+        "behind": "Server က ဓာတ်ပုံမမီပါ: နောက်ကျမည်၊ အခြားအရာများ ပုံမှန်",
+        "limitReached": "Live သည် စနစ်ကန့်သတ်ချက်ရောက်ပြီ၊ ကျန်သည် ဓာတ်ပုံ",
+        "badgeStill": "ဓာတ်ပုံ {{age}}",
+        "ageSeconds": "{{n}} စက္ကန့်အရင်",
+        "ageMinutes": "{{n}} မိနစ်အရင်",
+        "clickForLive": "Live ကြည့်ရန် နှိပ်ပါ",
+        "backToStill": "ဓာတ်ပုံသို့ ပြန်ရန်",
+        "star": "ကြယ်ပေးရန်",
+        "unstar": "ကြယ်ဖြုတ်ရန်",
+        "state": {
+          "waiting": "ဓာတ်ပုံစောင့်နေသည်…",
+          "no_source": "ဗီဒီယိုရင်းမြစ် မသတ်မှတ်ရသေး",
+          "auth_failed": "စကားဝှက်မှား: account မပိတ်စေရန် ရပ်ထားသည်",
+          "unreachable": "ချိတ်ဆက်၍မရ",
+          "failed": "ဓာတ်ပုံယူ၍မရ"
+        }
       }
     },
     "cctvMap": {
