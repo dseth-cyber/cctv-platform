@@ -29,17 +29,19 @@ async function readLimited(res: Response, maxBytes: number): Promise<Buffer> {
 }
 
 /**
- * GET with HTTP Digest (what Hikvision and Dahua expect), falling back to Basic when the device
- * asks for it. The challenge round does not count as a failed login; a 401 returned here does.
+ * HTTP Digest (what Hikvision and Dahua expect), falling back to Basic when the device asks for it.
+ * The challenge round does not count as a failed login; a 401 returned here does.
  */
-export async function digestGet(
+async function digestRequest(
+  method: 'GET' | 'POST',
   url: string,
   username: string,
   password: string,
   opts: { timeoutMs: number; maxBytes: number },
+  body?: string,
 ): Promise<DigestResponse> {
   const signal = AbortSignal.timeout(opts.timeoutMs);
-  const first = await fetch(url, { signal });
+  const first = await fetch(url, { method, body, signal });
   if (first.status !== 401) {
     return { status: first.status, contentType: first.headers.get('content-type') ?? '', body: await readLimited(first, opts.maxBytes) };
   }
@@ -56,7 +58,7 @@ export async function digestGet(
     const { pathname, search } = new URL(url);
     const uri = pathname + search;
     const ha1 = md5(`${username}:${realm}:${password}`);
-    const ha2 = md5(`GET:${uri}`);
+    const ha2 = md5(`${method}:${uri}`);
     const cnonce = crypto.randomBytes(8).toString('hex');
     const nc = '00000001';
     const response = qop ? md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`) : md5(`${ha1}:${nonce}:${ha2}`);
@@ -67,6 +69,15 @@ export async function digestGet(
     authorization = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
   }
 
-  const second = await fetch(url, { signal, headers: { authorization } });
+  const second = await fetch(url, { method, body, signal, headers: { authorization } });
   return { status: second.status, contentType: second.headers.get('content-type') ?? '', body: await readLimited(second, opts.maxBytes) };
+}
+
+export function digestGet(url: string, username: string, password: string, opts: { timeoutMs: number; maxBytes: number }): Promise<DigestResponse> {
+  return digestRequest('GET', url, username, password, opts);
+}
+
+/** For device queries sent as a POST body, such as searching a recorder's files. */
+export function digestPost(url: string, username: string, password: string, body: string, opts: { timeoutMs: number; maxBytes: number }): Promise<DigestResponse> {
+  return digestRequest('POST', url, username, password, opts, body);
 }

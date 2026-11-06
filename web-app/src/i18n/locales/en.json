@@ -774,7 +774,12 @@
         "live_snapshot_stale_seconds": "Flag a still as old after (seconds)",
         "live_snapshot_device_concurrency": "Fetches at once per device",
         "live_snapshot_global_concurrency": "Fetches at once in total",
-        "live_snapshot_cache_mb": "Memory for stills (MB)"
+        "live_snapshot_cache_mb": "Memory for stills (MB)",
+        "playback_max_sessions_per_user": "Playback: per user",
+        "playback_max_sessions_per_device": "Playback: per recorder",
+        "playback_max_sessions_total": "Playback: system total",
+        "playback_max_transcodes": "H.265 conversions at once",
+        "playback_clip_max_minutes": "Longest DVR/NVR clip (minutes)"
       },
       "descriptions": {
         "alert_critical_threshold": "Disk usage percentage for critical alert",
@@ -807,7 +812,12 @@
         "live_snapshot_stale_seconds": "Older images dim and get a warning label, so nobody mistakes them for now",
         "live_snapshot_device_concurrency": "For one camera or DVR/NVR; too high can slow the device down",
         "live_snapshot_global_concurrency": "The server's overall limit",
-        "live_snapshot_cache_mb": "Kept in memory only, never on disk; when full the unwatched go first"
+        "live_snapshot_cache_mb": "Kept in memory only, never on disk; when full the unwatched go first",
+        "playback_max_sessions_per_user": "Recordings one person can play from DVR/NVR HDDs at once",
+        "playback_max_sessions_per_device": "A DVR/NVR is recording at the same time, so keep this low. Copying a clip counts too",
+        "playback_max_sessions_total": "Recordings played from all DVR/NVRs together",
+        "playback_max_transcodes": "For browsers that cannot play H.265. Measured at about half a core each; never more than one per two cores whatever is set. 0 turns it off",
+        "playback_clip_max_minutes": "Copying takes as long as the clip lasts and holds one of the recorder's slots throughout"
       },
       "title": "System Configuration",
       "subtitle": "Manage all system settings",
@@ -2460,6 +2470,30 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "cctvPlayback": {
+      "deviceClock": "DVR clock",
+      "deviceSource": "Playing directly from the DVR/NVR HDD; nothing is stored on the server",
+      "deviceClockNote": "Times on this page are the recorder clock, matching the time on the picture",
+      "deviceClockAhead": "The recorder clock is {{minutes}} min {{seconds}} s ahead of the server",
+      "deviceClockBehind": "The recorder clock is {{minutes}} min {{seconds}} s behind the server",
+      "deviceListIncomplete": "This day has too many files to list, so the timeline may be incomplete",
+      "deviceSpeedNote": "Video from a DVR/NVR plays at normal speed only",
+      "deviceTranscoded": "This browser cannot play H.265, so the server converts it to H.264 720p without sound",
+      "deviceNothingAtThisTime": "The recorder has nothing at this time. Pick a green period on the timeline",
+      "deviceClipNote": "Copied from the DVR/NVR HDD to the server without re-encoding the video. It takes as long as the clip lasts. Times in the clip are the recorder clock",
+      "deviceClipBadge": "From DVR HDD",
+      "deviceError_NOT_SUPPORTED": "Recordings of this camera cannot be read from its recorder yet (Hikvision only)",
+      "deviceError_DEVICE_LOGIN": "The recorder refused its password. Correct it on the DVR/NVR page. Retries are paused for 30 minutes so the account does not lock",
+      "deviceError_DEVICE_UNREACHABLE": "The DVR/NVR cannot be reached. Check that it is on and the network works",
+      "deviceError_NO_RECORDING": "The recorder has nothing recorded in this period",
+      "deviceError_LIMIT_USER": "You have reached your playback limit. Close another window first",
+      "deviceError_LIMIT_DEVICE": "This recorder is playing or copying as much as it is allowed to. Try again later",
+      "deviceError_LIMIT_TOTAL": "The system has reached its playback limit. Try again later",
+      "deviceError_LIMIT_LIVE": "The system has reached its video limit. Try again later",
+      "deviceError_TRANSCODE_LIMIT": "This browser cannot play H.265 and every conversion slot is in use. Try later or use a current Chrome",
+      "deviceError_CLIP_LIMIT": "Another clip is being copied. Try again when it finishes",
+      "deviceError_CLIP_TOO_LONG": "This clip is longer than allowed for a DVR/NVR. Shorten the period",
+      "deviceError_DISK_FULL": "The server does not have enough space for this clip",
+      "deviceError_MEDIA_SERVER": "The media server could not open this playback",
       "failedToExportClip": "Failed to export clip",
       "legalHoldUpdated": "Legal hold updated",
       "cctvPlaybackScrubberTimeline": "CCTV Playback & Scrubber Timeline",
@@ -2709,6 +2743,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "focusHint": "One camera at full size · double-click or press Esc to go back",
+      "focusClose": "Close",
       "mainStreamFellBack": "This browser could not open the main stream, so the sub stream is shown instead",
       "cctvLiveWall": "CCTV Live Wall",
       "total": "Total:",

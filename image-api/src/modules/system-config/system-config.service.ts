@@ -49,6 +49,14 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   // Never more than a quarter of this machine's memory, whatever is typed in.
   live_snapshot_cache_mb: { value: '128', description: 'Memory for still images; the ones asked for longest ago are dropped first', valueType: 'number', category: 'live', min: 16, max: Math.min(1024, Math.floor(os.totalmem() / 1048576 / 4)) },
 
+  // Playback from a DVR/NVR's own HDD. A recorder has few playback slots, and it is also recording.
+  playback_max_sessions_per_user: { value: '2', description: 'Recordings one viewer can play from recorders at once', valueType: 'number', category: 'live', min: 1, max: 8 },
+  playback_max_sessions_per_device: { value: '2', description: 'Recordings played or copied from one DVR/NVR at once', valueType: 'number', category: 'live', min: 1, max: 8 },
+  playback_max_sessions_total: { value: '16', description: 'Recordings played from all recorders at once', valueType: 'number', category: 'live', min: 1, max: 128 },
+  // Never more than one per two CPU cores, whatever is typed in. 0 turns conversion off.
+  playback_max_transcodes: { value: '2', description: 'H.265 recordings converted at once for browsers that cannot play them', valueType: 'number', category: 'live', min: 0, max: 16 },
+  playback_clip_max_minutes: { value: '30', description: 'Longest clip copied from a recorder; it takes about as long as it lasts', valueType: 'number', category: 'live', min: 1, max: 120 },
+
   // Saved from Camera Analytics ("save as default layout").
   dashboard_layout_analytics: { value: '', description: 'Default Camera Analytics layout (JSON)', valueType: 'json', category: 'dashboard' },
 

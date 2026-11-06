@@ -21,6 +21,9 @@ export interface MediaMtxPathConfig {
 /**
  * Service to manage MediaMTX dynamic stream paths and generate playback endpoints.
  */
+/** Short-lived paths that play a recording from a DVR/NVR's HDD. They belong to no camera. */
+export const PLAYBACK_PATH_PREFIX = 'dvrpb_';
+
 export class MediaMtxService {
   private static get baseUrl(): string {
     return config.mediamtx.apiUrl.replace(/\/+$/, '');

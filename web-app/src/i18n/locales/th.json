@@ -774,7 +774,12 @@
         "live_snapshot_stale_seconds": "เตือนภาพนิ่งเก่าเมื่อเกิน (วินาที)",
         "live_snapshot_device_concurrency": "ดึงภาพพร้อมกันต่อเครื่อง",
         "live_snapshot_global_concurrency": "ดึงภาพพร้อมกันทั้งระบบ",
-        "live_snapshot_cache_mb": "หน่วยความจำภาพนิ่ง (MB)"
+        "live_snapshot_cache_mb": "หน่วยความจำภาพนิ่ง (MB)",
+        "playback_max_sessions_per_user": "เล่นย้อนหลัง: ต่อผู้ใช้",
+        "playback_max_sessions_per_device": "เล่นย้อนหลัง: ต่อเครื่อง",
+        "playback_max_sessions_total": "เล่นย้อนหลัง: รวมทั้งระบบ",
+        "playback_max_transcodes": "แปลง H.265 พร้อมกัน",
+        "playback_clip_max_minutes": "คลิปจาก DVR/NVR ยาวสุด (นาที)"
       },
       "descriptions": {
         "alert_critical_threshold": "เปอร์เซ็นต์การใช้ดิสก์สำหรับแจ้งเตือนวิกฤต",
@@ -807,7 +812,12 @@
         "live_snapshot_stale_seconds": "ภาพเก่ากว่านี้จะจางลงและขึ้นป้ายเตือน ไม่ให้เข้าใจผิดว่าเป็นเหตุการณ์ตอนนี้",
         "live_snapshot_device_concurrency": "กล้องหรือ DVR/NVR หนึ่งเครื่อง ถ้าตั้งสูงเกิน เครื่องอาจตอบช้าลง",
         "live_snapshot_global_concurrency": "เพดานรวมฝั่ง Server",
-        "live_snapshot_cache_mb": "เก็บในหน่วยความจำเท่านั้น ไม่ลงดิสก์ เต็มแล้วลบภาพที่ไม่มีคนดูก่อน"
+        "live_snapshot_cache_mb": "เก็บในหน่วยความจำเท่านั้น ไม่ลงดิสก์ เต็มแล้วลบภาพที่ไม่มีคนดูก่อน",
+        "playback_max_sessions_per_user": "จำนวนการเล่นจาก HDD ของ DVR/NVR ที่ผู้ใช้หนึ่งคนเปิดพร้อมกันได้",
+        "playback_max_sessions_per_device": "DVR/NVR ต้องบันทึกไปด้วย จึงไม่ควรเล่นหรือคัดลอกพร้อมกันมาก นับรวมการคัดลอกคลิป",
+        "playback_max_sessions_total": "จำนวนการเล่นจาก DVR/NVR ทุกเครื่องรวมกัน",
+        "playback_max_transcodes": "สำหรับเบราว์เซอร์ที่เล่น H.265 ไม่ได้ วัดจริงงานละราวครึ่ง core ระบบไม่ให้เกิน 1 งานต่อ 2 core ไม่ว่าจะตั้งเท่าไร; 0 = ปิด",
+        "playback_clip_max_minutes": "การคัดลอกใช้เวลาเท่ากับความยาวคลิป และกินช่องเล่นของเครื่องตลอดเวลานั้น"
       },
       "title": "ตั้งค่าระบบ",
       "subtitle": "จัดการการตั้งค่าระบบทั้งหมด",
@@ -2463,6 +2473,30 @@
       "vendorStreamUrlCh": "URL สตรีมตามยี่ห้อ (ช่อง 1):"
     },
     "cctvPlayback": {
+      "deviceClock": "นาฬิกา DVR",
+      "deviceSource": "เล่นจาก HDD ของ DVR/NVR โดยตรง Server ไม่ได้เก็บไฟล์",
+      "deviceClockNote": "เวลาในหน้านี้เป็นนาฬิกาของเครื่อง ตรงกับเวลาบนภาพ",
+      "deviceClockAhead": "นาฬิกาเครื่องเร็วกว่า Server {{minutes}} นาที {{seconds}} วินาที",
+      "deviceClockBehind": "นาฬิกาเครื่องช้ากว่า Server {{minutes}} นาที {{seconds}} วินาที",
+      "deviceListIncomplete": "วันนี้มีไฟล์มากเกินกว่าจะแสดงได้ครบ แถบเวลาอาจไม่ครบทั้งวัน",
+      "deviceSpeedNote": "ภาพจาก DVR/NVR เล่นได้เฉพาะความเร็วปกติ",
+      "deviceTranscoded": "เบราว์เซอร์นี้เล่น H.265 ไม่ได้ Server จึงแปลงเป็น H.264 720p ไม่มีเสียง",
+      "deviceNothingAtThisTime": "เครื่องไม่มีไฟล์บันทึกในช่วงเวลานี้ เลือกช่วงสีเขียวบนแถบเวลา",
+      "deviceClipNote": "คัดลอกจาก HDD ของ DVR/NVR มาเก็บที่ Server โดยไม่แปลงภาพ ใช้เวลาเท่ากับความยาวคลิป เวลาในคลิปเป็นนาฬิกาของเครื่อง",
+      "deviceClipBadge": "จาก HDD ของ DVR",
+      "deviceError_NOT_SUPPORTED": "กล้องนี้ยังดึงไฟล์บันทึกจากเครื่องไม่ได้ (รองรับเฉพาะ Hikvision)",
+      "deviceError_DEVICE_LOGIN": "เครื่องปฏิเสธรหัสผ่าน แก้รหัสที่หน้าอุปกรณ์ DVR/NVR ระบบหยุดลองใหม่ 30 นาทีเพื่อไม่ให้บัญชีถูกล็อก",
+      "deviceError_DEVICE_UNREACHABLE": "ติดต่อเครื่อง DVR/NVR ไม่ได้ ตรวจสอบว่าเครื่องเปิดอยู่และเครือข่ายใช้งานได้",
+      "deviceError_NO_RECORDING": "เครื่องไม่มีไฟล์บันทึกในช่วงเวลานี้",
+      "deviceError_LIMIT_USER": "คุณเปิดเล่นย้อนหลังครบจำนวนแล้ว ปิดหน้าต่างอื่นก่อน",
+      "deviceError_LIMIT_DEVICE": "เครื่องนี้กำลังเล่นหรือคัดลอกไฟล์เต็มจำนวนแล้ว ลองใหม่ภายหลัง",
+      "deviceError_LIMIT_TOTAL": "ระบบเล่นย้อนหลังเต็มจำนวนแล้ว ลองใหม่ภายหลัง",
+      "deviceError_LIMIT_LIVE": "ระบบเปิดวิดีโอเต็มจำนวนแล้ว ลองใหม่ภายหลัง",
+      "deviceError_TRANSCODE_LIMIT": "เบราว์เซอร์นี้เล่น H.265 ไม่ได้ และคิวแปลงวิดีโอเต็ม ลองใหม่ภายหลังหรือใช้ Chrome รุ่นล่าสุด",
+      "deviceError_CLIP_LIMIT": "กำลังคัดลอกคลิปอื่นอยู่ ลองใหม่เมื่อเสร็จ",
+      "deviceError_CLIP_TOO_LONG": "คลิปจาก DVR/NVR ยาวเกินที่ตั้งไว้ ลดช่วงเวลาลง",
+      "deviceError_DISK_FULL": "พื้นที่บน Server ไม่พอสำหรับคลิปนี้",
+      "deviceError_MEDIA_SERVER": "Media Server เปิดการเล่นนี้ไม่ได้",
       "failedToExportClip": "ไม่สามารถส่งออกคลิปได้",
       "legalHoldUpdated": "อัปเดต Legal Hold เรียบร้อย",
       "cctvPlaybackScrubberTimeline": "ดูย้อนหลังและไทม์ไลน์ CCTV",
@@ -2712,6 +2746,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "focusHint": "แสดงกล้องเดียวเต็มจอ · ดับเบิลคลิกหรือกด Esc เพื่อกลับ",
+      "focusClose": "ปิด",
       "mainStreamFellBack": "เบราว์เซอร์นี้เปิดสตรีมหลักไม่ได้ จึงแสดงสตรีมรองแทน",
       "cctvLiveWall": "ห้องภาพสด CCTV",
       "total": "ทั้งหมด:",

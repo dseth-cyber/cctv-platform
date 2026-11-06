@@ -572,7 +572,12 @@
         "live_snapshot_stale_seconds": "静止画を古いと表示する秒数",
         "live_snapshot_device_concurrency": "機器ごとの同時取得数",
         "live_snapshot_global_concurrency": "全体の同時取得数",
-        "live_snapshot_cache_mb": "静止画用メモリ (MB)"
+        "live_snapshot_cache_mb": "静止画用メモリ (MB)",
+        "playback_max_sessions_per_user": "再生：ユーザーごと",
+        "playback_max_sessions_per_device": "再生：機器ごと",
+        "playback_max_sessions_total": "再生：システム全体",
+        "playback_max_transcodes": "H.265 同時変換数",
+        "playback_clip_max_minutes": "DVR/NVR クリップの最大長（分）"
       },
       "descriptions": {
         "alert_critical_threshold": "致命的なアラートを発信するためのディスク使用率",
@@ -605,7 +610,12 @@
         "live_snapshot_stale_seconds": "古い画像は暗くなり警告が付きます（現在の映像と誤認しないため）",
         "live_snapshot_device_concurrency": "カメラまたは DVR/NVR 1 台あたり。高すぎると機器が遅くなることがあります",
         "live_snapshot_global_concurrency": "サーバー全体の上限",
-        "live_snapshot_cache_mb": "メモリのみ（ディスクに保存しません）。満杯時は見られていないものから削除"
+        "live_snapshot_cache_mb": "メモリのみ（ディスクに保存しません）。満杯時は見られていないものから削除",
+        "playback_max_sessions_per_user": "1 人が DVR/NVR の HDD から同時に再生できる数",
+        "playback_max_sessions_per_device": "DVR/NVR は同時に録画もしているため少なめに。クリップのコピーも含みます",
+        "playback_max_sessions_total": "すべての DVR/NVR を合わせた再生数",
+        "playback_max_transcodes": "H.265 を再生できないブラウザ用。実測で 1 件あたり約 0.5 コア。設定に関わらず 2 コアにつき 1 件まで。0 で無効",
+        "playback_clip_max_minutes": "コピーにはクリップの長さと同じ時間がかかり、その間機器の枠を 1 つ使います"
       },
       "problems": {
         "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
@@ -2457,6 +2467,30 @@
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
     "cctvPlayback": {
+      "deviceClock": "DVR の時計",
+      "deviceSource": "DVR/NVR の HDD から直接再生しています。サーバーにファイルは保存されません",
+      "deviceClockNote": "このページの時刻は機器の時計で、映像上の時刻と一致します",
+      "deviceClockAhead": "機器の時計はサーバーより {{minutes}} 分 {{seconds}} 秒進んでいます",
+      "deviceClockBehind": "機器の時計はサーバーより {{minutes}} 分 {{seconds}} 秒遅れています",
+      "deviceListIncomplete": "この日はファイルが多すぎるため、タイムラインが不完全な場合があります",
+      "deviceSpeedNote": "DVR/NVR の映像は通常速度でのみ再生できます",
+      "deviceTranscoded": "このブラウザは H.265 を再生できないため、サーバーが H.264 720p（音声なし）に変換しています",
+      "deviceNothingAtThisTime": "この時刻の録画は機器にありません。タイムラインの緑の範囲を選んでください",
+      "deviceClipNote": "DVR/NVR の HDD から映像を再エンコードせずにサーバーへコピーします。クリップの長さと同じ時間がかかります。クリップの時刻は機器の時計です",
+      "deviceClipBadge": "DVR の HDD から",
+      "deviceError_NOT_SUPPORTED": "このカメラの録画はまだ機器から読み取れません（Hikvision のみ対応）",
+      "deviceError_DEVICE_LOGIN": "機器がパスワードを拒否しました。DVR/NVR のページで修正してください。アカウントがロックされないよう再試行を 30 分停止します",
+      "deviceError_DEVICE_UNREACHABLE": "DVR/NVR に接続できません。電源とネットワークを確認してください",
+      "deviceError_NO_RECORDING": "この時間帯の録画は機器にありません",
+      "deviceError_LIMIT_USER": "再生数の上限に達しました。先に他のウィンドウを閉じてください",
+      "deviceError_LIMIT_DEVICE": "この機器の再生またはコピーは上限に達しています。後でもう一度お試しください",
+      "deviceError_LIMIT_TOTAL": "システムの再生数が上限に達しました。後でもう一度お試しください",
+      "deviceError_LIMIT_LIVE": "システムの映像数が上限に達しました。後でもう一度お試しください",
+      "deviceError_TRANSCODE_LIMIT": "このブラウザは H.265 を再生できず、変換枠も満杯です。後で試すか最新の Chrome をご利用ください",
+      "deviceError_CLIP_LIMIT": "他のクリップをコピー中です。完了後にもう一度お試しください",
+      "deviceError_CLIP_TOO_LONG": "DVR/NVR のクリップとして長すぎます。時間を短くしてください",
+      "deviceError_DISK_FULL": "サーバーの空き容量が足りません",
+      "deviceError_MEDIA_SERVER": "メディアサーバーがこの再生を開けませんでした",
       "failedToExportClip": "クリップの書き出しに失敗しました",
       "legalHoldUpdated": "リーガルホールドを更新しました",
       "cctvPlaybackScrubberTimeline": "CCTV 再生とタイムライン",
@@ -2706,6 +2740,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "focusHint": "1 台を大きく表示中 · ダブルクリックまたは Esc で戻ります",
+      "focusClose": "閉じる",
       "mainStreamFellBack": "このブラウザではメインストリームを開けないため、サブストリームを表示しています",
       "cctvLiveWall": "CCTV ライブウォール",
       "total": "合計:",

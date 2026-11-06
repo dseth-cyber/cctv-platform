@@ -28,6 +28,7 @@ describe('MediaMTX camera path sync', () => {
           { name: 'camera_222222222222', source: 'rtsp://10.0.0.6/main', sourceOnDemand: false, record: true },   // already right
           { name: 'cam/old', source: 'rtsp://10.0.0.9/main' },              // no camera wants it
           { name: 'sim/ch1', source: 'publisher' },                          // static test generator
+          { name: 'dvrpb_abc', source: 'rtsp://10.0.0.9/Streaming/tracks/101' }, // someone is watching a recording
           { name: 'all_others', source: '' },
         ] }), { status: 200 });
       }

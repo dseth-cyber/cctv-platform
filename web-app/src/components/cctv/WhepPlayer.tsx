@@ -36,7 +36,13 @@ interface WhepPlayerProps {
   onSnapshot?: (dataUrl: string) => void;
   /** The stream cannot be opened: lets a wall of tiles fall back instead of keeping an error on screen. */
   onFatalError?: () => void;
+  /** Video has really started moving on screen. */
+  onPlaying?: () => void;
+  /** For a stream opened at a point in a recording: reconnecting by itself would start it over. */
+  noReconnect?: boolean;
 }
+
+const DISCONNECT_GRACE_MS = 8_000;
 
 export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   streamUrl,
@@ -49,6 +55,8 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   iceServers,
   onToggleProfile,
   onFatalError,
+  onPlaying,
+  noReconnect = false,
   onSnapshot,
 }) => {
   const { t } = useTranslation()
@@ -57,6 +65,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   const resourceUrlRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const reconnectAttemptsRef = useRef<number>(0);
+  const disconnectGraceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimeoutRef = useRef<any>(null);
 
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
@@ -128,11 +137,24 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       };
 
       pc.onconnectionstatechange = () => {
+        if (disconnectGraceRef.current) {
+          clearTimeout(disconnectGraceRef.current);
+          disconnectGraceRef.current = null;
+        }
         if (pc.connectionState === 'connected') {
           setStatus('connected');
           reconnectAttemptsRef.current = 0;
+        } else if (noReconnect && pc.connectionState === 'disconnected') {
+          // Browsers report this for a brief gap and then recover by themselves. A stream opened at a
+          // point in a recording cannot simply be restarted, so give it the chance first.
+          disconnectGraceRef.current = setTimeout(() => {
+            if (pcRef.current === pc && pc.connectionState === 'disconnected') {
+              setStatus('error');
+              setErrorMessage(t('ui.whepPlayer.streamConnectionLostReconnectionFailed'));
+            }
+          }, DISCONNECT_GRACE_MS);
         } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-          if (reconnectAttemptsRef.current < 5) {
+          if (!noReconnect && reconnectAttemptsRef.current < 5) {
             const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 8000);
             reconnectAttemptsRef.current += 1;
             setStatus('connecting');
@@ -187,6 +209,10 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   }, [streamUrl]);
 
   const stopStream = useCallback(() => {
+    if (disconnectGraceRef.current) {
+      clearTimeout(disconnectGraceRef.current);
+      disconnectGraceRef.current = null;
+    }
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -356,6 +382,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
+          onPlaying={() => onPlaying?.()}
           style={{
             transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
             transformOrigin: 'center center',

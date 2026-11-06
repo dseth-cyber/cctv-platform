@@ -22,6 +22,8 @@ import { authRoutes } from './modules/auth/auth.controller.js';
 import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
 import { cameraGroupRoutes } from './modules/camera-groups/camera-groups.controller.js';
+import { devicePlaybackRoutes } from './modules/device-playback/device-playback.controller.js';
+import { startDevicePlayback, stopDevicePlayback } from './modules/device-playback/device-playback.service.js';
 import { snapshotRoutes, startSnapshotScheduler, stopSnapshotScheduler } from './modules/snapshots/snapshots.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
 import { recordingsRoutes } from './modules/recordings/recordings.controller.js';
@@ -142,6 +144,7 @@ export async function buildApp() {
       await api.register(deviceRoutes, { prefix: '/api/v1/devices' });
       await api.register(cameraGroupRoutes, { prefix: '/api/v1/camera-groups' });
       await api.register(snapshotRoutes, { prefix: '/api/v1/snapshots' });
+      await api.register(devicePlaybackRoutes, { prefix: '/api/v1/device-playback' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
       await api.register(recordingsRoutes, { prefix: '/api/v1/recordings' });
       await api.register(mediaAuthRoutes, { prefix: '/api/v1/media' });
@@ -199,6 +202,7 @@ export async function startApp() {
   startRecordingReconciler();
   startCameraPathSync();
   startSnapshotScheduler();
+  startDevicePlayback();
   startSystemCleanup();
   startTelegramBot();
 
@@ -234,6 +238,7 @@ export async function startApp() {
     stopRecordingReconciler();
     stopCameraPathSync();
     stopSnapshotScheduler();
+    stopDevicePlayback();
     stopSystemCleanup();
     stopTelegramBot();
     await app.close();

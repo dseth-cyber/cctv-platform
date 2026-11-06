@@ -5,7 +5,7 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
 import { LiveOverview } from '@/components/cctv/LiveOverview';
-import { applyCameraSelection } from '@/lib/cameraFilter';
+import { applyCameraSelection, camerasForEmptySlots, favoritesFirst } from '@/lib/cameraFilter';
 import {
   Grid2X2,
   Square,
@@ -154,10 +154,60 @@ export default function LiveGrid() {
       // Only a convenience: the choice still applies for this visit.
     }
   };
+  // The first fill has happened (or was overtaken by a choice), so an empty slot is now the person's choice.
+  const filledOnce = useRef(false);
+  const fillLayout = (next: GridLayout) => {
+    filledOnce.current = true;
+    const count = getSlotCount(next);
+    const profile: 'main' | 'sub' = count >= 4 ? 'sub' : 'main';
+    const kept = cells.slice(0, count);
+    const toFill = camerasForEmptySlots(filteredCameras, kept.map((c) => c.cameraId));
+    let nextToFill = 0;
+    kept.forEach((cell) => {
+      if (cell.cameraId) {
+        if (cell.streamProfile !== profile) {
+          const cam = cameras.find((c: any) => c.id === cell.cameraId);
+          if (cam) assignCameraToSlot(cam, cell.slotIndex, profile);
+        }
+      } else if (nextToFill < toFill.length) {
+        assignCameraToSlot(toFill[nextToFill++], cell.slotIndex, profile);
+      }
+    });
+    // Slots this layout does not show stop streaming.
+    setCells((prev) => prev.map((c) => (c.slotIndex >= count ? { ...c, cameraId: null, cameraName: null, streamUrl: null, streamProfile: 'main', hasSubStream: false } : c)));
+    setTourPageIndex(0);
+    setTourCountdown(tourIntervalSeconds);
+    setActiveSlot((slot) => (slot < count ? slot : 0));
+  };
   const chooseLayout = (next: GridLayout) => {
     setLayout(next);
     chooseView('grid');
+    fillLayout(next);
   };
+
+  const { data: favoriteIds, isLoading: isLoadingFavorites } = useQuery<string[]>({
+    queryKey: ['camera-favorites'],
+    queryFn: () => imageServiceApi.getCameraFavorites(),
+  });
+
+  // Double click: one camera at full size in its best quality. The tiles behind it stop streaming meanwhile.
+  const [focus, setFocus] = useState<{ cameraId: string; name: string; streamUrl: string; profile: 'main' | 'sub'; hasSub: boolean; fellBack: boolean } | null>(null);
+  const openFocus = async (cam: any, preferred: 'main' | 'sub' = 'main', fellBack = false) => {
+    try {
+      const stream = await imageServiceApi.getCameraStream(cam.id, { profile: preferred });
+      setFocus({ cameraId: cam.id, name: cam.name, streamUrl: stream.webrtcWhepUrl, profile: stream.profile || preferred, hasSub: Boolean(stream.hasSubStream), fellBack });
+    } catch {
+      setFocus(null);
+    }
+  };
+  useEffect(() => {
+    if (!focus) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFocus(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focus]);
 
   const { data: devices = [] } = useQuery({
     queryKey: ['cctv-devices'],
@@ -272,7 +322,7 @@ export default function LiveGrid() {
       selectedSiteFilter === 'all' || c.siteId === selectedSiteFilter;
     return matchesSearch && matchesSite;
   });
-  const filteredCameras = applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline);
+  const filteredCameras = favoritesFirst(applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline), new Set(favoriteIds ?? []));
 
   // Calculate tour pages for hundreds of cameras
   const totalTourPages = Math.max(1, Math.ceil(filteredCameras.length / slotCount));
@@ -416,6 +466,7 @@ export default function LiveGrid() {
   };
 
   const handleLoadPreset = (preset: SavedPreset) => {
+    filledOnce.current = true;
     setLayout(preset.layout);
 
     const newCells: GridCell[] = Array.from({ length: 16 }, (_, i) => ({
@@ -463,13 +514,11 @@ export default function LiveGrid() {
 
   // Initial fill if slots empty
   useEffect(() => {
-    if (!isOverview && cameras.length > 0 && cells.every((c) => !c.cameraId)) {
-      const initialCount = Math.min(filteredCameras.length, 4);
-      for (let i = 0; i < initialCount; i++) {
-        assignCameraToSlot(filteredCameras[i], i);
-      }
-    }
-  }, [cameras, assignCameraToSlot, isOverview]);
+    // Waits for the stars, so starred cameras get the first slots.
+    if (filledOnce.current || isOverview || isLoadingFavorites || cameras.length === 0) return;
+    fillLayout(layout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameras, isOverview, isLoadingFavorites]);
 
   // Online / offline stats
   const onlineCount = cameras.filter((c: any) => c.operationalStatus === 'online').length;
@@ -673,10 +722,42 @@ export default function LiveGrid() {
 
       {/* Main Grid Viewport */}
       <div className="flex-1 flex overflow-hidden relative">
+        {focus && (
+          <div
+            className="flex-1 min-h-0 relative bg-black"
+            onDoubleClick={(e) => {
+              if (!(e.target as HTMLElement).closest('button')) setFocus(null);
+            }}
+          >
+            <WhepPlayer
+              key={focus.streamUrl}
+              streamUrl={focus.streamUrl}
+              cameraName={focus.name}
+              streamProfile={focus.profile}
+              hasSubStream={focus.hasSub}
+              onToggleProfile={(next) => {
+                const cam = cameras.find((c: any) => c.id === focus.cameraId);
+                if (cam) openFocus(cam, next);
+              }}
+              onFatalError={() => {
+                const cam = cameras.find((c: any) => c.id === focus.cameraId);
+                if (cam && focus.profile === 'main' && focus.hasSub) openFocus(cam, 'sub', true);
+              }}
+              className="w-full h-full"
+            />
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300">
+              <span className="pointer-events-none">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
+              <button type="button" onClick={() => setFocus(null)} title={t('ui.liveGrid.focusClose')} aria-label={t('ui.liveGrid.focusClose')} className="p-0.5 rounded hover:bg-slate-800 text-slate-200">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
         {isOverview ? (
-          <LiveOverview cameras={filteredCameras} />
+          <div className={focus ? 'hidden' : 'contents'}><LiveOverview
+            onFocusCamera={(cam: any) => openFocus(cam)} cameras={filteredCameras} /></div>
         ) : (
-        <div className="flex-1 p-2 overflow-auto flex items-center justify-center">
+        <div className={`flex-1 p-2 overflow-auto flex items-center justify-center ${focus ? 'hidden' : ''}`}>
           <div
             className={`w-full h-full max-h-full grid gap-2 ${
               layout === '1x1'
@@ -695,13 +776,18 @@ export default function LiveGrid() {
                 <div
                   key={cell.slotIndex}
                   onClick={() => setActiveSlot(cell.slotIndex)}
+                  onDoubleClick={(e) => {
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    const cam = cameras.find((c: any) => c.id === cell.cameraId);
+                    if (cam) openFocus(cam);
+                  }}
                   className={`relative rounded-lg overflow-hidden bg-slate-900 border transition cursor-pointer group ${
                     isSelected
                       ? 'border-cyan-500 ring-2 ring-cyan-500/30'
                       : 'border-slate-800/80 hover:border-slate-700'
                   }`}
                 >
-                  {cell.streamUrl ? (
+                  {cell.streamUrl && !focus ? (
                     <div className="w-full h-full relative">
                       <WhepPlayer
                         streamUrl={cell.streamUrl}

@@ -460,6 +460,14 @@ export function createImageServiceApi(api: any) {
     downloadRecordingClip: (filename: string): Promise<Blob> =>
       api.get(`${BASE}/recordings/clips/download/${encodeURIComponent(filename)}`, { responseType: 'blob' }).then((r: any) => r.data),
 
+    getDeviceTimeline: (cameraId: string, date: string) =>
+      api.get(`${BASE}/device-playback/timeline`, { params: { cameraId, date } }).then((r: any) => r.data),
+    openDevicePlayback: (data: { cameraId: string; start: string; canPlayH265: boolean }) =>
+      api.post(`${BASE}/device-playback/sessions`, data).then((r: any) => r.data),
+    closeDevicePlayback: (sessionId: string) =>
+      api.delete(`${BASE}/device-playback/sessions/${sessionId}`).then((r: any) => r.data),
+    exportDeviceClip: (data: { cameraId: string; start: string; end: string; title: string; incidentId?: string; legalHold?: boolean }) =>
+      api.post(`${BASE}/device-playback/clips`, data).then((r: any) => r.data),
     getPlaybackStream: (cameraId: string, start: string, duration = 300) =>
       api.get(`${BASE}/recordings/playback-stream`, { params: { cameraId, start, duration } }).then((r: any) => r.data),
 

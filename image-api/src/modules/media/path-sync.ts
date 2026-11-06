@@ -1,7 +1,7 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { openRtspUrl } from '../../lib/rtsp-credentials.js';
-import { MediaMtxService } from './mediamtx.service.js';
+import { MediaMtxService, PLAYBACK_PATH_PREFIX } from './mediamtx.service.js';
 
 /**
  * Keeps MediaMTX's runtime path config in line with the camera table, so every enabled camera is
@@ -56,7 +56,7 @@ export async function syncCameraPaths() {
   }
   // Camera pulls (rtsp sources) that no enabled camera wants any more: disabled, deleted or renamed.
   for (const [name, { source }] of current) {
-    if (desired.has(name) || name.startsWith('sim/') || !/^rtsps?:\/\//i.test(source)) continue;
+    if (desired.has(name) || name.startsWith('sim/') || name.startsWith(PLAYBACK_PATH_PREFIX) || !/^rtsps?:\/\//i.test(source)) continue;
     if (await MediaMtxService.removeStreamPath(name)) summary.removed++;
     else summary.failed++;
   }

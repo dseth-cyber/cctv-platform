@@ -37,6 +37,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SecurityWatermark } from '@/components/cctv/SecurityWatermark';
+import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 
 
 interface ContinuousBlock {
@@ -74,6 +75,32 @@ interface TimelineData {
   gaps: GapItem[];
   incidents: IncidentMarker[];
 }
+
+// Times of a recorder's own recordings: its wall clock, YYYY-MM-DDTHH:mm:ss, with no time zone attached.
+const dayToWall = (date: string, sec: number) =>
+  new Date(new Date(`${date}T00:00:00Z`).getTime() + Math.round(sec) * 1000).toISOString().slice(0, 19);
+const inputToWall = (value: string) => (value.length === 16 ? `${value}:00` : value.slice(0, 19));
+
+const canPlayH265 = () => {
+  try {
+    return !!RTCRtpReceiver.getCapabilities?.('video')?.codecs.some((c) => /h265|hevc/i.test(c.mimeType));
+  } catch {
+    return false;
+  }
+};
+
+interface DevicePlayback {
+  sessionId: string;
+  url: string;
+  startSec: number;
+  endSec: number;
+  codec: string | null;
+  transcoded: boolean;
+}
+
+// No first frame by then means this browser accepted H.265 but cannot really show it.
+const FIRST_FRAME_TIMEOUT_MS = 20_000;
+const MAX_REOPENS = 3;
 
 const TIME_PARTS = [
   { max: 23, label: 'HH' },
@@ -229,6 +256,8 @@ export const CctvPlayback: React.FC = () => {
   const [zoomOffsetSec, setZoomOffsetSec] = useState<number>(0);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isDraggingPlayhead, setIsDraggingPlayhead] = useState<boolean>(false);
+  const draggingRef = useRef(false);
+  draggingRef.current = isDraggingPlayhead;
   const [hoverTimeSec, setHoverTimeSec] = useState<number | null>(null);
 
   // Export form state
@@ -261,6 +290,8 @@ export const CctvPlayback: React.FC = () => {
   // GET /cameras returns a plain array (other CCTV pages read it the same way).
   const cameras: any[] = Array.isArray(camerasData) ? camerasData : (camerasData?.items ?? []);
 
+  const selectedCamera = cameras.find((c: any) => c.id === selectedCameraId);
+
   // Auto-select first camera if none selected
   useEffect(() => {
     if (!selectedCameraId && cameras.length > 0) {
@@ -281,12 +312,41 @@ export const CctvPlayback: React.FC = () => {
   }, [selectedCameraId, selectedDate, setSearchParams]);
 
   // Fetch timeline availability
-  const { data: timelineData, isLoading: isTimelineLoading } = useQuery<TimelineData>({
+  // A camera on a DVR/NVR that the server does not record is played from the recorder's own HDD.
+  const wantsDevice = !!selectedCamera?.deviceId && selectedCamera?.recordingMode !== 'continuous';
+  const { data: deviceTimeline, error: deviceTimelineError } = useQuery<any>({
+    queryKey: ['cctv-device-timeline', selectedCameraId, selectedDate],
+    queryFn: () => imageServiceApi.getDeviceTimeline(selectedCameraId, selectedDate),
+    enabled: wantsDevice,
+    staleTime: 1000 * 30,
+    retry: false,
+  });
+  const isDeviceMode = wantsDevice && deviceTimeline?.supported === true;
+  const { data: serverTimeline, isLoading: isTimelineLoading } = useQuery<TimelineData>({
     queryKey: ['cctv-recording-timeline', selectedCameraId, selectedDate],
     queryFn: () => imageServiceApi.getRecordingTimeline(selectedCameraId, selectedDate),
-    enabled: !!selectedCameraId,
+    enabled: !!selectedCameraId && (!wantsDevice || deviceTimeline?.supported === false),
     staleTime: 1000 * 30,
   });
+  const timelineData: TimelineData | undefined = isDeviceMode ? deviceTimeline : serverTimeline;
+  const deviceErrorText = (err: any) => {
+    const code = err?.response?.data?.details?.code;
+    return code ? t(`ui.cctvPlayback.deviceError_${code}`, { defaultValue: err?.response?.data?.message }) : t('ui.cctvPlayback.deviceError_DEVICE_UNREACHABLE');
+  };
+  const clockDrift: number | null = isDeviceMode ? deviceTimeline?.clock?.driftSeconds ?? null : null;
+  const driftText = useMemo(() => {
+    if (clockDrift === null || Math.abs(clockDrift) < 2) return null;
+    const abs = Math.abs(clockDrift);
+    return t(clockDrift > 0 ? 'ui.cctvPlayback.deviceClockAhead' : 'ui.cctvPlayback.deviceClockBehind', { minutes: Math.floor(abs / 60), seconds: abs % 60 });
+  }, [clockDrift, t]);
+
+  // A time in the URL comes from an incident, which is server time; the recorder's clock showed this much more.
+  const urlTimeShifted = useRef(false);
+  useEffect(() => {
+    if (!initialTime || urlTimeShifted.current || !isDeviceMode || clockDrift === null) return;
+    urlTimeShifted.current = true;
+    setCurrentTimeSec((prev) => Math.max(0, Math.min(86399, prev + clockDrift)));
+  }, [initialTime, isDeviceMode, clockDrift]);
 
   // Without a time in the URL, open at the last 5 minutes of the newest recording of that day.
   useEffect(() => {
@@ -312,6 +372,100 @@ export const CctvPlayback: React.FC = () => {
 
   const clips = clipsData?.items ?? [];
 
+  // Playback from a recorder: a video stream opened at a time. It cannot pause or change speed, so pausing
+  // closes it (the recorder gets its slot back) and every seek opens a new one.
+  const [devicePlayback, setDevicePlayback] = useState<DevicePlayback | null>(null);
+  const [playingSince, setPlayingSince] = useState<number | null>(null);
+  const deviceSessionRef = useRef<string | null>(null);
+  const openRequestRef = useRef(0);
+  const reopenCountRef = useRef(0);
+  const retriedRef = useRef(false);
+
+  const closeDeviceSession = useCallback(() => {
+    openRequestRef.current++;
+    const id = deviceSessionRef.current;
+    deviceSessionRef.current = null;
+    setDevicePlayback(null);
+    setPlayingSince(null);
+    if (id) imageServiceApi.closeDevicePlayback(id).catch(() => {});
+  }, []);
+
+  useEffect(() => () => {
+    const id = deviceSessionRef.current;
+    deviceSessionRef.current = null;
+    if (id) imageServiceApi.closeDevicePlayback(id).catch(() => {});
+  }, []);
+
+  const startDevicePlayback = useCallback(async (atSec: number, forceConversion = false) => {
+    if (!selectedCameraId) return;
+    const request = ++openRequestRef.current;
+    setIsLoadingPlayback(true);
+    setPlaybackError(null);
+    setPlayingSince(null);
+    try {
+      const res = await imageServiceApi.openDevicePlayback({
+        cameraId: selectedCameraId,
+        start: dayToWall(selectedDate, atSec),
+        canPlayH265: !forceConversion && canPlayH265(),
+      });
+      if (request !== openRequestRef.current) {
+        imageServiceApi.closeDevicePlayback(res.sessionId).catch(() => {});
+        return;
+      }
+      deviceSessionRef.current = res.sessionId;
+      setDevicePlayback({
+        sessionId: res.sessionId,
+        url: res.webrtcWhepUrl,
+        startSec: atSec,
+        endSec: atSec + (new Date(`${res.end}Z`).getTime() - new Date(`${res.start}Z`).getTime()) / 1000,
+        codec: res.codec ?? null,
+        transcoded: !!res.transcoded,
+      });
+      setIsPlaying(true);
+    } catch (err: any) {
+      if (request !== openRequestRef.current) return;
+      deviceSessionRef.current = null;
+      setDevicePlayback(null);
+      setIsPlaying(false);
+      setPlaybackError(deviceErrorText(err));
+    } finally {
+      if (request === openRequestRef.current) setIsLoadingPlayback(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCameraId, selectedDate, t]);
+
+  // The browser could not show this H.265 recording: ask the server for a converted one instead.
+  const handleDeviceStreamFailed = useCallback(() => {
+    if (!devicePlayback) return;
+    // It was playing and the connection dropped: carry on from where it got to, a few times at most.
+    if (playingSince !== null && reopenCountRef.current < MAX_REOPENS) {
+      reopenCountRef.current += 1;
+      startDevicePlayback(Math.floor(devicePlayback.startSec + (Date.now() - playingSince) / 1000), devicePlayback.transcoded);
+      return;
+    }
+    if (playingSince === null && !devicePlayback.transcoded) {
+      // A slow recorder also lands here, so try once more before costing the server a conversion.
+      if (!retriedRef.current) {
+        retriedRef.current = true;
+        startDevicePlayback(devicePlayback.startSec);
+        return;
+      }
+      if (/265|hevc/i.test(devicePlayback.codec ?? '')) {
+        startDevicePlayback(devicePlayback.startSec, true);
+        return;
+      }
+    }
+    closeDeviceSession();
+    setIsPlaying(false);
+    setPlaybackError(t('ui.cctvPlayback.playbackLoadFailed'));
+  }, [devicePlayback, playingSince, startDevicePlayback, closeDeviceSession, t]);
+
+  useEffect(() => {
+    if (!devicePlayback || playingSince !== null) return;
+    const timer = setTimeout(handleDeviceStreamFailed, FIRST_FRAME_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [devicePlayback, playingSince, handleDeviceStreamFailed]);
+
   const startPlayback = useCallback(async (atSec: number) => {
     if (!selectedCameraId) return;
     setIsLoadingPlayback(true);
@@ -330,6 +484,17 @@ export const CctvPlayback: React.FC = () => {
   }, [selectedCameraId, selectedDate, t]);
 
   const handleTogglePlay = () => {
+    if (isDeviceMode) {
+      reopenCountRef.current = 0;
+      retriedRef.current = false;
+      if (isPlaying) {
+        closeDeviceSession();
+        setIsPlaying(false);
+      } else {
+        startDevicePlayback(currentTimeSec);
+      }
+      return;
+    }
     const video = videoRef.current;
     if (isPlaying) {
       video?.pause();
@@ -347,12 +512,60 @@ export const CctvPlayback: React.FC = () => {
   // A new camera or day invalidates the loaded chunk.
   useEffect(() => {
     setPlayback(null);
+    closeDeviceSession();
     setIsPlaying(false);
     setPlaybackError(null);
-  }, [selectedCameraId, selectedDate]);
+  }, [selectedCameraId, selectedDate, closeDeviceSession]);
+
+  // The stream carries no time of its own: the playhead follows the clock from the moment video moves.
+  useEffect(() => {
+    if (!devicePlayback || playingSince === null) return;
+    const timer = setInterval(() => {
+      // The person is choosing a time: moving the playhead now would take it out of their hand.
+      if (draggingRef.current) return;
+      const next = Math.floor(devicePlayback.startSec + (Date.now() - playingSince) / 1000);
+      if (next >= 86399) {
+        closeDeviceSession();
+        setIsPlaying(false);
+        return;
+      }
+      if (next >= devicePlayback.endSec) {
+        videoDrivenRef.current = true;
+        setCurrentTimeSec(next);
+        startDevicePlayback(next);
+        return;
+      }
+      setCurrentTimeSec((prev) => {
+        if (prev === next) return prev;
+        videoDrivenRef.current = true;
+        return next;
+      });
+    }, 500);
+    return () => clearInterval(timer);
+  }, [devicePlayback, playingSince, closeDeviceSession, startDevicePlayback]);
+
+  // Each seek is a new stream, so wait for the clicking to stop before opening one.
+  useEffect(() => {
+    if (!isDeviceMode) return;
+    if (videoDrivenRef.current) {
+      videoDrivenRef.current = false;
+      return;
+    }
+    if (isDraggingPlayhead || !isPlaying) return;
+    // Left running, the playhead's next tick would overwrite the time just chosen.
+    setPlayingSince(null);
+    const timer = setTimeout(() => {
+      reopenCountRef.current = 0;
+      retriedRef.current = false;
+      startDevicePlayback(currentTimeSec);
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTimeSec, isDraggingPlayhead, isDeviceMode]);
 
   // User seeks (buttons, timeline, incident jumps) move the video or load the chunk for that time.
   useEffect(() => {
+    if (isDeviceMode) return;
     if (videoDrivenRef.current) {
       videoDrivenRef.current = false;
       return;
@@ -486,7 +699,7 @@ export const CctvPlayback: React.FC = () => {
 
   // Export Clip mutation
   const exportClipMutation = useMutation({
-    mutationFn: (data: any) => imageServiceApi.exportRecordingClip(data),
+    mutationFn: (data: any) => (isDeviceMode ? imageServiceApi.exportDeviceClip(data) : imageServiceApi.exportRecordingClip(data)),
     onSuccess: () => {
       // The export runs in the background; the clip list polls until it is COMPLETED or FAILED.
       toast.success(t('ui.cctvPlayback.clipExportStarted'));
@@ -494,7 +707,7 @@ export const CctvPlayback: React.FC = () => {
       refetchClips();
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || t('ui.cctvPlayback.failedToExportClip'));
+      toast.error(err?.response?.data?.details?.code ? deviceErrorText(err) : err?.response?.data?.message || t('ui.cctvPlayback.failedToExportClip'));
     },
   });
 
@@ -530,12 +743,12 @@ export const CctvPlayback: React.FC = () => {
   const { data: rangeCoverage, isFetching: isCoverageLoading } = useQuery({
     queryKey: ['cctv-recording-coverage', selectedCameraId, rangeStartIso, rangeEndIso],
     queryFn: () => imageServiceApi.getRecordingCoverage(selectedCameraId, rangeStartIso!, rangeEndIso!),
-    enabled: isExportModalOpen && exportMode === 'range' && !!selectedCameraId && rangeValid,
+    enabled: isExportModalOpen && !isDeviceMode && exportMode === 'range' && !!selectedCameraId && rangeValid,
     staleTime: 1000 * 15,
   });
   const rangeHours = rangeValid ? (new Date(rangeEndIso!).getTime() - new Date(rangeStartIso!).getTime()) / 3_600_000 : 0;
   const rangeTooLong = !!rangeCoverage && rangeHours > rangeCoverage.maxExportHours;
-  const canExportRange = rangeValid && !!rangeCoverage && rangeCoverage.recordedSeconds > 0 && !rangeTooLong;
+  const canExportRange = rangeValid && (isDeviceMode || (!!rangeCoverage && rangeCoverage.recordedSeconds > 0 && !rangeTooLong));
 
   const formatDuration = (sec: number) => {
     const h = Math.floor(sec / 3600);
@@ -563,6 +776,18 @@ export const CctvPlayback: React.FC = () => {
 
   const handleConfirmExport = () => {
     if (!selectedCameraId) return;
+    if (isDeviceMode) {
+      if (exportMode === 'range' && !canExportRange) return;
+      exportClipMutation.mutate({
+        cameraId: selectedCameraId,
+        incidentId: selectedIncidentForClip?.id,
+        title: clipTitle,
+        start: exportMode === 'range' ? inputToWall(rangeStart) : dayToWall(selectedDate, currentTimeSec - preBufferSec),
+        end: exportMode === 'range' ? inputToWall(rangeEnd) : dayToWall(selectedDate, currentTimeSec + postBufferSec),
+        legalHold: legalHoldChecked,
+      });
+      return;
+    }
     if (exportMode === 'range') {
       if (!canExportRange) return;
       exportClipMutation.mutate({
@@ -591,8 +816,6 @@ export const CctvPlayback: React.FC = () => {
       legalHold: legalHoldChecked,
     });
   };
-
-  const selectedCamera = cameras.find((c: any) => c.id === selectedCameraId);
 
   // Jump to next/prev incident
   const handleJumpIncident = (direction: 'prev' | 'next') => {
@@ -624,7 +847,7 @@ export const CctvPlayback: React.FC = () => {
               </h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center gap-1" title={t('ui.cctvPlayback.timezoneDisplayEnforcedToAsiaBangkok')}>
                 <Clock size={10} />
-                <span>{t('ui.cctvPlayback.asiaBangkokUtc')}</span>
+                <span>{isDeviceMode ? t('ui.cctvPlayback.deviceClock') : t('ui.cctvPlayback.asiaBangkokUtc')}</span>
               </span>
             </div>
             <p className="text-xs text-slate-400">
@@ -725,7 +948,29 @@ export const CctvPlayback: React.FC = () => {
             />
           )}
 
-          {!playback && (
+          {devicePlayback && (
+            <div className="absolute inset-0 bg-black">
+              <WhepPlayer
+                key={devicePlayback.sessionId}
+                streamUrl={devicePlayback.url}
+                cameraName={selectedCamera?.name || ''}
+                className="w-full h-full"
+                noReconnect
+                onPlaying={() => {
+                  setIsLoadingPlayback(false);
+                  setPlayingSince((prev) => prev ?? Date.now());
+                }}
+                onFatalError={handleDeviceStreamFailed}
+              />
+              {devicePlayback.transcoded && (
+                <div className="absolute bottom-16 left-4 z-20 px-2.5 py-1 rounded-lg bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
+                  {t('ui.cctvPlayback.deviceTranscoded')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!playback && !devicePlayback && (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-950/80 to-slate-950 flex items-center justify-center">
             {playbackError ? (
               <div className="text-center p-6 space-y-2">
@@ -751,7 +996,11 @@ export const CctvPlayback: React.FC = () => {
                   {currentStatus.gap ? t('ui.cctvPlayback.noRecordingInThisPeriodData') : t('ui.cctvPlayback.noRecordingDataAtThisTime')}
                 </h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  {selectedCamera && selectedCamera.recordingMode !== 'continuous'
+                  {deviceTimelineError
+                    ? deviceErrorText(deviceTimelineError)
+                    : isDeviceMode
+                    ? t('ui.cctvPlayback.deviceNothingAtThisTime')
+                    : selectedCamera && selectedCamera.recordingMode !== 'continuous'
                     ? t('imageService.cameras.recording.playbackLiveOnly')
                     : currentStatus.gap?.reason || t('ui.cctvPlayback.theDeviceMayBeOffThe')}
                 </p>
@@ -769,7 +1018,7 @@ export const CctvPlayback: React.FC = () => {
                 {selectedDate} {formatSeconds(currentTimeSec)}
               </span>
               <span className="text-slate-500">|</span>
-              <span className="text-slate-300">{t('ui.cctvPlayback.asiaBangkokUtc')}</span>
+              <span className="text-slate-300">{isDeviceMode ? t('ui.cctvPlayback.deviceClock') : t('ui.cctvPlayback.asiaBangkokUtc')}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -813,6 +1062,16 @@ export const CctvPlayback: React.FC = () => {
             </div>
           )}
         </div>
+
+        {isDeviceMode && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-xs text-cyan-100">
+            <Database size={14} className="text-cyan-400 flex-shrink-0" />
+            <span>{t('ui.cctvPlayback.deviceSource')}</span>
+            <span className="text-cyan-300/70">{t('ui.cctvPlayback.deviceClockNote')}</span>
+            {driftText && <span className="font-semibold text-amber-300">{driftText}</span>}
+            {deviceTimeline?.complete === false && <span className="text-amber-300">{t('ui.cctvPlayback.deviceListIncomplete')}</span>}
+          </div>
+        )}
 
         {/* Transport Controls Bar */}
         <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
@@ -898,9 +1157,11 @@ export const CctvPlayback: React.FC = () => {
             <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs">
               <span className="text-slate-400">{t('ui.cctvPlayback.speed')}</span>
               <select
-                value={playbackSpeed}
+                value={isDeviceMode ? 1 : playbackSpeed}
+                disabled={isDeviceMode}
+                title={isDeviceMode ? t('ui.cctvPlayback.deviceSpeedNote') : undefined}
                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                className="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer"
+                className="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value={0.5} className="bg-slate-900 text-white">0.5x</option>
                 <option value={1} className="bg-slate-900 text-white">{t('ui.cctvPlayback.n10xNormal')}</option>
@@ -1116,7 +1377,12 @@ export const CctvPlayback: React.FC = () => {
                         {formatDuration(clip.durationSeconds)}
                       </td>
                       <td className="py-3 px-3">
-                        {clip.hasPreBuffer ? (
+                        {String(clip.filePath ?? '').includes('/dvrclip_') ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
+                            <Database size={11} />
+                            {t('ui.cctvPlayback.deviceClipBadge')}
+                          </span>
+                        ) : clip.hasPreBuffer ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                             <CheckCircle2 size={11} />
                             {t('ui.cctvPlayback.preBuffer')}{clip.preBufferSeconds}{t('ui.cctvPlayback.sComplete')}
@@ -1217,7 +1483,7 @@ export const CctvPlayback: React.FC = () => {
                     ['end', rangeEnd, setRangeEnd, t('ui.cctvPlayback.rangeEnd')],
                   ] as const).map(([key, value, setValue, label]) => (
                     <div key={key}>
-                      <label className="block text-slate-400 mb-1 font-semibold">{label} <span className="font-normal text-slate-500">(UTC+7)</span></label>
+                      <label className="block text-slate-400 mb-1 font-semibold">{label} <span className="font-normal text-slate-500">{isDeviceMode ? `(${t('ui.cctvPlayback.deviceClock')})` : '(UTC+7)'}</span></label>
                       <div className="flex gap-2">
                         <DateTime24Input value={value} onChange={setValue} />
                         <button
@@ -1234,6 +1500,8 @@ export const CctvPlayback: React.FC = () => {
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 space-y-1">
                     {!rangeValid ? (
                       <span className="text-rose-400">{t('ui.cctvPlayback.rangeEndMustBeAfterStart')}</span>
+                    ) : isDeviceMode ? (
+                      <div>{t('ui.cctvPlayback.rangeLength')}: <b>{formatDuration(rangeHours * 3600)}</b></div>
                     ) : isCoverageLoading || !rangeCoverage ? (
                       <span className="text-slate-500">{t('ui.cctvPlayback.checkingRecordings')}</span>
                     ) : (
@@ -1293,8 +1561,14 @@ export const CctvPlayback: React.FC = () => {
 
               )}
 
+              {isDeviceMode && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] leading-relaxed text-slate-300">
+                  {t('ui.cctvPlayback.deviceClipNote')}
+                </div>
+              )}
+
               {/* Pre-buffer rolling storage policy banner */}
-              {exportMode === 'event' && (
+              {exportMode === 'event' && !isDeviceMode && (
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 space-y-1">
                 <div className="flex items-center gap-1.5 text-cyan-400 font-semibold">
                   <Info size={14} />

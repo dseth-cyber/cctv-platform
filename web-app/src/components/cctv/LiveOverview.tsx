@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertCircle, ImageIcon, Radio, Star, X } from 'lucide-react';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { chooseLiveCameras } from '@/lib/liveAllocation';
+import { favoritesFirst } from '@/lib/cameraFilter';
 import { WhepPlayer } from './WhepPlayer';
 import { SecurityWatermark } from './SecurityWatermark';
 
@@ -33,9 +34,10 @@ interface TileProps {
   onClose: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onStreamFailed: (id: string) => void;
+  onFocus?: (camera: any) => void;
 }
 
-const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isFavorite, status, imageUrl, now, staleSeconds, onOpen, onClose, onToggleFavorite, onStreamFailed }: TileProps) {
+const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isFavorite, status, imageUrl, now, staleSeconds, onOpen, onClose, onToggleFavorite, onStreamFailed, onFocus }: TileProps) {
   const { t } = useTranslation();
   const ageSeconds = status?.capturedAt ? Math.max(0, Math.round((now - status.capturedAt) / 1000)) : null;
   const isStale = ageSeconds !== null && ageSeconds > staleSeconds;
@@ -45,7 +47,7 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
   const problem = status && status.state !== 'ok' && status.state !== 'waiting' ? t(`ui.liveGrid.overview.state.${status.state}`) : null;
 
   return (
-    <div data-camera-id={camera.id} className={`relative aspect-video rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>
+    <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>
       {isLive && streamUrl ? (
         <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" onFatalError={() => onStreamFailed(camera.id)} />
       ) : (
@@ -74,12 +76,13 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
 
       <div className={`absolute right-1 flex items-center gap-1 z-30 ${isLive ? 'top-9' : 'top-1'}`}>
         {isLive && isPinned && (
-          <button type="button" onClick={() => onClose(camera.id)} title={t('ui.liveGrid.overview.backToStill')} className="p-1 rounded bg-slate-950/80 text-slate-300 hover:text-white">
+          <button type="button" data-no-focus onClick={() => onClose(camera.id)} title={t('ui.liveGrid.overview.backToStill')} className="p-1 rounded bg-slate-950/80 text-slate-300 hover:text-white">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
         <button
           type="button"
+          data-no-focus
           onClick={() => onToggleFavorite(camera.id)}
           aria-pressed={isFavorite}
           title={isFavorite ? t('ui.liveGrid.overview.unstar') : t('ui.liveGrid.overview.star')}
@@ -96,7 +99,7 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
  * Every camera at once: still images refreshed by the server for what is on screen, live video for as
  * many as the quota allows. Nothing is fetched for tiles off screen or while the tab is hidden.
  */
-export function LiveOverview({ cameras }: { cameras: any[] }) {
+export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFocusCamera?: (camera: any) => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -116,7 +119,7 @@ export function LiveOverview({ cameras }: { cameras: any[] }) {
   const favorites = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   // Starred first; order is otherwise what the filter gave.
   const ordered = useMemo(
-    () => [...cameras.filter((c) => favorites.has(c.id)), ...cameras.filter((c) => !favorites.has(c.id))],
+    () => favoritesFirst(cameras, favorites),
     [cameras, favorites],
   );
   const orderKey = ordered.map((c) => c.id).join(',');
@@ -343,6 +346,7 @@ export function LiveOverview({ cameras }: { cameras: any[] }) {
                 onClose={handleClose}
                 onToggleFavorite={handleToggleFavorite}
                 onStreamFailed={handleStreamFailed}
+                onFocus={onFocusCamera}
               />
             ))}
           </div>

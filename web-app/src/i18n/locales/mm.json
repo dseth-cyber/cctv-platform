@@ -572,7 +572,12 @@
         "live_snapshot_stale_seconds": "ဓာတ်ပုံဟောင်းသတိပေးချိန် (စက္ကန့်)",
         "live_snapshot_device_concurrency": "စက်တစ်လုံးချင်း တစ်ပြိုင်နက်ယူမှု",
         "live_snapshot_global_concurrency": "စုစုပေါင်း တစ်ပြိုင်နက်ယူမှု",
-        "live_snapshot_cache_mb": "ဓာတ်ပုံမှတ်ဉာဏ် (MB)"
+        "live_snapshot_cache_mb": "ဓာတ်ပုံမှတ်ဉာဏ် (MB)",
+        "playback_max_sessions_per_user": "ပြန်ကြည့်: အသုံးပြုသူတစ်ဦးချင်း",
+        "playback_max_sessions_per_device": "ပြန်ကြည့်: စက်တစ်လုံးချင်း",
+        "playback_max_sessions_total": "ပြန်ကြည့်: စနစ်တစ်ခုလုံး",
+        "playback_max_transcodes": "H.265 တစ်ပြိုင်နက် ပြောင်းလဲမှု",
+        "playback_clip_max_minutes": "DVR/NVR ကလစ် အရှည်ဆုံး (မိနစ်)"
       },
       "descriptions": {
         "alert_critical_threshold": "အရေးကြီးသတိပေးချက်အတွက် အသုံးပြုထားသောဒစ်စပေ့ရာခိုင်နှုန်း",
@@ -605,7 +610,12 @@
         "live_snapshot_stale_seconds": "ဟောင်းလျှင် မှိန်ပြီး သတိပေးမည်",
         "live_snapshot_device_concurrency": "ကင်မရာ/DVR/NVR တစ်လုံး; များလွန်းလျှင် နှေးနိုင်သည်",
         "live_snapshot_global_concurrency": "Server စုစုပေါင်းကန့်သတ်ချက်",
-        "live_snapshot_cache_mb": "မှတ်ဉာဏ်တွင်သာ၊ ဒစ်ခ်မသိမ်း၊ ပြည့်လျှင် မကြည့်သည်ကို ဖျက်"
+        "live_snapshot_cache_mb": "မှတ်ဉာဏ်တွင်သာ၊ ဒစ်ခ်မသိမ်း၊ ပြည့်လျှင် မကြည့်သည်ကို ဖျက်",
+        "playback_max_sessions_per_user": "တစ်ဦးက DVR/NVR HDD မှ တစ်ပြိုင်နက် ဖွင့်နိုင်သော အရေအတွက်",
+        "playback_max_sessions_per_device": "DVR/NVR သည် မှတ်တမ်းတင်နေသဖြင့် နည်းနည်းထားပါ။ ကလစ်ကူးခြင်းလည်း ပါဝင်သည်",
+        "playback_max_sessions_total": "DVR/NVR အားလုံးပေါင်း ပြန်ကြည့်မှု အရေအတွက်",
+        "playback_max_transcodes": "H.265 မဖွင့်နိုင်သော ဘရောက်ဇာများအတွက်။ တိုင်းတာချက်အရ တစ်ခုလျှင် core တစ်ဝက်ခန့်။ core ၂ ခုလျှင် ၁ ခုထက် မပိုပါ။ 0 = ပိတ်",
+        "playback_clip_max_minutes": "ကူးချိန်သည် ကလစ်အရှည်နှင့် တူပြီး ထိုအတောအတွင်း စက်၏နေရာတစ်ခု သုံးသည်"
       },
       "problems": {
         "summary": "မသိမ်းရသေးပါ — ပြင်ရန် {{count}} ခု ရှိသည်၊ အနီရောင်စာကို ကြည့်ပါ",
@@ -2452,6 +2462,30 @@
       "vendorStreamUrlCh": "ထုတ်လုပ်သူ Stream URL (Ch 1):"
     },
     "cctvPlayback": {
+      "deviceClock": "DVR နာရီ",
+      "deviceSource": "DVR/NVR ၏ HDD မှ တိုက်ရိုက်ဖွင့်နေသည်။ ဆာဗာတွင် ဖိုင်မသိမ်းပါ",
+      "deviceClockNote": "ဤစာမျက်နှာရှိ အချိန်သည် စက်၏နာရီဖြစ်ပြီး ပုံပေါ်ရှိအချိန်နှင့် ကိုက်ညီသည်",
+      "deviceClockAhead": "စက်၏နာရီသည် ဆာဗာထက် {{minutes}} မိနစ် {{seconds}} စက္ကန့် စောနေသည်",
+      "deviceClockBehind": "စက်၏နာရီသည် ဆာဗာထက် {{minutes}} မိနစ် {{seconds}} စက္ကန့် နောက်ကျနေသည်",
+      "deviceListIncomplete": "ဤနေ့တွင် ဖိုင်များလွန်းသဖြင့် အချိန်ဇယား မပြည့်စုံနိုင်ပါ",
+      "deviceSpeedNote": "DVR/NVR မှ ဗီဒီယိုကို ပုံမှန်အမြန်နှုန်းဖြင့်သာ ဖွင့်နိုင်သည်",
+      "deviceTranscoded": "ဤဘရောက်ဇာသည် H.265 မဖွင့်နိုင်သဖြင့် ဆာဗာက အသံမပါသော H.264 720p သို့ ပြောင်းပေးနေသည်",
+      "deviceNothingAtThisTime": "ဤအချိန်တွင် စက်၌ မှတ်တမ်းမရှိပါ။ အချိန်ဇယားရှိ အစိမ်းရောင်အပိုင်းကို ရွေးပါ",
+      "deviceClipNote": "DVR/NVR ၏ HDD မှ ဗီဒီယိုကို ပြန်လည်မပြောင်းဘဲ ဆာဗာသို့ ကူးယူသည်။ ကလစ်အရှည်အတိုင်း အချိန်ကြာသည်။ ကလစ်ရှိ အချိန်သည် စက်၏နာရီဖြစ်သည်",
+      "deviceClipBadge": "DVR HDD မှ",
+      "deviceError_NOT_SUPPORTED": "ဤကင်မရာ၏ မှတ်တမ်းကို စက်မှ မဖတ်နိုင်သေးပါ (Hikvision သာ)",
+      "deviceError_DEVICE_LOGIN": "စက်က စကားဝှက်ကို ငြင်းပယ်သည်။ DVR/NVR စာမျက်နှာတွင် ပြင်ပါ။ အကောင့်မပိတ်စေရန် မိနစ် ၃၀ ထပ်မကြိုးစားပါ",
+      "deviceError_DEVICE_UNREACHABLE": "DVR/NVR ကို ဆက်သွယ်၍မရပါ။ ပါဝါနှင့် ကွန်ရက်ကို စစ်ဆေးပါ",
+      "deviceError_NO_RECORDING": "ဤအချိန်အတွင်း စက်၌ မှတ်တမ်းမရှိပါ",
+      "deviceError_LIMIT_USER": "သင်၏ ပြန်ကြည့်မှုအရေအတွက် ပြည့်နေပါပြီ။ အခြားဝင်းဒိုးကို အရင်ပိတ်ပါ",
+      "deviceError_LIMIT_DEVICE": "ဤစက်၏ ဖွင့်ခြင်း သို့မဟုတ် ကူးခြင်း ပြည့်နေပါပြီ။ နောက်မှ ထပ်ကြိုးစားပါ",
+      "deviceError_LIMIT_TOTAL": "စနစ်၏ ပြန်ကြည့်မှု ပြည့်နေပါပြီ။ နောက်မှ ထပ်ကြိုးစားပါ",
+      "deviceError_LIMIT_LIVE": "စနစ်၏ ဗီဒီယိုအရေအတွက် ပြည့်နေပါပြီ။ နောက်မှ ထပ်ကြိုးစားပါ",
+      "deviceError_TRANSCODE_LIMIT": "ဤဘရောက်ဇာသည် H.265 မဖွင့်နိုင်ဘဲ ပြောင်းလဲမှုနေရာလည်း ပြည့်နေသည်။ နောက်မှကြိုးစားပါ သို့မဟုတ် နောက်ဆုံး Chrome သုံးပါ",
+      "deviceError_CLIP_LIMIT": "အခြားကလစ်ကို ကူးနေသည်။ ပြီးမှ ထပ်ကြိုးစားပါ",
+      "deviceError_CLIP_TOO_LONG": "DVR/NVR ကလစ်အတွက် ရှည်လွန်းသည်။ အချိန်ကို လျှော့ပါ",
+      "deviceError_DISK_FULL": "ဤကလစ်အတွက် ဆာဗာတွင် နေရာမလုံလောက်ပါ",
+      "deviceError_MEDIA_SERVER": "မီဒီယာဆာဗာက ဤပြန်ကြည့်မှုကို မဖွင့်နိုင်ပါ",
       "failedToExportClip": "Clip ထုတ်မှု မအောင်မြင်ပါ",
       "legalHoldUpdated": "Legal Hold အပ်ဒိတ်ပြီး",
       "cctvPlaybackScrubberTimeline": "CCTV ပြန်ကြည့်ခြင်းနှင့် Timeline",
@@ -2701,6 +2735,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "focusHint": "ကင်မရာတစ်လုံးကို အပြည့်ပြနေသည် · ပြန်ရန် နှစ်ချက်နှိပ်ပါ သို့မဟုတ် Esc နှိပ်ပါ",
+      "focusClose": "ပိတ်ရန်",
       "mainStreamFellBack": "ဤဘရောက်ဇာသည် ပင်မစထရီးမ်ကို ဖွင့်မရသဖြင့် ဆပ်စထရီးမ်ကို ပြသထားသည်",
       "cctvLiveWall": "CCTV တိုက်ရိုက် ဗီဒီယိုနံရံ",
       "total": "စုစုပေါင်း:",

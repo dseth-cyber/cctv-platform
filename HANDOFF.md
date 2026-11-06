@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06, รอบ 7) — เล่นย้อนหลังจาก HDD ของ DVR และห้องภาพสดตามผลทดสอบของผู้ใช้
+
+- `modules/device-playback`: `GET /device-playback/timeline`, `POST|DELETE /device-playback/sessions`, `POST /device-playback/clips`; เซสชันคือ path `dvrpb_*` ของ MediaMTX แบบ on-demand ที่ไม่บันทึก; `path-sync` ต้องไม่แตะ prefix นี้ (เดิมลบทุก 60 วิ); คนไม่ดู 45 วิถูกปิด; เริ่มระบบใหม่ล้าง path และคลิปที่ค้าง
+- เวลา: ทุกค่าเป็นนาฬิกาของเครื่อง (`YYYY-MM-DDTHH:mm:ss`) เพราะ `Z` ของ Hikvision ไม่ใช่ UTC; Incident เป็นเวลา Server จึงบวกส่วนต่างก่อนแสดงบนแถบเวลา
+- เพดาน: `playback_max_sessions_per_user` 2, `playback_max_sessions_per_device` 2 (นับรวมคลิป), `playback_max_sessions_total` 16, `playback_max_transcodes` 2 (ไม่เกิน 1 ต่อ 2 core), `playback_clip_max_minutes` 30; ค่าเริ่มต้นเป็นการตั้งเผื่อ มีเพียง CPU การแปลงที่มาจากการวัด
+- คลิป: คัดลอกวิดีโอไม่แปลง แปลงเฉพาะเสียงเป็น AAC, ใช้เวลาเท่าความยาวคลิป, มี SHA-256 และ chain of custody ระบุส่วนต่างนาฬิกา; คลิป 1 ไฟล์ดาวน์โหลดแล้ว SHA-256 ตรงกับ DB, เป็น hvc1 1920×1080 ยาว 40 วิ ตามที่ขอ
+- ตรวจจริงด้วย Chrome กับ DVR สโตร์: เล่นต่อเนื่อง 2 นาทีไม่หลุด, กระโดดเวลา 3 ครั้งถูกต้อง, กด +10s 3 ครั้งเปิดสตรีมครั้งเดียว, เบราว์เซอร์ที่แจ้งว่าเล่น H.265 ได้แต่ไม่รับจริง (จำลอง) ลองซ้ำแล้วแปลงเป็น 720p เอง, ปิดแล้วไม่เหลือ path หรือ ffmpeg, ไม่พบรหัสใน log; การแปลง 1 งาน: MediaMTX CPU 38–62% ของ core และหน่วยความจำเพิ่มราว 200 MB; API vitest 172 passed
+- ห้องภาพสด: `favoritesFirst`, `camerasForEmptySlots` ใน `lib/cameraFilter.ts`; ตรวจทุก Layout ด้วยกล้องจริง 9 ตัว; ผู้ใช้ยืนยันว่าช่อง 2 กล้องเสีย และช่อง 4 มืดเพราะไม่ได้เปิดไฟ ไม่ใช่ปัญหาระบบ
+- **ยังไม่ได้พิสูจน์:** เบราว์เซอร์ที่ไม่รองรับ H.265 ของจริง (ที่ทดสอบเป็นการจำลอง), NVR จริง, ผู้ชมหลายคนพร้อมกัน; `web-app` ยังไม่มีชุด unit test จึงตรวจฝั่งเว็บด้วย tsc และ Chrome เท่านั้น
+
+
 ## งานล่าสุด (2026-11-06, รอบ 6) — ทดสอบ DVR จริงแผนกสโตร์
 
 - อุปกรณ์: Hikvision DS-7208HQHI-K1, เฟิร์มแวร์ V4.21.002, 192.168.30.203, 8 ช่องอนาล็อก; เข้าถึงแบบอ่านอย่างเดียว ไม่ได้เปลี่ยนค่าใดในเครื่อง; รหัสเก็บแบบเข้ารหัสใน Dev DB

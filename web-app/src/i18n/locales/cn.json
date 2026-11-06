@@ -572,7 +572,12 @@
         "live_snapshot_stale_seconds": "静态图过期提示（秒）",
         "live_snapshot_device_concurrency": "每台设备同时获取数",
         "live_snapshot_global_concurrency": "全系统同时获取数",
-        "live_snapshot_cache_mb": "静态图内存（MB）"
+        "live_snapshot_cache_mb": "静态图内存（MB）",
+        "playback_max_sessions_per_user": "回放：每位用户",
+        "playback_max_sessions_per_device": "回放：每台设备",
+        "playback_max_sessions_total": "回放：系统总数",
+        "playback_max_transcodes": "同时转换 H.265",
+        "playback_clip_max_minutes": "DVR/NVR 片段最长（分钟）"
       },
       "descriptions": {
         "alert_critical_threshold": "用于严重告警的磁盘空间使用百分比",
@@ -605,7 +610,12 @@
         "live_snapshot_stale_seconds": "更旧的图片会变暗并提示，避免误认为当前画面",
         "live_snapshot_device_concurrency": "单台摄像机或 DVR/NVR；过高可能拖慢设备",
         "live_snapshot_global_concurrency": "服务器总上限",
-        "live_snapshot_cache_mb": "仅存于内存，不写磁盘；满时先删未查看的"
+        "live_snapshot_cache_mb": "仅存于内存，不写磁盘；满时先删未查看的",
+        "playback_max_sessions_per_user": "一位用户可同时从 DVR/NVR 硬盘播放的数量",
+        "playback_max_sessions_per_device": "DVR/NVR 同时还在录像，不宜过多。复制片段也计入",
+        "playback_max_sessions_total": "所有 DVR/NVR 的回放总数",
+        "playback_max_transcodes": "用于无法播放 H.265 的浏览器。实测每路约半个核心；无论如何设置，每 2 个核心最多 1 路。0 表示关闭",
+        "playback_clip_max_minutes": "复制所需时间与片段时长相同，期间占用设备的一个名额"
       },
       "problems": {
         "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
@@ -2457,6 +2467,30 @@
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
     },
     "cctvPlayback": {
+      "deviceClock": "DVR 时钟",
+      "deviceSource": "直接从 DVR/NVR 硬盘播放，服务器不保存文件",
+      "deviceClockNote": "本页时间为设备时钟，与画面上的时间一致",
+      "deviceClockAhead": "设备时钟比服务器快 {{minutes}} 分 {{seconds}} 秒",
+      "deviceClockBehind": "设备时钟比服务器慢 {{minutes}} 分 {{seconds}} 秒",
+      "deviceListIncomplete": "当天文件过多，时间轴可能不完整",
+      "deviceSpeedNote": "DVR/NVR 视频只能以正常速度播放",
+      "deviceTranscoded": "此浏览器无法播放 H.265，服务器已转换为 H.264 720p（无声音）",
+      "deviceNothingAtThisTime": "设备在此时间没有录像，请选择时间轴上的绿色时段",
+      "deviceClipNote": "从 DVR/NVR 硬盘复制到服务器，视频不重新编码。所需时间与片段时长相同。片段时间为设备时钟",
+      "deviceClipBadge": "来自 DVR 硬盘",
+      "deviceError_NOT_SUPPORTED": "暂时无法从设备读取此摄像机的录像（仅支持 Hikvision）",
+      "deviceError_DEVICE_LOGIN": "设备拒绝了密码。请在 DVR/NVR 页面修改。系统暂停重试 30 分钟以免账户被锁定",
+      "deviceError_DEVICE_UNREACHABLE": "无法连接 DVR/NVR，请检查设备电源和网络",
+      "deviceError_NO_RECORDING": "设备在此时段没有录像",
+      "deviceError_LIMIT_USER": "您的回放数量已达上限，请先关闭其他窗口",
+      "deviceError_LIMIT_DEVICE": "此设备的播放或复制数量已达上限，请稍后再试",
+      "deviceError_LIMIT_TOTAL": "系统回放数量已达上限，请稍后再试",
+      "deviceError_LIMIT_LIVE": "系统视频数量已达上限，请稍后再试",
+      "deviceError_TRANSCODE_LIMIT": "此浏览器无法播放 H.265，且转换名额已满。请稍后再试或使用最新版 Chrome",
+      "deviceError_CLIP_LIMIT": "正在复制其他片段，请完成后再试",
+      "deviceError_CLIP_TOO_LONG": "片段超过 DVR/NVR 允许的长度，请缩短时段",
+      "deviceError_DISK_FULL": "服务器空间不足，无法保存此片段",
+      "deviceError_MEDIA_SERVER": "媒体服务器无法打开此回放",
       "failedToExportClip": "导出片段失败",
       "legalHoldUpdated": "法律保留已更新",
       "cctvPlaybackScrubberTimeline": "CCTV 回放与时间轴",
@@ -2706,6 +2740,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "focusHint": "单个摄像机全屏显示 · 双击或按 Esc 返回",
+      "focusClose": "关闭",
       "mainStreamFellBack": "此浏览器无法打开主码流，已改为显示子码流",
       "cctvLiveWall": "CCTV 实时墙",
       "total": "总计：",

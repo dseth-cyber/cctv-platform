@@ -89,3 +89,15 @@ export function applyCameraSelection(cameras: any[], selectedIds: string[], only
     (cam) => (selected.size === 0 || selected.has(cam.id)) && (!onlyOffline || cam.operationalStatus !== 'online'),
   );
 }
+
+/** Starred cameras first, in their existing order, then the rest: the same order in every live view. */
+export function favoritesFirst<T extends { id: string }>(cameras: T[], favorites: Set<string>): T[] {
+  return [...cameras.filter((c) => favorites.has(c.id)), ...cameras.filter((c) => !favorites.has(c.id))];
+}
+
+/** Which cameras go into the empty slots of a layout: next in order, leaving out those already on screen. */
+export function camerasForEmptySlots<T extends { id: string }>(ordered: T[], onScreen: Array<string | null>): T[] {
+  const taken = new Set(onScreen.filter((id): id is string => !!id));
+  const empty = onScreen.filter((id) => !id).length;
+  return ordered.filter((c) => !taken.has(c.id)).slice(0, empty);
+}
