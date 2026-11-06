@@ -377,7 +377,7 @@ export default function LiveGrid() {
     { value: NO_LOCATION, label: t('ui.location.none') },
     ...(sites as any[])
       .filter((site) => locationFilter.sites.length === 0 || locationFilter.sites.includes(site.id))
-      .flatMap((site) => (site.zones ?? []).map((zone: any) => ({ value: zone.id, label: locationFilter.sites.length === 1 ? zone.name : `${zone.name} (${site.name})` }))),
+      .flatMap((site) => (site.zones ?? []).map((zone: any) => ({ value: zone.id, label: locationFilter.sites.length === 1 ? zone.name : `${zone.name} (${site.code || site.name})` }))),
   ];
 
   // Calculate tour pages for hundreds of cameras

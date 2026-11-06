@@ -39,27 +39,21 @@ export function LocationStatsRow({ stats, query }: { stats?: LocationStats; quer
           <Radio className="w-3 h-3" />
           {t('ui.location.openLive')}
         </Link>
-        <Link
-          to={`/cctv/cameras?${query}`}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition"
-        >
+        <Link to={`/cctv/incidents?${query}`} title={t('ui.location.openIncidents')} aria-label={t('ui.location.openIncidents')} className="inline-flex items-center justify-center w-7 h-[26px] rounded-md border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
+          <ClipboardList className="w-3.5 h-3.5" />
+        </Link>
+        <Link to={`/cctv/alerts?${query}`} title={t('ui.location.openAlerts')} aria-label={t('ui.location.openAlerts')} className="inline-flex items-center justify-center w-7 h-[26px] rounded-md border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
+          <Bell className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Link to={`/cctv/cameras?${query}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
           <List className="w-3 h-3" />
           {t('ui.location.openCameras')}
         </Link>
-        <Link
-          to={`/cctv/devices?${query}`}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition"
-        >
+        <Link to={`/cctv/devices?${query}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
           <Server className="w-3 h-3" />
           {t('ui.location.openDevices')}
-        </Link>
-        <Link to={`/cctv/incidents?${query}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
-          <ClipboardList className="w-3 h-3" />
-          {t('ui.location.openIncidents')}
-        </Link>
-        <Link to={`/cctv/alerts?${query}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-300 transition">
-          <Bell className="w-3 h-3" />
-          {t('ui.location.openAlerts')}
         </Link>
       </div>
     </div>
