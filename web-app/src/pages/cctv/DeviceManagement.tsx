@@ -793,13 +793,9 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             const tpl = templates.find(
               (t: any) => t.brand?.toLowerCase() === formData.brand.toLowerCase()
             );
-            const pattern = tpl?.mainStreamTemplate || 'rtsp://{username}:{password}@{ip}:{port}/live/ch{ch}';
-            const preview = pattern
-              .replace('{username}', formData.username || 'admin')
-              .replace('{password}', formData.password ? '••••••••' : 'password')
-              .replace('{ip}', formData.ipAddress || '192.168.1.100')
-              .replace('{port}', String(formData.rtspPort || 554))
-              .replace('{ch}', '1');
+            // The path the server will really use for this brand (same patterns as buildChannelRtspUrl).
+            const path = (tpl?.mainStreamPattern || '/').replace(/\{channel\}/g, '1');
+            const preview = `rtsp://${formData.username || 'admin'}:${formData.password ? '••••••••' : 'password'}@${formData.ipAddress || '192.168.1.100'}:${formData.rtspPort || 554}${path}`;
             return (
               <div className="p-2 bg-slate-950 border border-slate-800/80 rounded-lg text-[11px] font-mono text-slate-400 flex items-center justify-between">
                 <span className="truncate">
