@@ -159,6 +159,18 @@ function testTcpPort(host, port, timeoutMs = 3000) {
   });
 }
 
+/** Removes logins from anything on its way to the screen or the report. */
+function withoutLogin(text) {
+  return String(text ?? '').replace(/rtsp:\/\/[^\s/]*@/gi, 'rtsp://');
+}
+
+/** What ffprobe itself said. err.message is not used: it holds the whole command, login included. */
+function probeFailureReason(err) {
+  if (err.killed) return 'ffprobe timed out';
+  const lastLine = String(err.stderr ?? '').trim().split('\n').pop();
+  return withoutLogin(lastLine) || 'ffprobe execution failed';
+}
+
 /**
  * Probe stream using ffprobe
  */
@@ -212,7 +224,7 @@ async function probeRtspStream(rtspUrl, timeoutSec = 5) {
       fps: 0,
       hasAudio: false,
       audioCodec: 'none',
-      error: err.message?.split('\n')[0] || 'ffprobe execution failed',
+      error: probeFailureReason(err),
     };
   }
 }
@@ -226,6 +238,18 @@ function buildRtspUrl(cam, streamPath) {
   const port = cam.rtspPort || 554;
   const pathPart = streamPath.startsWith('/') ? streamPath : `/${streamPath}`;
   return `rtsp://${user}:${pass}@${cam.host}:${port}${pathPart}`;
+}
+
+/** Last line of defence: a report that holds any camera's password is not written at all. */
+export function containsLogin(reportText, cameras) {
+  if (/rtsp:\/\/[^\s/"]*@/i.test(reportText)) return true;
+  return cameras.some((cam) => {
+    const passwords = [cam.password];
+    for (const url of [cam.mainUrl, cam.subUrl]) {
+      if (url) passwords.push(decodeURIComponent(new URL(url).password));
+    }
+    return passwords.some((pw) => pw && reportText.includes(pw));
+  });
 }
 
 /**
@@ -250,15 +274,18 @@ async function main() {
   let cameras = DEFAULT_PILOT_CAMERAS;
   if (options.configPath) {
     try {
-      const raw = fs.readFileSync(path.resolve(process.cwd(), options.configPath), 'utf-8');
+      const raw = fs.readFileSync(options.configPath === '-' ? 0 : path.resolve(process.cwd(), options.configPath), 'utf-8');
       cameras = JSON.parse(raw);
-      console.log(`Loaded ${cameras.length} camera configurations from ${options.configPath}`);
+      console.log(`Loaded ${cameras.length} camera configurations from ${options.configPath === '-' ? 'stdin' : options.configPath}`);
     } catch (err) {
       console.error(`${colors.red}Failed to load config from ${options.configPath}: ${err.message}${colors.reset}`);
       process.exit(1);
     }
-  } else {
+  } else if (options.isDryRun) {
     console.log(`Using default template of ${cameras.length} physical cameras for Pilot Wave 1.`);
+  } else {
+    console.error(`${colors.red}A live run needs --config: the built-in list is sample data for --dry-run.${colors.reset}`);
+    process.exit(2);
   }
 
   const results = [];
@@ -313,11 +340,13 @@ async function main() {
       httpNet = await testTcpPort(cam.host, cam.httpPort || 80, options.timeoutMs);
 
       if (rtspNet.reachable) {
-        const mainUrl = buildRtspUrl(cam, cam.mainPath || '/Streaming/Channels/101');
-        const subUrl = buildRtspUrl(cam, cam.subPath || '/Streaming/Channels/102');
+        const mainUrl = cam.mainUrl || buildRtspUrl(cam, cam.mainPath || '/Streaming/Channels/101');
+        const subUrl = cam.subUrl || (cam.mainUrl ? null : buildRtspUrl(cam, cam.subPath || '/Streaming/Channels/102'));
 
         mainProbe = await probeRtspStream(mainUrl, 4);
-        subProbe = await probeRtspStream(subUrl, 3);
+        subProbe = subUrl
+          ? await probeRtspStream(subUrl, 3)
+          : { success: false, error: 'No sub stream configured' };
       } else {
         mainProbe = { success: false, error: 'RTSP port unreachable' };
         subProbe = { success: false, error: 'RTSP port unreachable' };
@@ -372,7 +401,7 @@ async function main() {
     console.log(`[${statusColored}]`);
 
     results.push({
-      camera: cam,
+      camera: { id: cam.id, name: cam.name, host: cam.host, rtspPort: cam.rtspPort, httpPort: cam.httpPort },
       network: {
         rtsp: rtspNet,
         http: httpNet,
@@ -459,10 +488,15 @@ async function main() {
   };
 
   try {
-    fs.writeFileSync(path.resolve(process.cwd(), options.outputPath), JSON.stringify(reportPayload, null, 2), 'utf-8');
+    const reportText = JSON.stringify(reportPayload, null, 2);
+    if (containsLogin(reportText, cameras)) {
+      throw new Error('report would contain a password; nothing written');
+    }
+    fs.writeFileSync(path.resolve(process.cwd(), options.outputPath), reportText, 'utf-8');
     console.log(`${colors.green}✓ Verification report successfully exported to:${colors.reset} ${options.outputPath}`);
   } catch (err) {
     console.error(`${colors.red}Failed to write report to ${options.outputPath}: ${err.message}${colors.reset}`);
+    process.exit(1);
   }
 
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);

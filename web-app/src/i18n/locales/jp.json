@@ -2598,13 +2598,14 @@
       "caution": "注意: DVR はアナログカメラ、NVR は IP カメラ用です。移設前に現地を確認してください"
     },
     "cctvPlayback": {
+      "waitingForPicture": "レコーダーからの映像を待っています。最大 20 秒ほどかかる場合があります",
       "liveNow": "ライブ",
       "liveHint": "このページでカメラのライブ映像を見る",
       "liveExit": "ライブを終了して元の時刻に戻る",
       "liveFailed": "このカメラのライブ映像を開けませんでした",
       "deviceClock": "DVR の時計",
       "deviceSource": "DVR/NVR の HDD から直接再生しています。サーバーにファイルは保存されません",
-      "deviceClockNote": "このページの時刻は機器の時計で、映像上の時刻と一致します",
+      "deviceClockNote": "このページの時刻はレコーダーの時計で、映像と少しずれる場合があります。映像内の時刻を基準にしてください",
       "deviceClockAhead": "機器の時計はサーバーより {{minutes}} 分 {{seconds}} 秒進んでいます",
       "deviceClockBehind": "機器の時計はサーバーより {{minutes}} 分 {{seconds}} 秒遅れています",
       "deviceListIncomplete": "この日はファイルが多すぎるため、タイムラインが不完全な場合があります",

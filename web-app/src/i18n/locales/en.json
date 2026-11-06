@@ -2601,13 +2601,14 @@
       "caution": "Caution: a DVR takes analog cameras and an NVR takes IP cameras. Check on site before moving anything"
     },
     "cctvPlayback": {
+      "waitingForPicture": "Waiting for a picture from the recorder. This can take up to 20 seconds",
       "liveNow": "Live",
       "liveHint": "Watch this camera live on this page",
       "liveExit": "Leave live and return to the same time",
       "liveFailed": "Live video of this camera could not be opened",
       "deviceClock": "DVR clock",
       "deviceSource": "Playing directly from the DVR/NVR HDD; nothing is stored on the server",
-      "deviceClockNote": "Times on this page are the recorder clock, matching the time on the picture",
+      "deviceClockNote": "Times on this page use the recorder's clock and can differ slightly from the picture. Go by the time shown in the picture",
       "deviceClockAhead": "The recorder clock is {{minutes}} min {{seconds}} s ahead of the server",
       "deviceClockBehind": "The recorder clock is {{minutes}} min {{seconds}} s behind the server",
       "deviceListIncomplete": "This day has too many files to list, so the timeline may be incomplete",

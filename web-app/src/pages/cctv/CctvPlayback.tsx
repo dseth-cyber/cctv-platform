@@ -99,8 +99,12 @@ interface DevicePlayback {
 }
 
 // No first frame by then means this browser accepted H.265 but cannot really show it.
-const FIRST_FRAME_TIMEOUT_MS = 20_000;
+// Longer than the gap between keyframes on a slow recorder (about 19 s measured): a connection that missed
+// the first one recovers at the next, and opening again would only meet the same race.
+const FIRST_FRAME_TIMEOUT_MS = 30_000;
 const MAX_REOPENS = 3;
+/** A first picture later than this means the first keyframe was missed, and the recording ran on meanwhile. */
+const MISSED_KEYFRAME_AFTER_MS = 5000;
 
 const TIME_PARTS = [
   { max: 23, label: 'HH' },
@@ -278,6 +282,7 @@ export const CctvPlayback: React.FC = () => {
   const [playback, setPlayback] = useState<{ url: string; startSec: number; durationSeconds: number } | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isLoadingPlayback, setIsLoadingPlayback] = useState(false);
+  const sessionOpenedAtRef = useRef(0);
   // Set when the video element itself moved the playhead, so the seek effect does not reload.
   const videoDrivenRef = useRef(false);
 
@@ -413,6 +418,7 @@ export const CctvPlayback: React.FC = () => {
         return;
       }
       deviceSessionRef.current = res.sessionId;
+      sessionOpenedAtRef.current = Date.now();
       setDevicePlayback({
         sessionId: res.sessionId,
         url: res.webrtcWhepUrl,
@@ -1019,10 +1025,21 @@ export const CctvPlayback: React.FC = () => {
                 noReconnect
                 onPlaying={() => {
                   setIsLoadingPlayback(false);
-                  setPlayingSince((prev) => prev ?? Date.now());
+                  // The recorder began sending when the session opened, so a late first picture is not the
+                  // time asked for: count from the opening, or the page would show a time behind the picture.
+                  const now = Date.now();
+                  const late = now - sessionOpenedAtRef.current > MISSED_KEYFRAME_AFTER_MS;
+                  setPlayingSince((prev) => prev ?? (late ? sessionOpenedAtRef.current : now));
                 }}
                 onFatalError={handleDeviceStreamFailed}
               />
+              {playingSince === null && (
+                <div data-waiting-picture className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                  <span className="px-3 py-1.5 rounded-lg bg-slate-950/85 text-xs text-cyan-300 animate-pulse">
+                    {t('ui.cctvPlayback.waitingForPicture')}
+                  </span>
+                </div>
+              )}
               {devicePlayback.transcoded && (
                 <div className="absolute bottom-16 left-4 z-20 px-2.5 py-1 rounded-lg bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
                   {t('ui.cctvPlayback.deviceTranscoded')}

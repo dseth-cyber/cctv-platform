@@ -2598,13 +2598,14 @@
       "caution": "注意：DVR 用于模拟摄像机，NVR 用于 IP 摄像机。移动前请现场检查"
     },
     "cctvPlayback": {
+      "waitingForPicture": "正在等待录像机的画面，最多可能需要 20 秒",
       "liveNow": "实时",
       "liveHint": "在此页面查看此摄像机的实时画面",
       "liveExit": "退出实时，返回原时间",
       "liveFailed": "无法打开此摄像机的实时画面",
       "deviceClock": "DVR 时钟",
       "deviceSource": "直接从 DVR/NVR 硬盘播放，服务器不保存文件",
-      "deviceClockNote": "本页时间为设备时钟，与画面上的时间一致",
+      "deviceClockNote": "此页面的时间使用录像机时钟，可能与画面略有差异，请以画面上的时间为准",
       "deviceClockAhead": "设备时钟比服务器快 {{minutes}} 分 {{seconds}} 秒",
       "deviceClockBehind": "设备时钟比服务器慢 {{minutes}} 分 {{seconds}} 秒",
       "deviceListIncomplete": "当天文件过多，时间轴可能不完整",
