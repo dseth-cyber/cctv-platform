@@ -167,7 +167,9 @@ export default function CameraAnalytics() {
 
   const { data: systemConfig } = useQuery({
     queryKey: ['system-config'],
-    queryFn: () => imageServiceApi.getSystemConfigs(),
+    // A role without settings access just keeps the built-in layout.
+    queryFn: () => imageServiceApi.getSystemConfigs({ silent403: true }),
+    retry: false,
     staleTime: Infinity,
   })
 

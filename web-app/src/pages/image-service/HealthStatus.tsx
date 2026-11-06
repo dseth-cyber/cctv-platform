@@ -301,7 +301,7 @@ const VERIFY_ENDPOINTS = [
   { name: 'Masterdata', path: '/masterdata?type=camera_status' },
   { name: 'API Keys', path: '/api-keys' },
   { name: 'Telegram', path: '/settings/telegram' },
-  { name: 'System Config', path: '/system-config', noAuth: true },
+  { name: 'System Config', path: '/system-config' },
   { name: 'Users', path: '/users' },
   { name: 'Roles', path: '/roles' },
   { name: 'Audit Logs', path: '/audit-logs' },

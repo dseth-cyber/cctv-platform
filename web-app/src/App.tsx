@@ -768,8 +768,8 @@ function AboutModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
   const { data: configs } = useQuery({
-    queryKey: ['system-config'],
-    queryFn: () => imageServiceApi.getSystemConfigs(),
+    queryKey: ['system-branding'],
+    queryFn: () => imageServiceApi.getSystemBranding(),
     enabled: isOpen,
   })
   const configMap: Record<string, any> = configs ?? {}
@@ -938,8 +938,8 @@ export default function App() {
     }
   }, [isAuthenticated, user?.username, theme, setTheme])
   const { data: sysConfig } = useQuery({
-    queryKey: ['system-config'],
-    queryFn: () => imageServiceApi.getSystemConfigs(),
+    queryKey: ['system-branding'],
+    queryFn: () => imageServiceApi.getSystemBranding(),
   })
   const configMap: Record<string, any> = sysConfig ?? {}
   const logoBase64 = configMap.system_logo?.value

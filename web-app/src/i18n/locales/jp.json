@@ -591,6 +591,19 @@
         "system_version": "システムバージョン表記",
         "system_developer": "開発者／会社名",
         "system_copyright": "著作権表示テキスト"
+      },
+      "problems": {
+        "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
+        "noChanges": "変更はありません",
+        "rangeHint": "（{{min}}〜{{max}}）",
+        "out_of_range": "{{min}}〜{{max}} の範囲で入力してください",
+        "not_number": "数値を入力してください",
+        "not_boolean": "値が正しくありません",
+        "bad_json": "データ形式が正しくありません",
+        "bad_url": "http:// または https:// で始めてください",
+        "too_long": "長すぎます（ロゴは約 1.5 MB まで）",
+        "unknown": "不明な設定です",
+        "order": "「{{other}}」以下にしてください"
       }
     },
     "about": {

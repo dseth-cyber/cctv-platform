@@ -811,7 +811,20 @@
       "copyright": "Copyright",
       "reset": "Reset",
       "refresh": "Refresh",
-      "categoryGeneral": "General"
+      "categoryGeneral": "General",
+      "problems": {
+        "summary": "Not saved — {{count}} settings need fixing, see the red messages",
+        "noChanges": "Nothing changed",
+        "rangeHint": "(allowed {{min}}–{{max}})",
+        "out_of_range": "Must be between {{min}} and {{max}}",
+        "not_number": "Must be a number",
+        "not_boolean": "Invalid value",
+        "bad_json": "Invalid data format",
+        "bad_url": "Must start with http:// or https://",
+        "too_long": "Too long (a logo should be about 1.5 MB at most)",
+        "unknown": "Unknown setting",
+        "order": "Must not be more than \"{{other}}\""
+      }
     },
     "about": {
       "title": "About Program"

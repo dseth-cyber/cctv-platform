@@ -8,6 +8,10 @@ import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, I
 import { Button } from '@/components/ui';
 import { Modal } from '@/components/ui';
 
+// JSON settings come back parsed; String() would turn them into "[object Object]" on the next save.
+const toFormValue = (value: unknown) =>
+  value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+
 const CATEGORIES: { key: string; icon: any; labelKey: string; color: string }[] = [
   { key: 'general', icon: Settings, labelKey: 'imageService.systemConfig.categoryGeneral', color: 'text-gray-400 bg-gray-500/10' },
   { key: 'retention', icon: Database, labelKey: 'imageService.systemConfig.categoryRetention', color: 'text-blue-400 bg-blue-500/10' },
@@ -24,6 +28,7 @@ export default function SystemConfigPage() {
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [problems, setProblems] = useState<Record<string, any>>({});
 
   const { data: configs, isLoading } = useQuery({
     queryKey: ['system-config'],
@@ -35,7 +40,7 @@ export default function SystemConfigPage() {
     if (configs) {
       const init: Record<string, string> = {};
       for (const [key, cfg] of Object.entries(configs)) {
-        init[key] = String((cfg as any).value ?? '');
+        init[key] = toFormValue((cfg as any).value);
       }
       setValues(init);
     }
@@ -45,23 +50,40 @@ export default function SystemConfigPage() {
     mutationFn: (data: Record<string, string>) => imageServiceApi.updateSystemConfigs(data),
     onSuccess: () => {
       toast.success(t('common.saveSuccess'));
+      setProblems({});
       queryClient.invalidateQueries({ queryKey: ['system-config'] });
+      queryClient.invalidateQueries({ queryKey: ['system-branding'] });
     },
-    onError: (e: any) => { if (!e?._handled) toast.error(t('common.error')); },
+    onError: (e: any) => {
+      const list = e?.response?.data?.details?.problems;
+      if (Array.isArray(list)) {
+        setProblems(Object.fromEntries(list.map((p: any) => [p.key, p])));
+        toast.error(t('imageService.systemConfig.problems.summary', { count: list.length }));
+      } else if (!e?._handled) toast.error(t('common.error'));
+    },
   });
 
   const handleSave = () => {
+    // Only what was edited, so one setting cannot overwrite another with a stale copy.
+    const changed = Object.fromEntries(
+      Object.entries(values).filter(([key, value]) => value !== toFormValue((configs as any)?.[key]?.value)),
+    );
+    if (Object.keys(changed).length === 0) {
+      toast.success(t('imageService.systemConfig.problems.noChanges'));
+      return;
+    }
     setSaving(true);
-    saveMutation.mutate(values, { onSettled: () => setSaving(false) });
+    saveMutation.mutate(changed, { onSettled: () => setSaving(false) });
   };
 
   const handleReset = () => {
     if (configs) {
       const reset: Record<string, string> = {};
       for (const [key, cfg] of Object.entries(configs)) {
-        reset[key] = String((cfg as any).value ?? '');
+        reset[key] = toFormValue((cfg as any).value);
       }
       setValues(reset);
+      setProblems({});
     }
   };
 
@@ -179,6 +201,13 @@ export default function SystemConfigPage() {
                     const descKey = `imageService.systemConfig.descriptions.${key}`;
                     const translatedLabel = t(labelKey) !== labelKey ? t(labelKey) : key.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                     const translatedDesc = t(descKey) !== descKey ? t(descKey) : (cfg as any).description;
+                    const { min, max } = cfg as any;
+                    const problem = problems[key];
+                    const problemText = problem && t(`imageService.systemConfig.problems.${problem.reason}`, {
+                      min: problem.min,
+                      max: problem.max,
+                      other: problem.other && t(`imageService.systemConfig.labels.${problem.other}`),
+                    });
                     if ((cfg as any).valueType === 'boolean') {
                       const checked = values[key] === 'true';
                       return (
@@ -199,10 +228,18 @@ export default function SystemConfigPage() {
                           {translatedLabel}
                         </label>
                         <input type={(cfg as any).valueType === 'number' ? 'number' : 'text'}
+                          min={min} max={max}
                           value={values[key] ?? ''}
-                          onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
-                          className={inputClass} />
-                        <p className={`text-xs mt-0.5 ${themeConfig.text.secondary}`}>{translatedDesc}</p>
+                          onChange={e => {
+                            setValues(v => ({ ...v, [key]: e.target.value }));
+                            setProblems(({ [key]: _fixed, ...rest }) => rest);
+                          }}
+                          className={`${inputClass} ${problem ? '!border-red-500' : ''}`} />
+                        <p className={`text-xs mt-0.5 ${themeConfig.text.secondary}`}>
+                          {translatedDesc}
+                          {min !== undefined && ` ${t('imageService.systemConfig.problems.rangeHint', { min, max })}`}
+                        </p>
+                        {problemText && <p className="text-xs mt-0.5 text-red-400">{problemText}</p>}
                       </div>
                     );
                   })}

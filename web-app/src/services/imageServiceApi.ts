@@ -318,8 +318,12 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/masterdata/${id}`),
 
     // System Config
-    getSystemConfigs: () =>
-      api.get(`${BASE}/system-config`).then((r: any) => r.data),
+    // Name, logo and version only: readable before login. Everything else needs system-config:read.
+    getSystemBranding: () =>
+      api.get(`${BASE}/system-config/public`).then((r: any) => r.data),
+
+    getSystemConfigs: (options?: { silent403?: boolean }) =>
+      api.get(`${BASE}/system-config`, { ...options }).then((r: any) => r.data),
 
     updateSystemConfigs: (data: Record<string, string>) =>
       api.post(`${BASE}/system-config/bulk-update`, data).then((r: any) => r.data),

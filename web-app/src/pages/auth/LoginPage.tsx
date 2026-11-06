@@ -27,8 +27,8 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
 
   // Query configurations dynamically to populate branding elements
   const { data: configs } = useQuery({
-    queryKey: ['system-config'],
-    queryFn: () => imageServiceApi.getSystemConfigs(),
+    queryKey: ['system-branding'],
+    queryFn: () => imageServiceApi.getSystemBranding(),
   })
   
   const configMap = configs ?? {}

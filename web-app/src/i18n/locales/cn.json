@@ -591,6 +591,19 @@
         "system_version": "系统版本标签",
         "system_developer": "开发者/公司名称",
         "system_copyright": "版权声明文字"
+      },
+      "problems": {
+        "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
+        "noChanges": "没有更改",
+        "rangeHint": "（可填 {{min}}–{{max}}）",
+        "out_of_range": "必须在 {{min}} 到 {{max}} 之间",
+        "not_number": "必须是数字",
+        "not_boolean": "值无效",
+        "bad_json": "数据格式无效",
+        "bad_url": "必须以 http:// 或 https:// 开头",
+        "too_long": "过长（徽标应不超过约 1.5 MB）",
+        "unknown": "未知设置",
+        "order": "不能大于“{{other}}”"
       }
     },
     "about": {
