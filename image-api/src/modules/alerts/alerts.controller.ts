@@ -19,6 +19,8 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
 async function listHandler(request: FastifyRequest, reply: FastifyReply) {
   const query = request.query as Record<string, string>;
   const result = await alertsService.listAlerts({
+    siteId: query.siteId,
+    zoneId: query.zoneId,
     severity: query.severity,
     resolved: query.resolved === 'true' ? true : query.resolved === 'false' ? false : undefined,
     page: query.page ? parseInt(query.page, 10) : undefined,

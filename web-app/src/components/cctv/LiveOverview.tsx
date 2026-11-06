@@ -84,7 +84,7 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
             <X className="w-3.5 h-3.5" />
           </button>
         )}
-        <CameraQuickActions cameraId={camera.id} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
+        <CameraQuickActions cameraId={camera.id} deviceId={camera.deviceId} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
       </div>
     </div>
   );

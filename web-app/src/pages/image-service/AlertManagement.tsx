@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { PlaceFilterChip, usePlaceParams } from '@/components/cctv/PlaceFilterChip'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
@@ -21,6 +22,7 @@ export default function AlertManagement() {
   const { themeConfig } = useTheme()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const place = usePlaceParams()
 
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
@@ -35,9 +37,11 @@ export default function AlertManagement() {
   const [clearing, setClearing] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['alerts', page, limit, severity, resolved, sortCol, sortDir],
+    queryKey: ['alerts', place.siteId, place.zoneId, page, limit, severity, resolved, sortCol, sortDir],
     queryFn: async () => {
       const res = await imageServiceApi.getAlerts({
+        siteId: place.siteId,
+        zoneId: place.zoneId,
         severity: severity || undefined,
         resolved: resolved === 'all' ? undefined : resolved === 'resolved' ? true : false,
         page,
@@ -130,6 +134,7 @@ export default function AlertManagement() {
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
           iSmart CCTV · {t('imageService.alerts.title')}
         </p>
+        <div className="mb-2"><PlaceFilterChip /></div>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.alerts.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.alerts.subtitle')}</p>
       </div>

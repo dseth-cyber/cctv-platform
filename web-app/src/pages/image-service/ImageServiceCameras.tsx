@@ -11,6 +11,7 @@ import { LocationStatsLine } from '@/components/cctv/LocationStatsRow';
 import { summarizeCameraList } from '@/lib/locationSummary';
 import { applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
 import { useSearchParams } from 'react-router-dom';
+import { BulkCameraEditModal } from '@/components/cctv/BulkCameraEditModal';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -127,6 +128,8 @@ export default function ImageServiceCameras() {
   const siteParam = urlParams.get('site');
   const zoneParam = urlParams.get('zone');
   const inUseOnly = urlParams.get('on') === '1';
+  const stateParam = urlParams.get('state');
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
@@ -311,6 +314,28 @@ export default function ImageServiceCameras() {
   };
 
   // A clone gets a new name and no stream path (it must be unique), and must not reuse a redacted URL.
+  // Opened from elsewhere, e.g. the live room: edit that camera at once, and return there when done.
+  const returnWhenClosed = useRef(false);
+  const editParam = urlParams.get('edit');
+  useEffect(() => {
+    if (!editParam || isLoading) return;
+    const target = (cameras as any[]).find((c) => c.id === editParam);
+    returnWhenClosed.current = urlParams.get('back') === '1';
+    setUrlParams({}, { replace: true });
+    if (target) openEdit(target);
+    else toast.error(t('imageService.cameras.notFound'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam, isLoading, cameras]);
+  const modalWasOpen = useRef(false);
+  useEffect(() => {
+    if (modalWasOpen.current && !modal.open && returnWhenClosed.current) {
+      returnWhenClosed.current = false;
+      navigate(-1);
+    }
+    modalWasOpen.current = modal.open;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal.open]);
+
   const openClone = (item: any) => {
     const f = formFromCamera(item);
     setForm({
@@ -928,6 +953,8 @@ export default function ImageServiceCameras() {
     c.createdAt ? formatDateTime(c.createdAt, i18n.language) : '',
   ].filter(Boolean).join(' ').normalize('NFC').toLocaleLowerCase();
   const filtered = applyLocationFilter(cameras as any[], siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
+    .filter((c: any) => stateParam !== 'problem' || (c.enabled !== false && c.operationalStatus !== 'online'))
+    .filter((c: any) => stateParam !== 'off' || c.enabled === false)
     .filter((c: any) => (!inUseOnly || c.enabled !== false) && (!search.trim() || matchesCameraQuery(searchTextOf(c), search)));
   const { data: devicesForSummary = [] } = useQuery<any[]>({ queryKey: ['cctv-devices'], queryFn: () => imageServiceApi.getDevices() });
   const listStats = useMemo(() => summarizeCameraList(filtered, devicesForSummary), [filtered, devicesForSummary]);
@@ -935,7 +962,8 @@ export default function ImageServiceCameras() {
     if (!siteParam && !zoneParam) return null;
     const anyCamera = (cameras as any[]).find((c) => (siteParam && c.siteId === siteParam) || (zoneParam && c.zoneId === zoneParam));
     const zoneName = zoneParam === NO_LOCATION ? t('ui.location.noZoneLabel') : (cameras as any[]).find((c) => c.zoneId === zoneParam)?.zone?.name;
-    return [siteParam ? anyCamera?.site?.name : null, zoneName].filter(Boolean).join(' / ') || '—';
+    const stateName = stateParam === 'problem' ? t('ui.location.stateProblem') : stateParam === 'off' ? t('imageService.cameras.switchedOff') : null;
+    return [siteParam ? anyCamera?.site?.name : null, zoneName, stateName].filter(Boolean).join(' / ') || '—';
   })();
 
   const getSortValue = (camera: any, col: string) => {
@@ -1107,6 +1135,11 @@ export default function ImageServiceCameras() {
               <span className={`text-xs mr-1 font-medium ${themeConfig.text.primary}`}>
                 {t('imageService.cameras.selectedCount', { count: selectedIds.size })}
               </span>
+              {canUpdate && (
+                <Button size="sm" onClick={() => setBulkEditOpen(true)}>
+                  <Edit size={12} className="mr-1" /> {t('ui.bulkEdit.button')}
+                </Button>
+              )}
               <Button size="sm" onClick={() => setBulkCloneModal({ open: true })}>
                 <Copy size={12} className="mr-1" /> {t('imageService.cameras.bulkClone')}
               </Button>
@@ -2348,6 +2381,19 @@ export default function ImageServiceCameras() {
           </div>
         </div>
       </Modal>
+      {bulkEditOpen && (
+        <BulkCameraEditModal
+          ids={Array.from(selectedIds)}
+          onClose={() => setBulkEditOpen(false)}
+          onDone={() => {
+            setBulkEditOpen(false);
+            setSelectedIds(new Set());
+            queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
+            queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
+            queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
+          }}
+        />
+      )}
     </div>
   );
 }

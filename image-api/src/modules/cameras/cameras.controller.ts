@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { syncCameraPaths } from '../media/path-sync.js';
-import { createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
+import { bulkUpdateCameraSchema, createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
 import { detectCameraStream } from './stream-detect.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import * as camerasService from './cameras.service.js';
@@ -123,6 +123,33 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
   }).catch(() => {});
 
   return reply.status(201).send(camerasService.toPublicCamera(camera, user?.role));
+}
+
+/** The same change on many cameras. One that cannot take it is reported and the others still change. */
+async function bulkUpdateHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { ids, changes } = bulkUpdateCameraSchema.parse(request.body);
+  const user = (request as any).user;
+  const failed: Array<{ id: string; name: string; message: string }> = [];
+  let updated = 0;
+  for (const id of ids) {
+    try {
+      await camerasService.updateCamera(id, { ...changes, _changedBy: user?.username } as any);
+      updated++;
+    } catch (err) {
+      const row = await camerasService.getCameraById(id).catch(() => null);
+      failed.push({ id, name: row?.name ?? id, message: err instanceof Error ? err.message : 'Failed' });
+    }
+  }
+  createAuditLog({
+    userId: user?.id,
+    action: 'camera_bulk_update',
+    entity: 'camera',
+    description: `${updated} cameras updated together by ${user?.username ?? 'unknown'}`,
+    metadata: { ids, changes: Object.keys(changes), failed: failed.length },
+    ipAddress: request.ip,
+  }).catch(() => {});
+  if (changes.enabled !== undefined) void syncCameraPaths().catch(() => {});
+  return reply.send({ updated, failed });
 }
 
 async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -560,13 +587,13 @@ async function incidentOptionsHandler(_request: FastifyRequest, reply: FastifyRe
 }
 
 async function searchIncidentsHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { q, cameraId, reason, rootCause, status, priority, page, limit, sortBy, sortDir } = request.query as {
-    q?: string; cameraId?: string; reason?: string; rootCause?: string;
+  const { siteId, zoneId, q, cameraId, reason, rootCause, status, priority, page, limit, sortBy, sortDir } = request.query as {
+    siteId?: string; zoneId?: string; q?: string; cameraId?: string; reason?: string; rootCause?: string;
     status?: string; priority?: string; page?: string; limit?: string;
     sortBy?: string; sortDir?: string;
   };
   const result = await incidentService.searchIncidents({
-    q, cameraId, reason, rootCause, status, priority,
+    siteId, zoneId, q, cameraId, reason, rootCause, status, priority,
     page: page ? parseInt(page) : undefined,
     limit: limit ? parseInt(limit) : undefined,
     sortBy, sortDir: sortDir === 'asc' ? 'asc' : sortDir === 'desc' ? 'desc' : undefined,
@@ -934,6 +961,11 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/',
     { preHandler: [app.authenticate, requirePermission('cameras:create')] },
     createHandler,
+  );
+  app.patch(
+    '/bulk',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    bulkUpdateHandler,
   );
   app.patch(
     '/:id',

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { PlaceFilterChip, usePlaceParams } from '@/components/cctv/PlaceFilterChip'
 import { createPortal } from 'react-dom'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -203,6 +204,7 @@ export default function IncidentCenter() {
   // Telegram/alert "Link:" line) — resolve the human-readable number to its DB id and
   // open the detail modal directly, instead of just landing on the list.
   const [searchParams, setSearchParams] = useSearchParams()
+  const place = usePlaceParams()
   useEffect(() => {
     const number = searchParams.get('incident')
     if (!number) return
@@ -237,8 +239,9 @@ export default function IncidentCenter() {
   }
 
   const { data: listData, isLoading: listLoading } = useQuery({
-    queryKey: ['incidents-search', q, filterCamera, filterReason, filterRootCause, filterStatus, filterPriority, page, limit, sortCol, sortDir],
+    queryKey: ['incidents-search', place.siteId, place.zoneId, q, filterCamera, filterReason, filterRootCause, filterStatus, filterPriority, page, limit, sortCol, sortDir],
     queryFn: () => imageServiceApi.searchIncidents({
+      siteId: place.siteId, zoneId: place.zoneId,
       q: q || undefined, cameraId: filterCamera || undefined, reason: filterReason || undefined,
       rootCause: filterRootCause || undefined, status: filterStatus || undefined,
       priority: filterPriority || undefined, page, limit,
@@ -315,6 +318,7 @@ export default function IncidentCenter() {
           <p className={`text-xs font-medium mb-0.5 uppercase tracking-widest ${themeConfig.text.secondary}`}>
             iSmart CCTV · {ic('title')}
           </p>
+          <div className="mb-2"><PlaceFilterChip /></div>
           <h2 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{ic('title')}</h2>
           <p className={`text-sm ${themeConfig.text.secondary}`}>{ic('subtitle')}</p>
         </div>

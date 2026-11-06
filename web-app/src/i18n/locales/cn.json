@@ -38,6 +38,7 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "notFound": "未找到此摄像机",
       "enabledField": "启用此摄像机",
       "enabledHint": "关闭后不检查状态、不报警、不显示在实时室。录像到服务器的摄像机将停止录像",
       "retentionNeededForRecording": "录像到服务器的摄像机需要选择保留策略（在更多设置中）",
@@ -2522,7 +2523,26 @@
       "eGDs7216hqhiK": "例如 DS-7216HQHI-K1",
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
     },
+    "bulkEdit": {
+      "button": "批量编辑",
+      "title": "批量编辑 {{count}} 台摄像机",
+      "hint": "只更改所选项目，\"不更改\"的项目保持原样",
+      "noChange": "不更改",
+      "clear": "清除",
+      "on": "启用",
+      "off": "停用",
+      "setPlace": "在此设置",
+      "apply": "应用到 {{count}} 台摄像机",
+      "done": "已更改 {{count}} 台摄像机",
+      "partly": "已更改 {{done}} 台，{{failed}} 台失败"
+    },
     "location": {
+      "sitesChosen": "已选 {{n}} 个地点",
+      "zonesChosen": "已选 {{n}} 个区域",
+      "openIncidents": "事件",
+      "openAlerts": "警报",
+      "stateProblem": "有问题",
+      "goBack": "返回",
       "openDevices": "管理设备",
       "statCameras": "摄像机 {{n}}",
       "statOnline": "在线 {{n}}",
@@ -2845,6 +2865,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "editCamera": "编辑此摄像机",
+      "manageDevice": "管理此摄像机的设备",
       "openPlayback": "查看此摄像机的录像",
       "focusHint": "单个摄像机全屏显示 · 双击或按 Esc 返回",
       "focusClose": "关闭",

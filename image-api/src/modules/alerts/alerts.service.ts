@@ -116,6 +116,8 @@ const ALERT_SORT_FIELDS: Record<string, (dir: 'asc' | 'desc') => any> = {
 };
 
 export async function listAlerts(params: {
+  siteId?: string;
+  zoneId?: string;
   severity?: string;
   resolved?: boolean;
   page?: number;
@@ -125,6 +127,14 @@ export async function listAlerts(params: {
 }) {
   const prisma = getPrisma();
   const where: any = {};
+  // An alert names its camera in `source`.
+  if (params.siteId || params.zoneId) {
+    const cameras = await prisma.camera.findMany({
+      where: { ...(params.siteId ? { siteId: params.siteId } : {}), ...(params.zoneId ? { zoneId: params.zoneId } : {}) },
+      select: { id: true },
+    });
+    where.source = { in: cameras.map((c) => c.id) };
+  }
   if (params.severity) where.severity = params.severity;
   if (params.resolved === true) where.resolvedAt = { not: null };
   else if (params.resolved === false) where.resolvedAt = null;

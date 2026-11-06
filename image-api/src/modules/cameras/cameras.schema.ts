@@ -102,3 +102,17 @@ export const cameraQuerySchema = z.object({
 export type CreateCameraInput = z.infer<typeof createCameraSchema>;
 export type UpdateCameraInput = z.infer<typeof updateCameraSchema>;
 export type CameraQueryInput = z.infer<typeof cameraQuerySchema>;
+
+/** Only what makes sense on many cameras at once: never a name, an address or a login. */
+export const bulkUpdateCameraSchema = z.object({
+  ids: z.array(z.guid()).min(1).max(500),
+  changes: z.object({
+    cameraType: z.string().max(64).optional().nullable(),
+    cameraBrand: z.string().max(64).optional().nullable(),
+    cameraModel: z.string().max(64).optional().nullable(),
+    enabled: z.boolean().optional(),
+    siteId: z.guid().optional().nullable(),
+    zoneId: z.guid().optional().nullable(),
+    locationFromDevice: z.boolean().optional(),
+  }).strict().refine((c) => Object.keys(c).length > 0, 'Nothing to change'),
+});

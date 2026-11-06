@@ -195,6 +195,7 @@ const INCIDENT_SORT_FIELDS: Record<string, (dir: 'asc' | 'desc') => any> = {
 
 // Enhanced list with filters
 export async function searchIncidents(params: {
+  siteId?: string; zoneId?: string;
   q?: string; cameraId?: string; reason?: string; rootCause?: string;
   status?: string; priority?: string; page?: number; limit?: number;
   sortBy?: string; sortDir?: 'asc' | 'desc';
@@ -203,6 +204,9 @@ export async function searchIncidents(params: {
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
   const where: any = {};
+  if (params.siteId || params.zoneId) {
+    where.camera = { ...(params.siteId ? { siteId: params.siteId } : {}), ...(params.zoneId ? { zoneId: params.zoneId } : {}) };
+  }
   if (params.cameraId) where.cameraId = params.cameraId;
   if (params.reason) where.reason = params.reason;
   if (params.rootCause) where.rootCause = params.rootCause;

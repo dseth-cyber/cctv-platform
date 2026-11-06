@@ -618,6 +618,7 @@ export default function LiveGrid() {
               isMulti
               selectedValues={locationFilter.sites}
               placeholder={t('ui.location.allSites')}
+              countLabel={(n) => t('ui.location.sitesChosen', { n })}
               options={siteOptions}
               onMultiChange={(next) => {
                 // A zone of a site no longer chosen would hide everything.
@@ -631,6 +632,7 @@ export default function LiveGrid() {
               isMulti
               selectedValues={locationFilter.zones}
               placeholder={t('ui.location.allZones')}
+              countLabel={(n) => t('ui.location.zonesChosen', { n })}
               options={zoneOptions}
               onMultiChange={(next) => chooseLocation({ ...locationFilter, zones: next })}
             />
@@ -826,7 +828,7 @@ export default function LiveGrid() {
             />
             <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300">
               <span className="pointer-events-none">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
-              <CameraQuickActions cameraId={focus.cameraId} isFavorite={favorites.has(focus.cameraId)} onToggleFavorite={toggleFavorite} />
+              <CameraQuickActions cameraId={focus.cameraId} deviceId={cameras.find((c: any) => c.id === focus.cameraId)?.deviceId} isFavorite={favorites.has(focus.cameraId)} onToggleFavorite={toggleFavorite} />
               <button type="button" onClick={() => setFocus(null)} title={t('ui.liveGrid.focusClose')} aria-label={t('ui.liveGrid.focusClose')} className="p-0.5 rounded hover:bg-slate-800 text-slate-200">
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -889,7 +891,7 @@ export default function LiveGrid() {
                       <div className="absolute top-10 right-2 flex items-center gap-1 z-30">
                         {cell.cameraId && (
                           <span className={`flex items-center gap-1 transition ${favorites.has(cell.cameraId) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                            <CameraQuickActions cameraId={cell.cameraId} isFavorite={favorites.has(cell.cameraId)} onToggleFavorite={toggleFavorite} />
+                            <CameraQuickActions cameraId={cell.cameraId} deviceId={cameras.find((c: any) => c.id === cell.cameraId)?.deviceId} isFavorite={favorites.has(cell.cameraId)} onToggleFavorite={toggleFavorite} />
                           </span>
                         )}
                         <button

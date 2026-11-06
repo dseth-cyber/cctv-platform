@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
@@ -32,6 +32,7 @@ import {
   WifiOff,
   Loader2,
   Copy,
+  ChevronLeft,
 } from 'lucide-react';
 import { ChannelChecklist } from '@/components/cctv/ChannelChecklist';
 import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
@@ -54,6 +55,9 @@ export default function DeviceManagement() {
   const [urlParams, setUrlParams] = useSearchParams();
   const siteParam = urlParams.get('site');
   const zoneParam = urlParams.get('zone');
+  const deviceParam = urlParams.get('device');
+  const cameBack = urlParams.get('back') === '1';
+  const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any | null>(null);
@@ -110,8 +114,9 @@ export default function DeviceManagement() {
     queryFn: () => imageServiceApi.getDevices(selectedType !== 'all' ? { deviceType: selectedType } : undefined),
   });
 
-  const devices = (allDevices as any[]).filter((d) => (!siteParam || d.siteId === siteParam) && (!zoneParam || d.zoneId === zoneParam));
+  const devices = (allDevices as any[]).filter((d) => (!siteParam || d.siteId === siteParam) && (!zoneParam || d.zoneId === zoneParam) && (!deviceParam || d.id === deviceParam));
   const placeChip = (() => {
+    if (deviceParam) return (allDevices as any[]).find((d) => d.id === deviceParam)?.name ?? '—';
     if (!siteParam && !zoneParam) return null;
     const site = (sitesForChip as any[]).find((x) => x.id === siteParam);
     const zone = (sitesForChip as any[]).flatMap((x) => x.zones ?? []).find((z: any) => z.id === zoneParam);
@@ -129,6 +134,10 @@ export default function DeviceManagement() {
     if (details?.code === 'DEVICE_ADDRESS_TAKEN') return t('ui.deviceManagement.addressTaken', { device: details.device });
     return err?.response?.data?.message || fallback;
   };
+
+  useEffect(() => {
+    if (deviceParam) setExpandedDeviceId(deviceParam);
+  }, [deviceParam]);
 
   // Mutations
   const createMutation = useMutation({
@@ -544,6 +553,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
       {/* Filter and Search Bar */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+        {cameBack && (
+          <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 text-slate-200 hover:border-cyan-500 whitespace-nowrap">
+            <ChevronLeft className="w-3 h-3" />
+            {t('ui.location.goBack')}
+          </button>
+        )}
         {placeChip && (
           <button
             type="button"

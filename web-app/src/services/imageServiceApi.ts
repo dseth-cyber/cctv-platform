@@ -219,7 +219,7 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/retention-policies/${id}`),
 
     // Alerts
-    getAlerts: (params?: { severity?: string; resolved?: boolean; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
+    getAlerts: (params?: { siteId?: string; zoneId?: string; severity?: string; resolved?: boolean; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/alerts`, { params, ...options }).then((r: any) => r.data),
 
     getAlert: (id: string) =>
@@ -330,6 +330,8 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/api-keys/${id}`),
 
     // Masterdata
+    bulkUpdateCameras: (ids: string[], changes: Record<string, unknown>): Promise<{ updated: number; failed: Array<{ id: string; name: string; message: string }> }> =>
+      api.patch(`${BASE}/cameras/bulk`, { ids, changes }).then((r: any) => r.data),
     getMasterdataOptions: (type: string): Promise<any[]> =>
       api.get(`${BASE}/masterdata/options`, { params: { type } }).then((r: any) => r.data),
     setDeviceChannels: (id: string, enabledChannels: number[]) =>

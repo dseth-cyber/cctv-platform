@@ -38,6 +38,7 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "notFound": "このカメラは見つかりません",
       "enabledField": "このカメラを使用する",
       "enabledHint": "オフにすると状態確認も通知もせず、ライブルームにも表示しません。サーバーへの録画も停止します",
       "retentionNeededForRecording": "サーバーに録画するカメラには保存ポリシーが必要です（詳細設定内）",
@@ -2522,7 +2523,26 @@
       "eGDs7216hqhiK": "例: DS-7216HQHI-K1",
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
+    "bulkEdit": {
+      "button": "まとめて編集",
+      "title": "{{count}} 台をまとめて編集",
+      "hint": "選んだ項目だけ変更します。「変更なし」の項目はそのままです",
+      "noChange": "変更なし",
+      "clear": "クリア",
+      "on": "有効",
+      "off": "無効",
+      "setPlace": "ここで指定",
+      "apply": "{{count}} 台に適用",
+      "done": "{{count}} 台を変更しました",
+      "partly": "{{done}} 台を変更、{{failed}} 台は失敗"
+    },
     "location": {
+      "sitesChosen": "{{n}} 拠点を選択",
+      "zonesChosen": "{{n}} ゾーンを選択",
+      "openIncidents": "インシデント",
+      "openAlerts": "通知",
+      "stateProblem": "問題あり",
+      "goBack": "戻る",
       "openDevices": "機器を管理",
       "statCameras": "カメラ {{n}}",
       "statOnline": "オンライン {{n}}",
@@ -2845,6 +2865,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "editCamera": "このカメラを編集",
+      "manageDevice": "このカメラの機器を管理",
       "openPlayback": "このカメラの録画を見る",
       "focusHint": "1 台を大きく表示中 · ダブルクリックまたは Esc で戻ります",
       "focusClose": "閉じる",

@@ -38,6 +38,7 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "notFound": "This camera was not found",
       "enabledField": "Use this camera",
       "enabledHint": "Off: no status checks, no alerts, not in the live room. A camera recording to the server stops recording",
       "retentionNeededForRecording": "A camera recording to the server needs a retention policy (under more settings)",
@@ -2525,7 +2526,26 @@
       "eGDs7216hqhiK": "e.g. DS-7216HQHI-K1",
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
+    "bulkEdit": {
+      "button": "Edit together",
+      "title": "Edit {{count}} cameras together",
+      "hint": "Only what you choose changes. Anything left at \"No change\" stays as it is",
+      "noChange": "No change",
+      "clear": "Clear",
+      "on": "Switch on",
+      "off": "Switch off",
+      "setPlace": "Set here",
+      "apply": "Apply to {{count}} cameras",
+      "done": "{{count}} cameras changed",
+      "partly": "{{done}} cameras changed, {{failed}} could not be"
+    },
     "location": {
+      "sitesChosen": "{{n}} sites",
+      "zonesChosen": "{{n}} zones",
+      "openIncidents": "Incidents",
+      "openAlerts": "Alerts",
+      "stateProblem": "With problems",
+      "goBack": "Back",
       "openDevices": "Manage devices",
       "statCameras": "{{n}} cameras",
       "statOnline": "{{n}} online",
@@ -2848,6 +2868,8 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "editCamera": "Edit this camera",
+      "manageDevice": "Manage this camera's device",
       "openPlayback": "Recordings of this camera",
       "focusHint": "One camera at full size · double-click or press Esc to go back",
       "focusClose": "Close",

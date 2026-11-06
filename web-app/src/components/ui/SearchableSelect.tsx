@@ -19,6 +19,8 @@ interface SearchableSelectProps {
   options: Option[]
   placeholder?: string
   showSearch?: boolean
+  /** For a narrow multi-select: what to show once something is chosen, instead of the names. */
+  countLabel?: (count: number) => string
 }
 
 export function SearchableSelect({
@@ -29,7 +31,8 @@ export function SearchableSelect({
   onMultiChange,
   options,
   placeholder,
-  showSearch = true
+  showSearch = true,
+  countLabel,
 }: SearchableSelectProps) {
   const { t } = useTranslation()
   const resolvedPlaceholder = placeholder ?? t('common.select', 'Select...')
@@ -71,6 +74,7 @@ export function SearchableSelect({
     if (isMulti) {
       const activeOptions = options.filter(o => selectedValues.includes(o.value))
       if (activeOptions.length === 0) return resolvedPlaceholder
+      if (countLabel) return countLabel(activeOptions.length)
       if (activeOptions.length <= 2) return activeOptions.map(o => o.label).join(', ')
       return t('common.itemsSelected', { count: activeOptions.length, defaultValue: `${activeOptions.length} items selected` })
     } else {
