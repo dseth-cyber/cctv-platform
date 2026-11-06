@@ -228,7 +228,7 @@ export default function SiteManagement() {
     queryFn: () => imageServiceApi.getDevices(),
   });
   const summary = summarizeLocations(allCameras as any[], allDevices as any[]);
-  const totalCamerasCount = summary.inUse;
+  const totalCamerasCount = summary.inUse - summary.noSite;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -361,7 +361,7 @@ export default function SiteManagement() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
-                    {summary.bySite.get(site.id)?.devices ?? 0}{' '}{t('ui.siteManagement.devices')}{' '}· {t('ui.location.statCameras', { n: summary.bySite.get(site.id)?.inUse ?? 0 })}
+                    {t('ui.location.statDevices', { n: summary.bySite.get(site.id)?.devices ?? 0 })} · {t('ui.location.statCameras', { n: summary.bySite.get(site.id)?.inUse ?? 0 })}
                   </span>
 
                   <Button
