@@ -251,4 +251,24 @@ describe('computeSnapshotAdvice', () => {
   it('handles a system with no cameras', () => {
     expect(computeSnapshotAdvice({ ...base, cameras: 0, busiestDeviceCameras: 0 })).toMatchObject({ imagesPerSecond: 0, keepsUp: true, recommendedRefreshSeconds: 10 });
   });
+
+  it('keeps fetching the working channels of a device when some of its channels keep failing', async () => {
+    const attempts: Record<string, number> = {};
+    const { scheduler, advance } = harness(async (t) => {
+      attempts[t.cameraId] = (attempts[t.cameraId] ?? 0) + 1;
+      if (Number(t.cameraId.slice(1)) >= 3) throw new SnapshotError('failed');
+      return { image: JPEG, usedRtsp: false };
+    }, { refreshSeconds: 10 });
+
+    const channels = Array.from({ length: 8 }, (_, i) => target(`c${i}`, 'nvr'));
+    for (let round = 0; round < 8; round++) {
+      scheduler.request(channels);
+      await sleep(10);
+      advance(11_000);
+    }
+    const out = scheduler.request(channels);
+    expect(attempts.c0).toBeGreaterThan(3);
+    expect(out.c0.state).toBe('ok');
+    expect(out.c5.state).toBe('failed');
+  });
 });

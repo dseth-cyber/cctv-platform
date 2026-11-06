@@ -38,6 +38,14 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "offlineReason": {
+        "no_signal": "映像信号なし",
+        "recorder_lost_camera": "録画機がカメラに接続できません",
+        "unreachable": "ネットワークに接続できません",
+        "stream_dropped": "ストリーム切断",
+        "status_set": "停止に設定",
+        "unknown": "原因不明"
+      },
       "cameraType": "カメラの種類",
       "cameraTypeNone": "未指定",
       "columnDevice": "機器",
@@ -2195,7 +2203,7 @@
       "videoStalled": "映像停止",
       "socketOkZeroFrames": "接続 OK / フレームなし",
       "offlineDevices": "オフラインのデバイス",
-      "port55480Timeout": "ポート 554/80 タイムアウト",
+      "offlineNone": "オフラインのカメラはありません",
       "estBandwidth": "推定帯域幅",
       "gbps": "{{v0}} Gbps",
       "mbps": "{{totalBitrateMbps}} Mbps",

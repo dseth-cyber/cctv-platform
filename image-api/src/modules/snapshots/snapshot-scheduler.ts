@@ -216,6 +216,8 @@ export class SnapshotScheduler {
       host.loginBlockedUntil.set(target.loginKey, now + LOGIN_BLOCK_MS);
       return;
     }
+    // One bad channel says nothing about the device: resting it would stop the channels that work.
+    if (kind === 'failed') return;
     if (++host.consecutiveFailures >= HOST_FAILURES_TO_OPEN) {
       host.openUntil = now + host.openPeriodMs;
       host.openPeriodMs = Math.min(HOST_OPEN_MAX_MS, host.openPeriodMs * 2);

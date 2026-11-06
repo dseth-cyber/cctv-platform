@@ -232,8 +232,8 @@ export async function setEnabledChannels(deviceId: string, enabledChannels: numb
     await prisma.camera.update({
       where: { id: cam.id },
       data: enabled
-        ? { enabled: true, status: 'active', operationalStatus: 'unknown', operationalSince: new Date() }
-        : { enabled: false, status: 'inactive', operationalStatus: 'unknown', operationalSince: new Date() },
+        ? { enabled: true, status: 'active', operationalStatus: 'unknown', operationalReason: null, operationalSince: new Date() }
+        : { enabled: false, status: 'inactive', operationalStatus: 'unknown', operationalReason: null, operationalSince: new Date() },
     });
     // An alert about a camera that was switched off on purpose has nothing left to report.
     if (!enabled) {

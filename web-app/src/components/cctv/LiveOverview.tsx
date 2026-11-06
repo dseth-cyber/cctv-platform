@@ -46,7 +46,9 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
   const age = ageSeconds === null ? '' : ageSeconds < 90
     ? t('ui.liveGrid.overview.ageSeconds', { n: ageSeconds })
     : t('ui.liveGrid.overview.ageMinutes', { n: Math.round(ageSeconds / 60) });
-  const problem = status && status.state !== 'ok' && status.state !== 'waiting' ? t(`ui.liveGrid.overview.state.${status.state}`) : null;
+  // When the health check knows why a camera is down, that says more than a failed image.
+  const knownReason = camera.operationalStatus === 'offline' && camera.operationalReason && camera.operationalReason !== 'status_set' ? t(`imageService.cameras.offlineReason.${camera.operationalReason}`) : null;
+  const problem = status && status.state !== 'ok' && status.state !== 'waiting' ? knownReason ?? t(`ui.liveGrid.overview.state.${status.state}`) : null;
 
   return (
     <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>

@@ -38,6 +38,14 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "offlineReason": {
+        "no_signal": "ไม่มีสัญญาณภาพ",
+        "recorder_lost_camera": "เครื่องบันทึกติดต่อกล้องไม่ได้",
+        "unreachable": "ติดต่อเครือข่ายไม่ได้",
+        "stream_dropped": "สตรีมขาด",
+        "status_set": "ตั้งสถานะไม่ทำงาน",
+        "unknown": "ยังไม่ทราบสาเหตุ"
+      },
       "cameraType": "ประเภทกล้อง",
       "cameraTypeNone": "ไม่ระบุ",
       "columnDevice": "อุปกรณ์",
@@ -2201,7 +2209,7 @@
       "videoStalled": "ภาพค้าง",
       "socketOkZeroFrames": "เชื่อมต่อได้ แต่ไม่มีเฟรมภาพ",
       "offlineDevices": "อุปกรณ์ออฟไลน์",
-      "port55480Timeout": "พอร์ต 554/80 หมดเวลา",
+      "offlineNone": "ไม่มีกล้องออฟไลน์",
       "estBandwidth": "แบนด์วิดท์โดยประมาณ",
       "gbps": "{{v0}} Gbps",
       "mbps": "{{totalBitrateMbps}} Mbps",

@@ -38,6 +38,14 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "offlineReason": {
+        "no_signal": "No video signal",
+        "recorder_lost_camera": "Recorder cannot reach camera",
+        "unreachable": "Network unreachable",
+        "stream_dropped": "Stream dropped",
+        "status_set": "Set as not working",
+        "unknown": "Cause not known yet"
+      },
       "cameraType": "Camera type",
       "cameraTypeNone": "Not set",
       "columnDevice": "Device",
@@ -2198,7 +2206,7 @@
       "videoStalled": "Video Stalled",
       "socketOkZeroFrames": "Socket OK / Zero Frames",
       "offlineDevices": "Offline Devices",
-      "port55480Timeout": "Port 554/80 Timeout",
+      "offlineNone": "No camera is offline",
       "estBandwidth": "Est. Bandwidth",
       "gbps": "{{v0}} Gbps",
       "mbps": "{{totalBitrateMbps}} Mbps",

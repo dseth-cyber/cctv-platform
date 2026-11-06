@@ -80,6 +80,7 @@ export async function checkCameraHealth(): Promise<void> {
       rtspUrl: true,
       streamPath: true,
       channelNumber: true,
+      operationalReason: true,
       device: { select: { id: true, brand: true, ipAddress: true, httpPort: true, rtspPort: true, username: true, passwordEncrypted: true } },
       lastPolledAt: true,
       operationalStatus: true,
@@ -109,9 +110,15 @@ export async function checkCameraHealth(): Promise<void> {
     const isProbeSuccess = probeResult.reachable;
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
-    const hasNoSignal = !!cam.device?.id && cam.channelNumber !== null && !!noSignal.get(cam.device.id)?.has(cam.channelNumber);
+    const channelProblem = cam.device?.id && cam.channelNumber !== null ? noSignal.get(cam.device.id)?.get(cam.channelNumber) : undefined;
+    const hasNoSignal = !!channelProblem;
     const isOffline = hasNoSignal || cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && timeSinceLastPoll > thresholdMs);
     const rawNext = isOffline ? 'offline' : 'online';
+    // What the recorder says comes first: the network being fine says nothing about a camera behind it.
+    const offlineReason = !isOffline ? null : channelProblem ?? (cam.status === 'error' || cam.status === 'inactive' ? 'status_set' : 'unreachable');
+    if ((cam.operationalReason ?? null) !== offlineReason) {
+      await prisma.camera.update({ where: { id: cam.id }, data: { operationalReason: offlineReason } });
+    }
     const prev = cam.operationalStatus;
 
     // First-ever observation for this camera — record a baseline only, no event/alert noise.
@@ -146,7 +153,7 @@ export async function checkCameraHealth(): Promise<void> {
           cameraId: cam.id,
           eventType: 'offline',
           source: 'health_monitor',
-          message: `Camera "${cam.name}" went offline (${hasNoSignal ? 'recorder reports no video signal on this channel, ' : ''}status: ${cam.status}, last poll: ${timeSinceLastPoll > 86400000 ? 'never' : Math.floor(timeSinceLastPoll / 1000) + 's ago'})`,
+          message: `Camera "${cam.name}" went offline (${channelProblem === 'no_signal' ? 'recorder reports no video signal on this channel, ' : channelProblem ? 'recorder cannot reach this camera, ' : ''}status: ${cam.status}, last poll: ${timeSinceLastPoll > 86400000 ? 'never' : Math.floor(timeSinceLastPoll / 1000) + 's ago'})`,
           metadata: { status: cam.status, lastPolledAt: cam.lastPolledAt, timeSinceLastPollMs: timeSinceLastPoll },
         },
       });
@@ -166,7 +173,7 @@ export async function checkCameraHealth(): Promise<void> {
           severity: 'critical',
           source: cam.id,
           title: `Camera offline: ${cam.name}`,
-          message: `Camera "${cam.name}" is offline.${hasNoSignal ? ' The recorder reports no video signal on this channel.' : ''} Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}`,
+          message: `Camera "${cam.name}" is offline.${channelProblem === 'no_signal' ? ' The recorder reports no video signal on this channel.' : channelProblem ? ' The recorder cannot reach this camera.' : ''} Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}`,
           details: { cameraId: cam.id, cameraName: cam.name, status: cam.status, lastPolledAt: cam.lastPolledAt },
         });
       }
@@ -427,7 +434,7 @@ export async function handleStreamStatusEvent(
 
     await prisma.camera.update({
       where: { id: camera.id },
-      data: { operationalStatus: 'offline', operationalSince: new Date() },
+      data: { operationalStatus: 'offline', operationalSince: new Date(), operationalReason: 'stream_dropped' },
     });
 
     const isFlapping = checkAndRecordFlap(camera.id);

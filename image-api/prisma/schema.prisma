@@ -429,6 +429,8 @@ model Camera {
 
   operationalStatus      CameraOperationalStatus @default(unknown) @map("operational_status")
   operationalSince       DateTime?               @map("operational_since")
+  // Why it is offline, as far as the system can tell: no_signal, recorder_lost_camera, unreachable, stream_dropped, status_set.
+  operationalReason      String?                 @map("operational_reason") @db.VarChar(32)
   slaTargetPercent       Float?                  @map("sla_target_percent")
   createdBy              String?                 @map("created_by") @db.VarChar(128)
   deletedAt              DateTime?               @map("deleted_at")

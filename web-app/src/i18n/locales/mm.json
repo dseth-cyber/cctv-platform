@@ -38,6 +38,14 @@
       "clearSelection": "ရွေးချယ်ထားသည်များ ဖျက်သိမ်းရန်"
     },
     "cameras": {
+      "offlineReason": {
+        "no_signal": "ဗီဒီယိုအချက်ပြမရှိ",
+        "recorder_lost_camera": "မှတ်တမ်းစက်က ကင်မရာကို မဆက်သွယ်နိုင်",
+        "unreachable": "ကွန်ရက်ဆက်သွယ်၍မရ",
+        "stream_dropped": "စထရီးမ်ပြတ်",
+        "status_set": "အလုပ်မလုပ်ဟု သတ်မှတ်ထား",
+        "unknown": "အကြောင်းရင်း မသိရသေး"
+      },
       "cameraType": "ကင်မရာအမျိုးအစား",
       "cameraTypeNone": "မသတ်မှတ်ရသေး",
       "columnDevice": "စက်",
@@ -2190,7 +2198,7 @@
       "videoStalled": "ဗီဒီယို ရပ်တန့်နေ",
       "socketOkZeroFrames": "ချိတ်ဆက်မိသော်လည်း Frame မရှိ",
       "offlineDevices": "Offline စက်ပစ္စည်းများ",
-      "port55480Timeout": "Port 554/80 အချိန်ကုန်",
+      "offlineNone": "အော့ဖ်လိုင်းကင်မရာ မရှိပါ",
       "estBandwidth": "ခန့်မှန်း Bandwidth",
       "gbps": "{{v0}} Gbps",
       "mbps": "{{totalBitrateMbps}} Mbps",

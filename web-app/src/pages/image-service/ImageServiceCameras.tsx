@@ -1168,7 +1168,7 @@ export default function ImageServiceCameras() {
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`w-2 h-2 rounded-full flex-shrink-0 ${OPERATIONAL_STATUS_DOT[camera.operationalStatus] ?? OPERATIONAL_STATUS_DOT.unknown}`}
-                          title={`${t('imageService.cameras.operationalStatus')}: ${t(`imageService.cameras.operational.${camera.operationalStatus ?? 'unknown'}`)}`}
+                          title={`${t('imageService.cameras.operationalStatus')}: ${t(`imageService.cameras.operational.${camera.operationalStatus ?? 'unknown'}`)}${camera.operationalStatus === 'offline' ? ` (${t(`imageService.cameras.offlineReason.${camera.operationalReason ?? 'unknown'}`)})` : ''}`}
                         />
                         <button
                           onClick={() => canUpdate && openStatusDialog(camera)}
@@ -1184,6 +1184,9 @@ export default function ImageServiceCameras() {
                           {t(`imageService.cameras.${camera.status}`)}
                           {canUpdate && <ChevronDown size={10} className="ml-0.5 opacity-60" />}
                         </button>
+                        {camera.enabled !== false && camera.operationalStatus === 'offline' && (
+                          <span className="text-[10px] text-rose-300 whitespace-nowrap">{t(`imageService.cameras.offlineReason.${camera.operationalReason ?? 'unknown'}`)}</span>
+                        )}
                         {camera.enabled === false && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] border border-slate-600 text-slate-400">{t('imageService.cameras.switchedOff')}</span>
                         )}

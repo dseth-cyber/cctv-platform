@@ -38,6 +38,14 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "offlineReason": {
+        "no_signal": "无视频信号",
+        "recorder_lost_camera": "录像机无法连接摄像机",
+        "unreachable": "网络无法连接",
+        "stream_dropped": "码流中断",
+        "status_set": "已设为未运行",
+        "unknown": "原因未知"
+      },
       "cameraType": "摄像机类型",
       "cameraTypeNone": "未指定",
       "columnDevice": "设备",
@@ -2195,7 +2203,7 @@
       "videoStalled": "视频停滞",
       "socketOkZeroFrames": "连接正常 / 无视频帧",
       "offlineDevices": "离线设备",
-      "port55480Timeout": "端口 554/80 超时",
+      "offlineNone": "没有离线摄像机",
       "estBandwidth": "预估带宽",
       "gbps": "{{v0}} Gbps",
       "mbps": "{{totalBitrateMbps}} Mbps",

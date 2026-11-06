@@ -24,8 +24,15 @@ describe('device channel signal', () => {
     digestGet.mockResolvedValueOnce(answer(200, ANALOG)).mockResolvedValueOnce(answer(403));
     const d = device('a');
     const result = await readChannelsWithoutSignal([d, d, d]);
-    expect([...result.get('a')!]).toEqual([2]);
+    expect([...result.get('a')!]).toEqual([[2, 'no_signal']]);
     expect(digestGet).toHaveBeenCalledTimes(2);
+  });
+
+  it('tells a camera an NVR cannot reach apart from a channel with no picture', async () => {
+    // As returned by the real DS-7716NXI-K4(D)
+    const status = '<InputProxyChannelStatus><id>4</id><online>false</online><chanDetectResult>netUnreachable</chanDetectResult></InputProxyChannelStatus>';
+    digestGet.mockResolvedValueOnce(answer(403)).mockResolvedValueOnce(answer(200, status));
+    expect([...(await readChannelsWithoutSignal([device('n')])).get('n')!]).toEqual([[4, 'recorder_lost_camera']]);
   });
 
   it('leaves a recorder that cannot be asked as unknown, so nothing is marked offline', async () => {

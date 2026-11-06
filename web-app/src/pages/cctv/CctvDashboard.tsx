@@ -154,6 +154,21 @@ export default function CctvDashboard() {
     };
   }, [summary, devices, cameras]);
 
+  // The real reasons, counted: a camera with no picture and a network fault call for different people.
+  const offlineReasonSummary = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of (cameras as any[]) ?? []) {
+      if (c.operationalStatus !== 'offline') continue;
+      const reason = c.operationalReason ?? 'unknown';
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    }
+    if (counts.size === 0) return t('ui.cctvDashboard.offlineNone');
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([reason, n]) => `${t(`imageService.cameras.offlineReason.${reason}`)} ${n}`)
+      .join(' · ');
+  }, [cameras, t]);
+
   const healthScore = stats.cameras.healthPercent ?? 100;
   const healthColor =
     healthScore >= 90 ? 'text-emerald-400' : healthScore >= 70 ? 'text-amber-400' : 'text-rose-400';
@@ -304,8 +319,8 @@ export default function CctvDashboard() {
             {stats.cameras.offline.toLocaleString()}
           </div>
           <div className="text-[11px] text-rose-400/80 mt-1 flex items-center gap-1">
-            <WifiOff size={11} />
-            {t('ui.cctvDashboard.port55480Timeout')}
+            <WifiOff size={11} className="shrink-0" />
+            <span className="truncate" title={offlineReasonSummary}>{offlineReasonSummary}</span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-red-500 opacity-60" />
         </div>
@@ -491,7 +506,7 @@ export default function CctvDashboard() {
                               : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                           }`}
                         >
-                          {cam.operationalStatus === 'offline' ? t('ui.cctvDashboard.offline') : t('ui.cctvDashboard.stalled')}
+                          {cam.operationalStatus === 'offline' ? t(`imageService.cameras.offlineReason.${cam.operationalReason ?? 'unknown'}`) : t('ui.cctvDashboard.stalled')}
                         </span>
                       </div>
                       <p className="text-[11px] font-mono text-slate-400 truncate">

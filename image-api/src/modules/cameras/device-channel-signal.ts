@@ -2,6 +2,9 @@ import { digestGet } from '../../lib/digest-fetch.js';
 import { decrypt } from '../../lib/encryption.js';
 import { logger } from '../../lib/logger.js';
 
+/** no_signal: an analog input with no picture. recorder_lost_camera: an NVR cannot reach its IP camera. */
+export type ChannelProblem = 'no_signal' | 'recorder_lost_camera';
+
 export interface SignalDevice {
   id: string;
   brand: string | null;
@@ -20,7 +23,7 @@ const AT_ONCE = 8;
 const loginBlockedUntil = new Map<string, number>();
 
 /** The latest answer from each recorder. Forgotten as soon as a recorder cannot answer. */
-const latest = new Map<string, Set<number>>();
+const latest = new Map<string, Map<number, ChannelProblem>>();
 
 /**
  * A recorder streams its "NO VIDEO" picture to anyone who opens the channel, so a stream that starts
@@ -49,17 +52,17 @@ export function parseIpChannelsOffline(xml: string): number[] {
     .filter(Number.isInteger);
 }
 
-async function readDevice(device: SignalDevice): Promise<Set<number> | null> {
+async function readDevice(device: SignalDevice): Promise<Map<number, ChannelProblem> | null> {
   const key = `${device.id}:${device.passwordEncrypted}`;
   if ((loginBlockedUntil.get(key) ?? 0) > Date.now()) return null;
 
   const password = decrypt(device.passwordEncrypted as string);
   const base = `http://${device.ipAddress}:${device.httpPort ?? 80}`;
-  const found = new Set<number>();
+  const found = new Map<number, ChannelProblem>();
   let answered = false;
-  for (const [path, parse] of [
-    ['/ISAPI/System/Video/inputs/channels', parseAnalogNoVideo],
-    ['/ISAPI/ContentMgmt/InputProxy/channels/status', parseIpChannelsOffline],
+  for (const [path, parse, problem] of [
+    ['/ISAPI/System/Video/inputs/channels', parseAnalogNoVideo, 'no_signal'],
+    ['/ISAPI/ContentMgmt/InputProxy/channels/status', parseIpChannelsOffline, 'recorder_lost_camera'],
   ] as const) {
     const res = await digestGet(`${base}${path}`, device.username ?? '', password, { timeoutMs: TIMEOUT_MS, maxBytes: MAX_BYTES });
     if (res.status === 401) {
@@ -69,7 +72,7 @@ async function readDevice(device: SignalDevice): Promise<Set<number> | null> {
     }
     if (res.status === 200) {
       answered = true;
-      parse(res.body.toString()).forEach((ch) => found.add(ch));
+      parse(res.body.toString()).forEach((ch) => found.set(ch, problem));
     }
   }
   return answered ? found : null;
@@ -80,13 +83,13 @@ async function readDevice(device: SignalDevice): Promise<Set<number> | null> {
  * left out: "not known" must never turn a working camera offline. Only Hikvision is known; other brands
  * keep the network check alone.
  */
-export async function readChannelsWithoutSignal(devices: Array<SignalDevice | null | undefined>): Promise<Map<string, Set<number>>> {
+export async function readChannelsWithoutSignal(devices: Array<SignalDevice | null | undefined>): Promise<Map<string, Map<number, ChannelProblem>>> {
   const unique = new Map<string, SignalDevice>();
   for (const d of devices) {
     if (d?.ipAddress && d.passwordEncrypted && /hik|hilook/i.test(d.brand ?? '')) unique.set(d.id, d);
   }
   const queue = [...unique.values()];
-  const result = new Map<string, Set<number>>();
+  const result = new Map<string, Map<number, ChannelProblem>>();
   const worker = async () => {
     for (let d = queue.shift(); d; d = queue.shift()) {
       try {

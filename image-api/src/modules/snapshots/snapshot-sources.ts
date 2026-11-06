@@ -78,6 +78,14 @@ export async function fetchSnapshot(target: SnapshotTarget, opts: { skipHttp?: b
   if (url) {
     const image = await fromHttp(url, target);
     if (image) return { image, usedRtsp: false };
+    // The device answered, so whatever is wrong is with this one channel, e.g. a camera an NVR has lost.
+    if (!target.rtspUrl) throw new SnapshotError('failed');
+    try {
+      return { image: await fromRtsp(target.rtspUrl), usedRtsp: true };
+    } catch (err) {
+      if (err instanceof SnapshotError && err.kind === 'unreachable') throw new SnapshotError('failed');
+      throw err;
+    }
   }
   if (!target.rtspUrl) throw new SnapshotError('failed');
   return { image: await fromRtsp(target.rtspUrl), usedRtsp: true };
