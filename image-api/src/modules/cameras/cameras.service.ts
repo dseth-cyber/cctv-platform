@@ -21,7 +21,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
     include: {
       retentionPolicy: { select: { id: true, name: true } },
       template: true,
-      device: { select: { id: true, name: true, deviceType: true, ipAddress: true } },
+      device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
     },

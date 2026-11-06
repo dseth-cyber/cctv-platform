@@ -2706,7 +2706,19 @@
       "savedPresets": "သိမ်းထားသော Preset များ",
       "noSavedPresetsYet": "သိမ်းထားသော Preset မရှိသေးပါ။",
       "camerasConfigured": "ကင်မရာ သတ်မှတ်ထား",
-      "deletePreset": "Preset ဖျက်ရန်"
+      "deletePreset": "Preset ဖျက်ရန်",
+      "filter": {
+        "all": "စစ်ထုတ်ရန်: အားလုံး",
+        "selected": "ကင်မရာ {{count}} လုံး ရွေးထားသည်",
+        "searchPlaceholder": "ရှာရန်: ကင်မရာ၊ DVR/NVR၊ အမှတ်တံဆိပ်၊ နေရာ၊ IP…",
+        "selectAllMatched": "တွေ့သမျှ အားလုံးရွေးရန် ({{count}})",
+        "onlyOffline": "အော့ဖ်လိုင်းသာ",
+        "noMatch": "ကိုက်ညီသော ကင်မရာ မရှိပါ",
+        "standalone": "သီးသန့်ကင်မရာများ ({{count}})",
+        "clear": "အားလုံးရှင်းရန်",
+        "applyCount": "ကင်မရာ {{count}} လုံး ပြရန်",
+        "applyAll": "အားလုံးပြရန်"
+      }
     },
     "cctvMap": {
       "interactiveCctvMap": "အပြန်အလှန် CCTV မြေပုံ",

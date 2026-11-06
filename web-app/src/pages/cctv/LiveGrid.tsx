@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
+import { applyCameraSelection } from '@/lib/cameraFilter';
 import {
   Grid2X2,
   Square,
@@ -55,6 +57,17 @@ interface SavedPreset {
   slots: { slotIndex: number; cameraId: string; cameraName: string }[];
 }
 
+const FILTER_STORAGE_KEY = 'cctv_live_filter';
+
+function readSavedFilter(): { ids: string[]; onlyOffline: boolean } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) ?? '{}');
+    return { ids: Array.isArray(saved.ids) ? saved.ids : [], onlyOffline: saved.onlyOffline === true };
+  } catch {
+    return { ids: [], onlyOffline: false };
+  }
+}
+
 export default function LiveGrid() {
   const { t } = useTranslation()
   const { themeConfig } = useTheme();
@@ -65,6 +78,7 @@ export default function LiveGrid() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cameraSearch, setCameraSearch] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
+  const [cameraFilter, setCameraFilter] = useState(readSavedFilter);
   const [isWallFullscreen, setIsWallFullscreen] = useState(false);
 
   // Auto-Tour / Patrol Mode state for hundreds of cameras
@@ -209,8 +223,8 @@ export default function LiveGrid() {
     );
   };
 
-  // Filter cameras
-  const filteredCameras = cameras.filter((c: any) => {
+  // Filter cameras. The drawer lists every camera so one outside the filter can still be placed by hand.
+  const drawerCameras = cameras.filter((c: any) => {
     const matchesSearch =
       c.name.toLowerCase().includes(cameraSearch.toLowerCase()) ||
       c.ipAddress?.toLowerCase().includes(cameraSearch.toLowerCase());
@@ -218,6 +232,7 @@ export default function LiveGrid() {
       selectedSiteFilter === 'all' || c.siteId === selectedSiteFilter;
     return matchesSearch && matchesSite;
   });
+  const filteredCameras = applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline);
 
   // Calculate tour pages for hundreds of cameras
   const totalTourPages = Math.max(1, Math.ceil(filteredCameras.length / slotCount));
@@ -252,6 +267,23 @@ export default function LiveGrid() {
     },
     [filteredCameras, slotCount, assignCameraToSlot]
   );
+
+  // A changed filter restarts paging at its first page. It keys on the filter itself: the camera list
+  // refreshes every 10 s and that must not reload the streams on screen.
+  const filterKey = JSON.stringify(cameraFilter);
+  const appliedFilterKey = useRef(filterKey);
+  useEffect(() => {
+    if (appliedFilterKey.current === filterKey) return;
+    appliedFilterKey.current = filterKey;
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, filterKey);
+    } catch {
+      // Only a convenience: the filter still applies for this visit.
+    }
+    setTourPageIndex(0);
+    setTourCountdown(tourIntervalSeconds);
+    loadTourPage(0);
+  }, [filterKey, loadTourPage, tourIntervalSeconds]);
 
   // Tour Mode countdown & auto-advance timer
   useEffect(() => {
@@ -392,9 +424,9 @@ export default function LiveGrid() {
   // Initial fill if slots empty
   useEffect(() => {
     if (cameras.length > 0 && cells.every((c) => !c.cameraId)) {
-      const initialCount = Math.min(cameras.length, 4);
+      const initialCount = Math.min(filteredCameras.length, 4);
       for (let i = 0; i < initialCount; i++) {
-        assignCameraToSlot(cameras[i], i);
+        assignCameraToSlot(filteredCameras[i], i);
       }
     }
   }, [cameras, assignCameraToSlot]);
@@ -435,6 +467,13 @@ export default function LiveGrid() {
               </>
             )}
           </div>
+
+          <CameraFilterDropdown
+            cameras={cameras}
+            selectedIds={cameraFilter.ids}
+            onlyOffline={cameraFilter.onlyOffline}
+            onApply={(ids, onlyOffline) => setCameraFilter({ ids, onlyOffline })}
+          />
         </div>
 
         {/* Center: Auto-Tour / Patrol Controls (For Hundreds of Cameras) */}
@@ -661,7 +700,7 @@ export default function LiveGrid() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-200">{t('ui.liveGrid.cameraDirectory')}</h3>
                 <p className="text-[11px] text-cyan-400">
-                  {t('ui.liveGrid.assigningToSlot')}{activeSlot + 1} ({filteredCameras.length}{' '}{t('ui.liveGrid.available')}
+                  {t('ui.liveGrid.assigningToSlot')}{activeSlot + 1} ({drawerCameras.length}{' '}{t('ui.liveGrid.available')}
                 </p>
               </div>
               <button
@@ -766,7 +805,7 @@ export default function LiveGrid() {
                     {t('ui.liveGrid.dvrNvrDevices')}{devices.length})
                   </div>
                   {devices.map((dev: any) => {
-                    const devCams = filteredCameras.filter((c: any) => c.deviceId === dev.id);
+                    const devCams = drawerCameras.filter((c: any) => c.deviceId === dev.id);
                     if (devCams.length === 0 && cameraSearch) return null;
 
                     return (
@@ -828,10 +867,10 @@ export default function LiveGrid() {
               <div className="space-y-1 pt-2">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                   <span>{t('ui.liveGrid.allCameras')}</span>
-                  <span className="font-mono text-slate-500">{filteredCameras.length}</span>
+                  <span className="font-mono text-slate-500">{drawerCameras.length}</span>
                 </div>
 
-                {filteredCameras.map((cam: any) => (
+                {drawerCameras.map((cam: any) => (
                   <div
                     key={cam.id}
                     onClick={() => {

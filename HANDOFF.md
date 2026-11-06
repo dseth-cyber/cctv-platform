@@ -24,6 +24,14 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06, รอบ 2) — R5.1 ตัวกรองห้องภาพสด
+
+- `components/cctv/CameraFilterDropdown.tsx`, `lib/cameraFilter.ts`; `GET /cameras` คืน `device.brand` เพิ่ม; การเลือกจำใน localStorage `cctv_live_filter` (ค่าเฉพาะเครื่อง); ลิ้นชักเลือกกล้องยังเห็นกล้องทั้งหมด ไม่ถูกตัวกรองตัด
+- ติ๊กกี่ช่องก็ยังไม่เริ่มสตรีมจนปิดแผง (กด Esc = ยกเลิก) เพราะการใช้ตัวกรองแต่ละครั้งเริ่มสตรีมบนจอใหม่
+- ตรวจด้วย headless Chrome + กล้องจำลอง 300 ตัว (ดักใน browser ไม่ลง DB): เปิดแผง 44 ms; ค้นจากคำอธิบาย/ยี่ห้อ/ชื่อเครื่อง/หลายคำ ตรงตามจำนวน; ใช้ตัวกรองเริ่ม 4 สตรีมของ NVR ที่เลือก; refresh 10 วิไม่เริ่มสตรีมใหม่; reload จำการเลือก; ไม่มี page error
+- **ปัญหาที่ยังไม่แก้:** `GET /system-config` ไม่ต้อง login (หน้า login ใช้ชื่อ/โลโก้ระบบ) และคืนทุกค่ารวม `webhook_secret` (ตอนนี้ค่าว่าง) ควรแยก endpoint สาธารณะให้เหลือค่าแบรนด์; `updateConfigs` ไม่ตรวจช่วงค่าและไม่เขียน audit — แก้ก่อนหรือพร้อม R5.8
+
+
 ## งานล่าสุด (2026-11-06) — ภาพสดของกล้องจริงดำในโหมดดูสดอย่างเดียว
 
 - สาเหตุ: MediaMTX `rtspTransport: automatic` ลอง UDP ก่อน; UDP เข้า container ไม่ได้ ครบ 3 วิ log `no UDP packets received, switching to TCP` แล้วตัดผู้ชม → เบราว์เซอร์เชื่อมใหม่วนซ้ำ ภาพดำ. โผล่หลังเปลี่ยนเป็น on-demand เพราะทุกการเปิดดูเริ่มดึงใหม่

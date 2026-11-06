@@ -2711,7 +2711,19 @@
       "savedPresets": "保存済みプリセット",
       "noSavedPresetsYet": "保存済みのプリセットはまだありません。",
       "camerasConfigured": "台のカメラを設定済み",
-      "deletePreset": "プリセットを削除"
+      "deletePreset": "プリセットを削除",
+      "filter": {
+        "all": "フィルター: すべて",
+        "selected": "{{count}} 台を選択",
+        "searchPlaceholder": "検索: カメラ、DVR/NVR、メーカー、拠点、IP…",
+        "selectAllMatched": "検索結果をすべて選択（{{count}}）",
+        "onlyOffline": "オフラインのみ",
+        "noMatch": "一致するカメラはありません",
+        "standalone": "単体カメラ（{{count}}）",
+        "clear": "すべてクリア",
+        "applyCount": "{{count}} 台を表示",
+        "applyAll": "すべて表示"
+      }
     },
     "cctvMap": {
       "interactiveCctvMap": "インタラクティブ CCTV マップ",

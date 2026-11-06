@@ -2717,7 +2717,19 @@
       "savedPresets": "ชุดมุมมองที่บันทึกไว้",
       "noSavedPresetsYet": "ยังไม่มีชุดมุมมองที่บันทึก",
       "camerasConfigured": "กล้องที่ตั้งค่าไว้",
-      "deletePreset": "ลบชุดมุมมอง"
+      "deletePreset": "ลบชุดมุมมอง",
+      "filter": {
+        "all": "ตัวกรอง: ทั้งหมด",
+        "selected": "เลือก {{count}} กล้อง",
+        "searchPlaceholder": "พิมพ์ค้นหา: ชื่อกล้อง, DVR/NVR, ยี่ห้อ, สถานที่, IP…",
+        "selectAllMatched": "เลือกทั้งหมดที่ค้นเจอ ({{count}})",
+        "onlyOffline": "เฉพาะออฟไลน์",
+        "noMatch": "ไม่พบกล้องที่ตรงกับคำค้น",
+        "standalone": "กล้องเดี่ยว ({{count}})",
+        "clear": "ล้างทั้งหมด",
+        "applyCount": "แสดง {{count}} กล้อง",
+        "applyAll": "แสดงทั้งหมด"
+      }
     },
     "cctvMap": {
       "interactiveCctvMap": "แผนที่ CCTV แบบโต้ตอบ",

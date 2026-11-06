@@ -2714,7 +2714,19 @@
       "savedPresets": "Saved Presets",
       "noSavedPresetsYet": "No saved presets yet.",
       "camerasConfigured": "cameras configured",
-      "deletePreset": "Delete Preset"
+      "deletePreset": "Delete Preset",
+      "filter": {
+        "all": "Filter: all",
+        "selected": "{{count}} cameras selected",
+        "searchPlaceholder": "Search: camera, DVR/NVR, brand, site, IP…",
+        "selectAllMatched": "Select all matches ({{count}})",
+        "onlyOffline": "Offline only",
+        "noMatch": "No cameras match",
+        "standalone": "Standalone cameras ({{count}})",
+        "clear": "Clear all",
+        "applyCount": "Show {{count}} cameras",
+        "applyAll": "Show all"
+      }
     },
     "cctvMap": {
       "interactiveCctvMap": "Interactive CCTV Map",

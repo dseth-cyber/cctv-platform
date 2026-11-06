@@ -2711,7 +2711,19 @@
       "savedPresets": "已保存预设",
       "noSavedPresetsYet": "尚无已保存的预设。",
       "camerasConfigured": "台摄像机已配置",
-      "deletePreset": "删除预设"
+      "deletePreset": "删除预设",
+      "filter": {
+        "all": "筛选：全部",
+        "selected": "已选 {{count}} 台摄像机",
+        "searchPlaceholder": "搜索：摄像机、DVR/NVR、品牌、地点、IP…",
+        "selectAllMatched": "全选搜索结果（{{count}}）",
+        "onlyOffline": "仅离线",
+        "noMatch": "没有匹配的摄像机",
+        "standalone": "独立摄像机（{{count}}）",
+        "clear": "全部清除",
+        "applyCount": "显示 {{count}} 台摄像机",
+        "applyAll": "显示全部"
+      }
     },
     "cctvMap": {
       "interactiveCctvMap": "交互式 CCTV 地图",
