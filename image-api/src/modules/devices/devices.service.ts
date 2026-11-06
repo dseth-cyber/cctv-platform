@@ -1,8 +1,10 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
-import { NotFoundError, ConflictError } from '../../lib/errors.js';
+import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
 import type { CreateDeviceInput, UpdateDeviceInput, DeviceQueryInput } from './devices.schema.js';
+
+export const channelCameraName = (deviceName: string, channel: number) => `${deviceName} - Ch ${channel}`;
 
 /** Vendor template for a brand name ("Hikvision", "hilook", "IMOU", ...); unknown brands get Generic. */
 export function findDeviceTemplate(brand: string | null | undefined): DeviceVendorTemplate {
@@ -60,15 +62,19 @@ export async function listDevices(filters?: DeviceQueryInput) {
     where,
     include: {
       site: { select: { id: true, name: true, code: true } },
-      _count: { select: { cameras: true } },
+      cameras: { where: { deletedAt: null }, select: { channelNumber: true, enabled: true } },
     },
     orderBy: { name: 'asc' },
   });
 
-  return devices.map((d) => ({
+  return devices.map(({ cameras, ...d }) => ({
     ...d,
     passwordEncrypted: d.passwordEncrypted ? '********' : null,
-    cameraCount: d._count.cameras,
+    cameraCount: cameras.length,
+    enabledChannels: cameras
+      .filter((c) => c.enabled && c.channelNumber !== null)
+      .map((c) => c.channelNumber as number)
+      .sort((a, b) => a - b),
   }));
 }
 
@@ -79,6 +85,7 @@ export async function getDeviceById(id: string) {
     include: {
       site: true,
       cameras: {
+        where: { deletedAt: null },
         select: {
           id: true,
           name: true,
@@ -106,6 +113,11 @@ export async function getDeviceById(id: string) {
   };
 }
 
+async function assertDeviceNameFree(name: string, exceptId?: string) {
+  const clash = await getPrisma().device.findFirst({ where: { name, ...(exceptId ? { id: { not: exceptId } } : {}) } });
+  if (clash) throw new ConflictError(`Device with name '${name}' already exists`, { code: 'DEVICE_NAME_TAKEN' });
+}
+
 export async function createDevice(input: CreateDeviceInput) {
   const prisma = getPrisma();
 
@@ -113,6 +125,9 @@ export async function createDevice(input: CreateDeviceInput) {
     const site = await prisma.site.findUnique({ where: { id: input.siteId } });
     if (!site) throw new NotFoundError('Site', input.siteId);
   }
+
+  // Channel cameras take their names from the device, so two devices cannot share one.
+  await assertDeviceNameFree(input.name);
 
   const encryptedPassword = input.password ? encrypt(input.password) : null;
 
@@ -139,13 +154,97 @@ export async function createDevice(input: CreateDeviceInput) {
 
   // If autoCreateCameras is requested, provision cameras for each channel
   if (input.autoCreateCameras && input.totalChannels > 0) {
-    await provisionDeviceChannels(device.id);
+    await provisionDeviceChannels(device.id, { enabledChannels: input.enabledChannels });
   }
 
   return {
     ...device,
     passwordEncrypted: device.passwordEncrypted ? '********' : null,
   };
+}
+
+/**
+ * A device's channels are its cameras: they keep its name, reach it at its address with its login, and
+ * follow its channel count. A name someone set by hand is left alone.
+ */
+async function followDeviceChanges(
+  before: { name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
+  after: { id: string; name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
+) {
+  const prisma = getPrisma();
+  const cameras = await prisma.camera.findMany({
+    where: { deviceId: after.id, deletedAt: null, channelNumber: { not: null } },
+    select: { id: true, name: true, channelNumber: true, enabled: true },
+  });
+  if (cameras.length === 0) return;
+
+  const addressChanged = before.brand !== after.brand || before.ipAddress !== after.ipAddress || before.rtspPort !== after.rtspPort
+    || before.username !== after.username || before.passwordEncrypted !== after.passwordEncrypted;
+  const password = after.passwordEncrypted ? decrypt(after.passwordEncrypted) : null;
+
+  for (const cam of cameras) {
+    const channel = cam.channelNumber as number;
+    const data: Record<string, unknown> = {};
+    if (before.name !== after.name && cam.name === channelCameraName(before.name, channel)) {
+      const wanted = channelCameraName(after.name, channel);
+      const taken = await prisma.camera.findFirst({ where: { name: wanted, id: { not: cam.id } } });
+      if (!taken) data.name = wanted;
+    }
+    if (addressChanged) {
+      data.ipAddress = after.ipAddress;
+      data.rtspUrl = sealRtspUrl(buildChannelRtspUrl(after.brand, after.ipAddress, after.rtspPort, channel, after.username, password, 'main'));
+      data.rtspUrlSub = sealRtspUrl(buildChannelRtspUrl(after.brand, after.ipAddress, after.rtspPort, channel, after.username, password, 'sub'));
+    }
+    // Fewer channels than before: what is past the end no longer exists on the device.
+    if (channel > after.totalChannels && cam.enabled) {
+      data.enabled = false;
+      data.status = 'inactive';
+      data.operationalStatus = 'unknown';
+    }
+    if (Object.keys(data).length > 0) await prisma.camera.update({ where: { id: cam.id }, data });
+  }
+
+  if (after.totalChannels > before.totalChannels) await provisionDeviceChannels(after.id);
+}
+
+/** Which channels have a camera in use. A channel switched off is not watched, so it raises no alert. */
+export async function setEnabledChannels(deviceId: string, enabledChannels: number[]) {
+  const prisma = getPrisma();
+  const device = await prisma.device.findUnique({ where: { id: deviceId } });
+  if (!device) throw new NotFoundError('Device', deviceId);
+  const tooHigh = enabledChannels.filter((ch) => ch > device.totalChannels);
+  if (tooHigh.length > 0) {
+    throw new ValidationError(`This device has ${device.totalChannels} channels; it has no channel ${tooHigh[0]}`);
+  }
+
+  await provisionDeviceChannels(deviceId, { enabledChannels });
+
+  const wanted = new Set(enabledChannels);
+  const cameras = await prisma.camera.findMany({
+    where: { deviceId, deletedAt: null, channelNumber: { not: null } },
+    select: { id: true, channelNumber: true, enabled: true },
+  });
+  const changed: Array<{ channel: number; enabled: boolean }> = [];
+  for (const cam of cameras) {
+    const channel = cam.channelNumber as number;
+    const enabled = wanted.has(channel);
+    if (enabled === cam.enabled) continue;
+    await prisma.camera.update({
+      where: { id: cam.id },
+      data: enabled
+        ? { enabled: true, status: 'active', operationalStatus: 'unknown', operationalSince: new Date() }
+        : { enabled: false, status: 'inactive', operationalStatus: 'unknown', operationalSince: new Date() },
+    });
+    // An alert about a camera that was switched off on purpose has nothing left to report.
+    if (!enabled) {
+      await prisma.alert.updateMany({
+        where: { source: cam.id, alertType: 'camera_offline', resolvedAt: null },
+        data: { resolvedAt: new Date() },
+      });
+    }
+    changed.push({ channel, enabled });
+  }
+  return { deviceId, changed, enabledChannels: [...wanted].sort((a, b) => a - b) };
 }
 
 export async function updateDevice(id: string, input: UpdateDeviceInput) {
@@ -158,6 +257,8 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
     const site = await prisma.site.findUnique({ where: { id: input.siteId } });
     if (!site) throw new NotFoundError('Site', input.siteId);
   }
+
+  if (input.name !== undefined && input.name !== existing.name) await assertDeviceNameFree(input.name, id);
 
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;
@@ -182,6 +283,8 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
     data,
     include: { site: true },
   });
+
+  await followDeviceChanges(existing, updated);
 
   return {
     ...updated,
@@ -208,7 +311,7 @@ export async function deleteDevice(id: string) {
 /**
  * Automatically creates Camera entities for any channel 1..totalChannels that doesn't yet exist.
  */
-export async function provisionDeviceChannels(deviceId: string) {
+export async function provisionDeviceChannels(deviceId: string, opts: { enabledChannels?: number[] } = {}) {
   const prisma = getPrisma();
   const device = await prisma.device.findUnique({
     where: { id: deviceId },
@@ -227,9 +330,14 @@ export async function provisionDeviceChannels(deviceId: string) {
       const rtspUrl = buildChannelRtspUrl(device.brand, device.ipAddress, device.rtspPort, ch, device.username, rawPassword, 'main');
       const rtspUrlSub = buildChannelRtspUrl(device.brand, device.ipAddress, device.rtspPort, ch, device.username, rawPassword, 'sub');
 
+      // Names stay unique even against a camera in the trash or one added by hand under this name.
+      const wantedName = channelCameraName(device.name, ch);
+      const nameTaken = await prisma.camera.findFirst({ where: { name: wantedName }, select: { id: true } });
+      const inUse = !opts.enabledChannels || opts.enabledChannels.includes(ch);
       const cam = await prisma.camera.create({
         data: {
-          name: `${device.name} - Ch ${ch}`,
+          name: nameTaken ? `${wantedName} (${device.id.slice(0, 4)})` : wantedName,
+          enabled: inUse,
           deviceId: device.id,
           channelNumber: ch,
           ipAddress: device.ipAddress,
@@ -237,7 +345,7 @@ export async function provisionDeviceChannels(deviceId: string) {
           rtspUrlSub: sealRtspUrl(rtspUrlSub),
           streamPath,
           siteId: device.siteId,
-          status: 'active', // the health monitor decides online or offline from the device itself
+          status: inUse ? 'active' : 'inactive', // the health monitor decides online or offline from the device itself
           operationalStatus: 'unknown',
         },
       });
@@ -264,7 +372,18 @@ export interface DeviceVendorTemplate {
   description: string;
 }
 
+/** Brands added in master data, with their own stream patterns. Kept in memory because URLs are built synchronously. */
+let customTemplates: DeviceVendorTemplate[] = [];
+export function setCustomDeviceTemplates(templates: DeviceVendorTemplate[]) {
+  customTemplates = templates;
+}
+
 export function getDeviceTemplates(): DeviceVendorTemplate[] {
+  const custom = new Set(customTemplates.map((t) => t.brand.toLowerCase()));
+  return [...customTemplates, ...builtInDeviceTemplates().filter((t) => !custom.has(t.brand.toLowerCase()))];
+}
+
+export function builtInDeviceTemplates(): DeviceVendorTemplate[] {
   return [
     {
       brand: 'Hikvision',
@@ -403,13 +522,16 @@ export async function probeDeviceConnection(ip: string, rtspPort = 554, httpPort
 
 export async function bulkImportDevices(devicesInput: CreateDeviceInput[]) {
   const results = [];
+  const failed: Array<{ name: string; message: string }> = [];
   let totalCamerasCreated = 0;
 
   for (const input of devicesInput) {
-    const dev = await createDevice(input);
-    results.push(dev);
-    if (input.autoCreateCameras) {
-      totalCamerasCreated += input.totalChannels;
+    try {
+      const dev = await createDevice(input);
+      results.push(dev);
+      if (input.autoCreateCameras) totalCamerasCreated += input.totalChannels;
+    } catch (err) {
+      failed.push({ name: input.name, message: err instanceof Error ? err.message : 'Failed' });
     }
   }
 
@@ -417,6 +539,7 @@ export async function bulkImportDevices(devicesInput: CreateDeviceInput[]) {
     importedCount: results.length,
     devices: results,
     totalCamerasCreated,
+    failed,
   };
 }
 

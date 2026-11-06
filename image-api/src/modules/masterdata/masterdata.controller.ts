@@ -43,6 +43,7 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
     sortOrder: body.sortOrder !== undefined ? parseInt(String(body.sortOrder), 10) : undefined,
     isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
     isDefault: body.isDefault !== undefined ? Boolean(body.isDefault) : undefined,
+    config: body.config && typeof body.config === 'object' ? (body.config as Record<string, unknown>) : undefined,
   });
   const user = (request as any).user;
   await createAuditLog({
@@ -70,6 +71,7 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
     sortOrder: body.sortOrder !== undefined ? parseInt(String(body.sortOrder), 10) : undefined,
     isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
     isDefault: body.isDefault !== undefined ? Boolean(body.isDefault) : undefined,
+    config: body.config !== undefined ? (body.config as Record<string, unknown> | null) : undefined,
   });
   const user = (request as any).user;
   await createAuditLog({
@@ -100,8 +102,17 @@ async function deleteHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.status(204).send();
 }
 
+async function optionsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const type = String((request.query as Record<string, string>).type);
+  if (!masterdataService.OPTION_TYPES.includes(type as any)) {
+    return reply.status(400).send({ statusCode: 400, error: 'BadRequest', message: 'Invalid type' });
+  }
+  return reply.send(await masterdataService.listMasterdataOptions(type as any));
+}
+
 export async function masterdataRoutes(app: FastifyInstance): Promise<void> {
   app.get('/', { preHandler: [app.authenticate, requirePermission('masterdata:read')] }, listHandler);
+  app.get('/options', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, optionsHandler);
   app.get('/:id', { preHandler: [app.authenticate, requirePermission('masterdata:read')] }, getByIdHandler);
   app.post('/', { preHandler: [app.authenticate, requirePermission('masterdata:create')] }, createHandler);
   app.patch('/:id', { preHandler: [app.authenticate, requirePermission('masterdata:update')] }, updateHandler);

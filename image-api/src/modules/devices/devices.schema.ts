@@ -20,6 +20,8 @@ export const createDeviceSchema = z.object({
   siteId: z.guid().optional().nullable(),
   // Option to auto-provision camera channels upon device creation
   autoCreateCameras: z.boolean().default(false),
+  // Channels with a camera in use; the others are created switched off. Left out: all of them.
+  enabledChannels: z.array(z.number().int().min(1).max(256)).max(256).optional(),
 });
 
 export const updateDeviceSchema = z.object({
@@ -55,6 +57,10 @@ export const probeDeviceSchema = z.object({
 
 export const bulkImportDeviceSchema = z.object({
   devices: z.array(createDeviceSchema).min(1).max(100),
+});
+
+export const deviceChannelsSchema = z.object({
+  enabledChannels: z.array(z.number().int().min(1).max(256)).max(256),
 });
 
 export type CreateDeviceInput = z.infer<typeof createDeviceSchema>;

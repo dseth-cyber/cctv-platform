@@ -38,6 +38,12 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "cameraType": "摄像机类型",
+      "cameraTypeNone": "未指定",
+      "columnDevice": "设备",
+      "columns": "列",
+      "manageList": "管理列表",
+      "switchedOff": "已停用",
       "title": "摄像头管理",
       "subtitle": "监控和管理所有摄像头源",
       "newCamera": "添加摄像头",
@@ -470,6 +476,19 @@
       "cameraGroups": "摄像机分组"
     },
     "masterdataManagement": {
+      "tabCameraType": "摄像机类型",
+      "tabDeviceBrand": "设备品牌",
+      "tabChannelCount": "通道数量",
+      "hint_camera_type": "摄像机页面\"摄像机类型\"的选项。使用中的值不能删除，但可以停用以从列表隐藏",
+      "hint_device_brand": "设备和摄像机的品牌选项。新品牌需要填写码流路径，系统才知道如何连接",
+      "hint_device_channel_count": "添加设备时的通道数选项。代码为通道数，1 至 256",
+      "brandPatternHelp": "用 {channel} 表示通道号，具体值见厂商手册。系统已知的品牌可留空",
+      "brandMainPattern": "主码流路径",
+      "brandSubPattern": "子码流路径",
+      "error_MASTERDATA_IN_USE": "有 {{uses}} 条记录使用此值，不能删除或修改代码，请改为停用",
+      "error_BRAND_PATTERN_REQUIRED": "新品牌需要填写主码流和子码流路径",
+      "error_BRAND_PATTERN_INVALID": "路径须以 / 开头，且不能有空格或引号",
+      "error_CHANNEL_COUNT_INVALID": "代码必须是 1 至 256 的通道数",
       "title": "主数据管理",
       "subtitle": "管理 iSmart CCTV 的参考数据实体",
       "tabIncidentReason": "事件原因",
@@ -2354,6 +2373,21 @@
       "estimateResourcesAt": "估算 10、50、200、500、1000 个通道的资源用量，用于规划硬件、网卡带宽和磁盘容量"
     },
     "deviceManagement": {
+      "channelsInUse": "使用 {{n}} / {{total}} 个通道",
+      "channelsInUseShort": "使用中的通道",
+      "channelsAll": "全选",
+      "channelsNone": "全不选",
+      "channelN": "通道 {{n}}",
+      "channelsSave": "保存通道",
+      "channelsSaved": "通道已保存",
+      "channelOff": "已停用",
+      "channelOnline": "在线",
+      "channelOffline": "离线",
+      "channelChecking": "检查中",
+      "channelsHint": "取消勾选未接摄像机的通道。系统不检查也不报警，从而区分已停用的通道和损坏的摄像机",
+      "exportCsv": "导出 CSV",
+      "exportCsvHint": "列与导入文件相同，但不含密码，导入前须自行填写",
+      "downloadTemplate": "下载模板",
       "deviceAddedSuccessfully": "设备已添加",
       "failedToCreateDevice": "创建设备失败",
       "deviceUpdated": "设备已更新",
@@ -2740,6 +2774,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "openPlayback": "查看此摄像机的录像",
       "focusHint": "单个摄像机全屏显示 · 双击或按 Esc 返回",
       "focusClose": "关闭",
       "mainStreamFellBack": "此浏览器无法打开主码流，已改为显示子码流",

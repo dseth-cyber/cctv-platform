@@ -14,6 +14,7 @@ export function cameraSearchText(cam: any, statusLabel = ''): string {
     cam.device?.deviceType,
     cam.device?.ipAddress,
     cam.metadata?.connection?.brand,
+    cam.cameraType,
     cam.site?.name,
     cam.site?.code,
     cam.zone?.name,

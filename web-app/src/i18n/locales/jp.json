@@ -38,6 +38,12 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "cameraType": "カメラの種類",
+      "cameraTypeNone": "未指定",
+      "columnDevice": "機器",
+      "columns": "列",
+      "manageList": "一覧を管理",
+      "switchedOff": "無効",
       "title": "カメラ管理",
       "subtitle": "すべてのカメラソースの監視と管理",
       "newCamera": "カメラを追加",
@@ -470,6 +476,19 @@
       "cameraGroups": "カメラグループ"
     },
     "masterdataManagement": {
+      "tabCameraType": "カメラの種類",
+      "tabDeviceBrand": "機器のブランド",
+      "tabChannelCount": "チャンネル数",
+      "hint_camera_type": "カメラページ「カメラの種類」の選択肢です。使用中の値は削除できませんが、無効にして一覧から隠せます",
+      "hint_device_brand": "機器とカメラのブランドの選択肢です。新しいブランドには接続方法を示すストリームパスが必要です",
+      "hint_device_channel_count": "機器追加時のチャンネル数の選択肢です。コードはチャンネル数（1〜256）です",
+      "brandPatternHelp": "チャンネル番号は {channel} で表します。値はメーカーの資料を参照してください。既知のブランドは空欄で構いません",
+      "brandMainPattern": "メインストリームのパス",
+      "brandSubPattern": "サブストリームのパス",
+      "error_MASTERDATA_IN_USE": "{{uses}} 件で使用中のため、削除やコード変更はできません。無効にしてください",
+      "error_BRAND_PATTERN_REQUIRED": "新しいブランドにはメインとサブのストリームパスが必要です",
+      "error_BRAND_PATTERN_INVALID": "パスは / で始め、空白や引用符は使えません",
+      "error_CHANNEL_COUNT_INVALID": "コードは 1〜256 のチャンネル数にしてください",
       "title": "マスタデータ管理",
       "subtitle": "iSmart CCTV の参照データエンティティを管理",
       "tabIncidentReason": "インシデント理由",
@@ -2354,6 +2373,21 @@
       "estimateResourcesAt": "10・50・200・500・1000 チャンネルでのリソースを見積もり、ハードウェア、NIC 帯域、ディスク容量を決めます"
     },
     "deviceManagement": {
+      "channelsInUse": "{{total}} チャンネル中 {{n}} を使用",
+      "channelsInUseShort": "使用チャンネル",
+      "channelsAll": "すべて選択",
+      "channelsNone": "選択解除",
+      "channelN": "Ch {{n}}",
+      "channelsSave": "チャンネルを保存",
+      "channelsSaved": "チャンネルを保存しました",
+      "channelOff": "無効",
+      "channelOnline": "オンライン",
+      "channelOffline": "オフライン",
+      "channelChecking": "確認中",
+      "channelsHint": "カメラのないチャンネルはチェックを外してください。監視も通知もしないため、無効のチャンネルと故障したカメラを区別できます",
+      "exportCsv": "CSV を書き出す",
+      "exportCsvHint": "取り込みと同じ列ですがパスワードは含みません。取り込み前に入力してください",
+      "downloadTemplate": "テンプレートをダウンロード",
       "deviceAddedSuccessfully": "デバイスを追加しました",
       "failedToCreateDevice": "デバイスの作成に失敗しました",
       "deviceUpdated": "デバイスを更新しました",
@@ -2740,6 +2774,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "openPlayback": "このカメラの録画を見る",
       "focusHint": "1 台を大きく表示中 · ダブルクリックまたは Esc で戻ります",
       "focusClose": "閉じる",
       "mainStreamFellBack": "このブラウザではメインストリームを開けないため、サブストリームを表示しています",

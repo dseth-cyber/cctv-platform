@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -42,6 +43,7 @@ const emptyForm = () => ({
   brand: 'auto', rtspPort: '554', channel: '1', username: 'admin', password: '',
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
+  cameraType: '',
 });
 
 // Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
@@ -77,6 +79,20 @@ export default function ImageServiceCameras() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { options: cameraTypeOptions } = useMasterdataOptions('camera_type');
+  const cameraTypeLabel = (code?: string | null) => (code ? cameraTypeOptions.find((o) => o.value === code)?.label ?? code : '—');
+
+  // Which columns this person wants, in this browser. The ones a CCTV operator rarely needs start hidden.
+  const columnsKey = `cctv_camera_columns:${(user as any)?.id ?? (user as any)?.username ?? 'anon'}`;
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(columnsKey) ?? 'null');
+      return Array.isArray(saved) ? saved : ['retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+    } catch {
+      return ['retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+    }
+  });
+  const showColumn = (key: string) => !hiddenColumns.includes(key);
   const canUpdate = hasPermission(user, 'cameras:update');
   const canDelete = hasPermission(user, 'cameras:delete');
   const hasUsersPermission = hasPermission(user, 'users:read');
@@ -267,6 +283,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
+      cameraType: item.cameraType ?? '',
     };
   };
 
@@ -341,6 +358,7 @@ export default function ImageServiceCameras() {
           templateId: form.templateId || null,
           slaTargetPercent: form.slaTargetPercent === '' ? null : parseFloat(form.slaTargetPercent),
           recordingMode: form.recordingMode,
+          cameraType: form.cameraType || null,
         };
         if (simple) {
           payload.connection = {
@@ -879,16 +897,34 @@ export default function ImageServiceCameras() {
     no: idx + 1,
     name: camera.name,
     ipAddress: camera.ipAddress,
+    cameraType: cameraTypeLabel(camera.cameraType),
+    description: camera.description ?? '',
+    device: camera.device?.name ?? '',
     status: camera.status,
     lastPolledAt: camera.lastPolledAt ? new Date(camera.lastPolledAt).toLocaleString() : '-',
     createdAt: camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '-',
     createdBy: camera.createdBy || '-',
-  })), [sorted, i18n.language]);
+  })), [sorted, i18n.language, cameraTypeOptions]);
+
+  const cameraColumns = [
+    { key: 'cameraType', label: t('imageService.cameras.cameraType') },
+    { key: 'description', label: t('imageService.cameras.description') },
+    { key: 'device', label: t('imageService.cameras.columnDevice') },
+    { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
+    { key: 'retentionPolicy', label: t('imageService.cameras.retentionPolicy') },
+    { key: 'status', label: t('imageService.cameras.status') },
+    { key: 'lastPoll', label: t('imageService.cameras.lastPoll') },
+    { key: 'dateAdded', label: t('imageService.cameras.dateAdded') },
+    { key: 'createdBy', label: t('imageService.cameras.createdBy') },
+  ];
 
   const cameraExportColumns = [
     { key: 'no', label: '#' },
     { key: 'name', label: t('imageService.cameras.cameraName') },
     { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
+    { key: 'cameraType', label: t('imageService.cameras.cameraType') },
+    { key: 'description', label: t('imageService.cameras.description') },
+    { key: 'device', label: t('imageService.cameras.columnDevice') },
     { key: 'status', label: t('imageService.cameras.status') },
     { key: 'lastPolledAt', label: t('imageService.cameras.lastPoll') },
     { key: 'createdAt', label: t('imageService.cameras.dateAdded') },
@@ -896,7 +932,7 @@ export default function ImageServiceCameras() {
   ];
 
   const isNameDuplicate = form.name ? cameras.some((c: any) => c.id !== modal.item?.id && c.name.trim().toLowerCase() === form.name.trim().toLowerCase()) : false;
-  const ipDupCamera = form.ipAddress ? cameras.find((c: any) => c.id !== modal.item?.id && (c.ipAddress ?? '').trim() === form.ipAddress.trim()) : null;
+  const ipDupCamera = form.ipAddress ? cameras.find((c: any) => c.id !== modal.item?.id && (c.ipAddress ?? '').trim() === form.ipAddress.trim() && !(c.deviceId && c.deviceId === modal.item?.deviceId)) : null;
 
   return (
     <div className="pt-6 px-6 pb-2.5">
@@ -935,6 +971,22 @@ export default function ImageServiceCameras() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
+          <ColumnSelector
+            align="left"
+            reorderable={false}
+            label={t('imageService.cameras.columns')}
+            columns={cameraColumns}
+            order={cameraColumns.map((c) => c.key)}
+            hidden={hiddenColumns}
+            onChange={(_order, hidden) => {
+              setHiddenColumns(hidden);
+              try {
+                localStorage.setItem(columnsKey, JSON.stringify(hidden));
+              } catch {
+                // Only a convenience: the choice still applies for this visit.
+              }
+            }}
+          />
           <div className="relative">
             <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${themeConfig.text.secondary}`} />
             <input value={search} onChange={e => setSearch(e.target.value)}
@@ -1010,30 +1062,45 @@ export default function ImageServiceCameras() {
                   <div className="flex items-center gap-1">{t('imageService.cameras.cameraName')}
                     {sortCol === 'name' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                {showColumn('cameraType') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraType')}</th>}
+                {showColumn('description') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.description')}</th>}
+                {showColumn('device') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.columnDevice')}</th>}
+                {showColumn('ipAddress') && (
                 <th onClick={() => handleSort('ipAddress')} className={thCls('ipAddress')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.ipAddress')}
                     {sortCol === 'ipAddress' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
+                {showColumn('retentionPolicy') && (
                 <th onClick={() => handleSort('retentionPolicy')} className={thCls('retentionPolicy')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.retentionPolicy')}
                     {sortCol === 'retentionPolicy' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
+                {showColumn('status') && (
                 <th onClick={() => handleSort('status')} className={thCls('status')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.status')}
                     {sortCol === 'status' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
+                {showColumn('lastPoll') && (
                 <th onClick={() => handleSort('lastPoll')} className={thCls('lastPoll')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.lastPoll')}
                     {sortCol === 'lastPoll' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
+                {showColumn('dateAdded') && (
                 <th onClick={() => handleSort('dateAdded')} className={thCls('dateAdded')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.dateAdded')}
                     {sortCol === 'dateAdded' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
+                {showColumn('createdBy') && (
                 <th onClick={() => handleSort('createdBy')} className={thCls('createdBy')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.createdBy')}
                     {sortCol === 'createdBy' ? sortDir === 'asc' ? <ChevronUp size={11} className="text-cyan-400" /> : <ChevronDown size={11} className="text-cyan-400" /> : <ChevronsUpDown size={11} className="opacity-25" />}</div>
                 </th>
+                )}
                 <th className={`px-4 py-3 text-center text-sm font-semibold ${themeConfig.text.primary}`}>{t('common.actions')}</th>
               </tr>
             </thead>
@@ -1076,7 +1143,11 @@ export default function ImageServiceCameras() {
                         )}
                       </div>
                     </td>
-                    <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>
+                    {showColumn('cameraType') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraTypeLabel(camera.cameraType)}</td>}
+                    {showColumn('description') && <td className={`px-4 py-3 text-sm max-w-xs truncate ${themeConfig.text.secondary}`} title={camera.description ?? ''}>{camera.description || '—'}</td>}
+                    {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}
+                    {showColumn('ipAddress') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>}
+                    {showColumn('retentionPolicy') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {(() => {
                         const p = (policies as any[]).find((rp: any) => rp.id === camera.retentionPolicyId);
@@ -1091,6 +1162,8 @@ export default function ImageServiceCameras() {
                         return translationKey ? t(translationKey) : p.name;
                       })()}
                     </td>
+                    )}
+                    {showColumn('status') && (
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <span
@@ -1111,17 +1184,27 @@ export default function ImageServiceCameras() {
                           {t(`imageService.cameras.${camera.status}`)}
                           {canUpdate && <ChevronDown size={10} className="ml-0.5 opacity-60" />}
                         </button>
+                        {camera.enabled === false && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] border border-slate-600 text-slate-400">{t('imageService.cameras.switchedOff')}</span>
+                        )}
                       </div>
                     </td>
+                    )}
+                    {showColumn('lastPoll') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {camera.lastPolledAt ? formatDateTime(camera.lastPolledAt, i18n.language) : '—'}
                     </td>
+                    )}
+                    {showColumn('dateAdded') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '—'}
                     </td>
+                    )}
+                    {showColumn('createdBy') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {camera.createdBy || '—'}
                     </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => openEdit(camera)}
@@ -1270,6 +1353,16 @@ export default function ImageServiceCameras() {
                 </div>
               </>
             )}
+            <div className="col-span-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={`text-sm font-medium ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraType')}</label>
+                {hasMasterdataPermission && (
+                  <a href="/cctv/masterdata?type=camera_type" onClick={(e) => { e.preventDefault(); navigate('/cctv/masterdata?type=camera_type'); }} className="text-xs text-cyan-400 hover:text-cyan-300">{t('imageService.cameras.manageList')}</a>
+                )}
+              </div>
+              <SearchableSelect value={form.cameraType} showSearch={false} onChange={v => setForm(p => ({ ...p, cameraType: v }))}
+                options={[{ value: '', label: t('imageService.cameras.cameraTypeNone') }, ...cameraTypeOptions.map((o) => ({ value: o.value, label: o.label }))]} />
+            </div>
             <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
               <input type="checkbox" checked={form.recordingMode === 'continuous'}
                 onChange={e => setForm(p => ({ ...p, recordingMode: e.target.checked ? 'continuous' : 'live_only' }))}

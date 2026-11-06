@@ -38,6 +38,12 @@
       "clearSelection": "ရွေးချယ်ထားသည်များ ဖျက်သိမ်းရန်"
     },
     "cameras": {
+      "cameraType": "ကင်မရာအမျိုးအစား",
+      "cameraTypeNone": "မသတ်မှတ်ရသေး",
+      "columnDevice": "စက်",
+      "columns": "ကော်လံများ",
+      "manageList": "စာရင်းစီမံရန်",
+      "switchedOff": "ပိတ်ထားသည်",
       "title": "ကင်မရာစီမံခန့်ခွဲမှု",
       "subtitle": "ကင်မရာအရင်းအမြစ်အားလုံးကို စောင့်ကြည့်စီမံရန်",
       "newCamera": "ကင်မရာအသစ်ထည့်ရန်",
@@ -470,6 +476,19 @@
       "cameraGroups": "ကင်မရာအုပ်စုများ"
     },
     "masterdataManagement": {
+      "tabCameraType": "ကင်မရာအမျိုးအစား",
+      "tabDeviceBrand": "စက်တံဆိပ်",
+      "tabChannelCount": "ချန်နယ်အရေအတွက်",
+      "hint_camera_type": "ကင်မရာစာမျက်နှာရှိ \"ကင်မရာအမျိုးအစား\" ရွေးချယ်စရာများ။ အသုံးပြုနေသောတန်ဖိုးကို မဖျက်နိုင်သော်လည်း ပိတ်၍ ဖျောက်နိုင်သည်",
+      "hint_device_brand": "စက်နှင့် ကင်မရာ၏ တံဆိပ်ရွေးချယ်စရာများ။ တံဆိပ်အသစ်တွင် ချိတ်ဆက်ရန် stream path လိုအပ်သည်",
+      "hint_device_channel_count": "စက်ထည့်ချိန် ချန်နယ်ရွေးချယ်စရာများ။ ကုဒ်သည် ချန်နယ်အရေအတွက် ၁ မှ ၂၅၆",
+      "brandPatternHelp": "ချန်နယ်နံပါတ်အတွက် {channel} ကိုသုံးပါ။ ထုတ်လုပ်သူ၏ လက်စွဲကိုကြည့်ပါ။ စနစ်သိပြီးသားတံဆိပ်ကို ကွက်လပ်ထားနိုင်သည်",
+      "brandMainPattern": "ပင်မ stream path",
+      "brandSubPattern": "ဆပ် stream path",
+      "error_MASTERDATA_IN_USE": "ဤတန်ဖိုးကို မှတ်တမ်း {{uses}} ခု သုံးနေသဖြင့် မဖျက်နိုင်ပါ။ ပိတ်ထားပါ",
+      "error_BRAND_PATTERN_REQUIRED": "တံဆိပ်အသစ်တွင် ပင်မနှင့် ဆပ် stream path လိုအပ်သည်",
+      "error_BRAND_PATTERN_INVALID": "path သည် / ဖြင့်စပြီး နေရာလွတ် သို့မဟုတ် ကိုးကားအမှတ် မပါရ",
+      "error_CHANNEL_COUNT_INVALID": "ကုဒ်သည် ၁ မှ ၂၅၆ ချန်နယ်အရေအတွက် ဖြစ်ရမည်",
       "title": "မာစတာဒေတာစီမံခန့်ခွဲမှု",
       "subtitle": "iSmart CCTV အတွက် ရည်ညွှန်းဒေတာ entities များကို စီမံပါ",
       "tabIncidentReason": "ဖြစ်စဉ်အကြောင်းရင်း",
@@ -2349,6 +2368,21 @@
       "estimateResourcesAt": "Channel 10၊ 50၊ 200၊ 500၊ 1000 တွင် အရင်းအမြစ်များ ခန့်မှန်း၍ Hardware၊ NIC Bandwidth နှင့် Disk ပမာဏ သတ်မှတ်ရန်"
     },
     "deviceManagement": {
+      "channelsInUse": "ချန်နယ် {{total}} အနက် {{n}} သုံးနေသည်",
+      "channelsInUseShort": "သုံးနေသော ချန်နယ်",
+      "channelsAll": "အားလုံးရွေး",
+      "channelsNone": "မရွေးပါ",
+      "channelN": "Ch {{n}}",
+      "channelsSave": "ချန်နယ်သိမ်းရန်",
+      "channelsSaved": "ချန်နယ်သိမ်းပြီး",
+      "channelOff": "ပိတ်ထားသည်",
+      "channelOnline": "အွန်လိုင်း",
+      "channelOffline": "အော့ဖ်လိုင်း",
+      "channelChecking": "စစ်ဆေးနေသည်",
+      "channelsHint": "ကင်မရာမရှိသော ချန်နယ်ကို အမှန်ခြစ်ဖြုတ်ပါ။ စစ်ဆေးခြင်းနှင့် သတိပေးခြင်း မပြုသဖြင့် ပိတ်ထားသောချန်နယ်နှင့် ပျက်နေသောကင်မရာကို ခွဲခြားနိုင်သည်",
+      "exportCsv": "CSV ထုတ်ရန်",
+      "exportCsvHint": "သွင်းသည့်ဖိုင်နှင့် ကော်လံတူသော်လည်း စကားဝှက်မပါပါ။ မသွင်းမီ ဖြည့်ပါ",
+      "downloadTemplate": "နမူနာဖိုင် ရယူရန်",
       "deviceAddedSuccessfully": "စက်ပစ္စည်း ထည့်ပြီးပါပြီ",
       "failedToCreateDevice": "စက်ပစ္စည်း ဖန်တီးမှု မအောင်မြင်ပါ",
       "deviceUpdated": "စက်ပစ္စည်း အပ်ဒိတ်ပြီး",
@@ -2735,6 +2769,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "openPlayback": "ဤကင်မရာ၏ မှတ်တမ်းကို ကြည့်ရန်",
       "focusHint": "ကင်မရာတစ်လုံးကို အပြည့်ပြနေသည် · ပြန်ရန် နှစ်ချက်နှိပ်ပါ သို့မဟုတ် Esc နှိပ်ပါ",
       "focusClose": "ပိတ်ရန်",
       "mainStreamFellBack": "ဤဘရောက်ဇာသည် ပင်မစထရီးမ်ကို ဖွင့်မရသဖြင့် ဆပ်စထရီးမ်ကို ပြသထားသည်",

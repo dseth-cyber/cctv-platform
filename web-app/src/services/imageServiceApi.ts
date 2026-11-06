@@ -330,6 +330,10 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/api-keys/${id}`),
 
     // Masterdata
+    getMasterdataOptions: (type: string): Promise<any[]> =>
+      api.get(`${BASE}/masterdata/options`, { params: { type } }).then((r: any) => r.data),
+    setDeviceChannels: (id: string, enabledChannels: number[]) =>
+      api.put(`${BASE}/devices/${id}/channels`, { enabledChannels }).then((r: any) => r.data),
     getMasterdata: (params: { type: string; page?: number; limit?: number; isActive?: boolean }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/masterdata`, { params, ...options }).then((r: any) => r.data),
 

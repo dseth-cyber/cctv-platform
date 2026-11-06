@@ -31,7 +31,12 @@ import {
   WifiOff,
   Loader2,
 } from 'lucide-react';
-import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { ChannelChecklist } from '@/components/cctv/ChannelChecklist';
+import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
+import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/App';
+import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib/csv';
 
 import { useTranslation } from 'react-i18next';
 export default function DeviceManagement() {
@@ -79,6 +84,12 @@ export default function DeviceManagement() {
     totalChannels: 16,
     autoCreateCameras: true,
   });
+  // Channels with a camera in use, for a new device. Null: all of them, following the channel count.
+  const [enabledChannels, setEnabledChannels] = useState<number[] | null>(null);
+  const { user } = useAuth();
+  const canEditChannels = hasPermission(user, 'cameras:update');
+  const { options: brandOptions } = useMasterdataOptions('device_brand');
+  const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
 
   // Queries
   const { data: devices = [], isLoading, refetch } = useQuery({
@@ -89,12 +100,6 @@ export default function DeviceManagement() {
   const { data: templates = [] } = useQuery({
     queryKey: ['cctv-device-templates'],
     queryFn: () => imageServiceApi.getDeviceTemplates(),
-  });
-
-  const { data: streamInfo, isLoading: isLoadingStream } = useQuery({
-    queryKey: ['camera-stream', previewCamera?.id],
-    queryFn: () => (previewCamera ? imageServiceApi.getCameraStream(previewCamera.id) : null),
-    enabled: Boolean(previewCamera?.id),
   });
 
   // Mutations
@@ -155,7 +160,7 @@ export default function DeviceManagement() {
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
       setBulkImportResult(res);
-      toast.success(t('ui.deviceManagement.bulkImportCompletedDevicesCreatedChannels', { createdCount: res.createdCount, provisionedCamerasCount: res.provisionedCamerasCount }));
+      toast.success(t('ui.deviceManagement.bulkImportCompletedDevicesCreatedChannels', { createdCount: res.importedCount, provisionedCamerasCount: res.totalCamerasCreated }));
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || t('ui.deviceManagement.bulkImportFailed'));
@@ -195,9 +200,9 @@ export default function DeviceManagement() {
         ...prev,
         brand: tpl.brand || vendorName,
         deviceType: tpl.deviceType || prev.deviceType,
-        rtspPort: tpl.rtspPort || prev.rtspPort,
-        httpPort: tpl.httpPort || prev.httpPort,
-        onvifPort: tpl.onvifPort || prev.onvifPort,
+        rtspPort: tpl.defaultRtspPort || prev.rtspPort,
+        httpPort: tpl.defaultHttpPort || prev.httpPort,
+        onvifPort: tpl.defaultOnvifPort || prev.onvifPort,
         username: tpl.defaultUsername || prev.username,
       }));
     } else {
@@ -206,16 +211,13 @@ export default function DeviceManagement() {
   };
 
   const parseCsv = (csvText: string) => {
-    const lines = csvText.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length < 2) {
+    const rows = readCsv(csvText);
+    if (rows.length === 0) {
       setBulkParseErrors(['CSV must contain a header row and at least 1 record']);
       setBulkParsedData([]);
       return;
     }
-
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-    const required = ['name', 'ipaddress'];
-    const missing = required.filter((r) => !headers.includes(r));
+    const missing = ['name', 'ipaddress'].filter((r) => !(r in rows[0]));
     if (missing.length > 0) {
       setBulkParseErrors([`Missing required headers: ${missing.join(', ')}`]);
       setBulkParsedData([]);
@@ -224,20 +226,16 @@ export default function DeviceManagement() {
 
     const items: any[] = [];
     const errors: string[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map((c) => c.trim());
-      if (cols.length === 1 && cols[0] === '') continue;
-      const row: Record<string, any> = {};
-      headers.forEach((h, idx) => {
-        row[h] = cols[idx] !== undefined ? cols[idx] : '';
-      });
-
+    rows.forEach((row, i) => {
       if (!row.name || !row.ipaddress) {
-        errors.push(`Row ${i + 1}: Name and IP address are required`);
-        continue;
+        errors.push(`Row ${i + 2}: Name and IP address are required`);
+        return;
       }
-
+      const channels = parseChannelList(row.enabledchannels);
+      if (row.enabledchannels && !channels) {
+        errors.push(`Row ${i + 2}: enabledChannels must look like 1;2;5`);
+        return;
+      }
       items.push({
         name: row.name,
         ipAddress: row.ipaddress,
@@ -245,30 +243,43 @@ export default function DeviceManagement() {
         deviceType: row.devicetype || 'dvr',
         model: row.model || '',
         serialNumber: row.serialnumber || '',
+        description: row.description || undefined,
         totalChannels: parseInt(row.totalchannels, 10) || 16,
         username: row.username || 'admin',
         password: row.password || '',
         rtspPort: parseInt(row.rtspport, 10) || 554,
         httpPort: parseInt(row.httpport, 10) || 80,
         onvifPort: parseInt(row.onvifport, 10) || 8000,
-        autoCreateCameras:
-          row.autocreatecameras !== undefined
-            ? String(row.autocreatecameras).toLowerCase() === 'true'
-            : true,
+        autoCreateCameras: row.autocreatecameras ? row.autocreatecameras.toLowerCase() === 'true' : true,
+        ...(channels ? { enabledChannels: channels } : {}),
       });
-    }
+    });
 
     setBulkParseErrors(errors);
     setBulkParsedData(items);
   };
 
-  const sampleCsv = `name,ipAddress,brand,deviceType,totalChannels,username,password,rtspPort,httpPort,autoCreateCameras
-Main Gate DVR,192.168.1.101,Hikvision,dvr,16,admin,Pass1234,554,80,true
-Warehouse NVR,192.168.1.102,Dahua,nvr,32,admin,Pass1234,554,80,true
-Office Floor 1 NVR,192.168.1.103,Uniview,nvr,16,admin,Pass1234,554,80,true
-Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
+  const CSV_HEADERS = ['name', 'ipAddress', 'brand', 'deviceType', 'model', 'serialNumber', 'totalChannels', 'enabledChannels', 'username', 'password', 'rtspPort', 'httpPort', 'onvifPort', 'autoCreateCameras', 'description'];
+
+  // The same columns the import reads. Passwords are never included; they are typed into the file before importing it elsewhere.
+  const handleExportCsv = () => {
+    downloadCsv('devices.csv', toCsv(CSV_HEADERS, devices.map((d: any) => ({
+      ...d,
+      enabledChannels: (d.enabledChannels ?? []).join(';'),
+      password: '',
+      autoCreateCameras: 'true',
+    }))));
+  };
+
+  const handleDownloadTemplate = () => downloadCsv('devices-template.csv', sampleCsv);
+
+  const sampleCsv = `name,ipAddress,brand,deviceType,model,serialNumber,totalChannels,enabledChannels,username,password,rtspPort,httpPort,onvifPort,autoCreateCameras,description
+DVR Main Gate,192.168.1.101,Hikvision,dvr,DS-7208HQHI-K1,,8,1;2;3;5,admin,YourPassword,554,80,8000,true,Front gate and parking
+NVR Warehouse,192.168.1.102,Dahua,nvr,,,32,,admin,YourPassword,554,80,,true,
+IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,,true,`;
 
   const resetForm = () => {
+    setEnabledChannels(null);
     setEditingDevice(null);
     setProbeState({ loading: false, result: null, error: null });
     setFormData({
@@ -324,7 +335,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
       delete payload.autoCreateCameras;
       updateMutation.mutate({ id: editingDevice.id, data: payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate({ ...formData, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
     }
   };
 
@@ -341,7 +352,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
 
   // Aggregate stats
   const totalChannelsCount = devices.reduce((sum: number, d: any) => sum + (d.totalChannels || 0), 0);
-  const totalProvisionedCount = devices.reduce((sum: number, d: any) => sum + (d.cameraCount || 0), 0);
+  const totalProvisionedCount = devices.reduce((sum: number, d: any) => sum + (d.enabledChannels?.length ?? 0), 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -374,6 +385,16 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
           >
             <UploadCloud className="w-4 h-4 text-cyan-400" />
             {t('ui.deviceManagement.bulkImportCsv')}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={handleExportCsv}
+            disabled={devices.length === 0}
+            title={t('ui.deviceManagement.exportCsvHint')}
+            className="flex items-center gap-1.5 border border-slate-700 hover:border-cyan-500"
+          >
+            <Download className="w-4 h-4 text-cyan-400" />
+            {t('ui.deviceManagement.exportCsv')}
           </Button>
           <Button variant="secondary" onClick={() => refetch()} className="flex items-center gap-1.5">
             <RefreshCw className="w-4 h-4" />
@@ -535,7 +556,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                         <div className="flex items-center gap-1.5 justify-end">
                           <Camera className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-xs font-semibold text-slate-200">
-                            {dev.cameraCount || 0} / {dev.totalChannels}{' '}{t('ui.deviceManagement.channels')}
+                            {dev.enabledChannels?.length ?? 0} / {dev.totalChannels}{' '}{t('ui.deviceManagement.channelsInUseShort')}
                           </span>
                         </div>
                         {hasUnprovisionedChannels && (
@@ -588,74 +609,7 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                         </span>
                       </div>
 
-                      {/* Live Stream Pop-up / Drawer if camera selected */}
-                      {previewCamera && (
-                        <div className="p-4 bg-slate-900 border border-cyan-800/50 rounded-xl space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-                              {t('ui.deviceManagement.livePreview')}{' '}{previewCamera.name}
-                            </span>
-                            <button
-                              onClick={() => setPreviewCamera(null)}
-                              className="text-xs text-slate-400 hover:text-slate-200"
-                            >
-                              {t('ui.deviceManagement.closePreview')}
-                            </button>
-                          </div>
-                          {streamInfo?.webrtcWhepUrl ? (
-                            <WhepPlayer
-                              streamUrl={streamInfo.webrtcWhepUrl}
-                              cameraName={previewCamera.name}
-                              className="w-full max-w-2xl mx-auto"
-                            />
-                          ) : (
-                            <div className="py-8 text-center text-xs text-slate-400">
-                              {isLoadingStream ? t('ui.deviceManagement.fetchingMediaMTXStreamUrl') : t('ui.deviceManagement.noRtspStreamUrlConfiguredFor')}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Channels Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                        {Array.from({ length: dev.totalChannels }).map((_, idx) => {
-                          const ch = idx + 1;
-                          const isProvisioned = ch <= (dev.cameraCount || 0);
-
-                          return (
-                            <div
-                              key={ch}
-                              onClick={() => {
-                                if (isProvisioned) {
-                                  // Set preview
-                                  setPreviewCamera({
-                                    id: `${dev.id}-ch${ch}`, // Or real camera ID
-                                    name: `${dev.name} - Ch ${ch}`,
-                                  });
-                                }
-                              }}
-                              className={`p-2.5 rounded-lg border text-center transition cursor-pointer select-none ${
-                                isProvisioned
-                                  ? 'bg-slate-900/90 border-slate-700/80 hover:border-cyan-500 hover:bg-slate-800'
-                                  : 'bg-slate-950/40 border-dashed border-slate-800 text-slate-600'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-mono text-slate-400">{t('ui.deviceManagement.ch2')}{' '}{ch}</span>
-                                {isProvisioned ? (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                ) : (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-                                )}
-                              </div>
-                              <p className="text-xs font-semibold text-slate-200 truncate">
-                                {isProvisioned ? t('ui.deviceManagement.cam', { ch }) : t('ui.deviceManagement.empty')}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <DeviceChannelsPanel deviceId={dev.id} canEdit={canEditChannels} />
                     </div>
                   )}
                 </div>
@@ -708,10 +662,8 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                 onChange={(e) => handleTemplateSelect(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value="Hikvision">{t('ui.deviceManagement.hikvisionHiLook')}</option>
-                <option value="Dahua">{t('ui.deviceManagement.dahuaImou')}</option>
-                <option value="Uniview">{t('ui.deviceManagement.univiewUnv')}</option>
-                <option value="Generic">{t('ui.deviceManagement.genericOtherRtsp')}</option>
+                {brandOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {formData.brand && !brandOptions.some((o) => o.value === formData.brand) && <option value={formData.brand}>{formData.brand}</option>}
               </select>
             </div>
 
@@ -730,15 +682,14 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
               <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.totalChannels')}</label>
               <select
                 value={formData.totalChannels}
-                onChange={(e) => setFormData({ ...formData, totalChannels: parseInt(e.target.value, 10) })}
+                onChange={(e) => {
+                  setFormData({ ...formData, totalChannels: parseInt(e.target.value, 10) });
+                  setEnabledChannels(null);
+                }}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value={1}>{t('ui.deviceManagement.n1Channel')}</option>
-                <option value={4}>{t('ui.deviceManagement.n4Channels')}</option>
-                <option value={8}>{t('ui.deviceManagement.n8Channels')}</option>
-                <option value={16}>{t('ui.deviceManagement.n16Channels')}</option>
-                <option value={32}>{t('ui.deviceManagement.n32Channels')}</option>
-                <option value={64}>{t('ui.deviceManagement.n64Channels')}</option>
+                {channelCountOptions.map((o) => <option key={o.value} value={Number(o.value)}>{o.label}</option>)}
+                {!channelCountOptions.some((o) => Number(o.value) === formData.totalChannels) && <option value={formData.totalChannels}>{formData.totalChannels}</option>}
               </select>
             </div>
           </div>
@@ -898,6 +849,16 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
               </label>
             </div>
           )}
+          {!editingDevice && formData.autoCreateCameras && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-slate-400">{t('ui.deviceManagement.channelsHint')}</p>
+              <ChannelChecklist
+                total={formData.totalChannels}
+                enabled={enabledChannels ?? Array.from({ length: formData.totalChannels }, (_, i) => i + 1)}
+                onChange={setEnabledChannels}
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
@@ -968,42 +929,24 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
-                    <p className="text-xl font-bold text-slate-100">{bulkImportResult.createdCount}</p>
+                    <p className="text-xl font-bold text-slate-100">{bulkImportResult.importedCount}</p>
                     <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.devicesCreated')}</p>
                   </div>
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
-                    <p className="text-xl font-bold text-cyan-400">{bulkImportResult.provisionedCamerasCount}</p>
+                    <p className="text-xl font-bold text-cyan-400">{bulkImportResult.totalCamerasCreated}</p>
                     <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.channelsProvisioned')}</p>
                   </div>
                   <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/60">
-                    <p className="text-xl font-bold text-amber-400">{bulkImportResult.skippedCount}</p>
+                    <p className="text-xl font-bold text-amber-400">{bulkImportResult.failed?.length ?? 0}</p>
                     <p className="text-[11px] text-slate-400">{t('ui.deviceManagement.skippedDuplicate')}</p>
                   </div>
                 </div>
-                {bulkImportResult.results?.length > 0 && (
-                  <div className="max-h-48 overflow-y-auto space-y-1.5 text-xs pt-2">
-                    {bulkImportResult.results.map((r: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-2 rounded bg-slate-950/80 border border-slate-800"
-                      >
-                        <span className="font-mono text-slate-300">
-                          {r.name} ({r.ipAddress})
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                            r.status === 'created'
-                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                              : r.status === 'skipped'
-                              ? 'bg-amber-950 text-amber-400 border border-amber-800'
-                              : 'bg-rose-950 text-rose-400 border border-rose-800'
-                          }`}
-                        >
-                          {r.status}: {r.provisionedCameras ? `${r.provisionedCameras} ch` : r.error || 'ok'}
-                        </span>
-                      </div>
+                {bulkImportResult.failed?.length > 0 && (
+                  <ul className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/40 text-xs text-rose-200 space-y-1 max-h-40 overflow-y-auto">
+                    {bulkImportResult.failed.map((f: any, idx: number) => (
+                      <li key={idx}><b>{f.name}</b>: {f.message}</li>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </div>
               <div className="flex justify-end gap-2">
@@ -1033,12 +976,11 @@ Perimeter Cam 01,192.168.1.104,Generic,ip_camera,1,admin,Pass1234,554,80,true`;
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(sampleCsv);
-                      toast.success(t('ui.deviceManagement.sampleCsvCopiedToClipboard'));
+                      handleDownloadTemplate();
                     }}
                     className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 font-medium text-xs flex items-center gap-1 transition"
                   >
-                    <Download className="w-3.5 h-3.5" />{' '}{t('ui.deviceManagement.copySample')}
+                    <Download className="w-3.5 h-3.5" />{' '}{t('ui.deviceManagement.downloadTemplate')}
                   </button>
                 </div>
               </div>

@@ -38,6 +38,12 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "cameraType": "ประเภทกล้อง",
+      "cameraTypeNone": "ไม่ระบุ",
+      "columnDevice": "อุปกรณ์",
+      "columns": "คอลัมน์",
+      "manageList": "จัดการรายการ",
+      "switchedOff": "ปิดใช้งาน",
       "title": "จัดการกล้อง",
       "subtitle": "ตรวจสอบและจัดการกล้องถ่ายภาพทั้งหมด",
       "newCamera": "เพิ่มกล้องใหม่",
@@ -690,6 +696,19 @@
       }
     },
     "masterdataManagement": {
+      "tabCameraType": "ประเภทกล้อง",
+      "tabDeviceBrand": "ยี่ห้ออุปกรณ์",
+      "tabChannelCount": "จำนวนช่องสัญญาณ",
+      "hint_camera_type": "ตัวเลือกในช่อง \"ประเภทกล้อง\" ของหน้าจัดการกล้อง ค่าที่มีกล้องใช้อยู่ลบไม่ได้ แต่ปิดการใช้งานเพื่อซ่อนจากรายการได้",
+      "hint_device_brand": "ตัวเลือกยี่ห้อของอุปกรณ์และกล้อง ยี่ห้อใหม่ต้องระบุ path ของสตรีม เพื่อให้ระบบรู้วิธีต่อกล้อง",
+      "hint_device_channel_count": "ตัวเลือกจำนวนช่องตอนเพิ่มอุปกรณ์ รหัสคือตัวเลขจำนวนช่อง 1–256",
+      "brandPatternHelp": "ใช้ {channel} แทนหมายเลขช่อง ดูค่าจากคู่มือหรือเว็บผู้ผลิต ยี่ห้อที่ระบบรู้จักอยู่แล้วเว้นว่างได้",
+      "brandMainPattern": "Path สตรีมหลัก",
+      "brandSubPattern": "Path สตรีมรอง",
+      "error_MASTERDATA_IN_USE": "มีข้อมูลใช้ค่านี้อยู่ {{uses}} รายการ จึงลบหรือเปลี่ยนรหัสไม่ได้ ให้ปิดการใช้งานแทน",
+      "error_BRAND_PATTERN_REQUIRED": "ยี่ห้อใหม่ต้องระบุ path ของสตรีมหลักและสตรีมรอง",
+      "error_BRAND_PATTERN_INVALID": "path ต้องขึ้นต้นด้วย / และห้ามมีช่องว่างหรือเครื่องหมายคำพูด",
+      "error_CHANNEL_COUNT_INVALID": "รหัสต้องเป็นตัวเลขจำนวนช่อง 1–256",
       "title": "จัดการข้อมูลหลัก",
       "subtitle": "จัดการเอนทิตีข้อมูลอ้างอิงสำหรับ iSmart CCTV",
       "tabIncidentReason": "สาเหตุ Incident",
@@ -2360,6 +2379,21 @@
       "estimateResourcesAt": "คำนวณการใช้ทรัพยากรที่ระดับ 10, 50, 200, 500, 1000 ช่องสัญญาณ เพื่อจัดสรรฮาร์ดแวร์ แบนด์วิดท์ NIC และขนาดฮาร์ดดิสก์"
     },
     "deviceManagement": {
+      "channelsInUse": "ใช้งาน {{n}} จาก {{total}} ช่อง",
+      "channelsInUseShort": "ช่องที่ใช้งาน",
+      "channelsAll": "เลือกทั้งหมด",
+      "channelsNone": "ไม่เลือกเลย",
+      "channelN": "ช่อง {{n}}",
+      "channelsSave": "บันทึกช่องสัญญาณ",
+      "channelsSaved": "บันทึกช่องสัญญาณแล้ว",
+      "channelOff": "ปิดใช้งาน",
+      "channelOnline": "ออนไลน์",
+      "channelOffline": "ออฟไลน์",
+      "channelChecking": "กำลังตรวจ",
+      "channelsHint": "เอาเครื่องหมายออกจากช่องที่ไม่ได้ติดกล้อง ระบบจะไม่ตรวจและไม่แจ้งเตือนช่องนั้น จึงแยกได้ว่าช่องไหนปิดใช้งาน และช่องไหนกล้องเสีย",
+      "exportCsv": "ส่งออก CSV",
+      "exportCsvHint": "คอลัมน์ตรงกับไฟล์นำเข้า แต่ไม่มีรหัสผ่าน ต้องกรอกรหัสเองก่อนนำเข้า",
+      "downloadTemplate": "ดาวน์โหลดแม่แบบ",
       "deviceAddedSuccessfully": "เพิ่มอุปกรณ์เรียบร้อย",
       "failedToCreateDevice": "สร้างอุปกรณ์ไม่สำเร็จ",
       "deviceUpdated": "อัปเดตอุปกรณ์แล้ว",
@@ -2746,6 +2780,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "openPlayback": "ดูย้อนหลังกล้องนี้",
       "focusHint": "แสดงกล้องเดียวเต็มจอ · ดับเบิลคลิกหรือกด Esc เพื่อกลับ",
       "focusClose": "ปิด",
       "mainStreamFellBack": "เบราว์เซอร์นี้เปิดสตรีมหลักไม่ได้ จึงแสดงสตรีมรองแทน",

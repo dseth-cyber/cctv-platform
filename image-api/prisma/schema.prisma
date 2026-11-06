@@ -417,6 +417,8 @@ model Camera {
   streamPath             String?                 @unique @map("stream_path") @db.VarChar(128)
   // live_only: pulled from the camera/DVR only while someone watches, never recorded here (the
   // DVR/NVR keeps its own HDD). continuous: pulled all the time and recorded on this server.
+  // Code from masterdata type camera_type.
+  cameraType             String?                 @map("camera_type") @db.VarChar(64)
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
@@ -593,6 +595,8 @@ model Masterdata {
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   isDefault   Boolean  @default(false) @map("is_default")
+  // Extra settings of a type, e.g. the RTSP patterns of a device_brand.
+  config      Json?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

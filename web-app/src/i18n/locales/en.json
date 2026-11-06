@@ -38,6 +38,12 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "cameraType": "Camera type",
+      "cameraTypeNone": "Not set",
+      "columnDevice": "Device",
+      "columns": "Columns",
+      "manageList": "Manage list",
+      "switchedOff": "Switched off",
       "title": "Camera Management",
       "subtitle": "Monitor and manage all camera sources",
       "newCamera": "Add Camera",
@@ -690,6 +696,19 @@
       }
     },
     "masterdataManagement": {
+      "tabCameraType": "Camera types",
+      "tabDeviceBrand": "Device brands",
+      "tabChannelCount": "Channel counts",
+      "hint_camera_type": "The choices for \"Camera type\" on the camera page. A value in use cannot be deleted, but switching it off hides it from the list",
+      "hint_device_brand": "The brand choices for devices and cameras. A new brand needs its stream paths so the system knows how to reach its cameras",
+      "hint_device_channel_count": "The channel choices when adding a device. The code is the number of channels, 1 to 256",
+      "brandPatternHelp": "Use {channel} for the channel number; the values are in the maker's manual. Brands the system already knows can be left blank",
+      "brandMainPattern": "Main stream path",
+      "brandSubPattern": "Sub stream path",
+      "error_MASTERDATA_IN_USE": "{{uses}} records use this value, so it cannot be deleted or recoded. Switch it off instead",
+      "error_BRAND_PATTERN_REQUIRED": "A new brand needs its main and sub stream paths",
+      "error_BRAND_PATTERN_INVALID": "A path starts with / and holds no spaces or quotes",
+      "error_CHANNEL_COUNT_INVALID": "The code must be a channel count from 1 to 256",
       "title": "Masterdata Management",
       "subtitle": "Manage reference data entities for the iSmart CCTV",
       "tabIncidentReason": "Incident Reason",
@@ -2357,6 +2376,21 @@
       "estimateResourcesAt": "Estimate resources at 10, 50, 200, 500 and 1000 channels to size hardware, NIC bandwidth and disk capacity"
     },
     "deviceManagement": {
+      "channelsInUse": "{{n}} of {{total}} channels in use",
+      "channelsInUseShort": "channels in use",
+      "channelsAll": "Select all",
+      "channelsNone": "Select none",
+      "channelN": "Ch {{n}}",
+      "channelsSave": "Save channels",
+      "channelsSaved": "Channels saved",
+      "channelOff": "Switched off",
+      "channelOnline": "Online",
+      "channelOffline": "Offline",
+      "channelChecking": "Checking",
+      "channelsHint": "Untick channels with no camera. They are not checked and raise no alerts, so a channel switched off stays distinct from a broken camera",
+      "exportCsv": "Export CSV",
+      "exportCsvHint": "Same columns as the import, without passwords: type them in before importing",
+      "downloadTemplate": "Download template",
       "deviceAddedSuccessfully": "Device added successfully",
       "failedToCreateDevice": "Failed to create device",
       "deviceUpdated": "Device updated",
@@ -2743,6 +2777,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "openPlayback": "Recordings of this camera",
       "focusHint": "One camera at full size · double-click or press Esc to go back",
       "focusClose": "Close",
       "mainStreamFellBack": "This browser could not open the main stream, so the sub stream is shown instead",

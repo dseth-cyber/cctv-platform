@@ -24,6 +24,17 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06, รอบ 8) — ความต้องการเพิ่มจากการทดสอบของผู้ใช้
+
+- Dev DB backup: `C:\Users\SC34111\AppData\Local\Temp\claude\6d244687310e9a00\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_masterdata_lists.dump`; คอลัมน์ใหม่ `cameras.camera_type`, `masterdata.config` (เพิ่มอย่างเดียว ไม่กระทบข้อมูลเดิม); ต้องรัน `image-api-migrate` ก่อน `image-api` เพราะ `--no-deps` ไม่รันให้
+- ข้อมูลหลัก: แท็บใหม่ `camera_type`, `device_brand`, `device_channel_count`; `GET /masterdata/options` อ่านได้ด้วย `cameras:read`; เติมค่าเริ่มต้นตอนเริ่มระบบเฉพาะเมื่อรายการนั้นว่าง จึงไม่คืนค่าที่ผู้ใช้ลบไปแล้ว; ค่าที่ถูกใช้อยู่ลบ/เปลี่ยนรหัสไม่ได้ ให้ปิดการใช้งานแทน; ยี่ห้อใหม่ต้องมี path สตรีมใน `config` และระบบใช้สร้าง URL ได้ทันที
+- อุปกรณ์: `PUT /devices/:id/channels`; ช่องที่ปิดคือ `enabled=false` จึงไม่ถูกตรวจสถานะ ไม่แจ้งเตือน ไม่อยู่ในห้องภาพสด และปิด alert `camera_offline` ที่ค้าง; ชื่ออุปกรณ์ห้ามซ้ำ; เปลี่ยนชื่อแล้วชื่อกล้องตาม ยกเว้นชื่อที่ผู้ใช้ตั้งเอง; **เปลี่ยน IP/พอร์ต/ยี่ห้อ/รหัสแล้ว URL ของทุกช่องตาม (เดิมไม่ตาม ทำให้เปลี่ยนรหัส DVR แล้วภาพดับ)**; เพิ่มจำนวนช่องแล้วสร้างกล้องเพิ่ม ลดแล้วปิดช่องที่เกิน
+- นำเข้า/ส่งออกอุปกรณ์: `lib/csv.ts` ใช้คอลัมน์ชุดเดียวกัน, ไม่ส่งออกรหัสผ่าน, กันสูตร Excel, อ่านไฟล์ที่ Excel บันทึกได้; นำเข้าแถวเสียไม่หยุดทั้งไฟล์ และรายงานรายแถว
+- ห้องภาพสด: `hooks/useCameraFavorites.ts`, `components/cctv/CameraQuickActions.tsx`; Layout เก็บใน localStorage แยกตามผู้ใช้ จึงไม่ตามไปเครื่องอื่น
+- `web-app` เพิ่ม `vitest` เป็น devDependency; ตรวจจริง: `api_batch2_test` ผ่าน API จริง, `ui_batch_test` ผ่าน Chrome จริง (ทั้งคู่ผ่านครบ ใช้อุปกรณ์ทดสอบบน 192.0.2.x แล้วลบทิ้ง ไม่แตะ DVR สโตร์), API vitest และ `lib/csv.test.ts` ผ่าน
+- **ยังไม่ได้พิสูจน์:** ยี่ห้อที่เพิ่มเองกับกล้องของจริง (ทดสอบแค่ URL ที่สร้าง), การนำเข้าไฟล์ CSV ผ่านหน้าเว็บ (ทดสอบ API และตัวอ่านไฟล์แยกกัน), ลดจำนวนช่องบนเครื่องจริง
+
+
 ## งานล่าสุด (2026-11-06, รอบ 7) — เล่นย้อนหลังจาก HDD ของ DVR และห้องภาพสดตามผลทดสอบของผู้ใช้
 
 - `modules/device-playback`: `GET /device-playback/timeline`, `POST|DELETE /device-playback/sessions`, `POST /device-playback/clips`; เซสชันคือ path `dvrpb_*` ของ MediaMTX แบบ on-demand ที่ไม่บันทึก; `path-sync` ต้องไม่แตะ prefix นี้ (เดิมลบทุก 60 วิ); คนไม่ดู 45 วิถูกปิด; เริ่มระบบใหม่ล้าง path และคลิปที่ค้าง

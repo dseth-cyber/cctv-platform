@@ -1,10 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { createAuditLog } from '../audit/audit.service.js';
+import { syncCameraPaths } from '../media/path-sync.js';
+import { listMasterdataOptions } from '../masterdata/masterdata.service.js';
 import {
   createDeviceSchema,
   updateDeviceSchema,
   deviceQuerySchema,
   probeDeviceSchema,
   bulkImportDeviceSchema,
+  deviceChannelsSchema,
 } from './devices.schema.js';
 import * as devicesService from './devices.service.js';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -16,7 +20,9 @@ async function listDevicesHandler(request: FastifyRequest, reply: FastifyReply) 
 }
 
 async function getDeviceTemplatesHandler(_request: FastifyRequest, reply: FastifyReply) {
-  const templates = devicesService.getDeviceTemplates();
+  // What can be chosen follows master data; a brand switched off there keeps working for what already uses it.
+  const active = new Set((await listMasterdataOptions('device_brand')).map((o) => o.code.toLowerCase()));
+  const templates = devicesService.getDeviceTemplates().filter((t) => active.has(t.brand.toLowerCase()));
   return reply.status(200).send(templates);
 }
 
@@ -62,6 +68,24 @@ async function deleteDeviceHandler(request: FastifyRequest, reply: FastifyReply)
   return reply.status(200).send(res);
 }
 
+async function setChannelsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const { enabledChannels } = deviceChannelsSchema.parse(request.body);
+  const res = await devicesService.setEnabledChannels(id, enabledChannels);
+  const user = (request as any).user;
+  await createAuditLog({
+    userId: user?.id,
+    action: 'update',
+    entity: 'device',
+    entityId: id,
+    description: `Channels in use changed by ${user?.username ?? 'unknown'}`,
+    metadata: { channels: res.changed },
+    ipAddress: request.ip,
+  }).catch(() => {});
+  void syncCameraPaths().catch(() => {});
+  return reply.status(200).send(res);
+}
+
 async function provisionChannelsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const res = await devicesService.provisionDeviceChannels(id);
@@ -69,6 +93,11 @@ async function provisionChannelsHandler(request: FastifyRequest, reply: FastifyR
 }
 
 export async function deviceRoutes(app: FastifyInstance) {
+  app.put(
+    '/:id/channels',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    setChannelsHandler,
+  );
   app.get(
     '/',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },

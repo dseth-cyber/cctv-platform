@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCameraFavorites } from '@/hooks/useCameraFavorites';
+import { CameraQuickActions } from '@/components/cctv/CameraQuickActions';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
@@ -62,15 +65,23 @@ interface SavedPreset {
 
 const FILTER_STORAGE_KEY = 'cctv_live_filter';
 const VIEW_STORAGE_KEY = 'cctv_live_view';
+const LAYOUT_STORAGE_KEY = 'cctv_live_layout';
 // Past this many cameras the page opens on the overview instead of a few tiles.
 const OVERVIEW_DEFAULT_ABOVE = 16;
 
-function readSavedView(): 'overview' | 'grid' | null {
+function readStored(key: string): string | null {
   try {
-    const saved = localStorage.getItem(VIEW_STORAGE_KEY);
-    return saved === 'overview' || saved === 'grid' ? saved : null;
+    return localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+function store(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Only a convenience: the choice still applies for this visit.
   }
 }
 
@@ -88,13 +99,24 @@ export default function LiveGrid() {
   const { themeConfig } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [layout, setLayout] = useState<GridLayout>('2x2');
+  // Each person's last view, in this browser.
+  const { user } = useAuth();
+  const userKey = (user as any)?.id ?? (user as any)?.username ?? 'anon';
+  const viewKey = `${VIEW_STORAGE_KEY}:${userKey}`;
+  const layoutKey = `${LAYOUT_STORAGE_KEY}:${userKey}`;
+  const [layout, setLayout] = useState<GridLayout>(() => {
+    const saved = readStored(layoutKey);
+    return saved === '1x1' || saved === '2x2' || saved === '3x3' || saved === '4x4' ? saved : '2x2';
+  });
   const [activeSlot, setActiveSlot] = useState<number>(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cameraSearch, setCameraSearch] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [cameraFilter, setCameraFilter] = useState(readSavedFilter);
-  const [savedView, setSavedView] = useState(readSavedView);
+  const [savedView, setSavedView] = useState<'overview' | 'grid' | null>(() => {
+    const saved = readStored(viewKey);
+    return saved === 'overview' || saved === 'grid' ? saved : null;
+  });
   const [isWallFullscreen, setIsWallFullscreen] = useState(false);
 
   // Auto-Tour / Patrol Mode state for hundreds of cameras
@@ -148,11 +170,7 @@ export default function LiveGrid() {
   const isOverview = (savedView ?? (cameras.length > OVERVIEW_DEFAULT_ABOVE ? 'overview' : 'grid')) === 'overview';
   const chooseView = (view: 'overview' | 'grid') => {
     setSavedView(view);
-    try {
-      localStorage.setItem(VIEW_STORAGE_KEY, view);
-    } catch {
-      // Only a convenience: the choice still applies for this visit.
-    }
+    store(viewKey, view);
   };
   // The first fill has happened (or was overtaken by a choice), so an empty slot is now the person's choice.
   const filledOnce = useRef(false);
@@ -181,14 +199,12 @@ export default function LiveGrid() {
   };
   const chooseLayout = (next: GridLayout) => {
     setLayout(next);
+    store(layoutKey, next);
     chooseView('grid');
     fillLayout(next);
   };
 
-  const { data: favoriteIds, isLoading: isLoadingFavorites } = useQuery<string[]>({
-    queryKey: ['camera-favorites'],
-    queryFn: () => imageServiceApi.getCameraFavorites(),
-  });
+  const { favorites, isLoading: isLoadingFavorites, toggleFavorite } = useCameraFavorites();
 
   // Double click: one camera at full size in its best quality. The tiles behind it stop streaming meanwhile.
   const [focus, setFocus] = useState<{ cameraId: string; name: string; streamUrl: string; profile: 'main' | 'sub'; hasSub: boolean; fellBack: boolean } | null>(null);
@@ -322,7 +338,7 @@ export default function LiveGrid() {
       selectedSiteFilter === 'all' || c.siteId === selectedSiteFilter;
     return matchesSearch && matchesSite;
   });
-  const filteredCameras = favoritesFirst(applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline), new Set(favoriteIds ?? []));
+  const filteredCameras = favoritesFirst(applyCameraSelection(drawerCameras, cameraFilter.ids, cameraFilter.onlyOffline), favorites);
 
   // Calculate tour pages for hundreds of cameras
   const totalTourPages = Math.max(1, Math.ceil(filteredCameras.length / slotCount));
@@ -726,7 +742,7 @@ export default function LiveGrid() {
           <div
             className="flex-1 min-h-0 relative bg-black"
             onDoubleClick={(e) => {
-              if (!(e.target as HTMLElement).closest('button')) setFocus(null);
+              if (!(e.target as HTMLElement).closest('button, a')) setFocus(null);
             }}
           >
             <WhepPlayer
@@ -747,6 +763,7 @@ export default function LiveGrid() {
             />
             <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300">
               <span className="pointer-events-none">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
+              <CameraQuickActions cameraId={focus.cameraId} isFavorite={favorites.has(focus.cameraId)} onToggleFavorite={toggleFavorite} />
               <button type="button" onClick={() => setFocus(null)} title={t('ui.liveGrid.focusClose')} aria-label={t('ui.liveGrid.focusClose')} className="p-0.5 rounded hover:bg-slate-800 text-slate-200">
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -777,7 +794,7 @@ export default function LiveGrid() {
                   key={cell.slotIndex}
                   onClick={() => setActiveSlot(cell.slotIndex)}
                   onDoubleClick={(e) => {
-                    if ((e.target as HTMLElement).closest('button')) return;
+                    if ((e.target as HTMLElement).closest('button, a')) return;
                     const cam = cameras.find((c: any) => c.id === cell.cameraId);
                     if (cam) openFocus(cam);
                   }}
@@ -805,11 +822,16 @@ export default function LiveGrid() {
                           {t('ui.liveGrid.mainStreamFellBack')}
                         </div>
                       )}
-                      {/* Top Action Buttons (Hover) */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-30">
+                      {/* Top Action Buttons: below the player's badges. A star that is set stays visible. */}
+                      <div className="absolute top-10 right-2 flex items-center gap-1 z-30">
+                        {cell.cameraId && (
+                          <span className={`flex items-center gap-1 transition ${favorites.has(cell.cameraId) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <CameraQuickActions cameraId={cell.cameraId} isFavorite={favorites.has(cell.cameraId)} onToggleFavorite={toggleFavorite} />
+                          </span>
+                        )}
                         <button
                           onClick={(e) => clearSlot(cell.slotIndex, e)}
-                          className="p-1 bg-slate-900/80 hover:bg-rose-900/90 text-slate-300 hover:text-white rounded backdrop-blur transition"
+                          className="p-1 bg-slate-900/80 hover:bg-rose-900/90 text-slate-300 hover:text-white rounded opacity-0 group-hover:opacity-100 transition"
                           title={t('ui.liveGrid.closeCamera')}
                         >
                           <X className="w-3.5 h-3.5" />

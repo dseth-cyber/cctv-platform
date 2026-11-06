@@ -8,9 +8,12 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 
-type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution';
+type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count';
 
 const TABS: { key: TabType; labelKey: string }[] = [
+  { key: 'camera_type', labelKey: 'imageService.masterdataManagement.tabCameraType' },
+  { key: 'device_brand', labelKey: 'imageService.masterdataManagement.tabDeviceBrand' },
+  { key: 'device_channel_count', labelKey: 'imageService.masterdataManagement.tabChannelCount' },
   { key: 'camera_status', labelKey: 'imageService.masterdataManagement.tabCameraStatus' },
   { key: 'incident_reason', labelKey: 'imageService.masterdataManagement.tabIncidentReason' },
   { key: 'incident_root_cause', labelKey: 'imageService.masterdataManagement.tabIncidentRootCause' },
@@ -31,10 +34,10 @@ export default function MasterdataManagement() {
 
   const [searchParams] = useSearchParams();
   const initialTab = TABS.some((tb) => tb.key === searchParams.get('type'))
-    ? (searchParams.get('type') as TabType) : 'camera_status';
+    ? (searchParams.get('type') as TabType) : 'camera_type';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [modal, setModal] = useState<{ open: boolean; editing?: any }>({ open: false });
-  const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false });
+  const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '' });
 
   const { data, isLoading } = useQuery({
     queryKey: ['masterdata', activeTab],
@@ -43,6 +46,14 @@ export default function MasterdataManagement() {
   });
 
   const items: any[] = (data as any)?.data ?? [];
+
+  const saveErrorText = (e: any) => {
+    const details = e?.response?.data?.details;
+    if (details?.code) {
+      return t(`imageService.masterdataManagement.error_${details.code}`, { uses: details.uses, defaultValue: e?.response?.data?.message });
+    }
+    return e?.response?.data?.message || t('common.error');
+  };
 
   const createMutation = useMutation({
     // Invalidate queries so default value updates immediately on cameras form too
@@ -53,7 +64,7 @@ export default function MasterdataManagement() {
       toast.success(t('common.saveSuccess')); 
       setModal({ open: false }); 
     },
-    onError: (e: any) => { if (!e?._handled) toast.error(t('common.error')); },
+    onError: (e: any) => { if (!e?._handled) toast.error(saveErrorText(e)); },
   });
 
   const updateMutation = useMutation({
@@ -64,7 +75,7 @@ export default function MasterdataManagement() {
       toast.success(t('common.saveSuccess')); 
       setModal({ open: false }); 
     },
-    onError: (e: any) => { if (!e?._handled) toast.error(t('common.error')); },
+    onError: (e: any) => { if (!e?._handled) toast.error(saveErrorText(e)); },
   });
 
   const deleteMutation = useMutation({
@@ -74,21 +85,27 @@ export default function MasterdataManagement() {
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] });
       toast.success(t('common.saveSuccess')); 
     },
-    onError: (e: any) => { if (!e?._handled) toast.error(t('common.error')); },
+    onError: (e: any) => { if (!e?._handled) toast.error(saveErrorText(e)); },
   });
 
   const openNew = () => {
-    setForm({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false });
+    setForm({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '' });
     setModal({ open: true, editing: undefined });
   };
 
   const openEdit = (item: any) => {
-    setForm({ code: item.code, nameTh: item.nameTh ?? '', nameEn: item.nameEn ?? '', nameCn: item.nameCn ?? '', nameMm: item.nameMm ?? '', nameJp: item.nameJp ?? '', description: item.description ?? '', sortOrder: item.sortOrder, isActive: item.isActive, isDefault: !!item.isDefault });
+    setForm({ code: item.code, nameTh: item.nameTh ?? '', nameEn: item.nameEn ?? '', nameCn: item.nameCn ?? '', nameMm: item.nameMm ?? '', nameJp: item.nameJp ?? '', description: item.description ?? '', sortOrder: item.sortOrder, isActive: item.isActive, isDefault: !!item.isDefault, mainStreamPattern: item.config?.mainStreamPattern ?? '', subStreamPattern: item.config?.subStreamPattern ?? '', defaultRtspPort: item.config?.defaultRtspPort ?? '', defaultHttpPort: item.config?.defaultHttpPort ?? '' });
     setModal({ open: true, editing: item });
   };
 
   const handleSave = () => {
-    const payload = { ...form, type: activeTab, sortOrder: parseInt(form.sortOrder) || 0 };
+    const { mainStreamPattern, subStreamPattern, defaultRtspPort, defaultHttpPort, ...fields } = form;
+    const payload: Record<string, any> = { ...fields, type: activeTab, sortOrder: parseInt(form.sortOrder) || 0 };
+    if (activeTab === 'device_brand') {
+      payload.config = mainStreamPattern || subStreamPattern
+        ? { mainStreamPattern: mainStreamPattern.trim(), subStreamPattern: subStreamPattern.trim(), defaultRtspPort: parseInt(defaultRtspPort) || 554, defaultHttpPort: parseInt(defaultHttpPort) || 80 }
+        : null;
+    }
     if (modal.editing) {
       updateMutation.mutate({ id: modal.editing.id, data: payload });
     } else {
@@ -114,6 +131,10 @@ export default function MasterdataManagement() {
           </button>
         ))}
       </div>
+
+      {(activeTab === 'camera_type' || activeTab === 'device_brand' || activeTab === 'device_channel_count') && (
+        <p className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t(`imageService.masterdataManagement.hint_${activeTab}`)}</p>
+      )}
 
       <div className={`${themeConfig.card} rounded-lg overflow-hidden`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
@@ -191,6 +212,27 @@ export default function MasterdataManagement() {
               </div>
             ))}
           </div>
+          {activeTab === 'device_brand' && (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-white/10">
+              <p className={`col-span-2 text-xs ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.brandPatternHelp')}</p>
+              <div className="col-span-2">
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.brandMainPattern')}</label>
+                <input value={form.mainStreamPattern} onChange={e => setForm(f => ({ ...f, mainStreamPattern: e.target.value }))} placeholder="/Streaming/Channels/{channel}01" className={`${inputClass} font-mono`} />
+              </div>
+              <div className="col-span-2">
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.brandSubPattern')}</label>
+                <input value={form.subStreamPattern} onChange={e => setForm(f => ({ ...f, subStreamPattern: e.target.value }))} placeholder="/Streaming/Channels/{channel}02" className={`${inputClass} font-mono`} />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>RTSP port</label>
+                <input type="number" min={1} max={65535} value={form.defaultRtspPort} onChange={e => setForm(f => ({ ...f, defaultRtspPort: e.target.value }))} placeholder="554" className={inputClass} />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>HTTP port</label>
+                <input type="number" min={1} max={65535} value={form.defaultHttpPort} onChange={e => setForm(f => ({ ...f, defaultHttpPort: e.target.value }))} placeholder="80" className={inputClass} />
+              </div>
+            </div>
+          )}
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formDescription')}</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}

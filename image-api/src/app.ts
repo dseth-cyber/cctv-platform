@@ -23,6 +23,7 @@ import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
 import { cameraGroupRoutes } from './modules/camera-groups/camera-groups.controller.js';
 import { devicePlaybackRoutes } from './modules/device-playback/device-playback.controller.js';
+import { ensureMasterdataDefaults } from './modules/masterdata/masterdata.service.js';
 import { startDevicePlayback, stopDevicePlayback } from './modules/device-playback/device-playback.service.js';
 import { snapshotRoutes, startSnapshotScheduler, stopSnapshotScheduler } from './modules/snapshots/snapshots.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
@@ -203,6 +204,7 @@ export async function startApp() {
   startCameraPathSync();
   startSnapshotScheduler();
   startDevicePlayback();
+  void ensureMasterdataDefaults().catch((err) => logger.warn({ err: err?.message }, 'Could not prepare master data lists'));
   startSystemCleanup();
   startTelegramBot();
 

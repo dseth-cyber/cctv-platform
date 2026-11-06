@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, ImageIcon, Radio, Star, X } from 'lucide-react';
+import { AlertCircle, ImageIcon, Radio, X } from 'lucide-react';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { chooseLiveCameras } from '@/lib/liveAllocation';
 import { favoritesFirst } from '@/lib/cameraFilter';
+import { useCameraFavorites } from '@/hooks/useCameraFavorites';
+import { CameraQuickActions } from '@/components/cctv/CameraQuickActions';
 import { WhepPlayer } from './WhepPlayer';
 import { SecurityWatermark } from './SecurityWatermark';
 
@@ -80,16 +82,7 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
             <X className="w-3.5 h-3.5" />
           </button>
         )}
-        <button
-          type="button"
-          data-no-focus
-          onClick={() => onToggleFavorite(camera.id)}
-          aria-pressed={isFavorite}
-          title={isFavorite ? t('ui.liveGrid.overview.unstar') : t('ui.liveGrid.overview.star')}
-          className="p-1 rounded bg-slate-950/80 hover:bg-slate-800"
-        >
-          <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}`} />
-        </button>
+        <CameraQuickActions cameraId={camera.id} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
       </div>
     </div>
   );
@@ -101,7 +94,6 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
  */
 export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFocusCamera?: (camera: any) => void }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: settings } = useQuery<any>({
@@ -109,14 +101,10 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
     queryFn: () => imageServiceApi.getSnapshotSettings(),
     staleTime: 60_000,
   });
-  const { data: favoriteIds = [] } = useQuery<string[]>({
-    queryKey: ['camera-favorites'],
-    queryFn: () => imageServiceApi.getCameraFavorites(),
-  });
+  const { favorites, toggleFavorite: handleToggleFavorite } = useCameraFavorites();
   const quota: number = settings?.maxStreamsPerUser ?? 16;
   const staleSeconds: number = settings?.staleSeconds ?? 120;
 
-  const favorites = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   // Starred first; order is otherwise what the filter gave.
   const ordered = useMemo(
     () => favoritesFirst(cameras, favorites),
@@ -301,17 +289,6 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
     });
   }, []);
   const handleClose = useCallback((id: string) => setPinned((prev) => prev.filter((p) => p !== id)), []);
-  const handleToggleFavorite = useCallback(
-    (id: string) => {
-      const isStarred = (queryClient.getQueryData<string[]>(['camera-favorites']) ?? []).includes(id);
-      queryClient.setQueryData<string[]>(['camera-favorites'], (prev = []) => (isStarred ? prev.filter((f) => f !== id) : [...prev, id]));
-      (isStarred ? imageServiceApi.removeCameraFavorite(id) : imageServiceApi.addCameraFavorite(id)).catch(() =>
-        queryClient.invalidateQueries({ queryKey: ['camera-favorites'] }),
-      );
-    },
-    [queryClient],
-  );
-
   const stills = ordered.length - liveIds.size;
   return (
     <div className="relative flex-1 flex flex-col min-h-0">

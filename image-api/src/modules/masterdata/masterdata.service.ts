@@ -1,7 +1,9 @@
+import { Prisma } from '@prisma/client';
 import { getPrisma } from '../../lib/prisma.js';
-import { NotFoundError, ConflictError } from '../../lib/errors.js';
+import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
+import { builtInDeviceTemplates, setCustomDeviceTemplates, type DeviceVendorTemplate } from '../devices/devices.service.js';
 
-export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution'] as const;
+export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
 export async function listMasterdata(params: {
@@ -46,10 +48,13 @@ export interface CreateMasterdataInput {
   sortOrder?: number;
   isActive?: boolean;
   isDefault?: boolean;
+  config?: Record<string, unknown> | null;
 }
 
 export async function createMasterdata(input: CreateMasterdataInput) {
   const prisma = getPrisma();
+  if (input.type === 'device_brand') validateBrand(input.code, input.config);
+  if (input.type === 'device_channel_count') validateChannelCount(input.code);
 
   const existing = await prisma.masterdata.findUnique({
     where: {
@@ -84,8 +89,9 @@ export async function createMasterdata(input: CreateMasterdataInput) {
       sortOrder: input.sortOrder ?? 0,
       isActive: input.isActive ?? true,
       isDefault,
+      ...(input.config ? { config: input.config as object } : {}),
     },
-  });
+  }).then(afterChange);
 }
 
 export interface UpdateMasterdataInput {
@@ -99,6 +105,7 @@ export interface UpdateMasterdataInput {
   sortOrder?: number;
   isActive?: boolean;
   isDefault?: boolean;
+  config?: Record<string, unknown> | null;
 }
 
 export async function updateMasterdata(id: string, input: UpdateMasterdataInput) {
@@ -109,7 +116,16 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
     throw new NotFoundError('Masterdata', id);
   }
 
+  if (existing.type === 'device_brand') {
+    validateBrand(input.code ?? existing.code, input.config !== undefined ? input.config : (existing.config as Record<string, unknown> | null));
+  }
+  if (existing.type === 'device_channel_count' && input.code !== undefined) validateChannelCount(input.code);
+
   if (input.code !== undefined && input.code !== existing.code) {
+    const uses = await countUses(existing.type, existing.code);
+    if (uses > 0) {
+      throw new ConflictError(`This value is used by ${uses} records, so its code cannot change`, { code: 'MASTERDATA_IN_USE', uses });
+    }
     const conflict = await prisma.masterdata.findUnique({
       where: {
         type_code: {
@@ -133,6 +149,7 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
   if (input.description !== undefined) data.description = input.description;
   if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
   if (input.isActive !== undefined) data.isActive = input.isActive;
+  if (input.config !== undefined) data.config = input.config ?? Prisma.DbNull;
   if (input.isDefault !== undefined) {
     data.isDefault = input.isDefault;
     if (input.isDefault === true) {
@@ -142,10 +159,131 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
       });
     }
   }
-  return prisma.masterdata.update({ where: { id }, data });
+  return prisma.masterdata.update({ where: { id }, data }).then(afterChange);
 }
 
 export async function deleteMasterdata(id: string) {
   const prisma = getPrisma();
-  return prisma.masterdata.delete({ where: { id } });
+  const existing = await prisma.masterdata.findUnique({ where: { id } });
+  if (!existing) throw new NotFoundError('Masterdata', id);
+  const uses = await countUses(existing.type, existing.code);
+  if (uses > 0) {
+    throw new ConflictError(`This value is used by ${uses} records. Switch it off instead, or change those records first`, { code: 'MASTERDATA_IN_USE', uses });
+  }
+  return prisma.masterdata.delete({ where: { id } }).then(afterChange);
+}
+
+
+/** Lists a person chooses from on other pages. Readable by anyone who can see cameras. */
+export const OPTION_TYPES = ['camera_type', 'device_brand', 'device_channel_count'] as const;
+
+export async function listMasterdataOptions(type: (typeof OPTION_TYPES)[number]) {
+  return getPrisma().masterdata.findMany({
+    where: { type, isActive: true },
+    orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+    select: { code: true, nameTh: true, nameEn: true, nameCn: true, nameMm: true, nameJp: true, isDefault: true, config: true },
+  });
+}
+
+const STREAM_PATTERN = /^\/[A-Za-z0-9._~\-/?=&{}%:]*$/;
+
+function validateBrand(code: string, config: Record<string, unknown> | null | undefined) {
+  const builtIn = builtInDeviceTemplates().some((t) => t.brand.toLowerCase() === code.toLowerCase());
+  const main = config?.mainStreamPattern;
+  const sub = config?.subStreamPattern;
+  if (builtIn && !main && !sub) return;
+  if (typeof main !== 'string' || typeof sub !== 'string') {
+    throw new ValidationError('A new brand needs its main and sub stream paths, or the system cannot reach its cameras', { code: 'BRAND_PATTERN_REQUIRED' });
+  }
+  for (const pattern of [main, sub]) {
+    if (!STREAM_PATTERN.test(pattern)) {
+      throw new ValidationError('A stream path starts with / and holds no spaces or quotes, e.g. /Streaming/Channels/{channel}01', { code: 'BRAND_PATTERN_INVALID' });
+    }
+  }
+}
+
+function validateChannelCount(code: string) {
+  const n = Number(code);
+  if (!Number.isInteger(n) || n < 1 || n > 256) {
+    throw new ValidationError('The code of a channel count is the number itself, from 1 to 256', { code: 'CHANNEL_COUNT_INVALID' });
+  }
+}
+
+/** How many records use this value. A value in use cannot be deleted or recoded, only switched off. */
+async function countUses(type: string, code: string): Promise<number> {
+  const prisma = getPrisma();
+  if (type === 'camera_type') return prisma.camera.count({ where: { cameraType: code, deletedAt: null } });
+  if (type === 'device_brand') return prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } });
+  return 0;
+}
+
+export async function refreshBrandTemplates() {
+  const rows = await getPrisma().masterdata.findMany({ where: { type: 'device_brand' } });
+  const templates: DeviceVendorTemplate[] = rows.flatMap((r) => {
+    const c = (r.config ?? {}) as Record<string, any>;
+    if (!c.mainStreamPattern || !c.subStreamPattern) return [];
+    return [{
+      brand: r.code,
+      label: r.nameEn || r.code,
+      defaultRtspPort: Number(c.defaultRtspPort) || 554,
+      defaultHttpPort: Number(c.defaultHttpPort) || 80,
+      mainStreamPattern: String(c.mainStreamPattern),
+      subStreamPattern: String(c.subStreamPattern),
+      commonChannels: [1, 4, 8, 16, 32],
+      description: r.description ?? '',
+    }];
+  });
+  setCustomDeviceTemplates(templates);
+}
+
+async function afterChange<T extends { type: string }>(item: T): Promise<T> {
+  if (item.type === 'device_brand') await refreshBrandTemplates();
+  return item;
+}
+
+const names = (th: string, en: string, cn: string, mm: string, jp: string) => ({ nameTh: th, nameEn: en, nameCn: cn, nameMm: mm, nameJp: jp });
+
+const CAMERA_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
+  ['dome', names('โดม', 'Dome', '半球', 'Dome', 'ドーム')],
+  ['bullet', names('กระบอก', 'Bullet', '枪机', 'Bullet', 'バレット')],
+  ['turret', names('เทอร์เรต', 'Turret', '海螺', 'Turret', 'タレット')],
+  ['ptz', names('PTZ (หมุนได้)', 'PTZ', '云台', 'PTZ', 'PTZ')],
+  ['fisheye', names('ฟิชอาย 360°', 'Fisheye 360°', '鱼眼 360°', 'Fisheye 360°', '魚眼 360°')],
+  ['box', names('กล่อง', 'Box', '枪式', 'Box', 'ボックス')],
+];
+
+/** A list starts filled once. After that it belongs to the people using it: nothing here puts a deleted row back. */
+export async function ensureMasterdataDefaults() {
+  const prisma = getPrisma();
+  const empty = async (type: string) => (await prisma.masterdata.count({ where: { type } })) === 0;
+
+  if (await empty('camera_type')) {
+    await prisma.masterdata.createMany({
+      data: CAMERA_TYPE_DEFAULTS.map(([code, n], i) => ({ type: 'camera_type', code, ...n, sortOrder: (i + 1) * 10 })),
+    });
+  }
+  if (await empty('device_brand')) {
+    await prisma.masterdata.createMany({
+      data: builtInDeviceTemplates().map((t, i) => ({
+        type: 'device_brand',
+        code: t.brand,
+        ...names(t.label, t.label, t.label, t.label, t.label),
+        description: t.description,
+        sortOrder: (i + 1) * 10,
+        isDefault: t.brand === 'Hikvision',
+      })),
+    });
+  }
+  if (await empty('device_channel_count')) {
+    await prisma.masterdata.createMany({
+      data: [1, 4, 8, 16, 32, 64].map((n, i) => ({
+        type: 'device_channel_count',
+        code: String(n),
+        ...names(`${n} ช่อง`, n === 1 ? '1 channel' : `${n} channels`, `${n} 路`, `ချန်နယ် ${n}`, `${n} チャンネル`),
+        sortOrder: (i + 1) * 10,
+        isDefault: n === 16,
+      })),
+    });
+  }
+  await refreshBrandTemplates();
 }
