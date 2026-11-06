@@ -526,6 +526,12 @@ export async function probeDeviceConnection(ip: string, rtspPort = 554, httpPort
     rtspOpen: rtspResult.open,
     httpOpen: httpResult.open,
     latencyMs,
+    // What the device form shows: both ports with their own timing, and one verdict.
+    overallStatus: rtspResult.open && httpResult.open ? 'online' : reachable ? 'degraded' : 'offline',
+    reachability: {
+      rtsp: { reachable: rtspResult.open, latencyMs: rtspResult.latencyMs },
+      http: { reachable: httpResult.open, latencyMs: httpResult.latencyMs },
+    },
     message: reachable
       ? `Device reachable (${latencyMs}ms)${rtspResult.open ? ', RTSP active' : ''}`
       : `Cannot connect to ${ip}:${rtspPort} or ${ip}:${httpPort}`,
