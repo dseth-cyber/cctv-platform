@@ -1,0 +1,523 @@
+{
+  "generatedAt": "2026-11-06T13:01:24.847Z",
+  "executionMode": "LIVE_PHYSICAL_PROBING",
+  "summary": {
+    "total": 10,
+    "passed": 1,
+    "warned": 9,
+    "failed": 0,
+    "readinessPercent": 73
+  },
+  "cameras": [
+    {
+      "camera": {
+        "id": "cam-01",
+        "name": "DVR แผนกสโตร์ - Ch 1",
+        "host": "192.168.30.203",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 5,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 960,
+          "height": 480,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-02",
+        "name": "DVR แผนกสโตร์ - Ch 3",
+        "host": "192.168.30.203",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 960,
+          "height": 480,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-03",
+        "name": "DVR แผนกสโตร์ - Ch 4",
+        "host": "192.168.30.203",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 1,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 960,
+          "height": 480,
+          "fps": 24,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-04",
+        "name": "DVR แผนกสโตร์ - Ch 5",
+        "host": "192.168.30.203",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 960,
+          "height": 480,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-05",
+        "name": "MD - Ch 1",
+        "host": "192.168.20.201",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 1,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 960,
+          "height": 576,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [
+        "CRITICAL: Sub-stream codec is HEVC instead of H.264! Live 4-Grid & Mobile WebRTC will fail on non-Safari clients."
+      ],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback.",
+        "Change Sub-stream encoding on camera web portal to H.264 (Baseline/Main Profile) at 640x360 or 720p 15fps."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-06",
+        "name": "MD - Ch 2",
+        "host": "192.168.20.201",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 960,
+          "height": 576,
+          "fps": 25,
+          "hasAudio": true,
+          "audioCodec": "pcm_mulaw",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [
+        "CRITICAL: Sub-stream codec is HEVC instead of H.264! Live 4-Grid & Mobile WebRTC will fail on non-Safari clients."
+      ],
+      "recommendations": [
+        "Audio codec is G.711 (pcm_mulaw). WebRTC player requires Opus remux or AAC for browser audio playback.",
+        "Change Sub-stream encoding on camera web portal to H.264 (Baseline/Main Profile) at 640x360 or 720p 15fps."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-07",
+        "name": "NVR EOE - Ch 1",
+        "host": "192.168.20.220",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 3,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 1,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 704,
+          "height": 576,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [
+        "CRITICAL: Sub-stream codec is HEVC instead of H.264! Live 4-Grid & Mobile WebRTC will fail on non-Safari clients."
+      ],
+      "recommendations": [
+        "Change Sub-stream encoding on camera web portal to H.264 (Baseline/Main Profile) at 640x360 or 720p 15fps."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-08",
+        "name": "NVR EOE - Ch 2",
+        "host": "192.168.20.220",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 3,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 704,
+          "height": 576,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [
+        "CRITICAL: Sub-stream codec is HEVC instead of H.264! Live 4-Grid & Mobile WebRTC will fail on non-Safari clients."
+      ],
+      "recommendations": [
+        "Change Sub-stream encoding on camera web portal to H.264 (Baseline/Main Profile) at 640x360 or 720p 15fps."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-09",
+        "name": "NVR EOE - Ch 3",
+        "host": "192.168.20.220",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 3,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 2,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 1920,
+          "height": 1080,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "hevc",
+          "width": 704,
+          "height": 576,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "WARN",
+      "issues": [
+        "CRITICAL: Sub-stream codec is HEVC instead of H.264! Live 4-Grid & Mobile WebRTC will fail on non-Safari clients."
+      ],
+      "recommendations": [
+        "Change Sub-stream encoding on camera web portal to H.264 (Baseline/Main Profile) at 640x360 or 720p 15fps."
+      ]
+    },
+    {
+      "camera": {
+        "id": "cam-10",
+        "name": "IT-SERVER-001",
+        "host": "192.168.30.170",
+        "rtspPort": 554,
+        "httpPort": 80
+      },
+      "network": {
+        "rtsp": {
+          "reachable": true,
+          "latencyMs": 1,
+          "error": null
+        },
+        "http": {
+          "reachable": true,
+          "latencyMs": 1,
+          "error": null
+        }
+      },
+      "streams": {
+        "main": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 1280,
+          "height": 720,
+          "fps": 25.1,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        },
+        "sub": {
+          "success": true,
+          "hasVideo": true,
+          "videoCodec": "h264",
+          "width": 640,
+          "height": 360,
+          "fps": 25,
+          "hasAudio": false,
+          "audioCodec": "none",
+          "error": null
+        }
+      },
+      "status": "PASS",
+      "issues": [],
+      "recommendations": []
+    }
+  ]
+}
