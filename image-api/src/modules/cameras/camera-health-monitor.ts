@@ -8,6 +8,7 @@ import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
 import { probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
+import { isKnownNoSignal, readChannelsWithoutSignal } from './device-channel-signal.js';
 
 let cronTask: ScheduledTask | null = null;
 
@@ -78,7 +79,8 @@ export async function checkCameraHealth(): Promise<void> {
       ipAddress: true,
       rtspUrl: true,
       streamPath: true,
-      device: { select: { ipAddress: true, rtspPort: true } },
+      channelNumber: true,
+      device: { select: { id: true, brand: true, ipAddress: true, httpPort: true, rtspPort: true, username: true, passwordEncrypted: true } },
       lastPolledAt: true,
       operationalStatus: true,
       operationalSince: true,
@@ -89,6 +91,9 @@ export async function checkCameraHealth(): Promise<void> {
   const readyPaths = new Set(
     (await MediaMtxService.getLivePaths()).filter((p: any) => p?.ready).map((p: any) => String(p.name)),
   );
+
+  // A recorder answers on the network even when a channel has no picture, so ask it about the channel itself.
+  const noSignal = await readChannelsWithoutSignal(cameras.map((c) => c.device));
 
   for (const cam of cameras) {
     // Maintenance mode suppression: if camera is in maintenance, skip offline alert and incident
@@ -104,7 +109,8 @@ export async function checkCameraHealth(): Promise<void> {
     const isProbeSuccess = probeResult.reachable;
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
-    const isOffline = cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && timeSinceLastPoll > thresholdMs);
+    const hasNoSignal = !!cam.device?.id && cam.channelNumber !== null && !!noSignal.get(cam.device.id)?.has(cam.channelNumber);
+    const isOffline = hasNoSignal || cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && timeSinceLastPoll > thresholdMs);
     const rawNext = isOffline ? 'offline' : 'online';
     const prev = cam.operationalStatus;
 
@@ -140,7 +146,7 @@ export async function checkCameraHealth(): Promise<void> {
           cameraId: cam.id,
           eventType: 'offline',
           source: 'health_monitor',
-          message: `Camera "${cam.name}" went offline (status: ${cam.status}, last poll: ${timeSinceLastPoll > 86400000 ? 'never' : Math.floor(timeSinceLastPoll / 1000) + 's ago'})`,
+          message: `Camera "${cam.name}" went offline (${hasNoSignal ? 'recorder reports no video signal on this channel, ' : ''}status: ${cam.status}, last poll: ${timeSinceLastPoll > 86400000 ? 'never' : Math.floor(timeSinceLastPoll / 1000) + 's ago'})`,
           metadata: { status: cam.status, lastPolledAt: cam.lastPolledAt, timeSinceLastPollMs: timeSinceLastPoll },
         },
       });
@@ -160,7 +166,7 @@ export async function checkCameraHealth(): Promise<void> {
           severity: 'critical',
           source: cam.id,
           title: `Camera offline: ${cam.name}`,
-          message: `Camera "${cam.name}" is offline. Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}`,
+          message: `Camera "${cam.name}" is offline.${hasNoSignal ? ' The recorder reports no video signal on this channel.' : ''} Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}`,
           details: { cameraId: cam.id, cameraName: cam.name, status: cam.status, lastPolledAt: cam.lastPolledAt },
         });
       }
@@ -379,7 +385,7 @@ export async function handleStreamStatusEvent(
     // Fallback scan: check synthetic path camera_${camera.id.replace(/-/g, '').substring(0, 12)}
     const allCams = await prisma.camera.findMany({
       where: { enabled: true },
-      select: { id: true, name: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true, recordingMode: true },
+      select: { id: true, name: true, deviceId: true, channelNumber: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true, recordingMode: true },
     });
     for (const c of allCams) {
       const synthetic = `camera_${c.id.replace(/-/g, '').substring(0, 12)}`;
@@ -503,7 +509,7 @@ export async function handleStreamStatusEvent(
 
   // Stream is up (ready)
   if (status === 'ready') {
-    if (prev === 'offline') {
+    if (prev === 'offline' && !isKnownNoSignal((camera as any).deviceId, (camera as any).channelNumber)) {
       await prisma.camera.update({
         where: { id: camera.id },
         data: { operationalStatus: 'recovering', operationalSince: new Date(), lastPolledAt: new Date() },

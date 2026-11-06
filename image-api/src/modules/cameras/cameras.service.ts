@@ -300,7 +300,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       metadata: metadata as object,
       slaTargetPercent: input.slaTargetPercent ?? null,
       createdBy: input.createdBy ?? null,
-      status: 'inactive',
+      status: rtspUrl ? 'active' : 'inactive', // a live source is watched from the start; the health monitor decides online or offline
       deviceId: input.deviceId ?? null,
       channelNumber: input.channelNumber ?? null,
       rtspUrl: sealRtspUrl(rtspUrl) ?? null,

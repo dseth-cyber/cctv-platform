@@ -2706,6 +2706,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "mainStreamFellBack": "此浏览器无法打开主码流，已改为显示子码流",
       "cctvLiveWall": "CCTV 实时墙",
       "total": "总计：",
       "online": "在线",

@@ -48,6 +48,8 @@ interface GridCell {
   cameraName: string | null;
   streamUrl: string | null;
   streamProfile: 'main' | 'sub';
+  /** The camera whose main stream this browser could not open, so this slot uses the sub stream. */
+  mainFailedFor?: string | null;
   hasSubStream: boolean;
 }
 
@@ -230,6 +232,17 @@ export default function LiveGrid() {
     if (cam) {
       await assignCameraToSlot(cam, slotIdx, nextProfile);
     }
+  };
+
+  // Often H.265, which not every browser can play: the sub stream keeps the picture on screen.
+  const handleStreamFailed = async (slotIdx: number) => {
+    const cell = cells.find((c) => c.slotIndex === slotIdx);
+    if (!cell?.cameraId || cell.streamProfile !== 'main' || !cell.hasSubStream) return;
+    const cam = cameras.find((c: any) => c.id === cell.cameraId);
+    if (!cam) return;
+    const failedCamera = cell.cameraId;
+    await assignCameraToSlot(cam, slotIdx, 'sub');
+    setCells((prev) => prev.map((c) => (c.slotIndex === slotIdx ? { ...c, mainFailedFor: failedCamera } : c)));
   };
 
   const clearSlot = (slotIdx: number, e: React.MouseEvent) => {
@@ -698,8 +711,14 @@ export default function LiveGrid() {
                         onToggleProfile={(next) =>
                           handleToggleCellProfile(cell.slotIndex, next)
                         }
+                        onFatalError={() => handleStreamFailed(cell.slotIndex)}
                         className="w-full h-full"
                       />
+                      {cell.streamProfile === 'sub' && cell.mainFailedFor === cell.cameraId && (
+                        <div className="absolute bottom-2 left-2 right-2 z-20 px-2 py-1 rounded bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
+                          {t('ui.liveGrid.mainStreamFellBack')}
+                        </div>
+                      )}
                       {/* Top Action Buttons (Hover) */}
                       <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition z-30">
                         <button

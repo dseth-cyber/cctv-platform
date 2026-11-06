@@ -2709,6 +2709,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "mainStreamFellBack": "This browser could not open the main stream, so the sub stream is shown instead",
       "cctvLiveWall": "CCTV Live Wall",
       "total": "Total:",
       "online": "Online",

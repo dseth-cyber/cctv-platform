@@ -237,7 +237,7 @@ export async function provisionDeviceChannels(deviceId: string) {
           rtspUrlSub: sealRtspUrl(rtspUrlSub),
           streamPath,
           siteId: device.siteId,
-          status: 'inactive',
+          status: 'active', // the health monitor decides online or offline from the device itself
           operationalStatus: 'unknown',
         },
       });

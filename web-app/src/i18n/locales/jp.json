@@ -2706,6 +2706,7 @@
       "zn": "ZN-01"
     },
     "liveGrid": {
+      "mainStreamFellBack": "このブラウザではメインストリームを開けないため、サブストリームを表示しています",
       "cctvLiveWall": "CCTV ライブウォール",
       "total": "合計:",
       "online": "オンライン",
