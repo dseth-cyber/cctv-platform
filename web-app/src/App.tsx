@@ -83,27 +83,27 @@ function UnauthorizedPage() {
   )
 }
 
+// The setup pages opened from the master data page, with what each one needs.
+export const MASTERDATA_LINKS = [
+  { path: '/cctv/camera-groups', labelKey: 'nav.cameraGroups', icon: FolderTree, permission: 'cameras:read' },
+  { path: '/cctv/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
+  { path: '/cctv/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
+]
+const MASTERDATA_PAGE_PERMISSIONS = ['masterdata:read', ...MASTERDATA_LINKS.map((l) => l.permission)]
+
 const navItems = [
   { path: '/cctv/overview', labelKey: 'nav.overview', icon: LayoutDashboard, permission: 'overview:read' },
   { path: '/cctv/cameras', labelKey: 'nav.cameras', icon: Camera, permission: 'cameras:read' },
   { path: '/cctv/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'cameras:read' },
   { path: '/cctv/playback', labelKey: 'nav.playback', icon: Film, permission: 'cameras:read' },
   { path: '/cctv/devices', labelKey: 'nav.devices', icon: Server, permission: 'cameras:read' },
-  { path: '/cctv/camera-groups', labelKey: 'nav.cameraGroups', icon: FolderTree, permission: 'cameras:read' },
   { path: '/cctv/sites', labelKey: 'nav.sites', icon: Building2, permission: 'cameras:read' },
   { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
-  { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
-  { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
   { path: '/cctv/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
   { path: '/cctv/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
-  { path: '/cctv/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
   { path: '/cctv/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
-  { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
-  { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
-  { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
-  { path: '/cctv/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
   { path: '/cctv/alerts', labelKey: 'nav.alerts', icon: Bell, permission: 'alerts:read' },
-  { path: '/cctv/masterdata', labelKey: 'nav.masterdata', icon: BookText, permission: 'masterdata:read' },
+  { path: '/cctv/masterdata', labelKey: 'nav.masterdata', icon: BookText, permission: 'masterdata:read', anyOf: MASTERDATA_PAGE_PERMISSIONS, activeOn: ['/cctv/camera-groups', '/cctv/camera-templates', '/cctv/retention'] },
 ]
 
 const settingsSubItems = [
@@ -115,6 +115,11 @@ const settingsSubItems = [
   { path: '/cctv/required-fields', labelKey: 'nav.requiredFields', icon: ClipboardList, permission: 'system-config:read' },
   { path: '/cctv/users', labelKey: 'nav.users', icon: Users, permission: 'users:read' },
   { path: '/cctv/health', labelKey: 'nav.health', icon: HeartPulse, permission: 'health:read' },
+  { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
+  { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
+  { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
+  { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
+  { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
 ]
 
 const LANG_OPTIONS = [
@@ -452,7 +457,12 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
 }) {
   const { user } = useAuth()
   const { theme } = useTheme()
-  const [open, setOpen] = useState(true)
+  // Closed until wanted, so the daily menu stays short; opens by itself on a page inside it.
+  const onSettingsPage = settingsSubItems.some(item => locationPath === item.path)
+  const [open, setOpen] = useState(onSettingsPage)
+  useEffect(() => {
+    if (onSettingsPage) setOpen(true)
+  }, [onSettingsPage])
 
   const visibleItems = settingsSubItems.filter(item => hasPermission(user, item.permission))
   if (visibleItems.length === 0) return null
@@ -504,7 +514,7 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
   )
 }
 
-type NavItem = { path: string; labelKey: string; icon: any; permission: string }
+type NavItem = { path: string; labelKey: string; icon: any; permission: string; anyOf?: string[]; activeOn?: string[] }
 
 // [R2.4] UI routes moved from /image-service/* to /cctv/*; saved menu preferences may hold old paths.
 function migrateMenuPaths(paths: string[]): string[] {
@@ -588,7 +598,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
   updateHiddenMenuItems: (hiddenMenuItems: string[]) => Promise<void>
 }) {
   const { theme } = useTheme()
-  const visibleNav = useMemo(() => navItems.filter(item => hasPermission(user, item.permission)), [navItems, user])
+  const visibleNav = useMemo(() => navItems.filter(item => (item.anyOf ?? [item.permission]).some(p => hasPermission(user, p))), [navItems, user])
   const { ordered, reorder, reset } = useSidebarOrder(user?.username, visibleNav)
   const [reorderMode, setReorderMode] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -623,7 +633,7 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
       <div className={`flex-1 overflow-y-auto ${collapsed ? 'px-1.5' : 'px-3'} py-4 space-y-1`}>
         {ordered.map(item => {
           const Icon = item.icon
-          const isActive = locationPath === item.path
+          const isActive = locationPath === item.path || !!item.activeOn?.includes(locationPath)
           const isDragging = dragPath === item.path
           const isOver = overPath === item.path && dragPath !== item.path
           const isHidden = hiddenSet.has(item.path)
@@ -1134,7 +1144,7 @@ export default function App() {
               hasPermission(user, 'telegram-bot:read') ? <TelegramBotSettings /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/masterdata" element={
-              hasPermission(user, 'masterdata:read') ? <MasterdataManagement /> : <UnauthorizedPage />
+              MASTERDATA_PAGE_PERMISSIONS.some(p => hasPermission(user, p)) ? <MasterdataManagement /> : <UnauthorizedPage />
             } />
              <Route path="/cctv/system-config" element={
               hasPermission(user, 'system-config:read') ? <SystemConfigPage /> : <UnauthorizedPage />

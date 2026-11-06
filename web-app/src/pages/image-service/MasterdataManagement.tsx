@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission, MASTERDATA_LINKS } from '@/App';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -32,6 +34,9 @@ export default function MasterdataManagement() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
+  const { user } = useAuth();
+  const canReadLists = hasPermission(user, 'masterdata:read');
+  const links = MASTERDATA_LINKS.filter((l) => hasPermission(user, l.permission));
   const [searchParams] = useSearchParams();
   const initialTab = TABS.some((tb) => tb.key === searchParams.get('type'))
     ? (searchParams.get('type') as TabType) : 'camera_type';
@@ -43,6 +48,7 @@ export default function MasterdataManagement() {
     queryKey: ['masterdata', activeTab],
     queryFn: () => imageServiceApi.getMasterdata({ type: activeTab }),
     staleTime: 1000 * 30,
+    enabled: canReadLists,
   });
 
   const items: any[] = (data as any)?.data ?? [];
@@ -123,6 +129,21 @@ export default function MasterdataManagement() {
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.subtitle')}</p>
       </div>
 
+      {links.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          {links.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link key={link.path} to={link.path} className={`flex items-center gap-3 p-3 rounded-lg ${themeConfig.card} hover:ring-1 hover:ring-cyan-500/50 transition`}>
+                <Icon size={18} className="text-cyan-400 flex-shrink-0" />
+                <span className={`text-sm font-medium ${themeConfig.text.primary}`}>{t(`imageService.${link.labelKey}`)}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {canReadLists && (<>
       <div className={`flex flex-wrap gap-1 mb-5 px-1 py-1 rounded-lg ${themeConfig.card}`}>
         {TABS.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -194,6 +215,8 @@ export default function MasterdataManagement() {
           </table>
         </div>
       </div>
+
+      </>)}
 
       <Modal isOpen={modal.open} onClose={() => setModal({ open: false })}
         title={modal.editing ? t('imageService.masterdataManagement.edit') : t('imageService.masterdataManagement.add')}>
