@@ -38,6 +38,7 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "searchAllColumns": "Search all columns",
       "cameraBrand": "Camera brand",
       "cameraModel": "Camera model",
       "cameraInfoHint": "For searching and reports only. A camera behind a DVR/NVR connects according to the recorder's brand",
@@ -2513,6 +2514,15 @@
       "devices": "Devices",
       "eGDs7216hqhiK": "e.g. DS-7216HQHI-K1",
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
+    },
+    "location": {
+      "site": "Site",
+      "zone": "Zone",
+      "none": "Not set",
+      "manage": "Manage list",
+      "fromDevice": "Use the device's location",
+      "deviceHasNone": "The device has no location yet",
+      "deviceHint": "All its channels follow this automatically. A camera given its own location keeps it"
     },
     "cctvPlayback": {
       "liveNow": "Live",

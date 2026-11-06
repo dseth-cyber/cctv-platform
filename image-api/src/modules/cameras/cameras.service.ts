@@ -2,6 +2,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { randomBytes } from 'node:crypto';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js';
+import { resolveLocation } from '../sites/sites.service.js';
 import { buildChannelRtspUrl, findDeviceTemplate } from '../devices/devices.service.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
@@ -21,7 +22,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
     include: {
       retentionPolicy: { select: { id: true, name: true } },
       template: true,
-      device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true, totalChannels: true } },
+      device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true, totalChannels: true, site: { select: { id: true, name: true } }, zone: { select: { id: true, name: true } } } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
       groupMemberships: { select: { group: { select: { id: true, name: true } } } },
@@ -272,6 +273,10 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
 
   await assertCameraNameFree(input.name);
 
+  const parent = input.deviceId ? await prisma.device.findUnique({ where: { id: input.deviceId }, select: { siteId: true, zoneId: true } }) : null;
+  const ownLocation = input.locationFromDevice === false || !parent;
+  const location = ownLocation ? await resolveLocation(input.siteId, input.zoneId) : { siteId: parent!.siteId, zoneId: parent!.zoneId };
+
   let streamPath = input.streamPath ?? null;
   if (!streamPath && input.deviceId && input.channelNumber) {
     streamPath = `device_${input.deviceId.substring(0, 8)}_ch${input.channelNumber}`;
@@ -308,8 +313,9 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       streamProfile: input.streamProfile ?? undefined,
       mediaNodeId: input.mediaNodeId ?? null,
       streamPath,
-      siteId: input.siteId ?? null,
-      zoneId: input.zoneId ?? null,
+      siteId: location.siteId,
+      zoneId: location.zoneId,
+      locationFromDevice: !ownLocation,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       onvifProfileToken: input.onvifProfileToken ?? null,
@@ -371,8 +377,23 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.mediaNodeId !== undefined) data.mediaNodeId = input.mediaNodeId;
   if (input.streamPath !== undefined) data.streamPath = input.streamPath;
   if (input.streamState !== undefined) data.streamState = input.streamState;
-  if (input.siteId !== undefined) data.siteId = input.siteId;
-  if (input.zoneId !== undefined) data.zoneId = input.zoneId;
+  if (input.locationFromDevice === true && existing.deviceId) {
+    const parent = await prisma.device.findUnique({ where: { id: existing.deviceId }, select: { siteId: true, zoneId: true } });
+    data.locationFromDevice = true;
+    data.siteId = parent?.siteId ?? null;
+    data.zoneId = parent?.zoneId ?? null;
+  } else if (input.siteId !== undefined || input.zoneId !== undefined) {
+    const location = await resolveLocation(
+      input.siteId !== undefined ? input.siteId : existing.siteId,
+      input.zoneId !== undefined ? input.zoneId : input.siteId !== undefined ? null : existing.zoneId,
+    );
+    data.siteId = location.siteId;
+    data.zoneId = location.zoneId;
+    // Setting a place by hand is what stops a camera following its device.
+    if (existing.deviceId && (location.siteId !== existing.siteId || location.zoneId !== existing.zoneId || input.locationFromDevice === false)) data.locationFromDevice = false;
+  } else if (input.locationFromDevice === false) {
+    data.locationFromDevice = false;
+  }
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.onvifProfileToken !== undefined) data.onvifProfileToken = input.onvifProfileToken;

@@ -1,6 +1,24 @@
 import { getPrisma } from '../../lib/prisma.js';
-import { NotFoundError, ConflictError } from '../../lib/errors.js';
+import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import type { CreateSiteInput, UpdateSiteInput, CreateZoneInput, UpdateZoneInput } from './sites.schema.js';
+
+/** A zone belongs to one site: given a zone alone its site is known, and a zone of another site is refused. */
+export async function resolveLocation(siteId: string | null | undefined, zoneId: string | null | undefined) {
+  const prisma = getPrisma();
+  if (zoneId) {
+    const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
+    if (!zone) throw new NotFoundError('Zone', zoneId);
+    if (siteId && zone.siteId !== siteId) {
+      throw new ValidationError('This zone belongs to another site', { code: 'ZONE_OF_OTHER_SITE' });
+    }
+    return { siteId: zone.siteId, zoneId };
+  }
+  if (siteId) {
+    const site = await prisma.site.findUnique({ where: { id: siteId } });
+    if (!site) throw new NotFoundError('Site', siteId);
+  }
+  return { siteId: siteId ?? null, zoneId: null };
+}
 
 export async function listSites() {
   const prisma = getPrisma();
@@ -125,12 +143,12 @@ export async function deleteZone(id: string) {
   const prisma = getPrisma();
   const existing = await prisma.zone.findUnique({
     where: { id },
-    include: { _count: { select: { cameras: true } } },
+    include: { _count: { select: { cameras: true, devices: true } } },
   });
 
   if (!existing) throw new NotFoundError('Zone', id);
-  if (existing._count.cameras > 0) {
-    throw new ConflictError('Cannot delete zone with linked cameras');
+  if (existing._count.cameras > 0 || existing._count.devices > 0) {
+    throw new ConflictError('Cannot delete zone with linked cameras or devices');
   }
 
   await prisma.zone.delete({ where: { id } });

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { ChannelChecklist } from '@/components/cctv/ChannelChecklist';
 import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
+import { LocationFields, useSitesWithZones } from '@/components/cctv/LocationFields';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/App';
@@ -83,6 +84,8 @@ export default function DeviceManagement() {
     password: '',
     totalChannels: 16,
     autoCreateCameras: true,
+    siteId: '',
+    zoneId: '',
   });
   // Channels with a camera in use, for a new device. Null: all of them, following the channel count.
   const [enabledChannels, setEnabledChannels] = useState<number[] | null>(null);
@@ -90,6 +93,7 @@ export default function DeviceManagement() {
   const canEditChannels = hasPermission(user, 'cameras:update');
   const { options: brandOptions } = useMasterdataOptions('device_brand');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
+  const { data: sites = [] } = useSitesWithZones();
 
   // Queries
   const { data: devices = [], isLoading, refetch } = useQuery({
@@ -231,6 +235,18 @@ export default function DeviceManagement() {
         errors.push(`Row ${i + 2}: Name and IP address are required`);
         return;
       }
+      // By name or code, as typed on the sites page. An unknown place is reported, never dropped silently.
+      const same = (a?: string | null, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+      const site = row.site ? sites.find((x: any) => same(x.name, row.site) || same(x.code, row.site)) : null;
+      if (row.site && !site) {
+        errors.push(`Row ${i + 2}: site "${row.site}" does not exist`);
+        return;
+      }
+      const zone = row.zone ? site?.zones?.find((z: any) => same(z.name, row.zone) || same(z.code, row.zone)) : null;
+      if (row.zone && !zone) {
+        errors.push(`Row ${i + 2}: zone "${row.zone}" does not exist${site ? ` in "${site.name}"` : ' (fill in its site too)'}`);
+        return;
+      }
       const channels = parseChannelList(row.enabledchannels);
       if (row.enabledchannels && !channels) {
         errors.push(`Row ${i + 2}: enabledChannels must look like 1;2;5`);
@@ -252,6 +268,8 @@ export default function DeviceManagement() {
         onvifPort: parseInt(row.onvifport, 10) || 8000,
         autoCreateCameras: row.autocreatecameras ? row.autocreatecameras.toLowerCase() === 'true' : true,
         ...(channels ? { enabledChannels: channels } : {}),
+        ...(site ? { siteId: site.id } : {}),
+        ...(zone ? { zoneId: zone.id } : {}),
       });
     });
 
@@ -259,7 +277,7 @@ export default function DeviceManagement() {
     setBulkParsedData(items);
   };
 
-  const CSV_HEADERS = ['name', 'ipAddress', 'brand', 'deviceType', 'model', 'serialNumber', 'totalChannels', 'enabledChannels', 'username', 'password', 'rtspPort', 'httpPort', 'onvifPort', 'autoCreateCameras', 'description'];
+  const CSV_HEADERS = ['name', 'ipAddress', 'brand', 'deviceType', 'model', 'serialNumber', 'totalChannels', 'enabledChannels', 'username', 'password', 'rtspPort', 'httpPort', 'onvifPort', 'autoCreateCameras', 'description', 'site', 'zone'];
 
   // The same columns the import reads. Passwords are never included; they are typed into the file before importing it elsewhere.
   const handleExportCsv = () => {
@@ -268,12 +286,14 @@ export default function DeviceManagement() {
       enabledChannels: (d.enabledChannels ?? []).join(';'),
       password: '',
       autoCreateCameras: 'true',
+      site: d.site?.name ?? '',
+      zone: d.zone?.name ?? '',
     }))));
   };
 
   const handleDownloadTemplate = () => downloadCsv('devices-template.csv', sampleCsv);
 
-  const sampleCsv = `name,ipAddress,brand,deviceType,model,serialNumber,totalChannels,enabledChannels,username,password,rtspPort,httpPort,onvifPort,autoCreateCameras,description
+  const sampleCsv = `name,ipAddress,brand,deviceType,model,serialNumber,totalChannels,enabledChannels,username,password,rtspPort,httpPort,onvifPort,autoCreateCameras,description,site,zone
 DVR Main Gate,192.168.1.101,Hikvision,dvr,DS-7208HQHI-K1,,8,1;2;3;5,admin,YourPassword,554,80,8000,true,Front gate and parking
 NVR Warehouse,192.168.1.102,Dahua,nvr,,,32,,admin,YourPassword,554,80,,true,
 IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,,true,`;
@@ -297,6 +317,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       password: '',
       totalChannels: 16,
       autoCreateCameras: true,
+      siteId: '',
+      zoneId: '',
     });
   };
 
@@ -323,6 +345,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       password: '',
       totalChannels: dev.totalChannels || 16,
       autoCreateCameras: false,
+      siteId: dev.siteId || '',
+      zoneId: dev.zoneId || '',
     });
     setIsModalOpen(true);
   };
@@ -330,12 +354,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingDevice) {
-      const payload: any = { ...formData };
+      const payload: any = { ...formData, siteId: formData.siteId || null, zoneId: formData.zoneId || null };
       if (!payload.password) delete payload.password;
       delete payload.autoCreateCameras;
       updateMutation.mutate({ id: editingDevice.id, data: payload });
     } else {
-      createMutation.mutate({ ...formData, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
+      createMutation.mutate({ ...formData, siteId: formData.siteId || null, zoneId: formData.zoneId || null, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
     }
   };
 
@@ -346,7 +370,9 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       d.name.toLowerCase().includes(term) ||
       d.ipAddress?.toLowerCase().includes(term) ||
       d.brand?.toLowerCase().includes(term) ||
-      d.serialNumber?.toLowerCase().includes(term);
+      d.serialNumber?.toLowerCase().includes(term) ||
+      d.site?.name?.toLowerCase().includes(term) ||
+      d.zone?.name?.toLowerCase().includes(term);
     return matchSearch;
   });
 
@@ -545,7 +571,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                           <span>{t('ui.deviceManagement.http')}{' '}{dev.httpPort || 80}</span>
                           {dev.onvifPort && <span>{t('ui.deviceManagement.onvif')}{' '}{dev.onvifPort}</span>}
                           {dev.serialNumber && <span>S/N: {dev.serialNumber}</span>}
-                          {dev.site && <span className="text-slate-300">{t('ui.deviceManagement.site')}{' '}{dev.site.name}</span>}
+                          {dev.site && <span className="text-slate-300">{t('ui.deviceManagement.site')}{' '}{dev.site.name}{dev.zone ? ` / ${dev.zone.name}` : ''}</span>}
                         </div>
                       </div>
                     </div>
@@ -787,6 +813,25 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               <span>{probeState.error}</span>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <LocationFields
+              siteId={formData.siteId}
+              zoneId={formData.zoneId}
+              labelClass="block text-xs font-medium text-slate-300 mb-1"
+              onChange={(next) => setFormData({ ...formData, ...next })}
+            />
+            <p className="text-[11px] text-slate-500">{t('ui.location.deviceHint')}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">{t('imageService.cameras.description')}</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
 
           {/* RTSP Template Preview */}
           {(() => {

@@ -18,6 +18,7 @@ export const createDeviceSchema = z.object({
   totalChannels: z.number().int().min(1).max(256).default(1),
   enabled: z.boolean().default(true),
   siteId: z.guid().optional().nullable(),
+  zoneId: z.guid().optional().nullable(),
   // Option to auto-provision camera channels upon device creation
   autoCreateCameras: z.boolean().default(false),
   // Channels with a camera in use; the others are created switched off. Left out: all of them.
@@ -41,6 +42,7 @@ export const updateDeviceSchema = z.object({
   enabled: z.boolean().optional(),
   status: z.string().max(32).optional(),
   siteId: z.guid().optional().nullable(),
+  zoneId: z.guid().optional().nullable(),
 });
 
 export const deviceQuerySchema = z.object({

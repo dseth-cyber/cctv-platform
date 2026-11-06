@@ -6,6 +6,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
+import { LocationFields } from '@/components/cctv/LocationFields';
+import { cameraSearchText, matchesCameraQuery } from '@/lib/cameraFilter';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -44,6 +46,7 @@ const emptyForm = () => ({
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
   cameraType: '', cameraBrand: '', cameraModel: '',
+  siteId: '', zoneId: '', locationFromDevice: true,
 });
 
 // Display-only copy of the server's URL builder (devices.service.ts buildChannelRtspUrl); the password is masked.
@@ -286,6 +289,7 @@ export default function ImageServiceCameras() {
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
       cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '',
+      siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
     };
   };
 
@@ -363,6 +367,9 @@ export default function ImageServiceCameras() {
           cameraType: form.cameraType || null,
           cameraBrand: form.cameraBrand || null,
           cameraModel: form.cameraModel.trim() || null,
+          ...(modal.item?.deviceId && form.locationFromDevice
+            ? { locationFromDevice: true }
+            : { locationFromDevice: false, siteId: form.siteId || null, zoneId: form.zoneId || null }),
         };
         if (simple) {
           payload.connection = {
@@ -867,8 +874,32 @@ export default function ImageServiceCameras() {
     }
   };
 
-  const filtered = cameras.filter((c: any) =>
-    !search || c.name.toLowerCase().includes(search.toLowerCase()));
+  const retentionLabel = (policyId?: string | null): string => {
+    const p = (policies as any[]).find((rp: any) => rp.id === policyId);
+    if (!p) return '';
+    const nameMap: Record<string, string> = {
+      'Default Retention': 'imageService.retention.defaultName',
+      'Long-Term Retention': 'imageService.retention.longTermName',
+      'การจัดเก็บเริ่มต้น (Default)': 'imageService.retention.defaultName',
+      'การจัดเก็บระยะยาว (Long-Term)': 'imageService.retention.longTermName',
+    };
+    return nameMap[p.name] ? t(nameMap[p.name]) : p.name;
+  };
+
+  // Everything a column can show, hidden or not, as it reads on screen.
+  const searchTextOf = (c: any) => [
+    cameraSearchText(c, t(`imageService.cameras.${c.status}`)),
+    cameraTypeLabel(c.cameraType),
+    cameraBrandLabel(c.cameraBrand),
+    c.retentionPolicy?.name,
+    retentionLabel(c.retentionPolicyId),
+    c.createdBy,
+    c.operationalStatus === 'offline' ? t(`imageService.cameras.offlineReason.${c.operationalReason ?? 'unknown'}`) : '',
+    c.enabled === false ? t('imageService.cameras.switchedOff') : '',
+    c.lastPolledAt ? formatDateTime(c.lastPolledAt, i18n.language) : '',
+    c.createdAt ? formatDateTime(c.createdAt, i18n.language) : '',
+  ].filter(Boolean).join(' ').normalize('NFC').toLocaleLowerCase();
+  const filtered = cameras.filter((c: any) => !search.trim() || matchesCameraQuery(searchTextOf(c), search));
 
   const getSortValue = (camera: any, col: string) => {
     switch (col) {
@@ -909,6 +940,8 @@ export default function ImageServiceCameras() {
     cameraModel: camera.cameraModel ?? '',
     description: camera.description ?? '',
     device: camera.device?.name ?? '',
+    site: camera.site?.name ?? '',
+    zone: camera.zone?.name ?? '',
     status: camera.status,
     lastPolledAt: camera.lastPolledAt ? new Date(camera.lastPolledAt).toLocaleString() : '-',
     createdAt: camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '-',
@@ -921,6 +954,8 @@ export default function ImageServiceCameras() {
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
+    { key: 'site', label: t('ui.location.site') },
+    { key: 'zone', label: t('ui.location.zone') },
     { key: 'ipAddress', label: t('imageService.cameras.ipAddress') },
     { key: 'retentionPolicy', label: t('imageService.cameras.retentionPolicy') },
     { key: 'status', label: t('imageService.cameras.status') },
@@ -938,6 +973,8 @@ export default function ImageServiceCameras() {
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
+    { key: 'site', label: t('ui.location.site') },
+    { key: 'zone', label: t('ui.location.zone') },
     { key: 'status', label: t('imageService.cameras.status') },
     { key: 'lastPolledAt', label: t('imageService.cameras.lastPoll') },
     { key: 'createdAt', label: t('imageService.cameras.dateAdded') },
@@ -1003,8 +1040,9 @@ export default function ImageServiceCameras() {
           <div className="relative">
             <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${themeConfig.text.secondary}`} />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder={t('common.search')}
-              className={`pl-8 pr-3 py-1.5 rounded-lg text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} w-52`} />
+              placeholder={t('imageService.cameras.searchAllColumns')}
+              title={t('imageService.cameras.searchAllColumns')}
+              className={`pl-8 pr-3 py-1.5 w-64 rounded-lg text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} w-52`} />
           </div>
           <div className="w-36">
             <SearchableSelect value={statusFilter} onChange={setStatusFilter}
@@ -1080,6 +1118,8 @@ export default function ImageServiceCameras() {
                 {showColumn('cameraModel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</th>}
                 {showColumn('description') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.description')}</th>}
                 {showColumn('device') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.columnDevice')}</th>}
+                {showColumn('site') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('ui.location.site')}</th>}
+                {showColumn('zone') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('ui.location.zone')}</th>}
                 {showColumn('ipAddress') && (
                 <th onClick={() => handleSort('ipAddress')} className={thCls('ipAddress')}>
                   <div className="flex items-center gap-1">{t('imageService.cameras.ipAddress')}
@@ -1163,21 +1203,12 @@ export default function ImageServiceCameras() {
                     {showColumn('cameraModel') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.cameraModel || '—'}</td>}
                     {showColumn('description') && <td className={`px-4 py-3 text-sm max-w-xs truncate ${themeConfig.text.secondary}`} title={camera.description ?? ''}>{camera.description || '—'}</td>}
                     {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}
+                    {showColumn('site') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.site?.name ?? '—'}</td>}
+                    {showColumn('zone') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.zone?.name ?? '—'}</td>}
                     {showColumn('ipAddress') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>}
                     {showColumn('retentionPolicy') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
-                      {(() => {
-                        const p = (policies as any[]).find((rp: any) => rp.id === camera.retentionPolicyId);
-                        if (!p) return '—';
-                        const nameMap: Record<string, string> = {
-                          'Default Retention': 'imageService.retention.defaultName',
-                          'Long-Term Retention': 'imageService.retention.longTermName',
-                          'การจัดเก็บเริ่มต้น (Default)': 'imageService.retention.defaultName',
-                          'การจัดเก็บระยะยาว (Long-Term)': 'imageService.retention.longTermName',
-                        };
-                        const translationKey = nameMap[p.name];
-                        return translationKey ? t(translationKey) : p.name;
-                      })()}
+                      {retentionLabel(camera.retentionPolicyId) || '—'}
                     </td>
                     )}
                     {showColumn('status') && (
@@ -1394,6 +1425,21 @@ export default function ImageServiceCameras() {
                 className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
             <p className={`col-span-2 -mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.cameraInfoHint')}</p>
+            <div className="col-span-2 space-y-2">
+              {modal.item?.deviceId && (
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={form.locationFromDevice} onChange={e => setForm(p => ({ ...p, locationFromDevice: e.target.checked }))} className="mt-0.5 w-4 h-4 accent-cyan-500" />
+                  <span className={`text-sm ${themeConfig.text.primary}`}>
+                    {t('ui.location.fromDevice')}
+                    <span className={`block text-xs ${themeConfig.text.secondary}`}>{[modal.item.device?.site?.name, modal.item.device?.zone?.name].filter(Boolean).join(' / ') || t('ui.location.deviceHasNone')}</span>
+                  </span>
+                </label>
+              )}
+              {(!modal.item?.deviceId || !form.locationFromDevice) && (
+                <LocationFields siteId={form.siteId} zoneId={form.zoneId} labelClass={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}
+                  onChange={(next) => setForm(p => ({ ...p, ...next }))} />
+              )}
+            </div>
             <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
               <input type="checkbox" checked={form.recordingMode === 'continuous'}
                 onChange={e => setForm(p => ({ ...p, recordingMode: e.target.checked ? 'continuous' : 'live_only' }))}

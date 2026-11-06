@@ -26,6 +26,8 @@ const DEFAULT_COLUMNS = [
   { id: 'cameraBrand', labelKey: 'imageService.cameras.cameraBrand', defaultLabel: 'ยี่ห้อกล้อง', visible: true },
   { id: 'cameraModel', labelKey: 'imageService.cameras.cameraModel', defaultLabel: 'รุ่นกล้อง', visible: true },
   { id: 'deviceName', labelKey: 'imageService.cameras.columnDevice', defaultLabel: 'อุปกรณ์', visible: true },
+  { id: 'siteName', labelKey: 'ui.location.site', defaultLabel: 'สถานที่', visible: true },
+  { id: 'zoneName', labelKey: 'ui.location.zone', defaultLabel: 'โซน', visible: true },
   { id: 'ipAddress', labelKey: 'imageService.reports.colIp', defaultLabel: 'IP Address', visible: true },
   { id: 'cameraAgeDays', labelKey: 'imageService.reports.colAgeDays', defaultLabel: 'อายุกล้อง (วัน)', visible: true },
   { id: 'incidentCount', labelKey: 'imageService.reports.colIncidentsCount', defaultLabel: 'จำนวนที่พบปัญหา (ครั้ง)', visible: true },
@@ -142,7 +144,7 @@ export default function ImageServiceReports() {
 
   const camerasArr = useMemo(() => {
     const rows = Array.isArray(cameras?.data) ? cameras.data : (Array.isArray(cameras) ? cameras : []);
-    return rows.map((c: any) => ({ ...c, deviceName: c.device?.name ?? null }));
+    return rows.map((c: any) => ({ ...c, deviceName: c.device?.name ?? null, siteName: c.site?.name ?? null, zoneName: c.zone?.name ?? null }));
   }, [cameras]);
 
   // HTML5 Drag and Drop Handlers

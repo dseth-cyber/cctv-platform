@@ -38,6 +38,7 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "searchAllColumns": "すべての列を検索",
       "cameraBrand": "カメラのブランド",
       "cameraModel": "カメラの型番",
       "cameraInfoHint": "検索とレポート用です。DVR/NVR 経由のカメラは録画機のブランドに従って接続します",
@@ -2510,6 +2511,15 @@
       "devices": "デバイス",
       "eGDs7216hqhiK": "例: DS-7216HQHI-K1",
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
+    },
+    "location": {
+      "site": "拠点",
+      "zone": "ゾーン",
+      "none": "未指定",
+      "manage": "一覧を管理",
+      "fromDevice": "機器の場所を使う",
+      "deviceHasNone": "機器の場所は未設定です",
+      "deviceHint": "全チャンネルに自動で適用されます。個別に場所を設定したカメラは変わりません"
     },
     "cctvPlayback": {
       "liveNow": "ライブ",

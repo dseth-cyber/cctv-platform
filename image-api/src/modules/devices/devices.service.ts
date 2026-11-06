@@ -2,6 +2,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
+import { resolveLocation } from '../sites/sites.service.js';
 import type { CreateDeviceInput, UpdateDeviceInput, DeviceQueryInput } from './devices.schema.js';
 
 export const channelCameraName = (deviceName: string, channel: number) => `${deviceName} - Ch ${channel}`;
@@ -62,6 +63,7 @@ export async function listDevices(filters?: DeviceQueryInput) {
     where,
     include: {
       site: { select: { id: true, name: true, code: true } },
+      zone: { select: { id: true, name: true, code: true } },
       cameras: { where: { deletedAt: null }, select: { channelNumber: true, enabled: true } },
     },
     orderBy: { name: 'asc' },
@@ -84,6 +86,7 @@ export async function getDeviceById(id: string) {
     where: { id },
     include: {
       site: true,
+      zone: true,
       cameras: {
         where: { deletedAt: null },
         select: {
@@ -121,10 +124,7 @@ async function assertDeviceNameFree(name: string, exceptId?: string) {
 export async function createDevice(input: CreateDeviceInput) {
   const prisma = getPrisma();
 
-  if (input.siteId) {
-    const site = await prisma.site.findUnique({ where: { id: input.siteId } });
-    if (!site) throw new NotFoundError('Site', input.siteId);
-  }
+  const location = await resolveLocation(input.siteId, input.zoneId);
 
   // Channel cameras take their names from the device, so two devices cannot share one.
   await assertDeviceNameFree(input.name);
@@ -147,7 +147,8 @@ export async function createDevice(input: CreateDeviceInput) {
       passwordEncrypted: encryptedPassword,
       totalChannels: input.totalChannels,
       enabled: input.enabled,
-      siteId: input.siteId,
+      siteId: location.siteId,
+      zoneId: location.zoneId,
     },
     include: { site: true },
   });
@@ -168,10 +169,17 @@ export async function createDevice(input: CreateDeviceInput) {
  * follow its channel count. A name someone set by hand is left alone.
  */
 async function followDeviceChanges(
-  before: { name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
-  after: { id: string; name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
+  before: { siteId: string | null; zoneId: string | null; name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
+  after: { id: string; siteId: string | null; zoneId: string | null; name: string; brand: string | null; ipAddress: string; rtspPort: number; username: string | null; passwordEncrypted: string | null; totalChannels: number },
 ) {
   const prisma = getPrisma();
+  if (before.siteId !== after.siteId || before.zoneId !== after.zoneId) {
+    // Only those still following the device: a camera given its own place keeps it.
+    await prisma.camera.updateMany({
+      where: { deviceId: after.id, deletedAt: null, locationFromDevice: true },
+      data: { siteId: after.siteId, zoneId: after.zoneId },
+    });
+  }
   const cameras = await prisma.camera.findMany({
     where: { deviceId: after.id, deletedAt: null, channelNumber: { not: null } },
     select: { id: true, name: true, channelNumber: true, enabled: true },
@@ -253,11 +261,6 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   const existing = await prisma.device.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError('Device', id);
 
-  if (input.siteId) {
-    const site = await prisma.site.findUnique({ where: { id: input.siteId } });
-    if (!site) throw new NotFoundError('Site', input.siteId);
-  }
-
   if (input.name !== undefined && input.name !== existing.name) await assertDeviceNameFree(input.name, id);
 
   const data: Record<string, unknown> = {};
@@ -276,7 +279,15 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (input.totalChannels !== undefined) data.totalChannels = input.totalChannels;
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.status !== undefined) data.status = input.status;
-  if (input.siteId !== undefined) data.siteId = input.siteId;
+  if (input.siteId !== undefined || input.zoneId !== undefined) {
+    const location = await resolveLocation(
+      input.siteId !== undefined ? input.siteId : existing.siteId,
+      // A site chosen on its own clears a zone that may belong to the old one.
+      input.zoneId !== undefined ? input.zoneId : input.siteId !== undefined ? null : existing.zoneId,
+    );
+    data.siteId = location.siteId;
+    data.zoneId = location.zoneId;
+  }
 
   const updated = await prisma.device.update({
     where: { id },
@@ -345,6 +356,7 @@ export async function provisionDeviceChannels(deviceId: string, opts: { enabledC
           rtspUrlSub: sealRtspUrl(rtspUrlSub),
           streamPath,
           siteId: device.siteId,
+          zoneId: device.zoneId,
           status: inUse ? 'active' : 'inactive', // the health monitor decides online or offline from the device itself
           operationalStatus: 'unknown',
         },
@@ -624,7 +636,7 @@ export async function getDashboardSummary() {
   }
 
   const siteBreakdown = sites.map((s) => {
-    const stats = siteMap.get(s.id) || { total: s._count.cameras, online: 0, offline: s._count.cameras };
+    const stats = siteMap.get(s.id) || { total: 0, online: 0, offline: 0 };
     return {
       id: s.id,
       name: s.name,

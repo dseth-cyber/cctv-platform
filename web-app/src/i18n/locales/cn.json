@@ -38,6 +38,7 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "searchAllColumns": "搜索所有列",
       "cameraBrand": "摄像机品牌",
       "cameraModel": "摄像机型号",
       "cameraInfoHint": "仅用于搜索和报表。通过 DVR/NVR 接入的摄像机按录像机品牌连接",
@@ -2510,6 +2511,15 @@
       "devices": "设备",
       "eGDs7216hqhiK": "例如 DS-7216HQHI-K1",
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
+    },
+    "location": {
+      "site": "地点",
+      "zone": "区域",
+      "none": "未指定",
+      "manage": "管理列表",
+      "fromDevice": "使用设备的位置",
+      "deviceHasNone": "设备尚未指定位置",
+      "deviceHint": "所有通道自动沿用此设置。单独设置了位置的摄像机不会改变"
     },
     "cctvPlayback": {
       "liveNow": "实时",

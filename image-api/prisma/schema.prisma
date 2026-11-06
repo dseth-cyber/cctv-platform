@@ -317,6 +317,7 @@ model Zone {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
+  devices Device[]
   site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   cameras Camera[]
 
@@ -385,10 +386,12 @@ model Device {
   status            String     @default("active") @db.VarChar(32)
   enabled           Boolean    @default(true)
   siteId            String?    @map("site_id") @db.Uuid
+  zoneId            String?    @map("zone_id") @db.Uuid
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
   site    Site?    @relation(fields: [siteId], references: [id])
+  zone    Zone?    @relation(fields: [zoneId], references: [id])
   cameras Camera[]
 
   @@map("devices")
@@ -425,6 +428,8 @@ model Camera {
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
+  // A channel camera takes its site and zone from its device until someone sets its own.
+  locationFromDevice     Boolean                 @default(true) @map("location_from_device")
   latitude               Float?                  @map("latitude")
   longitude              Float?                  @map("longitude")
   onvifProfileToken      String?                 @map("onvif_profile_token") @db.VarChar(128)
