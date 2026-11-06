@@ -12,6 +12,7 @@ import { summarizeCameraList } from '@/lib/locationSummary';
 import { applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
 import { useSearchParams } from 'react-router-dom';
 import { BulkCameraEditModal } from '@/components/cctv/BulkCameraEditModal';
+import { DeletionImpactNote, useDeletionImpact } from '@/components/cctv/DeletionImpactNote';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -635,6 +636,15 @@ export default function ImageServiceCameras() {
     } finally { setTrashBulkRestoring(false); }
   }, [trashSelected, t, toast, queryClient, fetchCameraTrash]);
 
+  const { data: oneImpact } = useDeletionImpact(permaDeleteTarget ? [permaDeleteTarget.id] : [], !!permaDeleteTarget);
+  const { data: selectedImpact } = useDeletionImpact(Array.from(trashSelected), showBulkDeleteTrashConfirm);
+  const { data: allTrashImpact } = useDeletionImpact((trashData as any[]).map((c) => c.id), showEmptyConfirm);
+  const deletionError = (e: any) => {
+    if (e?.response?.status === 401) return t('imageService.cameras.wrongPassword');
+    if (e?.response?.data?.details?.code === 'CAMERA_LEGAL_HOLD') return t('imageService.cameras.deletionHeld', { n: e.response.data.details.legalHold });
+    return t('common.error');
+  };
+
   const handleDeleteSelectedCameraTrashPermanently = useCallback(async () => {
     if (trashSelected.size === 0 || !bulkDeleteTrashPassword) return;
     setTrashBulkDeleting(true);
@@ -649,11 +659,7 @@ export default function ImageServiceCameras() {
       fetchCameraTrash();
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
-      if (e?.response?.status === 401) {
-        toast.error(t('imageService.cameras.wrongPassword'));
-      } else if (!e?._handled) {
-        toast.error(t('common.error'));
-      }
+      if (e?.response?.status === 401 || e?.response?.status === 409 || !e?._handled) toast.error(deletionError(e));
       fetchCameraTrash();
     } finally { setTrashBulkDeleting(false); }
   }, [trashSelected, bulkDeleteTrashPassword, t, toast, queryClient, fetchCameraTrash]);
@@ -704,6 +710,7 @@ export default function ImageServiceCameras() {
     try {
       const result = await imageServiceApi.emptyCameraTrash(emptyTrashPassword);
       toast.success(t('imageService.cameras.emptyCameraTrashSuccess', { count: result.deleted }));
+      if (result.keptForLegalHold > 0) toast.warning(t('imageService.cameras.deletionKept', { n: result.keptForLegalHold }));
       setShowEmptyConfirm(false);
       setEmptyTrashPassword('');
       fetchCameraTrash();
@@ -728,11 +735,7 @@ export default function ImageServiceCameras() {
       fetchCameraTrash();
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
     } catch (e: any) {
-      if (e?.response?.status === 401) {
-        toast.error(t('imageService.cameras.wrongPassword'));
-      } else if (!e?._handled) {
-        toast.error(t('common.error'));
-      }
+      if (e?.response?.status === 401 || e?.response?.status === 409 || !e?._handled) toast.error(deletionError(e));
     } finally { setPermaDeleting(false); }
   }, [permaDeleteTarget, permaDeletePassword, t, toast, queryClient, fetchCameraTrash]);
 
@@ -1847,6 +1850,7 @@ export default function ImageServiceCameras() {
                   {t('ui.imageServiceCameras.confirmDeletingTheSelected')}{' '}{trashSelected.size}{' '}{t('ui.imageServiceCameras.camerasPermanentlyPreviouslyProcessedImagesAre')}
                 </p>
               </div>
+              <DeletionImpactNote impact={selectedImpact} />
               <input
                 type="password" autoComplete="new-password"
                 value={bulkDeleteTrashPassword}
@@ -1860,7 +1864,7 @@ export default function ImageServiceCameras() {
                   className={`px-3 py-1.5 rounded-md text-xs ${themeConfig.text.secondary} hover:bg-white/5`}>
                   {t('common.cancel')}
                 </button>
-                <button onClick={handleDeleteSelectedCameraTrashPermanently} disabled={!bulkDeleteTrashPassword || trashBulkDeleting}
+                <button onClick={handleDeleteSelectedCameraTrashPermanently} disabled={selectedImpact?.legalHold > 0 || !bulkDeleteTrashPassword || trashBulkDeleting}
                   className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 flex items-center gap-1.5">
                   <Trash2 size={12} /> {t('imageService.cameras.permanentDeleteCamera')}
                 </button>
@@ -1955,6 +1959,7 @@ export default function ImageServiceCameras() {
                       {t('imageService.cameras.permanentDeleteCameraConfirm', { name: permaDeleteTarget.name })}
                     </p>
                   </div>
+                  <DeletionImpactNote impact={oneImpact} />
                   <input
                     type="password" autoComplete="new-password"
                     value={permaDeletePassword}
@@ -1968,7 +1973,7 @@ export default function ImageServiceCameras() {
                       className={`px-3 py-1.5 rounded-md text-xs ${themeConfig.text.secondary} hover:bg-white/5`}>
                       {t('common.cancel')}
                     </button>
-                    <button onClick={handlePermanentDeleteCamera} disabled={!permaDeletePassword || permaDeleting}
+                    <button onClick={handlePermanentDeleteCamera} disabled={oneImpact?.legalHold > 0 || !permaDeletePassword || permaDeleting}
                       className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 flex items-center gap-1.5">
                       <Trash2 size={12} /> {t('imageService.cameras.permanentDeleteCamera')}
                     </button>
@@ -1984,6 +1989,7 @@ export default function ImageServiceCameras() {
                       {t('imageService.cameras.emptyCameraTrashConfirm')}
                     </p>
                   </div>
+                  <DeletionImpactNote impact={allTrashImpact} skipsHeld />
                   <input
                     type="password" autoComplete="new-password"
                     value={emptyTrashPassword}

@@ -74,6 +74,8 @@ export function createImageServiceApi(api: any) {
     deleteCamera: (id: string, password: string) =>
       api.delete(`${BASE}/cameras/${id}`, { data: { password } }).then((r: any) => r.data),
 
+    getCameraDeletionImpact: (ids: string[]): Promise<any> =>
+      api.post(`${BASE}/cameras/deletion-impact`, { ids }).then((r: any) => r.data),
     deleteCameraPermanent: (id: string, password: string) =>
       api.delete(`${BASE}/cameras/${id}/permanent`, { data: { password } }).then((r: any) => r.data),
 

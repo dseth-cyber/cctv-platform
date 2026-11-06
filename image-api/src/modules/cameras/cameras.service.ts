@@ -4,6 +4,7 @@ import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.
 import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js';
 import { resolveLocation } from '../sites/sites.service.js';
 import { closeOfflineAlerts, enabledCameraFields } from './camera-enabled.js';
+import { cameraDeletionImpact, removeRecordingFiles } from './camera-deletion.js';
 import { buildChannelRtspUrl, findDeviceTemplate } from '../devices/devices.service.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
@@ -509,32 +510,48 @@ async function purgeCameraDependents(
   await prisma.cameraEvent.deleteMany({ where: { cameraId: { in: ids } } });
 }
 
+/**
+ * Deleting a camera takes its clips and recordings with it, files included. Legal Hold wins: a camera holding
+ * anything under it cannot be deleted until the hold is released.
+ */
 export async function permanentlyDeleteCamera(id: string) {
   const prisma = getPrisma();
   const camera = await prisma.camera.findUnique({ where: { id } });
   if (!camera) throw new NotFoundError('Camera', id);
 
+  const impact = await cameraDeletionImpact([id]);
+  if (impact.legalHold > 0) {
+    throw new ConflictError(`${impact.legalHold} clips or recordings of this camera are under Legal Hold`, { code: 'CAMERA_LEGAL_HOLD', legalHold: impact.legalHold });
+  }
+
   await prisma.$transaction(async tx => {
     await purgeCameraDependents(tx, [id]);
     await tx.camera.delete({ where: { id } });
   });
-  return { deleted: true };
+  const files = await removeRecordingFiles(impact.files);
+  return { deleted: true, impact, files };
 }
 
+/** Everything in the trash except what Legal Hold protects, which stays there and is reported. */
 export async function emptyCameraTrash() {
   const prisma = getPrisma();
-  const deleted = await prisma.camera.findMany({
+  const inTrash = await prisma.camera.findMany({
     where: { deletedAt: { not: null } },
     select: { id: true },
   });
-  const ids = deleted.map(d => d.id);
-  if (ids.length === 0) return { deleted: 0 };
+  const all = inTrash.map(d => d.id);
+  if (all.length === 0) return { deleted: 0, keptForLegalHold: 0 };
+
+  const { heldCameraIds } = await cameraDeletionImpact(all);
+  const ids = all.filter((id) => !heldCameraIds.includes(id));
+  const impact = await cameraDeletionImpact(ids);
 
   const result = await prisma.$transaction(async tx => {
     await purgeCameraDependents(tx, ids);
     return tx.camera.deleteMany({ where: { id: { in: ids } } });
   });
-  return { deleted: result.count };
+  const files = await removeRecordingFiles(impact.files);
+  return { deleted: result.count, keptForLegalHold: heldCameraIds.length, impact, files };
 }
 
 /**

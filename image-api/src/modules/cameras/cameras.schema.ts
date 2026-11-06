@@ -116,3 +116,5 @@ export const bulkUpdateCameraSchema = z.object({
     locationFromDevice: z.boolean().optional(),
   }).strict().refine((c) => Object.keys(c).length > 0, 'Nothing to change'),
 });
+
+export const deletionImpactSchema = z.object({ ids: z.array(z.guid()).min(1).max(1000) });

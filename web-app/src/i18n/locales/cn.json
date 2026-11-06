@@ -38,6 +38,11 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "deletionFiles": "将从服务器永久删除 {{clips}} 个片段和 {{recordings}} 个录像，共 {{size}}，无法恢复",
+      "deletionNoFiles": "服务器上没有片段或录像",
+      "deletionHeld": "有 {{n}} 项处于法律保留，无法删除。请先恢复摄像机并解除保留",
+      "deletionHeldSkipped": "有 {{n}} 项处于法律保留，这些摄像机将留在回收站",
+      "deletionKept": "{{n}} 台摄像机因含法律保留数据而留在回收站",
       "notFound": "未找到此摄像机",
       "enabledField": "启用此摄像机",
       "enabledHint": "关闭后不检查状态、不报警、不显示在实时室。录像到服务器的摄像机将停止录像",

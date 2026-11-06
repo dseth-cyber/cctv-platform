@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { cameraDeletionImpact } from './camera-deletion.js';
 import { syncCameraPaths } from '../media/path-sync.js';
-import { bulkUpdateCameraSchema, createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
+import { bulkUpdateCameraSchema, deletionImpactSchema, createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
 import { detectCameraStream } from './stream-detect.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import * as camerasService from './cameras.service.js';
@@ -343,7 +344,7 @@ async function permanentDeleteCameraHandler(request: FastifyRequest, reply: Fast
   }
 
   const camera = await camerasService.getCameraById(id);
-  await camerasService.permanentlyDeleteCamera(id);
+  const { impact, files } = await camerasService.permanentlyDeleteCamera(id);
 
   createAuditLog({
     userId: user?.id,
@@ -351,11 +352,25 @@ async function permanentDeleteCameraHandler(request: FastifyRequest, reply: Fast
     entity: 'camera',
     entityId: id,
     description: `Camera "${camera.name}" permanently deleted by ${user?.username ?? 'system'}`,
-    metadata: { cameraName: camera.name, ipAddress: camera.ipAddress },
+    metadata: {
+      cameraName: camera.name,
+      ipAddress: camera.ipAddress,
+      recordings: impact.recordings,
+      clips: impact.clipRecords.slice(0, 200),
+      bytes: impact.bytes,
+      filesRemoved: files.removed,
+      filesNotRemoved: files.failed,
+    },
     ipAddress: request.ip,
   }).catch(() => {});
 
-  return reply.status(200).send({ deleted: true });
+  return reply.status(200).send({ deleted: true, filesRemoved: files.removed, filesNotRemoved: files.failed });
+}
+
+async function deletionImpactHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { ids } = deletionImpactSchema.parse(request.body);
+  const { files: _files, clipRecords: _clips, ...impact } = await cameraDeletionImpact(ids);
+  return reply.send(impact);
 }
 
 async function trashListHandler(_request: FastifyRequest, reply: FastifyReply) {
@@ -400,11 +415,11 @@ async function emptyCameraTrashHandler(request: FastifyRequest, reply: FastifyRe
     entity: 'camera',
     entityId: 'all',
     description: `Permanently deleted ${result.deleted} cameras from trash by ${user?.username ?? 'system'}`,
-    metadata: { deleted: result.deleted },
+    metadata: { deleted: result.deleted, keptForLegalHold: result.keptForLegalHold, recordings: result.impact?.recordings, clips: result.impact?.clipRecords.slice(0, 200), filesRemoved: result.files?.removed, filesNotRemoved: result.files?.failed },
     ipAddress: request.ip,
   }).catch(() => {});
 
-  return reply.status(200).send(result);
+  return reply.status(200).send({ deleted: result.deleted, keptForLegalHold: result.keptForLegalHold, filesRemoved: result.files?.removed ?? 0, filesNotRemoved: result.files?.failed ?? [] });
 }
 
 async function analyticsHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -961,6 +976,12 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/',
     { preHandler: [app.authenticate, requirePermission('cameras:create')] },
     createHandler,
+  );
+  // Only reads, but a list of ids is too long for a query string.
+  app.post(
+    '/deletion-impact',
+    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    deletionImpactHandler,
   );
   app.patch(
     '/bulk',

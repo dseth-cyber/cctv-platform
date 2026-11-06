@@ -38,6 +38,11 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "deletionFiles": "{{clips}} clips and {{recordings}} recordings, {{size}} in all, will be removed from the server for good",
+      "deletionNoFiles": "No clips or recordings on the server",
+      "deletionHeld": "{{n}} items are under Legal Hold, so this cannot be deleted. Restore the camera and release the hold first",
+      "deletionHeldSkipped": "{{n}} items are under Legal Hold. Those cameras stay in the trash",
+      "deletionKept": "{{n}} cameras stay in the trash because they hold items under Legal Hold",
       "notFound": "This camera was not found",
       "enabledField": "Use this camera",
       "enabledHint": "Off: no status checks, no alerts, not in the live room. A camera recording to the server stops recording",

@@ -38,6 +38,11 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "deletionFiles": "クリップ {{clips}} 件と録画 {{recordings}} 件、合計 {{size}} をサーバーから完全に削除します。元に戻せません",
+      "deletionNoFiles": "サーバーにクリップや録画はありません",
+      "deletionHeld": "Legal Hold 中のデータが {{n}} 件あるため削除できません。カメラを復元して解除してください",
+      "deletionHeldSkipped": "Legal Hold 中のデータが {{n}} 件あります。該当カメラはごみ箱に残ります",
+      "deletionKept": "Legal Hold 中のデータがあるため、{{n}} 台はごみ箱に残りました",
       "notFound": "このカメラは見つかりません",
       "enabledField": "このカメラを使用する",
       "enabledHint": "オフにすると状態確認も通知もせず、ライブルームにも表示しません。サーバーへの録画も停止します",
