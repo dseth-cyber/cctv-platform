@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { syncCameraPaths } from '../media/path-sync.js';
 import { createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
 import { detectCameraStream } from './stream-detect.service.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -147,6 +148,8 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
 
   const beforeCamera = await camerasService.getCameraById(id);
   const camera = await camerasService.updateCamera(id, { ...input, _changedBy: user?.username } as any);
+  // A camera switched off stops being pulled now rather than at the next sync.
+  if (input.enabled !== undefined && input.enabled !== beforeCamera.enabled) void syncCameraPaths().catch(() => {});
 
   if (input.status && input.status !== beforeCamera.status) {
     createAuditLog({

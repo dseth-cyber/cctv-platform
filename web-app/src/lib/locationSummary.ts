@@ -70,3 +70,22 @@ export function summarizeLocations(cameras: any[], devices: any[]): LocationSumm
   }
   return { bySite, byZone, noZoneBySite, noSite, noZone, inUse };
 }
+
+/** The same numbers for any list of cameras, with the recorders those cameras belong to. */
+export function summarizeCameraList(cameras: any[], devices: any[]): LocationStats {
+  const stats = empty();
+  for (const cam of cameras) {
+    if (cam.enabled === false) {
+      stats.switchedOff++;
+    } else {
+      stats.inUse++;
+      if (cam.operationalStatus === 'online') stats.online++;
+      else stats.problem++;
+    }
+  }
+  const ids = new Set(cameras.map((c) => c.deviceId).filter(Boolean));
+  const own = devices.filter((d) => ids.has(d.id));
+  stats.devices = own.length;
+  stats.spare = spareChannels(own).reduce((sum, row) => sum + row.spare.length, 0);
+  return stats;
+}

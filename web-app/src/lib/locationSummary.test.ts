@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeLocations } from './locationSummary';
+import { summarizeCameraList, summarizeLocations } from './locationSummary';
 
 const cam = (over: object) => ({ enabled: true, operationalStatus: 'online', siteId: 's', zoneId: 'z', ...over });
 
@@ -30,5 +30,18 @@ describe('summarizeLocations', () => {
 
   it('leaves spare channels of a recorder with no place out of every place', () => {
     expect([...out.bySite.keys()]).toEqual(['s']);
+  });
+});
+
+describe('summarizeCameraList', () => {
+  it('counts a list, with only the recorders its cameras belong to', () => {
+    const devices = [{ id: 'a', totalChannels: 16, enabledChannels: [1, 2, 3] }, { id: 'b', totalChannels: 8, enabledChannels: [] }];
+    const cameras = [
+      { deviceId: 'a', enabled: true, operationalStatus: 'online' },
+      { deviceId: 'a', enabled: true, operationalStatus: 'offline' },
+      { deviceId: 'a', enabled: false },
+      { deviceId: null, enabled: true, operationalStatus: 'online' },
+    ];
+    expect(summarizeCameraList(cameras, devices)).toEqual({ inUse: 3, online: 2, problem: 1, switchedOff: 1, devices: 1, spare: 13 });
   });
 });

@@ -38,6 +38,8 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "enabledField": "เปิดใช้งานกล้องนี้",
+      "enabledHint": "ถ้าปิด ระบบจะไม่ตรวจสถานะ ไม่แจ้งเตือน และไม่แสดงในห้องภาพสด กล้องที่บันทึกลง Server จะหยุดบันทึก",
       "retentionNeededForRecording": "กล้องที่บันทึกวิดีโอลง Server ต้องเลือกนโยบายการจัดเก็บ (อยู่ในตั้งค่าเพิ่มเติม)",
       "searchAllColumns": "ค้นหาจากทุกคอลัมน์",
       "cameraBrand": "ยี่ห้อกล้อง",
@@ -2527,6 +2529,7 @@
       "vendorStreamUrlCh": "URL สตรีมตามยี่ห้อ (ช่อง 1):"
     },
     "location": {
+      "openDevices": "จัดการอุปกรณ์",
       "statCameras": "กล้อง {{n}}",
       "statOnline": "ออนไลน์ {{n}}",
       "statProblem": "มีปัญหา {{n}}",

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { SECRET_MASK, sealRtspUrl, isMaskedRtspUrl, redactRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js';
 import { resolveLocation } from '../sites/sites.service.js';
+import { closeOfflineAlerts, enabledCameraFields } from './camera-enabled.js';
 import { buildChannelRtspUrl, findDeviceTemplate } from '../devices/devices.service.js';
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
@@ -410,6 +411,9 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
     data.metadata = { ...base, connection: built.connectionMeta };
   }
 
+  const switching = input.enabled !== undefined && input.enabled !== existing.enabled;
+  if (switching) Object.assign(data, enabledCameraFields(input.enabled as boolean, !!existing.rtspUrl));
+
   const updated = await prisma.camera.update({
     where: { id },
     data,
@@ -421,6 +425,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
       zone: true,
     },
   });
+  if (switching && input.enabled === false) await closeOfflineAlerts(id);
 
   if (input.status !== undefined && input.status !== existing.status) {
     const eventType = input.status === 'active' ? 'online' as const

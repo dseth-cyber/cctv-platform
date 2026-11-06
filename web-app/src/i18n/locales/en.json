@@ -38,6 +38,8 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "enabledField": "Use this camera",
+      "enabledHint": "Off: no status checks, no alerts, not in the live room. A camera recording to the server stops recording",
       "retentionNeededForRecording": "A camera recording to the server needs a retention policy (under more settings)",
       "searchAllColumns": "Search all columns",
       "cameraBrand": "Camera brand",
@@ -2524,6 +2526,7 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "location": {
+      "openDevices": "Manage devices",
       "statCameras": "{{n}} cameras",
       "statOnline": "{{n}} online",
       "statProblem": "{{n}} with problems",

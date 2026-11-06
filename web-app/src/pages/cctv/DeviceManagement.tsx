@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
@@ -49,6 +50,10 @@ export default function DeviceManagement() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState('');
+  // Arriving from a place, e.g. /cctv/devices?site=…&zone=…
+  const [urlParams, setUrlParams] = useSearchParams();
+  const siteParam = urlParams.get('site');
+  const zoneParam = urlParams.get('zone');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any | null>(null);
@@ -97,12 +102,21 @@ export default function DeviceManagement() {
   const { options: brandOptions } = useMasterdataOptions('device_brand');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
   const { data: sites = [] } = useSitesWithZones();
+  const sitesForChip = sites;
 
   // Queries
-  const { data: devices = [], isLoading, refetch } = useQuery({
+  const { data: allDevices = [], isLoading, refetch } = useQuery({
     queryKey: ['cctv-devices', selectedType],
     queryFn: () => imageServiceApi.getDevices(selectedType !== 'all' ? { deviceType: selectedType } : undefined),
   });
+
+  const devices = (allDevices as any[]).filter((d) => (!siteParam || d.siteId === siteParam) && (!zoneParam || d.zoneId === zoneParam));
+  const placeChip = (() => {
+    if (!siteParam && !zoneParam) return null;
+    const site = (sitesForChip as any[]).find((x) => x.id === siteParam);
+    const zone = (sitesForChip as any[]).flatMap((x) => x.zones ?? []).find((z: any) => z.id === zoneParam);
+    return [site?.name, zone?.name].filter(Boolean).join(' / ') || '—';
+  })();
 
   const { data: templates = [] } = useQuery({
     queryKey: ['cctv-device-templates'],
@@ -339,6 +353,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
   const openAddModal = () => {
     resetForm();
+    if (siteParam) setFormData((prev) => ({ ...prev, siteId: siteParam, zoneId: zoneParam ?? '' }));
     setIsModalOpen(true);
   };
 
@@ -348,7 +363,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
     setCloneSource(dev.name);
     setProbeState({ loading: false, result: null, error: null });
     setFormData({
-      name: uniqueCopyName(dev.name, devices.map((d: any) => d.name)),
+      name: uniqueCopyName(dev.name, (allDevices as any[]).map((d: any) => d.name)),
       description: dev.description || '',
       deviceType: dev.deviceType || 'dvr',
       brand: dev.brand || 'Generic',
@@ -529,6 +544,17 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
       {/* Filter and Search Bar */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+        {placeChip && (
+          <button
+            type="button"
+            onClick={() => setUrlParams({})}
+            title={t('ui.location.clearFilter')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/15 border border-cyan-500/40 text-cyan-200 hover:bg-cyan-500/25 whitespace-nowrap"
+          >
+            <span>{placeChip}</span>
+            <X className="w-3 h-3" />
+          </button>
+        )}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input

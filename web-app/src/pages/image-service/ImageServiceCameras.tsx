@@ -7,6 +7,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { LocationFields } from '@/components/cctv/LocationFields';
+import { LocationStatsLine } from '@/components/cctv/LocationStatsRow';
+import { summarizeCameraList } from '@/lib/locationSummary';
 import { applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
 import { useSearchParams } from 'react-router-dom';
 import { hasPermission } from '@/App';
@@ -46,6 +48,7 @@ const emptyForm = () => ({
   brand: 'auto', rtspPort: '554', channel: '1', username: 'admin', password: '',
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
+  enabled: true,
   cameraType: '', cameraBrand: '', cameraModel: '',
   siteId: '', zoneId: '', locationFromDevice: true,
 });
@@ -296,6 +299,7 @@ export default function ImageServiceCameras() {
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
       cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '',
       siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
+      enabled: item.enabled !== false,
     };
   };
 
@@ -387,6 +391,7 @@ export default function ImageServiceCameras() {
           cameraType: form.cameraType || null,
           cameraBrand: form.cameraBrand || null,
           cameraModel: form.cameraModel.trim() || null,
+          ...(modal.item ? { enabled: form.enabled } : {}),
           ...(modal.item?.deviceId && form.locationFromDevice
             ? { locationFromDevice: true }
             : { locationFromDevice: false, siteId: form.siteId || null, zoneId: form.zoneId || null }),
@@ -415,6 +420,9 @@ export default function ImageServiceCameras() {
         await imageServiceApi.createCamera(buildPayload());
         toast.success(t('imageService.cameras.created'));
       }
+      queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
+      queryClient.invalidateQueries({ queryKey: ['cctv-device'] });
+      queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       setModal({ open: false });
     } catch (e: any) { if (!e?._handled) toast.error(cameraErrorMessage(e, t)); }
@@ -921,6 +929,8 @@ export default function ImageServiceCameras() {
   ].filter(Boolean).join(' ').normalize('NFC').toLocaleLowerCase();
   const filtered = applyLocationFilter(cameras as any[], siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
     .filter((c: any) => (!inUseOnly || c.enabled !== false) && (!search.trim() || matchesCameraQuery(searchTextOf(c), search)));
+  const { data: devicesForSummary = [] } = useQuery<any[]>({ queryKey: ['cctv-devices'], queryFn: () => imageServiceApi.getDevices() });
+  const listStats = useMemo(() => summarizeCameraList(filtered, devicesForSummary), [filtered, devicesForSummary]);
   const locationChip = (() => {
     if (!siteParam && !zoneParam) return null;
     const anyCamera = (cameras as any[]).find((c) => (siteParam && c.siteId === siteParam) || (zoneParam && c.zoneId === zoneParam));
@@ -1256,6 +1266,7 @@ export default function ImageServiceCameras() {
                           className={`w-2 h-2 rounded-full flex-shrink-0 ${OPERATIONAL_STATUS_DOT[camera.operationalStatus] ?? OPERATIONAL_STATUS_DOT.unknown}`}
                           title={`${t('imageService.cameras.operationalStatus')}: ${t(`imageService.cameras.operational.${camera.operationalStatus ?? 'unknown'}`)}${camera.operationalStatus === 'offline' ? ` (${t(`imageService.cameras.offlineReason.${camera.operationalReason ?? 'unknown'}`)})` : ''}`}
                         />
+                        {camera.enabled !== false && (
                         <button
                           onClick={() => canUpdate && openStatusDialog(camera)}
                           disabled={changingStatus.has(camera.id) || !canUpdate}
@@ -1270,6 +1281,7 @@ export default function ImageServiceCameras() {
                           {t(`imageService.cameras.${camera.status}`)}
                           {canUpdate && <ChevronDown size={10} className="ml-0.5 opacity-60" />}
                         </button>
+                        )}
                         {camera.enabled !== false && camera.operationalStatus === 'offline' && (
                           <span className="text-[10px] text-rose-300 whitespace-nowrap">{t(`imageService.cameras.offlineReason.${camera.operationalReason ?? 'unknown'}`)}</span>
                         )}
@@ -1339,6 +1351,9 @@ export default function ImageServiceCameras() {
             </div>
             <span className={`ml-2 px-2 py-1 rounded bg-white/5 border border-white/10 ${themeConfig.text.secondary}`}>
               {t('imageService.cameras.totalCameras', { count: totalItems })}
+            </span>
+            <span className="ml-2 px-2 py-1 rounded bg-white/5 border border-white/10">
+              <LocationStatsLine stats={listStats} />
             </span>
           </div>
 
@@ -1478,6 +1493,15 @@ export default function ImageServiceCameras() {
                   onChange={(next) => setForm(p => ({ ...p, ...next }))} />
               )}
             </div>
+            {modal.item && (
+              <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
+                <input type="checkbox" checked={form.enabled} onChange={e => setForm(p => ({ ...p, enabled: e.target.checked }))} className="mt-0.5 w-4 h-4 accent-cyan-500" />
+                <span className={`text-sm font-medium ${themeConfig.text.primary}`}>
+                  {t('imageService.cameras.enabledField')}
+                  <span className={`block text-xs font-normal ${themeConfig.text.secondary}`}>{t('imageService.cameras.enabledHint')}</span>
+                </span>
+              </label>
+            )}
             <label className="col-span-2 flex items-start gap-3 cursor-pointer select-none pt-1">
               <input type="checkbox" checked={form.recordingMode === 'continuous'}
                 onChange={e => setForm(p => ({ ...p, recordingMode: e.target.checked ? 'continuous' : 'live_only' }))}

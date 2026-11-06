@@ -38,6 +38,8 @@
       "clearSelection": "ရွေးချယ်ထားသည်များ ဖျက်သိမ်းရန်"
     },
     "cameras": {
+      "enabledField": "ဤကင်မရာကို သုံးရန်",
+      "enabledHint": "ပိတ်ပါက အခြေအနေမစစ်၊ မသတိပေး၊ တိုက်ရိုက်ခန်းတွင် မပြပါ။ ဆာဗာသို့ မှတ်တမ်းတင်ခြင်းလည်း ရပ်သည်",
       "retentionNeededForRecording": "ဆာဗာသို့ မှတ်တမ်းတင်သော ကင်မရာသည် သိမ်းဆည်းမှုမူဝါဒ ရွေးရမည် (အပိုဆက်တင်တွင်)",
       "searchAllColumns": "ကော်လံအားလုံး ရှာရန်",
       "cameraBrand": "ကင်မရာတံဆိပ်",
@@ -2516,6 +2518,7 @@
       "vendorStreamUrlCh": "ထုတ်လုပ်သူ Stream URL (Ch 1):"
     },
     "location": {
+      "openDevices": "စက်စီမံရန်",
       "statCameras": "ကင်မရာ {{n}}",
       "statOnline": "အွန်လိုင်း {{n}}",
       "statProblem": "ပြဿနာ {{n}}",

@@ -3,6 +3,7 @@ import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credenti
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
 import { resolveLocation } from '../sites/sites.service.js';
+import { closeOfflineAlerts, enabledCameraFields } from '../cameras/camera-enabled.js';
 import type { CreateDeviceInput, UpdateDeviceInput, DeviceQueryInput } from './devices.schema.js';
 
 export const channelCameraName = (deviceName: string, channel: number) => `${deviceName} - Ch ${channel}`;
@@ -244,19 +245,8 @@ export async function setEnabledChannels(deviceId: string, enabledChannels: numb
     const channel = cam.channelNumber as number;
     const enabled = wanted.has(channel);
     if (enabled === cam.enabled) continue;
-    await prisma.camera.update({
-      where: { id: cam.id },
-      data: enabled
-        ? { enabled: true, status: 'active', operationalStatus: 'unknown', operationalReason: null, operationalSince: new Date() }
-        : { enabled: false, status: 'inactive', operationalStatus: 'unknown', operationalReason: null, operationalSince: new Date() },
-    });
-    // An alert about a camera that was switched off on purpose has nothing left to report.
-    if (!enabled) {
-      await prisma.alert.updateMany({
-        where: { source: cam.id, alertType: 'camera_offline', resolvedAt: null },
-        data: { resolvedAt: new Date() },
-      });
-    }
+    await prisma.camera.update({ where: { id: cam.id }, data: enabledCameraFields(enabled, true) });
+    if (!enabled) await closeOfflineAlerts(cam.id);
     changed.push({ channel, enabled });
   }
   return { deviceId, changed, enabledChannels: [...wanted].sort((a, b) => a - b) };
