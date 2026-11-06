@@ -24,6 +24,11 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06) — ภาพสดของกล้องจริงดำในโหมดดูสดอย่างเดียว
+
+- สาเหตุ: MediaMTX `rtspTransport: automatic` ลอง UDP ก่อน; UDP เข้า container ไม่ได้ ครบ 3 วิ log `no UDP packets received, switching to TCP` แล้วตัดผู้ชม → เบราว์เซอร์เชื่อมใหม่วนซ้ำ ภาพดำ. โผล่หลังเปลี่ยนเป็น on-demand เพราะทุกการเปิดดูเริ่มดึงใหม่
+- แก้: `pathDefaults.rtspTransport: tcp` ใน mediamtx.yml (+ test); ตรวจ: ผู้ชม RTSP 12 วิ ได้ sub 640×360 260 เฟรม และ main 1280×720 302 เฟรม, ไม่มี "switching to TCP", ไม่มีไฟล์บันทึกใหม่, vitest 125 passed
+
 ## งานล่าสุด (2026-11-03, รอบ 13) — โหมดบันทึกรายกล้อง (DVR/NVR มี HDD ของตัวเอง)
 
 - หลักการที่ผู้ใช้อนุมัติ: Server เป็นตัวดู/ค้น, การเก็บไฟล์เป็นหน้าที่ของ DVR/NVR; บันทึกลง Server เฉพาะกล้องที่ตั้งใจเลือก

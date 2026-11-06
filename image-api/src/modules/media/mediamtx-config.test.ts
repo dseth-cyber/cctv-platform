@@ -33,6 +33,11 @@ describe('MediaMTX Configuration Validator', () => {
     }
   });
 
+  it('pulls cameras over TCP (the UDP fallback cuts off viewers of on-demand streams)', () => {
+    const parsed = YAML.parse(fs.readFileSync(configPath, 'utf8'));
+    expect(parsed.pathDefaults.rtspTransport).toBe('tcp');
+  });
+
   it('never lets MediaMTX delete recordings itself (retention and Legal Hold own deletion)', () => {
     const parsed = YAML.parse(fs.readFileSync(configPath, 'utf8'));
     // MediaMTX defaults recordDeleteAfter to 1d, which silently removed held and quarantined segments.

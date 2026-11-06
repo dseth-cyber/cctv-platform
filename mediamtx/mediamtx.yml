@@ -46,6 +46,9 @@ hlsAllowOrigins: ["*"]
 # ── Recording Defaults ──────────────────────────────────────────
 # Direct fMP4 remux on media node with zero CPU transcoding
 pathDefaults:
+  # Pull cameras over TCP: UDP does not get through Docker's NAT, and the automatic fallback after 3 s
+  # drops every viewer of an on-demand stream, so live view never gets past a black picture.
+  rtspTransport: tcp
   record: yes
   # %f is required by the playback server; the indexer parses it as microseconds.
   recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
