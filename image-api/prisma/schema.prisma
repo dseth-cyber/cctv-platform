@@ -248,6 +248,31 @@ model CameraTemplate {
   @@map("camera_templates")
 }
 
+// Named sets of cameras that cut across site and DVR/NVR; one camera can be in several.
+model CameraGroup {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(64)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members CameraGroupMember[]
+
+  @@map("camera_groups")
+}
+
+model CameraGroupMember {
+  groupId  String @map("group_id") @db.Uuid
+  cameraId String @map("camera_id") @db.Uuid
+
+  group  CameraGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  camera Camera      @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, cameraId])
+  @@index([cameraId])
+  @@map("camera_group_members")
+}
+
 // ── CCTV Foundation Models (Phase 1) ──────────────────────────
 
 model Site {
@@ -402,6 +427,7 @@ model Camera {
   cameraEvents     CameraEvent[]
   dailySummaries   CameraDailySummary[]
   incidents        CameraIncident[]
+  groupMemberships CameraGroupMember[]
   recordings       CameraRecording[]
   recordingClips   RecordingClip[]
 

@@ -565,7 +565,8 @@
       "resetOrder": "รีเซ็ตลำดับ",
       "hideMenuItem": "ซ่อนเมนูนี้",
       "showMenuItem": "แสดงเมนูนี้",
-      "requiredFields": "ฟิลด์บังคับกรอก"
+      "requiredFields": "ฟิลด์บังคับกรอก",
+      "cameraGroups": "กลุ่มกล้อง"
     },
     "incidentCenter": {
       "title": "ศูนย์จัดการ Incident",
@@ -2741,7 +2742,8 @@
         "standalone": "กล้องเดี่ยว ({{count}})",
         "clear": "ล้างทั้งหมด",
         "applyCount": "แสดง {{count}} กล้อง",
-        "applyAll": "แสดงทั้งหมด"
+        "applyAll": "แสดงทั้งหมด",
+        "groups": "กลุ่มกล้อง"
       }
     },
     "cctvMap": {
@@ -3013,6 +3015,23 @@
     "loginPage": {
       "logo": "โลโก้",
       "version": "เวอร์ชัน"
+    },
+    "cameraGroups": {
+      "title": "กลุ่มกล้อง",
+      "subtitle": "จัดกล้องเป็นชุดตามการใช้งาน เช่น ประตูทางเข้า หรือ รปภ. กะดึก แล้วเลือกทั้งกลุ่มได้ในตัวกรองห้องภาพสด",
+      "new": "สร้างกลุ่ม",
+      "edit": "แก้ไขกลุ่ม",
+      "empty": "ยังไม่มีกลุ่มกล้อง",
+      "cameraCount": "{{count}} กล้อง",
+      "name": "ชื่อกลุ่ม",
+      "namePlaceholder": "เช่น ประตูทางเข้า",
+      "description": "คำอธิบาย",
+      "cameras": "กล้องในกลุ่ม",
+      "camerasPlaceholder": "เลือกกล้อง",
+      "multiGroupHint": "กล้องหนึ่งตัวอยู่ได้หลายกลุ่ม",
+      "nameTaken": "มีกลุ่มชื่อนี้อยู่แล้ว",
+      "deleted": "ลบกลุ่มแล้ว",
+      "deleteHint": "ลบเฉพาะกลุ่ม กล้องในกลุ่มยังอยู่ตามเดิม"
     }
   }
 }

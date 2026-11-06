@@ -24,6 +24,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
       device: { select: { id: true, name: true, deviceType: true, brand: true, ipAddress: true } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
+      groupMemberships: { select: { group: { select: { id: true, name: true } } } },
     },
     orderBy: { name: 'asc' },
   });
@@ -516,6 +517,10 @@ export function toPublicCamera<T extends Record<string, any>>(camera: T, viewerR
     rtspUrl: redactRtspUrl(camera.rtspUrl),
     rtspUrlSub: redactRtspUrl(camera.rtspUrlSub),
   };
+  if (Array.isArray(camera.groupMemberships)) {
+    out.groups = camera.groupMemberships.map((m: any) => m.group);
+    delete out.groupMemberships;
+  }
   if (viewerRole !== 'system' && 'smbPasswordEncrypted' in camera) {
     out.smbPasswordEncrypted = camera.smbPasswordEncrypted ? SECRET_MASK : null;
   }

@@ -19,6 +19,7 @@ export function cameraSearchText(cam: any, statusLabel = ''): string {
     cam.zone?.name,
     cam.zone?.code,
     cam.template?.name,
+    ...(cam.groups ?? []).map((g: any) => g.name),
     cam.operationalStatus,
     statusLabel,
   ]
@@ -66,6 +67,19 @@ export function groupCamerasByDevice(cameras: any[]): CameraGroup[] {
   }
   const sorted = [...groups.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
   return standalone.length > 0 ? [...sorted, { id: null, name: null, cameras: standalone }] : sorted;
+}
+
+/** Every group that has at least one of these cameras, by name. */
+export function groupsOfCameras(cameras: any[]): { id: string; name: string; cameraIds: string[] }[] {
+  const groups = new Map<string, { id: string; name: string; cameraIds: string[] }>();
+  for (const cam of cameras) {
+    for (const g of cam.groups ?? []) {
+      const group: { id: string; name: string; cameraIds: string[] } = groups.get(g.id) ?? { id: g.id, name: g.name, cameraIds: [] };
+      group.cameraIds.push(cam.id);
+      groups.set(g.id, group);
+    }
+  }
+  return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
 
 /** An empty selection means every camera. */

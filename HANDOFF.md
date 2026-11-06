@@ -24,6 +24,15 @@
 | Anti-Screen-Capture Watermark | Component `<SecurityWatermark />` ครอบบน `WhepPlayer.tsx` และ `CctvPlayback.tsx` แสดงข้อมูล Dynamic (User, Session, Bangkok Time) ขยับทุก 30s เพื่อระบุตัวผู้ดู (**แก้ไข 2026-10-30: overlay ไม่ป้องกัน screen capture และ snapshot ยังไม่ติด watermark — R3.4**) |
 | Hardware Verification Toolkit | มีสคริปต์ `node scripts/pilot-verify-cameras.mjs` พร้อมคู่มือปฏิบัติการภาคสนาม `docs/pilot/PILOT_WAVE1_RUNBOOK.md` สำหรับตรวจรับฮาร์ดแวร์จริง 10 ตัวแรก (**report ที่มีอยู่เป็น `DRY_RUN_SIMULATION` — R4.1**) |
 
+## งานล่าสุด (2026-11-06, รอบ 4) — R5.2 กลุ่มกล้อง
+
+- ตาราง `camera_groups`, `camera_group_members` (สร้างด้วย db push ไม่กระทบข้อมูลเดิม, Dev DB backup: `C:\Users\SC34111\AppData\Local\Temp\claude\6d244687310e9a00\a3ec8224-54a6-4fab-9e16-702c136d10df\scratchpad\image_db_before_camera_groups.dump`); API `/camera-groups` (อ่าน `cameras:read`, เขียน `cameras:update`, audit ทุกการเขียน); ชื่อห้ามซ้ำแบบไม่สนตัวพิมพ์; กล้องที่ไม่มีหรืออยู่ในถังขยะ → 400
+- `GET /cameras` คืน `groups`; หน้า `/cctv/camera-groups` สร้าง/แก้/ลบและเลือกกล้อง; ตัวกรองห้องภาพสดมีหมวดกลุ่มและค้นตามชื่อกลุ่มได้; ลบกลุ่มไม่ลบกล้อง
+- หน้า System Config เลื่อนไปที่ช่องแรกที่ผิดเมื่อบันทึกไม่ผ่าน
+- ตรวจ: vitest 139 passed; API: ไม่ login 401, viewer อ่าน 200/สร้าง 403, ชื่อซ้ำ 409, กล้องผิด 400; Chrome กับข้อมูลจริง: สร้างผ่านฟอร์ม, ชื่อซ้ำขึ้นข้อความ, ค้น/ติ๊กกลุ่มในตัวกรอง, ลบแล้วกล้องยังอยู่, ไม่มี page error; ล้างกลุ่มทดสอบแล้ว
+- ข้อควรรู้ตอนทดสอบ: curl จาก Git Bash ส่งภาษาไทยเพี้ยนลง DB (กลุ่มทดสอบกลายเป็น `���`) ให้ทดสอบภาษาไทยผ่าน browser หรือไฟล์ UTF-8
+
+
 ## งานล่าสุด (2026-11-06, รอบ 3) — ความปลอดภัยและการป้องกันค่าผิดของ System Config
 
 - `GET /system-config` ต้อง login + `system-config:read`; หน้า login ใช้ `GET /system-config/public` (ชื่อ, คำอธิบาย, โลโก้, เวอร์ชัน, ลิขสิทธิ์); `webhook_secret` ส่งกลับแบบ mask และบันทึก mask = ไม่เปลี่ยน

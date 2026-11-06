@@ -466,7 +466,8 @@
       "sites": "拠点とゾーン",
       "map": "マップとフロアプラン",
       "mediaNodes": "メディアノードとスケール",
-      "release": "パイロットとリリース"
+      "release": "パイロットとリリース",
+      "cameraGroups": "カメラグループ"
     },
     "masterdataManagement": {
       "title": "マスタデータ管理",
@@ -2735,7 +2736,8 @@
         "standalone": "単体カメラ（{{count}}）",
         "clear": "すべてクリア",
         "applyCount": "{{count}} 台を表示",
-        "applyAll": "すべて表示"
+        "applyAll": "すべて表示",
+        "groups": "カメラグループ"
       }
     },
     "cctvMap": {
@@ -3007,6 +3009,23 @@
     "loginPage": {
       "logo": "ロゴ",
       "version": "バージョン"
+    },
+    "cameraGroups": {
+      "title": "カメラグループ",
+      "subtitle": "入口や夜勤など用途ごとにカメラをまとめ、ライブルームのフィルターでグループごと選択できます",
+      "new": "グループを作成",
+      "edit": "グループを編集",
+      "empty": "カメラグループはまだありません",
+      "cameraCount": "{{count}} 台",
+      "name": "グループ名",
+      "namePlaceholder": "例: 入口",
+      "description": "説明",
+      "cameras": "グループ内のカメラ",
+      "camerasPlaceholder": "カメラを選択",
+      "multiGroupHint": "1 台のカメラを複数のグループに入れられます",
+      "nameTaken": "この名前のグループは既にあります",
+      "deleted": "グループを削除しました",
+      "deleteHint": "グループのみ削除され、カメラは残ります"
     }
   }
 }

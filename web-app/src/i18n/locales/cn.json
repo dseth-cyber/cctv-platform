@@ -466,7 +466,8 @@
       "sites": "站点与区域",
       "map": "地图与平面图",
       "mediaNodes": "媒体节点与扩展",
-      "release": "试点与发布"
+      "release": "试点与发布",
+      "cameraGroups": "摄像机分组"
     },
     "masterdataManagement": {
       "title": "主数据管理",
@@ -2735,7 +2736,8 @@
         "standalone": "独立摄像机（{{count}}）",
         "clear": "全部清除",
         "applyCount": "显示 {{count}} 台摄像机",
-        "applyAll": "显示全部"
+        "applyAll": "显示全部",
+        "groups": "摄像机分组"
       }
     },
     "cctvMap": {
@@ -3007,6 +3009,23 @@
     "loginPage": {
       "logo": "标志",
       "version": "版本"
+    },
+    "cameraGroups": {
+      "title": "摄像机分组",
+      "subtitle": "按用途分组摄像机（如入口、夜班），并可在实时画面筛选中选择整个分组",
+      "new": "新建分组",
+      "edit": "编辑分组",
+      "empty": "还没有摄像机分组",
+      "cameraCount": "{{count}} 台摄像机",
+      "name": "分组名称",
+      "namePlaceholder": "例如：入口",
+      "description": "描述",
+      "cameras": "分组内的摄像机",
+      "camerasPlaceholder": "选择摄像机",
+      "multiGroupHint": "一台摄像机可以属于多个分组",
+      "nameTaken": "已存在同名分组",
+      "deleted": "分组已删除",
+      "deleteHint": "仅删除分组，摄像机保留"
     }
   }
 }

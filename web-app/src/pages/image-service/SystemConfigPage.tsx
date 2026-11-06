@@ -59,6 +59,7 @@ export default function SystemConfigPage() {
       if (Array.isArray(list)) {
         setProblems(Object.fromEntries(list.map((p: any) => [p.key, p])));
         toast.error(t('imageService.systemConfig.problems.summary', { count: list.length }));
+        setTimeout(() => document.querySelector('[data-config-problem]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
       } else if (!e?._handled) toast.error(t('common.error'));
     },
   });
@@ -239,7 +240,7 @@ export default function SystemConfigPage() {
                           {translatedDesc}
                           {min !== undefined && ` ${t('imageService.systemConfig.problems.rangeHint', { min, max })}`}
                         </p>
-                        {problemText && <p className="text-xs mt-0.5 text-red-400">{problemText}</p>}
+                        {problemText && <p data-config-problem className="text-xs mt-0.5 text-red-400">{problemText}</p>}
                       </div>
                     );
                   })}

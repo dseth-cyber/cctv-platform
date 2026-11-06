@@ -21,6 +21,7 @@ import { authenticate } from './middleware/auth.js';
 import { authRoutes } from './modules/auth/auth.controller.js';
 import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
+import { cameraGroupRoutes } from './modules/camera-groups/camera-groups.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
 import { recordingsRoutes } from './modules/recordings/recordings.controller.js';
 import { mediaAuthRoutes } from './modules/media/media-auth.controller.js';
@@ -138,6 +139,7 @@ export async function buildApp() {
       await api.register(authRoutes, { prefix: '/api/v1/auth' });
       await api.register(cameraRoutes, { prefix: '/api/v1/cameras' });
       await api.register(deviceRoutes, { prefix: '/api/v1/devices' });
+      await api.register(cameraGroupRoutes, { prefix: '/api/v1/camera-groups' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
       await api.register(recordingsRoutes, { prefix: '/api/v1/recordings' });
       await api.register(mediaAuthRoutes, { prefix: '/api/v1/media' });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Filter, HardDrive, Search, X } from 'lucide-react';
-import { cameraSearchText, groupCamerasByDevice, matchesCameraQuery } from '@/lib/cameraFilter';
+import { ChevronDown, ChevronRight, Filter, FolderTree, HardDrive, Search, X } from 'lucide-react';
+import { cameraSearchText, groupCamerasByDevice, groupsOfCameras, matchesCameraQuery } from '@/lib/cameraFilter';
 
 interface Props {
   cameras: any[];
@@ -38,6 +38,7 @@ export function CameraFilterDropdown({ cameras, selectedIds, onlyOffline, onAppl
     [indexed, query, draftOffline],
   );
   const groups = useMemo(() => groupCamerasByDevice(matched), [matched]);
+  const namedGroups = useMemo(() => groupsOfCameras(matched), [matched]);
 
   const close = (apply: boolean) => {
     setOpen(false);
@@ -164,6 +165,32 @@ export function CameraFilterDropdown({ cameras, selectedIds, onlyOffline, onAppl
 
           <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 min-h-[6rem]">
             {matched.length === 0 && <p className="p-4 text-center text-xs text-slate-500">{t('ui.liveGrid.filter.noMatch')}</p>}
+            {namedGroups.length > 0 && (
+              <div className="pb-1 mb-1 border-b border-slate-800">
+                <div className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  {t('ui.liveGrid.filter.groups')}
+                </div>
+                {namedGroups.map((group) => {
+                  const checkedCount = group.cameraIds.filter((id) => draft.has(id)).length;
+                  return (
+                    <label key={group.id} className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-800 cursor-pointer text-xs">
+                      <input
+                        type="checkbox"
+                        checked={checkedCount === group.cameraIds.length}
+                        ref={(el) => {
+                          if (el) el.indeterminate = checkedCount > 0 && checkedCount < group.cameraIds.length;
+                        }}
+                        onChange={(e) => setMany(group.cameraIds, e.target.checked)}
+                        className="w-3.5 h-3.5 accent-cyan-500 shrink-0"
+                      />
+                      <FolderTree className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="font-semibold text-slate-200 truncate flex-1" title={group.name}>{group.name}</span>
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0">{checkedCount}/{group.cameraIds.length}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
             {groups.map((group) => {
               if (group.id === null) {
                 return (

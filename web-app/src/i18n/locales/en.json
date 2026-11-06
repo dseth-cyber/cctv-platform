@@ -565,7 +565,8 @@
       "resetOrder": "Reset Order",
       "hideMenuItem": "Hide this menu item",
       "showMenuItem": "Show this menu item",
-      "requiredFields": "Required Fields"
+      "requiredFields": "Required Fields",
+      "cameraGroups": "Camera Groups"
     },
     "incidentCenter": {
       "title": "Incident Center",
@@ -2738,7 +2739,8 @@
         "standalone": "Standalone cameras ({{count}})",
         "clear": "Clear all",
         "applyCount": "Show {{count}} cameras",
-        "applyAll": "Show all"
+        "applyAll": "Show all",
+        "groups": "Camera groups"
       }
     },
     "cctvMap": {
@@ -3010,6 +3012,23 @@
     "loginPage": {
       "logo": "Logo",
       "version": "Version"
+    },
+    "cameraGroups": {
+      "title": "Camera Groups",
+      "subtitle": "Group cameras by purpose, such as entrances or the night shift, and pick a whole group in the Live Room filter",
+      "new": "New group",
+      "edit": "Edit group",
+      "empty": "No camera groups yet",
+      "cameraCount": "{{count}} cameras",
+      "name": "Group name",
+      "namePlaceholder": "e.g. Entrances",
+      "description": "Description",
+      "cameras": "Cameras in this group",
+      "camerasPlaceholder": "Select cameras",
+      "multiGroupHint": "A camera can be in several groups",
+      "nameTaken": "A group with this name already exists",
+      "deleted": "Group deleted",
+      "deleteHint": "Only the group is deleted; its cameras stay"
     }
   }
 }

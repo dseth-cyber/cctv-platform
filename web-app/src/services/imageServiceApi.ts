@@ -19,6 +19,15 @@ export function createImageServiceApi(api: any) {
     getCameraEvents: (id: string, params?: { since?: string; until?: string; limit?: number }) =>
       api.get(`${BASE}/cameras/${id}/events`, { params }).then((r: any) => r.data),
 
+    getCameraGroups: () =>
+      api.get(`${BASE}/camera-groups`).then((r: any) => r.data),
+    createCameraGroup: (data: Record<string, unknown>) =>
+      api.post(`${BASE}/camera-groups`, data).then((r: any) => r.data),
+    updateCameraGroup: (id: string, data: Record<string, unknown>) =>
+      api.patch(`${BASE}/camera-groups/${id}`, data).then((r: any) => r.data),
+    deleteCameraGroup: (id: string) =>
+      api.delete(`${BASE}/camera-groups/${id}`),
+
     createCamera: (data: Record<string, unknown>) =>
       api.post(`${BASE}/cameras`, data).then((r: any) => r.data),
     // Opens the stream to find brand/port/channel (and checks the login); see stream-detect.service.ts.

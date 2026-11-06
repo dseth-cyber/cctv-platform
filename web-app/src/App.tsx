@@ -35,6 +35,7 @@ const ImageServiceReports = lazy(() => import('@/pages/image-service/ImageServic
 const DeviceManagement = lazy(() => import('@/pages/cctv/DeviceManagement'))
 const SiteManagement = lazy(() => import('@/pages/cctv/SiteManagement'))
 const LiveGrid = lazy(() => import('@/pages/cctv/LiveGrid'))
+const CameraGroups = lazy(() => import('@/pages/cctv/CameraGroups'))
 const CctvMap = lazy(() => import('@/pages/cctv/CctvMap'))
 const CctvDashboard = lazy(() => import('@/pages/cctv/CctvDashboard'))
 const CctvPlayback = lazy(() => import('@/pages/cctv/CctvPlayback'))
@@ -43,7 +44,7 @@ const CctvReleaseCenter = lazy(() => import('@/pages/cctv/CctvReleaseCenter'))
 import { translateAlertTitle, translateAlertMessage, getLocalizedValue, type IncidentLabelMaps } from '@/utils/textUtils'
 import {
   Camera, LayoutDashboard, Search, Activity, HardDrive, FileText, Shield, Settings, Map, CalendarClock,
-  Globe, Palette, User, ChevronDown, ChevronLeft, ChevronRight, LogOut, Lock, Bell, Users, HeartPulse, Key, MessageCircle, BookText, Sliders, AlertTriangle, History, Info, Server, Layers, Image, BarChart3, RefreshCw, Play, ClipboardList, LayoutTemplate, BookOpen,
+  FolderTree, Globe, Palette, User, ChevronDown, ChevronLeft, ChevronRight, LogOut, Lock, Bell, Users, HeartPulse, Key, MessageCircle, BookText, Sliders, AlertTriangle, History, Info, Server, Layers, Image, BarChart3, RefreshCw, Play, ClipboardList, LayoutTemplate, BookOpen,
   Menu, X, GripVertical, ArrowDownUp, RotateCcw, Hourglass, FileSpreadsheet, Eye, EyeOff, Package,
   Building2, Radio, MapPin, Film, FileCheck,
 } from 'lucide-react'
@@ -88,6 +89,7 @@ const navItems = [
   { path: '/cctv/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'cameras:read' },
   { path: '/cctv/playback', labelKey: 'nav.playback', icon: Film, permission: 'cameras:read' },
   { path: '/cctv/devices', labelKey: 'nav.devices', icon: Server, permission: 'cameras:read' },
+  { path: '/cctv/camera-groups', labelKey: 'nav.cameraGroups', icon: FolderTree, permission: 'cameras:read' },
   { path: '/cctv/sites', labelKey: 'nav.sites', icon: Building2, permission: 'cameras:read' },
   { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
   { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
@@ -1061,6 +1063,9 @@ export default function App() {
             } />
             <Route path="/cctv/cameras" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceCameras /> : <UnauthorizedPage />
+            } />
+            <Route path="/cctv/camera-groups" element={
+              hasPermission(user, 'cameras:read') ? <CameraGroups /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/live-grid" element={
               hasPermission(user, 'cameras:read') ? <LiveGrid /> : <UnauthorizedPage />
