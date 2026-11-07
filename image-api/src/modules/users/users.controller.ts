@@ -65,11 +65,10 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
   const input = updateUserSchema.parse(request.body);
   const actor = (request as any).user;
   const actorSortOrder = await usersService.getViewerMinRoleSortOrder(actor?.role);
-  if (actorSortOrder !== null) {
-    const target = await usersService.getUserById(id, actorSortOrder);
-    if (!target) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'User not found' });
-    if (input.role !== undefined) await assertCanManageRole(actorSortOrder, input.role);
-  }
+  // Checked for everyone, admins too: a deleted account must not be switched back on through an edit.
+  const target = await usersService.getUserById(id, actorSortOrder);
+  if (!target) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'User not found' });
+  if (actorSortOrder !== null && input.role !== undefined) await assertCanManageRole(actorSortOrder, input.role);
   const user = await usersService.updateUser(id, input);
   await createAuditLog({
     userId: actor?.id,
@@ -89,13 +88,19 @@ async function deactivateHandler(request: FastifyRequest, reply: FastifyReply) {
   const actorSortOrder = await usersService.getViewerMinRoleSortOrder(actor?.role);
   const target = await usersService.getUserById(id, actorSortOrder);
   if (!target) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'User not found' });
-  const user = await usersService.deactivateUser(id);
+  let user;
+  try {
+    user = await usersService.deactivateUser(id, { id: actor?.id, username: actor?.username });
+  } catch (err) {
+    if (err instanceof usersService.UserDeleteError) return reply.status(409).send({ statusCode: 409, error: err.code, message: err.message, details: { code: err.code } });
+    throw err;
+  }
   await createAuditLog({
     userId: actor?.id,
     action: 'delete',
     entity: 'user',
     entityId: id,
-    description: `Permanently deleted user "${target?.username ?? id}" by ${actor?.username ?? 'system'}`,
+    description: `Deleted user "${target?.username ?? id}" by ${actor?.username ?? 'system'}`,
     ipAddress: request.ip,
   }).catch(() => {});
   return reply.send(user);

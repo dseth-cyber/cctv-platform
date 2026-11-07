@@ -15,7 +15,7 @@ export async function getViewerMinRoleSortOrder(viewerRoleCode: string | undefin
 
 export async function listUsers(params: { page?: number; limit?: number; enabled?: boolean; minRoleSortOrder?: number | null }) {
   const prisma = getPrisma();
-  const where: any = {};
+  const where: any = { deletedAt: null };
   if (params.enabled !== undefined) where.enabled = params.enabled;
   if (params.minRoleSortOrder !== undefined && params.minRoleSortOrder !== null) {
     where.roleRelation = { sortOrder: { gte: params.minRoleSortOrder } };
@@ -40,7 +40,7 @@ export async function listUsers(params: { page?: number; limit?: number; enabled
 
 export async function getUserById(id: string, minRoleSortOrder?: number | null) {
   const prisma = getPrisma();
-  const where: any = { id };
+  const where: any = { id, deletedAt: null };
   if (minRoleSortOrder !== undefined && minRoleSortOrder !== null) {
     where.roleRelation = { sortOrder: { gte: minRoleSortOrder } };
   }
@@ -85,12 +85,29 @@ export async function updateUser(id: string, input: UpdateUserInput) {
   });
 }
 
-export async function deactivateUser(id: string) {
+export class UserDeleteError extends Error {
+  constructor(public code: string, message: string) {
+    super(message);
+    this.name = 'UserDeleteError';
+  }
+}
+
+/**
+ * Ends an account without erasing who it was. The audit log, sessions and favourites all point at it, and the log
+ * has to keep saying who did what. It goes out of every list and can no longer sign in or use a token it holds.
+ */
+export async function deactivateUser(id: string, actor: { id?: string; username?: string }) {
   const prisma = getPrisma();
-
-  await prisma.refreshToken.deleteMany({ where: { userId: id } });
-  await prisma.auditLog.updateMany({ where: { userId: id }, data: { userId: null } });
-  await prisma.user.delete({ where: { id } });
-
+  if (actor.id === id) throw new UserDeleteError('SELF_DELETE', 'You cannot delete your own account');
+  const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+  if (target?.role === 'admin') {
+    const others = await prisma.user.count({ where: { role: 'admin', enabled: true, deletedAt: null, id: { not: id } } });
+    if (others === 0) throw new UserDeleteError('LAST_ADMIN', 'This is the last administrator');
+  }
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.user.update({ where: { id }, data: { enabled: false, deletedAt: now, deletedBy: actor.username ?? 'system' } }),
+    prisma.refreshToken.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: now } }),
+  ]);
   return { id, deleted: true };
 }

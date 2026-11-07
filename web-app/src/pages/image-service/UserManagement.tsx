@@ -490,7 +490,8 @@ export default function UserManagement() {
     }
   }
 
-  const handleDeleteUser = async (id: string) => {
+  const handleDeleteUser = async (id: string, username: string) => {
+    if (!window.confirm(t('ui.userManagement.deleteConfirm', { name: username }))) return
     try {
       await imageServiceApi.deactivateUser(id)
       toast.success(t('imageService.users.deleted'))
@@ -781,7 +782,7 @@ export default function UserManagement() {
                                 </>
                               )}
                               {hasPermission(user, 'users:delete') && (
-                                <button onClick={() => handleDeleteUser(item.id)}
+                                <button data-delete-user={item.username} onClick={() => handleDeleteUser(item.id, item.username)}
                                   className="p-2 rounded-lg hover:bg-red-500/20" title={t('imageService.users.deleteUser')}><Trash2 size={15} className="text-red-400" /></button>
                               )}
                             </div>

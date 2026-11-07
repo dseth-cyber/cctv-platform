@@ -2,6 +2,9 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'node:crypto';
 import { UnauthorizedError } from '../lib/errors.js';
 import { config } from '../config/index.js';
+import { getPrisma } from '../lib/prisma.js';
+
+const SERVICE_USER_ID = 'system-service';
 
 export interface AuthenticatedUser {
   id: string;
@@ -20,7 +23,23 @@ function safeEqual(a: string, b: string): boolean {
   return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
 }
 
+/**
+ * A token proves who someone was when it was issued. Whether that account still exists and is switched on is read
+ * every time, so ending an account takes effect at once. This sits outside the token check on purpose: the database
+ * being unavailable has to stay an error, not turn into "your token is invalid" and sign everyone out.
+ */
 export async function authenticate(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  await verifyToken(request, reply);
+  const user = (request as unknown as { user: AuthenticatedUser }).user;
+  if (user.id === SERVICE_USER_ID) return;
+  const account = await getPrisma().user.findUnique({ where: { id: user.id }, select: { enabled: true, deletedAt: true } });
+  if (!account || !account.enabled || account.deletedAt) throw new UnauthorizedError('This account is no longer active');
+}
+
+async function verifyToken(
   request: FastifyRequest,
   _reply: FastifyReply,
 ): Promise<void> {
@@ -29,7 +48,7 @@ export async function authenticate(
   const apiKeyStr = Array.isArray(apiKey) ? apiKey[0] : apiKey;
   if (apiKeyStr && config.serviceApiKey && safeEqual(apiKeyStr, config.serviceApiKey)) {
     (request as unknown as { user: AuthenticatedUser }).user = {
-      id: 'system-service',
+      id: SERVICE_USER_ID,
       username: 'system',
       email: 'system@image-service.local',
       role: 'system',

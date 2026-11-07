@@ -123,6 +123,9 @@ model User {
   password          String    @db.Text
   role              String    @default("viewer") @db.VarChar(64)
   customPermissions Json      @default("[]") @map("custom_permissions")
+  // A deleted account stays, switched off and out of every list: the audit log has to keep saying who did what.
+  deletedAt         DateTime? @map("deleted_at")
+  deletedBy         String?   @map("deleted_by") @db.VarChar(128)
   // Which cameras this person may see, on top of their role. Empty means none of their own.
   cameraScope       Json?     @map("camera_scope")
   hiddenMenuItems   Json      @default("[]") @map("hidden_menu_items")

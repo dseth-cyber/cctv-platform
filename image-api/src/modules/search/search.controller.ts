@@ -25,7 +25,7 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
       take: 5,
     }),
     !may('users:read') ? Promise.resolve([]) : prisma.user.findMany({
-      where: { OR: [{ username: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] },
+      where: { deletedAt: null, OR: [{ username: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] },
       select: { id: true, username: true, role: true },
       take: 5,
     }),

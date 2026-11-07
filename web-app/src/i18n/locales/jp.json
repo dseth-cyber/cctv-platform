@@ -3205,6 +3205,7 @@
       "cameraSStalledOrProducing": "{{stalledCameras}} 台のカメラが停止またはフレームなし"
     },
     "userManagement": {
+      "deleteConfirm": "Delete user {{name}}? They can no longer sign in, starting now. Their history stays on record, and this username cannot be used again.",
       "roleUpdatedSuccessfully": "ロールを更新しました",
       "roleCreatedSuccessfully": "ロールを作成しました",
       "roleDeletedSuccessfully": "ロールを削除しました",

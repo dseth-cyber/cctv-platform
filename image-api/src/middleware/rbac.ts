@@ -15,7 +15,7 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
-  if (!user) return [];
+  if (!user || !user.enabled || user.deletedAt) return [];
 
   // Admin and system get '*' wildcard permission by default to prevent lockouts
   if (user.role === 'admin' || user.role === 'system') {
@@ -61,10 +61,11 @@ export function requirePermission(permission: string) {
     }
 
     const userRole = (user as Record<string, string>).role ?? '';
-    if (userRole === 'system' || userRole === 'admin') {
-      return; // system and admin bypass permission checks
+    if (userRole === 'system') {
+      return; // the service key is not an account
     }
 
+    // Read every time, not taken from the token: a token outlives a person being switched off or changed.
     const permissions = await getUserPermissions((user as Record<string, string>).id);
     if (!permissions.includes(permission) && !permissions.includes('*')) {
       throw new ForbiddenError(`Insufficient permission. Required: ${permission}`);

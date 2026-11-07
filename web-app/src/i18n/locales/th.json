@@ -3211,6 +3211,7 @@
       "cameraSStalledOrProducing": "กล้อง {{stalledCameras}} ตัวภาพค้างหรือไม่มีเฟรม"
     },
     "userManagement": {
+      "deleteConfirm": "ลบผู้ใช้ {{name}}? ผู้ใช้นี้จะเข้าระบบไม่ได้ทันที ประวัติการใช้งานยังเก็บไว้ และใช้ชื่อนี้ซ้ำไม่ได้",
       "roleUpdatedSuccessfully": "อัปเดตบทบาทเรียบร้อย",
       "roleCreatedSuccessfully": "สร้างบทบาทเรียบร้อย",
       "roleDeletedSuccessfully": "ลบบทบาทเรียบร้อย",

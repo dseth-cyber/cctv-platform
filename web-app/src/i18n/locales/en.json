@@ -3208,6 +3208,7 @@
       "cameraSStalledOrProducing": "{{stalledCameras}} camera(s) stalled or producing 0 frames"
     },
     "userManagement": {
+      "deleteConfirm": "Delete user {{name}}? They can no longer sign in, starting now. Their history stays on record, and this username cannot be used again.",
       "roleUpdatedSuccessfully": "Role updated successfully",
       "roleCreatedSuccessfully": "Role created successfully",
       "roleDeletedSuccessfully": "Role deleted successfully",

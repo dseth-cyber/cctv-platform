@@ -3200,6 +3200,7 @@
       "cameraSStalledOrProducing": "ကင်မရာ {{stalledCameras}} လုံး ရပ်တန့် သို့မဟုတ် frame မထွက်"
     },
     "userManagement": {
+      "deleteConfirm": "Delete user {{name}}? They can no longer sign in, starting now. Their history stays on record, and this username cannot be used again.",
       "roleUpdatedSuccessfully": "Role အပ်ဒိတ်ပြီး",
       "roleCreatedSuccessfully": "Role ဖန်တီးပြီး",
       "roleDeletedSuccessfully": "Role ဖျက်ပြီး",

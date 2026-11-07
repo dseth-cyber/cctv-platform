@@ -43,11 +43,11 @@ const idsMemo = new WeakMap<object, Promise<string[] | null>>();
 
 async function readScope(request: FastifyRequest): Promise<CameraScope> {
   const user = (request as any).user as { id?: string; role?: string } | undefined;
-  if (user?.role === 'admin' || user?.role === 'system') return { all: true };
+  if (user?.role === 'system') return { all: true };
   if (!user?.id) return { all: false, where: NOTHING };
   const prisma = getPrisma();
-  const row = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, cameraScope: true } });
-  if (!row) return { all: false, where: NOTHING };
+  const row = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, cameraScope: true, enabled: true, deletedAt: true } });
+  if (!row || !row.enabled || row.deletedAt) return { all: false, where: NOTHING };
   if (row.role === 'admin' || row.role === 'system') return { all: true };
   const role = await prisma.customRole.findUnique({ where: { code: row.role }, select: { cameraScope: true } });
   return mergeCameraScope([role?.cameraScope as ScopeRules | null, row.cameraScope as ScopeRules | null]);

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ScheduledTask } from 'node-cron';
 import cron from 'node-cron';
 import { logger } from '../../lib/logger.js';
+import { requirePermission } from '../../middleware/rbac.js';
 import { sweepExpiredRecordings, purgeQuarantinedRecordings, checkDiskHighWatermarkAndEvict } from './retention-sweeper.service.js';
 
 let cronTask: ScheduledTask | null = null;
@@ -44,8 +45,8 @@ export function stopRetentionSweeper(): void {
 }
 
 export async function retentionSweeperRoutes(app: FastifyInstance): Promise<void> {
-  // Manual trigger endpoint (admin only)
-  app.post('/trigger', { preHandler: [app.authenticate] }, async (_req, reply) => {
+  // Manual trigger endpoint
+  app.post('/trigger', { preHandler: [app.authenticate, requirePermission('retention:delete')] }, async (_req, reply) => {
     const result = { sweep: await sweepExpiredRecordings(), purge: await purgeQuarantinedRecordings() };
     return reply.send(result);
   });
