@@ -38,6 +38,9 @@
       "clearSelection": "ရွေးချယ်ထားသည်များ ဖျက်သိမ်းရန်"
     },
     "cameras": {
+      "shortCode": "အတိုကောက်",
+      "shortCodeHint": "အထောက်အထားကလစ်အမည်၏ အစတွင် သုံးသည်။ ဗလာထားပါက စက်၏ အတိုကောက်ကို သုံးသည်။",
+      "shortCodeFromDevice": "စက်မှ: {{code}}",
       "deletionFiles": "ကလစ် {{clips}} ခုနှင့် မှတ်တမ်း {{recordings}} ခု၊ စုစုပေါင်း {{size}} ကို ဆာဗာမှ အပြီးဖျက်မည်။ ပြန်ယူ၍မရပါ",
       "deletionNoFiles": "ဆာဗာတွင် ကလစ် သို့မဟုတ် မှတ်တမ်း မရှိပါ",
       "deletionHeld": "Legal Hold အောက်တွင် {{n}} ခုရှိသဖြင့် မဖျက်နိုင်ပါ။ ကင်မရာကို ပြန်ယူပြီး Hold ဖြုတ်ပါ",
@@ -2426,6 +2429,9 @@
       "estimateResourcesAt": "Channel 10၊ 50၊ 200၊ 500၊ 1000 တွင် အရင်းအမြစ်များ ခန့်မှန်း၍ Hardware၊ NIC Bandwidth နှင့် Disk ပမာဏ သတ်မှတ်ရန်"
     },
     "deviceManagement": {
+      "shortCode": "အတိုကောက်",
+      "shortCodePlaceholder": "ဥပမာ STR",
+      "shortCodeHint": "အထောက်အထားကလစ်အမည်၏ အစတွင် သုံးသည်။ ကင်မရာတွင် ကိုယ်ပိုင်မရှိပါက ချန်နယ်အားလုံး ဤအတိုကောက်ကို သုံးသည်။",
       "cloneDevice": "စက်ကူးရန်",
       "cloneTitle": "{{name}} မှ ကူးယူခြင်း",
       "ipInvalid": "192.168.1.100 ကဲ့သို့ IP လိပ်စာ ဖြစ်ရမည်",

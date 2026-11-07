@@ -38,6 +38,9 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "shortCode": "ตัวย่อ",
+      "shortCodeHint": "ใช้ขึ้นต้นชื่อคลิปหลักฐาน ถ้าเว้นว่างจะใช้ตัวย่อของอุปกรณ์",
+      "shortCodeFromDevice": "ใช้ของอุปกรณ์: {{code}}",
       "deletionFiles": "จะลบคลิป {{clips}} รายการ และไฟล์บันทึก {{recordings}} รายการ รวม {{size}} ออกจาก Server ถาวร กู้คืนไม่ได้",
       "deletionNoFiles": "ไม่มีคลิปหรือไฟล์บันทึกบน Server",
       "deletionHeld": "มีข้อมูลภายใต้ Legal Hold {{n}} รายการ จึงลบไม่ได้ ให้กู้คืนกล้องแล้วปลด Hold ก่อน",
@@ -2437,6 +2440,9 @@
       "estimateResourcesAt": "คำนวณการใช้ทรัพยากรที่ระดับ 10, 50, 200, 500, 1000 ช่องสัญญาณ เพื่อจัดสรรฮาร์ดแวร์ แบนด์วิดท์ NIC และขนาดฮาร์ดดิสก์"
     },
     "deviceManagement": {
+      "shortCode": "ตัวย่อ",
+      "shortCodePlaceholder": "เช่น STR",
+      "shortCodeHint": "ขึ้นต้นชื่อคลิปหลักฐานของทุกช่อง",
       "cloneDevice": "คัดลอกอุปกรณ์",
       "cloneTitle": "คัดลอกจาก {{name}}",
       "ipInvalid": "ต้องเป็นหมายเลข IP เช่น 192.168.1.100",

@@ -38,6 +38,9 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "shortCode": "简称",
+      "shortCodeHint": "用作证据剪辑名称的开头。留空则使用设备的简称。",
+      "shortCodeFromDevice": "来自设备：{{code}}",
       "deletionFiles": "将从服务器永久删除 {{clips}} 个片段和 {{recordings}} 个录像，共 {{size}}，无法恢复",
       "deletionNoFiles": "服务器上没有片段或录像",
       "deletionHeld": "有 {{n}} 项处于法律保留，无法删除。请先恢复摄像机并解除保留",
@@ -2431,6 +2434,9 @@
       "estimateResourcesAt": "估算 10、50、200、500、1000 个通道的资源用量，用于规划硬件、网卡带宽和磁盘容量"
     },
     "deviceManagement": {
+      "shortCode": "简称",
+      "shortCodePlaceholder": "例如 STR",
+      "shortCodeHint": "用作证据剪辑名称的开头。所有通道都使用它，除非摄像机有自己的简称。",
       "cloneDevice": "复制设备",
       "cloneTitle": "复制自 {{name}}",
       "ipInvalid": "必须是 IP 地址，例如 192.168.1.100",

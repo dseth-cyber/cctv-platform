@@ -38,6 +38,9 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "shortCode": "Short code",
+      "shortCodeHint": "Starts evidence clip names. Left empty, the device's code is used.",
+      "shortCodeFromDevice": "From the device: {{code}}",
       "deletionFiles": "{{clips}} clips and {{recordings}} recordings, {{size}} in all, will be removed from the server for good",
       "deletionNoFiles": "No clips or recordings on the server",
       "deletionHeld": "{{n}} items are under Legal Hold, so this cannot be deleted. Restore the camera and release the hold first",
@@ -2434,6 +2437,9 @@
       "estimateResourcesAt": "Estimate resources at 10, 50, 200, 500 and 1000 channels to size hardware, NIC bandwidth and disk capacity"
     },
     "deviceManagement": {
+      "shortCode": "Short code",
+      "shortCodePlaceholder": "e.g. STR",
+      "shortCodeHint": "Starts evidence clip names. Every channel uses it unless a camera has its own.",
       "cloneDevice": "Copy device",
       "cloneTitle": "Copy of {{name}}",
       "ipInvalid": "Must be an IP address such as 192.168.1.100",

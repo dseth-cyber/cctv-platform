@@ -154,6 +154,7 @@ export async function createDevice(input: CreateDeviceInput) {
       brand: input.brand,
       model: input.model,
       serialNumber: input.serialNumber,
+      shortCode: input.shortCode || null,
       ipAddress: input.ipAddress,
       rtspPort: input.rtspPort,
       httpPort: input.httpPort,
@@ -278,6 +279,7 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (input.brand !== undefined) data.brand = input.brand;
   if (input.model !== undefined) data.model = input.model;
   if (input.serialNumber !== undefined) data.serialNumber = input.serialNumber;
+  if (input.shortCode !== undefined) data.shortCode = input.shortCode || null;
   if (input.ipAddress !== undefined) data.ipAddress = input.ipAddress;
   if (input.rtspPort !== undefined) data.rtspPort = input.rtspPort;
   if (input.httpPort !== undefined) data.httpPort = input.httpPort;

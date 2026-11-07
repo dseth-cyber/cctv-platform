@@ -43,6 +43,7 @@ export const createCameraSchema = z.object({
   cameraType: z.string().max(64).optional().nullable(),
   cameraBrand: z.string().max(64).optional().nullable(),
   cameraModel: z.string().max(64).optional().nullable(),
+  shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
 });
 
 export const updateCameraSchema = z.object({
@@ -77,6 +78,7 @@ export const updateCameraSchema = z.object({
   cameraType: z.string().max(64).optional().nullable(),
   cameraBrand: z.string().max(64).optional().nullable(),
   cameraModel: z.string().max(64).optional().nullable(),
+  shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
 });
 
 // Find the stream URL pattern a camera answers to. On edit, cameraId lets a blank password reuse

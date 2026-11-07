@@ -1,3 +1,4 @@
+import { cleanShortCode } from '@/lib/clipName';
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -88,6 +89,7 @@ export default function DeviceManagement() {
     brand: 'Hikvision',
     model: '',
     serialNumber: '',
+    shortCode: '',
     ipAddress: '',
     rtspPort: 554,
     httpPort: 80,
@@ -350,6 +352,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       brand: 'Hikvision',
       model: '',
       serialNumber: '',
+      shortCode: '',
       ipAddress: '',
       rtspPort: 554,
       httpPort: 80,
@@ -381,6 +384,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       brand: dev.brand || 'Generic',
       model: dev.model || '',
       serialNumber: '',
+      shortCode: '',
       ipAddress: cloneIpPlaceholder(dev.ipAddress),
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -408,6 +412,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       brand: dev.brand || 'Generic',
       model: dev.model || '',
       serialNumber: dev.serialNumber || '',
+      shortCode: dev.shortCode || '',
       ipAddress: dev.ipAddress || '',
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -806,6 +811,21 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.shortCode')}</label>
+              <input
+                type="text"
+                data-device-short-code
+                value={formData.shortCode}
+                maxLength={20}
+                placeholder={t('ui.deviceManagement.shortCodePlaceholder')}
+                title={t('ui.deviceManagement.shortCodeHint')}
+                onChange={(e) => setFormData({ ...formData, shortCode: cleanShortCode(e.target.value) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.shortCodeHint')}</p>
             </div>
 
             <div>

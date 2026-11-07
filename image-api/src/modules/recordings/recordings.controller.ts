@@ -6,6 +6,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
 import { ClipCancelError, cancelClip } from './clip-cancel.js';
+import { clipDownloadName } from './clip-download-name.js';
 import { createAuditLog } from '../audit/audit.service.js';
 
 export async function getTimelineHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -232,7 +233,9 @@ export async function downloadClipHandler(request: FastifyRequest, reply: Fastif
     }
     const stat = fs.statSync(clipInfo.fullPath);
     reply.header('Content-Type', 'video/mp4');
-    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(clipInfo.filename)}"`);
+    const clip = await getPrisma().recordingClip.findFirst({ where: { filePath: `/recordings/clips/${clipInfo.filename}` }, select: { title: true } });
+    const downloadName = clipDownloadName(clip?.title, clipInfo.filename);
+    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(clipInfo.filename)}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`);
     reply.header('Content-Length', stat.size);
     const stream = fs.createReadStream(clipInfo.fullPath);
     return reply.send(stream);

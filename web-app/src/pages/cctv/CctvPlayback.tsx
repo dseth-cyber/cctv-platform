@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { defaultClipTitle } from '@/lib/clipName';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
@@ -819,7 +820,7 @@ export const CctvPlayback: React.FC = () => {
       setCurrentTimeSec(incSec);
     } else {
       setSelectedIncidentForClip(null);
-      setClipTitle(`Clip_${selectedDate}_${formatSeconds(currentTimeSec).replace(/:/g, '')}`);
+      setClipTitle(defaultClipTitle(selectedCamera, selectedDate, formatSeconds(currentTimeSec).replace(/:/g, '')));
     }
     const playheadIso = bangkokDaySecondsToIso(selectedDate, currentTimeSec);
     setRangeStart(isoToBangkokInput(playheadIso));

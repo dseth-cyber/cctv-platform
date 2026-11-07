@@ -38,6 +38,9 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "shortCode": "略称",
+      "shortCodeHint": "証拠クリップ名の先頭に使います。空欄の場合は機器の略称を使います。",
+      "shortCodeFromDevice": "機器の略称: {{code}}",
       "deletionFiles": "クリップ {{clips}} 件と録画 {{recordings}} 件、合計 {{size}} をサーバーから完全に削除します。元に戻せません",
       "deletionNoFiles": "サーバーにクリップや録画はありません",
       "deletionHeld": "Legal Hold 中のデータが {{n}} 件あるため削除できません。カメラを復元して解除してください",
@@ -2431,6 +2434,9 @@
       "estimateResourcesAt": "10・50・200・500・1000 チャンネルでのリソースを見積もり、ハードウェア、NIC 帯域、ディスク容量を決めます"
     },
     "deviceManagement": {
+      "shortCode": "略称",
+      "shortCodePlaceholder": "例: STR",
+      "shortCodeHint": "証拠クリップ名の先頭に使います。カメラ個別の略称がなければ全チャンネルで使います。",
       "cloneDevice": "機器をコピー",
       "cloneTitle": "{{name}} のコピー",
       "ipInvalid": "192.168.1.100 のような IP アドレスを入力してください",

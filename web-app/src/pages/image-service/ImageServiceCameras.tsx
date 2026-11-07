@@ -11,6 +11,7 @@ import { LocationStatsLine } from '@/components/cctv/LocationStatsRow';
 import { summarizeCameraList } from '@/lib/locationSummary';
 import { applyCameraSelection, applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
+import { cleanShortCode } from '@/lib/clipName';
 import { useSearchParams } from 'react-router-dom';
 import { BulkCameraEditModal } from '@/components/cctv/BulkCameraEditModal';
 import { DeletionImpactNote, useDeletionImpact } from '@/components/cctv/DeletionImpactNote';
@@ -52,7 +53,7 @@ const emptyForm = () => ({
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
   enabled: true,
-  cameraType: '', cameraBrand: '', cameraModel: '',
+  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '',
   siteId: '', zoneId: '', locationFromDevice: true,
 });
 
@@ -305,7 +306,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
-      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '',
+      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '',
       siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
       enabled: item.enabled !== false,
     };
@@ -421,6 +422,7 @@ export default function ImageServiceCameras() {
           cameraType: form.cameraType || null,
           cameraBrand: form.cameraBrand || null,
           cameraModel: form.cameraModel.trim() || null,
+          shortCode: form.shortCode.trim() || null,
           ...(modal.item ? { enabled: form.enabled } : {}),
           ...(modal.item?.deviceId && form.locationFromDevice
             ? { locationFromDevice: true }
@@ -1524,6 +1526,14 @@ export default function ImageServiceCameras() {
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</label>
               <input value={form.cameraModel} maxLength={64} onChange={e => setForm(p => ({ ...p, cameraModel: e.target.value }))}
                 className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+            </div>
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.shortCode')}</label>
+              <input data-camera-short-code value={form.shortCode} maxLength={20} onChange={e => setForm(p => ({ ...p, shortCode: cleanShortCode(e.target.value) }))}
+                placeholder={modal.item?.device?.shortCode ? t('imageService.cameras.shortCodeFromDevice', { code: modal.item.device.shortCode }) : ''}
+                title={t('imageService.cameras.shortCodeHint')}
+                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+              <p className={`mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.shortCodeHint')}</p>
             </div>
             <p className={`col-span-2 -mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.cameraInfoHint')}</p>
             <div className="col-span-2 space-y-2">

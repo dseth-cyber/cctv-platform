@@ -445,7 +445,14 @@ export default function IncidentCenter() {
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{labelFor(reasons, i.reason)}</td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{i.rootCause ? labelFor(rootCauses, i.rootCause) : '—'}</td>
                           <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium capitalize ${PRIORITY_COLORS[i.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(i.priority, t)}</span></td>
-                          <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_COLORS[i.status] || 'bg-gray-500/20 text-gray-400'}`}>{i.status === 'open' ? ic('open') : ic('resolved')}</span></td>
+                          <td data-incident-status className="px-3 py-2">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_COLORS[i.status] || 'bg-gray-500/20 text-gray-400'}`}>{i.status === 'open' ? ic('open') : ic('resolved')}</span>
+                              {i.status === 'open' && hasPermission(user, 'cameras:update') && (
+                                <button type="button" data-close-incident={i.id} onClick={(e) => { e.stopPropagation(); setClosingId(i.id) }} className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25">{ic('closeIncident')}</button>
+                              )}
+                            </div>
+                          </td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>
                             {i.status === 'open'
                               ? <span className="text-amber-400">{formatMttr(i.openDurationMinutes, ic)} ({ic('ongoing')})</span>
@@ -464,9 +471,6 @@ export default function IncidentCenter() {
                             </div>
                           </td>
                           <td className="px-3 py-2 text-center whitespace-nowrap">
-                            {i.status === 'open' && hasPermission(user, 'cameras:update') && (
-                              <button data-close-incident={i.id} onClick={(e) => { e.stopPropagation(); setClosingId(i.id) }} className="mr-2 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25">{ic('closeIncident')}</button>
-                            )}
                             <button onClick={(e) => { e.stopPropagation(); setDetailId(i.id) }} className="text-xs text-cyan-400 hover:underline">{t('common.view', 'View')}</button>
                             {hasPermission(user, 'cameras:delete') && (
                               <button
@@ -662,7 +666,7 @@ export default function IncidentCenter() {
 
 /* ---------------- Detail Modal ---------------- */
 /** Closes an incident where it is being looked at, with the same questions as the camera page. */
-function CloseIncidentDialog({ incidentId, onClose, ic }: { incidentId: string; onClose: () => void; ic: (key: string, options?: any) => string }) {
+function CloseIncidentDialog({ incidentId, onClose, onClosed, ic }: { incidentId: string; onClose: () => void; onClosed?: () => void; ic: (key: string, options?: any) => string }) {
   const { t, i18n } = useTranslation()
   const { themeConfig } = useTheme()
   const toast = useToast()
@@ -696,6 +700,7 @@ function CloseIncidentDialog({ incidentId, onClose, ic }: { incidentId: string; 
       })
       toast.success(t('imageService.incidents.incidentResolved'))
       onClose()
+      onClosed?.()
     } catch (err: any) {
       if (!err?._handled) toast.error(err?.response?.status === 409 ? ic('closeIncidentAlreadyClosed') : t('common.error'))
     } finally {
@@ -935,7 +940,8 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
 
   return (
     <>
-    {closing && <CloseIncidentDialog incidentId={incidentId} onClose={() => setClosing(false)} ic={ic} />}
+    {/* Once closed there is nothing left to do here, so the incident closes along with the dialog. */}
+    {closing && <CloseIncidentDialog incidentId={incidentId} onClose={() => setClosing(false)} onClosed={onClose} ic={ic} />}
     <Modal isOpen onClose={onClose} size="4xl" title={incident?.incidentNumber || ic('colIncident')}>
       {isLoading || !incident ? (
         <TableSkeleton rows={6} cols={2} />

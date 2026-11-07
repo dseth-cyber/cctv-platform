@@ -362,6 +362,8 @@ model StreamProfile {
 model Device {
   id                String     @id @default(uuid()) @db.Uuid
   name              String     @db.VarChar(128)
+  // Starts the name of an evidence clip; a channel camera takes it from here unless it has its own.
+  shortCode         String?    @map("short_code") @db.VarChar(20)
   description       String?    @db.Text
   // Code from masterdata type device_type.
   deviceType        String     @default("dvr") @map("device_type") @db.VarChar(32)
@@ -417,6 +419,7 @@ model Camera {
   // The camera itself. The recorder's brand decides how to connect; these are for finding and reporting.
   cameraBrand            String?                 @map("camera_brand") @db.VarChar(64)
   cameraModel            String?                 @map("camera_model") @db.VarChar(64)
+  shortCode              String?                 @map("short_code") @db.VarChar(20)
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
