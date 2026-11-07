@@ -50,10 +50,12 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isChoosing, i
     : t('ui.liveGrid.overview.ageMinutes', { n: Math.round(ageSeconds / 60) });
   // When the health check knows why a camera is down, that says more than a failed image.
   const knownReason = camera.operationalStatus === 'offline' && camera.operationalReason && camera.operationalReason !== 'status_set' ? t(`imageService.cameras.offlineReason.${camera.operationalReason}`) : null;
+  // The recorder knows the channel has no picture, while its still is only a black frame.
+  const noVideo = !isLive && camera.operationalStatus === 'offline' && camera.operationalReason === 'no_signal';
   const problem = status && status.state !== 'ok' && status.state !== 'waiting' ? knownReason ?? t(`ui.liveGrid.overview.state.${status.state}`) : null;
 
   return (
-    <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video ${isWaiting ? 'ring-2 ring-cyan-400 ' : ''}rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>
+    <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video ${isWaiting ? 'ring-2 ring-cyan-400 ' : ''}rounded-lg overflow-hidden bg-slate-900 border-2 group ${isLive ? 'border-emerald-500' : 'border-amber-400'}`}>
       {isLive && streamUrl ? (
         <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" onFatalError={() => onStreamFailed(camera.id)} onCancelLive={() => onClose(camera.id)} cancelLiveTitle={t('ui.liveGrid.overview.backToStill')} cancelLiveHighlight={isChoosing} />
       ) : (
@@ -67,6 +69,12 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isChoosing, i
             </span>
           )}
         </button>
+      )}
+
+      {noVideo && (
+        <div data-no-video title={t('imageService.cameras.offlineReason.no_signal')} className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="px-3 py-1 rounded bg-slate-950/85 border border-slate-500 text-slate-100 text-sm font-bold tracking-widest">NO VIDEO</span>
+        </div>
       )}
 
       {!isLive && (
