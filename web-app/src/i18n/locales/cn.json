@@ -2658,6 +2658,9 @@
       "caution": "注意：DVR 用于模拟摄像机，NVR 用于 IP 摄像机。移动前请现场检查"
     },
     "cctvPlayback": {
+      "deviceSlowerThanAsked": "录像机发送约 {{actual}}x，低于所选的 {{asked}}x",
+      "deviceSpeedHint": "快放时没有声音。8x 起只显示完整画面，因此画面跳动。",
+      "deviceError_LIMIT_FAST": "此录像机已有快放在进行，每台一次一路：请稍后再试或选择 1x",
       "clipCancelError": {"NOT_FOUND": "此任务已不存在", "ALREADY_FINISHED": "此剪辑已完成，无法取消", "LEGAL_HOLD": "请先解除此剪辑的法律保留", "NOT_YOURS": "只有发起人或管理员可以取消"},
       "clipCancel": "取消",
       "clipCancelled": "已取消剪辑导出",

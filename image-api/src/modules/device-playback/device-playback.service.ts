@@ -26,9 +26,10 @@ import {
   type WallRange,
 } from './hikvision-recorder.js';
 
-import { closeFastSource, openFastSource, startFastPlaybackProxy, stopFastPlaybackProxy } from './fast-playback-proxy.js';
+import { closeFastSource, fastSourceProgress, openFastSource, startFastPlaybackProxy, stopFastPlaybackProxy } from './fast-playback-proxy.js';
 
 export type PlaybackProblem =
+  | 'LIMIT_FAST'
   | 'NOT_SUPPORTED'
   | 'DEVICE_LOGIN'
   | 'DEVICE_UNREACHABLE'
@@ -237,6 +238,13 @@ async function closeSessionPath(session: Session) {
   if (session.path) await MediaMtxService.removeStreamPath(session.path);
 }
 
+/** Null until the recording starts arriving, and for a session that is not this person's or not a fast one. */
+export function playbackProgress(id: string, userId: string) {
+  const session = sessions.get(id);
+  if (!session || session.userId !== userId) return null;
+  return fastSourceProgress(session.fastSourceId);
+}
+
 export async function closePlaybackSession(id: string, userId: string): Promise<boolean> {
   const session = sessions.get(id);
   if (!session || session.userId !== userId) return false;
@@ -269,7 +277,7 @@ export async function openPlaybackSession(userId: string, input: { cameraId: str
   // A recording sent this fast costs the recorder many times the usual, so each recorder serves one at a time.
   const speed = input.speed ?? 1;
   if (speed > 1 && [...sessions.values()].some((s) => s.deviceId === target.deviceId && s.speed > 1)) {
-    throw new PlaybackError('LIMIT_DEVICE', 429, 'This recorder is already serving a fast playback');
+    throw new PlaybackError('LIMIT_FAST', 429, 'This recorder is already serving a fast playback');
   }
 
   // Holds the place during the checks below, so requests arriving together cannot pass the limit together.

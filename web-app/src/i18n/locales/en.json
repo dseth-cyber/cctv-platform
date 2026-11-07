@@ -2661,6 +2661,9 @@
       "caution": "Caution: a DVR takes analog cameras and an NVR takes IP cameras. Check on site before moving anything"
     },
     "cctvPlayback": {
+      "deviceSlowerThanAsked": "The recorder is sending about {{actual}}x, slower than the {{asked}}x chosen",
+      "deviceSpeedHint": "No sound above normal speed. From 8x only whole pictures are shown, so it moves in steps.",
+      "deviceError_LIMIT_FAST": "This recorder is already playing fast. It does one channel at a time: try later, or choose 1x",
       "clipCancelError": {"NOT_FOUND": "This job no longer exists", "ALREADY_FINISHED": "This clip has already finished", "LEGAL_HOLD": "Release the legal hold on this clip first", "NOT_YOURS": "Only the person who asked for this clip or an administrator can cancel it"},
       "clipCancel": "Cancel",
       "clipCancelled": "Clip export cancelled",

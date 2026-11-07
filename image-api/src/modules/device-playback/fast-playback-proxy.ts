@@ -10,8 +10,12 @@ const PORT = Number(process.env.FAST_PLAYBACK_PORT || 8559);
 const HOST_FOR_MEDIAMTX = process.env.FAST_PLAYBACK_HOST || 'image-api';
 const UPSTREAM_TIMEOUT_MS = 8000;
 const KEEPALIVE_MS = 20_000;
+/** The first seconds say little: a recorder often sends a burst, or takes a moment to start. */
+const MIN_SECONDS_TO_JUDGE = 5;
 /** From here on only whole pictures are sent: the browser cannot decode every frame of a recording this fast. */
 const KEYFRAMES_ONLY_FROM = 8;
+
+const RTP_VIDEO_CLOCK = 90_000;
 
 export const FAST_SPEEDS = [2, 5, 8, 16] as const;
 
@@ -46,14 +50,19 @@ export class FastRtpRewriter {
     this.keyframesOnly = speed >= KEYFRAMES_ONLY_FROM;
   }
 
+  /** How much of the recording has gone past. Video in RTP always counts 90,000 to the second. */
+  get recordingSeconds(): number {
+    return this.elapsed / RTP_VIDEO_CLOCK;
+  }
+
   rewrite(packet: Buffer): Buffer | null {
     if (packet.length < 12) return null;
     // Recorders mix in packets of their own, which are not video and whose clock is not the video's.
     if (this.payloadType !== null && (packet[1] & 0x7f) !== this.payloadType) return null;
     const headerLength = 12 + (packet[0] & 0x0f) * 4;
     if (packet.length <= headerLength) return null;
-    if (this.keyframesOnly && !carriesKeyframeData(packet.subarray(headerLength), this.hevc)) return null;
 
+    // Counted before anything is left out, so how far the recording has got stays true between whole pictures.
     const timestamp = packet.readUInt32BE(4);
     if (this.first === null) {
       this.first = timestamp;
@@ -62,6 +71,8 @@ export class FastRtpRewriter {
       if (delta < 0x80000000) this.elapsed += delta;
     }
     this.previous = timestamp;
+
+    if (this.keyframesOnly && !carriesKeyframeData(packet.subarray(headerLength), this.hevc)) return null;
 
     const out = Buffer.from(packet);
     out.writeUInt32BE((this.first + Math.floor(this.elapsed / this.speed)) >>> 0, 4);
@@ -92,6 +103,8 @@ interface Ticket {
   start: string;
   end: string;
   speed: number;
+  /** Filled in as the recording arrives. */
+  progress?: { firstAt: number; recordingSeconds: number };
 }
 
 const tickets = new Map<string, Ticket>();
@@ -244,6 +257,7 @@ function serve(client: net.Socket) {
   client.setNoDelay(true);
   let recorder: Recorder | null = null;
   let rewriter: FastRtpRewriter | null = null;
+  let activeTicket: Ticket | null = null;
   let codec = '';
   let payloadType: number | null = null;
   let control = '';
@@ -260,6 +274,10 @@ function serve(client: net.Socket) {
     // The recorder's clock reports describe times this no longer sends, so only video goes on.
     if (channel !== 0 || !rewriter) return;
     const out = rewriter.rewrite(data);
+    if (activeTicket) {
+      activeTicket.progress ??= { firstAt: Date.now(), recordingSeconds: 0 };
+      activeTicket.progress.recordingSeconds = rewriter.recordingSeconds;
+    }
     if (!out) return;
     const frame = Buffer.alloc(4 + out.length);
     frame[0] = 0x24;
@@ -298,6 +316,7 @@ function serve(client: net.Socket) {
         case 'PLAY': {
           if (!recorder) return answer(cseq, '455 Method Not Valid in This State');
           rewriter = new FastRtpRewriter(ticket.speed, codec, payloadType);
+          activeTicket = ticket;
           await recorder.play();
           return answer(cseq, '200 OK', [`Session: ${sessionId}`, 'Range: npt=0.000-']);
         }
@@ -342,6 +361,14 @@ export function openFastSource(ticket: Ticket): { id: string; url: string } {
   const id = crypto.randomBytes(16).toString('hex');
   tickets.set(id, ticket);
   return { id, url: `rtsp://${HOST_FOR_MEDIAMTX}:${PORT}/${id}` };
+}
+
+/** How far the recording has got, and how fast the recorder is really sending it. */
+export function fastSourceProgress(id: string | null | undefined, now = Date.now()): { recordingSeconds: number; actualSpeed: number | null } | null {
+  const progress = id ? tickets.get(id)?.progress : undefined;
+  if (!progress) return null;
+  const wall = (now - progress.firstAt) / 1000;
+  return { recordingSeconds: progress.recordingSeconds, actualSpeed: wall >= MIN_SECONDS_TO_JUDGE ? progress.recordingSeconds / wall : null };
 }
 
 export function closeFastSource(id: string | null | undefined) {

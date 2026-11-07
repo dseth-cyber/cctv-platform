@@ -63,6 +63,13 @@ describe('FastRtpRewriter', () => {
     expect(rewriter.rewrite(rtp(1, 1000, HEVC_P))!.readUInt32BE(4)).toBe(1000);
   });
 
+  it('keeps counting the recording while frames are left out', () => {
+    const rewriter = new FastRtpRewriter(8, 'H265');
+    rewriter.rewrite(rtp(0, 0, HEVC_IDR));
+    expect(rewriter.rewrite(rtp(1, 180000, HEVC_P))).toBeNull();
+    expect(rewriter.recordingSeconds).toBe(2);
+  });
+
   it('ignores a packet too short to be RTP', () => {
     expect(new FastRtpRewriter(2, 'H264').rewrite(Buffer.alloc(4))).toBeNull();
   });

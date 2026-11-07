@@ -480,6 +480,8 @@ export function createImageServiceApi(api: any) {
       api.get(`${BASE}/device-playback/timeline`, { params: { cameraId, date } }).then((r: any) => r.data),
     openDevicePlayback: (data: { cameraId: string; start: string; canPlayH265: boolean; speed?: number }) =>
       api.post(`${BASE}/device-playback/sessions`, data).then((r: any) => r.data),
+    getDevicePlaybackProgress: (sessionId: string): Promise<{ recordingSeconds: number | null; actualSpeed: number | null }> =>
+      api.get(`${BASE}/device-playback/sessions/${sessionId}/progress`).then((r: any) => r.data),
     closeDevicePlayback: (sessionId: string) =>
       api.delete(`${BASE}/device-playback/sessions/${sessionId}`).then((r: any) => r.data),
     exportDeviceClip: (data: { cameraId: string; start: string; end: string; title: string; incidentId?: string; legalHold?: boolean }) =>

@@ -5,6 +5,7 @@ import {
   closePlaybackSession,
   getDeviceTimeline,
   openPlaybackSession,
+  playbackProgress,
   PlaybackError,
   startDeviceClip,
 } from './device-playback.service.js';
@@ -55,6 +56,11 @@ export async function devicePlaybackRoutes(app: FastifyInstance) {
   app.post('/sessions', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) => {
     const input = sessionSchema.parse(request.body);
     return respond(reply, () => openPlaybackSession(userIdOf(request), input), 201);
+  });
+
+  app.get('/sessions/:id/progress', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    return reply.send(playbackProgress(id, userIdOf(request)) ?? { recordingSeconds: null, actualSpeed: null });
   });
 
   app.delete('/sessions/:id', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) => {

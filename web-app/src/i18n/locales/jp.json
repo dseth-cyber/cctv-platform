@@ -2658,6 +2658,9 @@
       "caution": "注意: DVR はアナログカメラ、NVR は IP カメラ用です。移設前に現地を確認してください"
     },
     "cctvPlayback": {
+      "deviceSlowerThanAsked": "レコーダーの送信は約 {{actual}}x で、選択した {{asked}}x より遅いです",
+      "deviceSpeedHint": "倍速では音声はありません。8x 以上は完全な画像のみのためコマ送りになります。",
+      "deviceError_LIMIT_FAST": "このレコーダーは既に倍速再生中です。1台につき1チャンネルのみです。後で試すか 1x を選択してください",
       "clipCancelError": {"NOT_FOUND": "このジョブはもうありません", "ALREADY_FINISHED": "このクリップは完了済みです", "LEGAL_HOLD": "先にこのクリップのリーガルホールドを解除してください", "NOT_YOURS": "依頼した本人または管理者のみキャンセルできます"},
       "clipCancel": "キャンセル",
       "clipCancelled": "クリップの書き出しをキャンセルしました",

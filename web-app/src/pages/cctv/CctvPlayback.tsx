@@ -103,6 +103,9 @@ interface DevicePlayback {
   speed: number;
 }
 
+const FAST_PROGRESS_MS = 2000;
+const FAST_NOTICE_BELOW = 0.8;
+
 // No first frame by then means this browser accepted H.265 but cannot really show it.
 // Longer than the gap between keyframes on a slow recorder (about 19 s measured): a connection that missed
 // the first one recovers at the next, and opening again would only meet the same race.
@@ -393,10 +396,11 @@ export const CctvPlayback: React.FC = () => {
   // Playback from a recorder: a video stream opened at a time. It cannot pause or change speed, so pausing
   // closes it (the recorder gets its slot back) and every seek opens a new one.
   const [devicePlayback, setDevicePlayback] = useState<DevicePlayback | null>(null);
-  // Being tried on one recorder first: only offered with ?fast=1 in the address.
-  const fastPlaybackOffered = searchParams.get('fast') === '1';
   const [deviceSpeed, setDeviceSpeed] = useState(1);
   const deviceSpeedRef = useRef(1);
+  // A recorder may send more slowly than asked, so at speed the playhead follows what it really sent.
+  const [slowerThanAsked, setSlowerThanAsked] = useState<number | null>(null);
+  const fastProgressRef = useRef<{ recordingSeconds: number; rate: number; at: number } | null>(null);
   const [playingSince, setPlayingSince] = useState<number | null>(null);
   const deviceSessionRef = useRef<string | null>(null);
   const openRequestRef = useRef(0);
@@ -409,6 +413,8 @@ export const CctvPlayback: React.FC = () => {
     deviceSessionRef.current = null;
     setDevicePlayback(null);
     setPlayingSince(null);
+    setSlowerThanAsked(null);
+    fastProgressRef.current = null;
     if (id) imageServiceApi.closeDevicePlayback(id).catch(() => {});
   }, []);
 
@@ -418,12 +424,22 @@ export const CctvPlayback: React.FC = () => {
     if (id) imageServiceApi.closeDevicePlayback(id).catch(() => {});
   }, []);
 
+  const devicePosition = useCallback((session: DevicePlayback, since: number) => {
+    const progress = fastProgressRef.current;
+    if (session.speed > 1 && progress) {
+      return session.startSec + progress.recordingSeconds + ((Date.now() - progress.at) / 1000) * progress.rate;
+    }
+    return session.startSec + ((Date.now() - since) / 1000) * session.speed;
+  }, []);
+
   const startDevicePlayback = useCallback(async (atSec: number, forceConversion = false) => {
     if (!selectedCameraId) return;
     const request = ++openRequestRef.current;
     setIsLoadingPlayback(true);
     setPlaybackError(null);
     setPlayingSince(null);
+    setSlowerThanAsked(null);
+    fastProgressRef.current = null;
     try {
       const res = await imageServiceApi.openDevicePlayback({
         cameraId: selectedCameraId,
@@ -465,7 +481,7 @@ export const CctvPlayback: React.FC = () => {
     // It was playing and the connection dropped: carry on from where it got to, a few times at most.
     if (playingSince !== null && reopenCountRef.current < MAX_REOPENS) {
       reopenCountRef.current += 1;
-      startDevicePlayback(Math.floor(devicePlayback.startSec + ((Date.now() - playingSince) / 1000) * devicePlayback.speed), devicePlayback.transcoded);
+      startDevicePlayback(Math.floor(devicePosition(devicePlayback, playingSince)), devicePlayback.transcoded);
       return;
     }
     if (playingSince === null && !devicePlayback.transcoded) {
@@ -483,7 +499,7 @@ export const CctvPlayback: React.FC = () => {
     closeDeviceSession();
     setIsPlaying(false);
     setPlaybackError(t('ui.cctvPlayback.playbackLoadFailed'));
-  }, [devicePlayback, playingSince, startDevicePlayback, closeDeviceSession, t]);
+  }, [devicePlayback, playingSince, startDevicePlayback, closeDeviceSession, devicePosition, t]);
 
   useEffect(() => {
     if (!devicePlayback || playingSince !== null) return;
@@ -603,13 +619,35 @@ export const CctvPlayback: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCameraId]);
 
+  useEffect(() => {
+    if (!devicePlayback || devicePlayback.speed <= 1) return;
+    const { sessionId, speed } = devicePlayback;
+    let stopped = false;
+    const read = async () => {
+      try {
+        const { recordingSeconds, actualSpeed } = await imageServiceApi.getDevicePlaybackProgress(sessionId);
+        if (stopped || recordingSeconds === null) return;
+        fastProgressRef.current = { recordingSeconds, rate: actualSpeed ?? speed, at: Date.now() };
+        setSlowerThanAsked(actualSpeed !== null && actualSpeed < speed * FAST_NOTICE_BELOW ? actualSpeed : null);
+      } catch {
+        // The next round tries again; until then the playhead keeps to the speed it last knew.
+      }
+    };
+    void read();
+    const timer = setInterval(read, FAST_PROGRESS_MS);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [devicePlayback]);
+
   // The stream carries no time of its own: the playhead follows the clock from the moment video moves.
   useEffect(() => {
     if (!devicePlayback || playingSince === null) return;
     const timer = setInterval(() => {
       // The person is choosing a time: moving the playhead now would take it out of their hand.
       if (draggingRef.current) return;
-      const next = Math.floor(devicePlayback.startSec + ((Date.now() - playingSince) / 1000) * devicePlayback.speed);
+      const next = Math.floor(devicePosition(devicePlayback, playingSince));
       if (next >= 86399) {
         closeDeviceSession();
         setIsPlaying(false);
@@ -628,7 +666,7 @@ export const CctvPlayback: React.FC = () => {
       });
     }, 500);
     return () => clearInterval(timer);
-  }, [devicePlayback, playingSince, closeDeviceSession, startDevicePlayback]);
+  }, [devicePlayback, playingSince, closeDeviceSession, startDevicePlayback, devicePosition]);
 
   // Each seek is a new stream, so wait for the clicking to stop before opening one.
   useEffect(() => {
@@ -1067,6 +1105,11 @@ export const CctvPlayback: React.FC = () => {
                   </span>
                 </div>
               )}
+              {slowerThanAsked !== null && (
+                <div data-slower-than-asked className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-lg bg-amber-500/90 text-slate-950 text-xs font-semibold">
+                  {t('ui.cctvPlayback.deviceSlowerThanAsked', { actual: slowerThanAsked.toFixed(1), asked: devicePlayback.speed })}
+                </div>
+              )}
               {devicePlayback.transcoded && (
                 <div className="absolute bottom-16 left-4 z-20 px-2.5 py-1 rounded-lg bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
                   {t('ui.cctvPlayback.deviceTranscoded')}
@@ -1158,7 +1201,7 @@ export const CctvPlayback: React.FC = () => {
 
               <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-slate-300 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isPlaying || liveView ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                <span className="font-mono uppercase">{liveView ? 'LIVE' : isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed }) : 'PAUSED'}</span>
+                <span className="font-mono uppercase">{liveView ? 'LIVE' : isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed: isDeviceMode ? deviceSpeed : playbackSpeed }) : 'PAUSED'}</span>
               </div>
             </div>
           </div>
@@ -1296,8 +1339,7 @@ export const CctvPlayback: React.FC = () => {
               <span className="text-slate-400">{t('ui.cctvPlayback.speed')}</span>
               <select
                 value={isDeviceMode ? deviceSpeed : playbackSpeed}
-                disabled={isDeviceMode && !fastPlaybackOffered}
-                title={isDeviceMode && !fastPlaybackOffered ? t('ui.cctvPlayback.deviceSpeedNote') : undefined}
+                title={isDeviceMode ? t('ui.cctvPlayback.deviceSpeedHint') : undefined}
                 onChange={(e) => {
                   const speed = Number(e.target.value);
                   if (!isDeviceMode) {
