@@ -1294,12 +1294,11 @@ export const CctvPlayback: React.FC = () => {
                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                 className="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                {/* Above 4x the browser's video froze for good on an H.264 recording, even after slowing down again. */}
                 <option value={0.5} className="bg-slate-900 text-white">0.5x</option>
                 <option value={1} className="bg-slate-900 text-white">{t('ui.cctvPlayback.n10xNormal')}</option>
                 <option value={2} className="bg-slate-900 text-white">2.0x</option>
                 <option value={4} className="bg-slate-900 text-white">4.0x</option>
-                <option value={8} className="bg-slate-900 text-white">8.0x</option>
-                <option value={16} className="bg-slate-900 text-white">16.0x</option>
               </select>
             </div>
 
