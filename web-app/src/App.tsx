@@ -31,6 +31,7 @@ const BackupDashboard = lazy(() => import('@/pages/image-service/BackupDashboard
 const StorageProvidersPage = lazy(() => import('@/pages/image-service/StorageProvidersPage'))
 const CameraAnalytics = lazy(() => import('@/pages/image-service/CameraAnalytics'))
 const IncidentCenter = lazy(() => import('@/pages/image-service/IncidentCenter'))
+const WorkOrders = lazy(() => import('@/pages/image-service/WorkOrders'))
 const CameraTemplates = lazy(() => import('@/pages/image-service/CameraTemplates'))
 const ImageServiceReports = lazy(() => import('@/pages/image-service/ImageServiceReports'))
 const DeviceManagement = lazy(() => import('@/pages/cctv/DeviceManagement'))
@@ -47,8 +48,7 @@ import {
   Camera, LayoutDashboard, Search, Activity, HardDrive, FileText, Shield, Settings, Map, CalendarClock,
   FolderTree, Globe, Palette, User, ChevronDown, ChevronLeft, ChevronRight, LogOut, Lock, Bell, Users, HeartPulse, Key, MessageCircle, BookText, Sliders, AlertTriangle, History, Info, Server, Layers, Image, BarChart3, RefreshCw, Play, ClipboardList, LayoutTemplate, BookOpen,
   Menu, X, GripVertical, ArrowDownUp, RotateCcw, Hourglass, FileSpreadsheet, Eye, EyeOff, Package,
-  Building2, Radio, MapPin, Film, FileCheck,
-} from 'lucide-react'
+  Building2, Radio, MapPin, Film, FileCheck, Wrench } from 'lucide-react'
 
 export function hasPermission(user: any, permission: string): boolean {
   if (!user) return false
@@ -102,6 +102,7 @@ const navItems = [
   { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
   { path: '/cctv/camera-analytics', labelKey: 'nav.cameraAnalytics', icon: BarChart3, permission: 'cameras:read' },
   { path: '/cctv/incidents', labelKey: 'nav.incidents', icon: ClipboardList, permission: 'cameras:read' },
+  { path: '/cctv/work-orders', labelKey: 'nav.workOrders', icon: Wrench, permission: 'cameras:read' },
   { path: '/cctv/reports', labelKey: 'nav.reports', icon: FileSpreadsheet, permission: 'cameras:read' },
   { path: '/cctv/alerts', labelKey: 'nav.alerts', icon: Bell, permission: 'alerts:read' },
   { path: '/cctv/masterdata', labelKey: 'nav.masterdata', icon: BookText, permission: 'masterdata:read', anyOf: MASTERDATA_PAGE_PERMISSIONS, activeOn: ['/cctv/camera-groups', '/cctv/camera-templates', '/cctv/retention'] },
@@ -621,7 +622,15 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
     staleTime: 1000 * 10,
     enabled: hasPermission(user, 'cameras:read'),
   })
-  const openCount = openIncidents?.pagination?.total ?? 0
+  // Whoever checks work also needs to see what is waiting for them.
+  const { data: pendingIncidents } = useQuery({
+    queryKey: ['sidebar-pending-incidents-count'],
+    queryFn: () => imageServiceApi.searchIncidents({ status: 'pending', limit: 1 }),
+    refetchInterval: 1000 * 15,
+    staleTime: 1000 * 10,
+    enabled: hasPermission(user, 'incidents:verify'),
+  })
+  const openCount = (openIncidents?.pagination?.total ?? 0) + (pendingIncidents?.pagination?.total ?? 0)
 
   const visiblePaths = ordered.map(i => i.path)
 
@@ -1117,6 +1126,9 @@ export default function App() {
             } />
             <Route path="/cctv/incidents" element={
               hasPermission(user, 'cameras:read') ? <IncidentCenter /> : <UnauthorizedPage />
+            } />
+            <Route path="/cctv/work-orders" element={
+              hasPermission(user, 'cameras:read') ? <WorkOrders /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/reports" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceReports /> : <UnauthorizedPage />

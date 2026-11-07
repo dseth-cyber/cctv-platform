@@ -179,6 +179,102 @@ export async function reopenRecentIncident(cameraId: string, withinMinutes: numb
   });
 }
 
+export class VerificationError extends Error {
+  constructor(public code: string, public statusCode: number, message: string) {
+    super(message);
+    this.name = 'VerificationError';
+  }
+}
+
+interface VerificationEntry {
+  at: string;
+  by: string;
+  action: 'submitted' | 'approved' | 'approved_own' | 'rejected';
+  note?: string;
+}
+
+const logOf = (incident: { verificationLog?: unknown }) => (Array.isArray(incident.verificationLog) ? (incident.verificationLog as unknown as VerificationEntry[]) : []);
+
+/**
+ * The person doing the work says it is finished. It waits there for someone else to check, and counts as finished
+ * from now for the repair time, so a slow check is not held against whoever did the work.
+ */
+export async function submitForVerification(id: string, data: {
+  resolution?: string;
+  rootCause?: string;
+  correctiveAction?: string;
+  preventiveAction?: string;
+  resolutionDesc?: string;
+  submittedBy: string;
+}) {
+  const prisma = getPrisma();
+  const incident = await prisma.cameraIncident.findUnique({ where: { id } });
+  if (!incident) throw new VerificationError('NOT_FOUND', 404, 'Incident not found');
+  if (incident.status !== 'open') throw new VerificationError('NOT_OPEN', 409, 'This incident is not open');
+  const now = new Date();
+  return prisma.cameraIncident.update({
+    where: { id },
+    data: {
+      resolution: data.resolution,
+      rootCause: data.rootCause || incident.rootCause,
+      correctiveAction: data.correctiveAction,
+      preventiveAction: data.preventiveAction,
+      resolutionDesc: data.resolutionDesc,
+      closedBy: data.submittedBy,
+      closedAt: now,
+      actualFinish: now,
+      status: 'pending',
+      autoResolved: false,
+      verificationNote: null,
+      verificationLog: [...logOf(incident), { at: now.toISOString(), by: data.submittedBy, action: 'submitted' }] as never,
+    },
+  });
+}
+
+/**
+ * Someone else checks the work. Nobody approves their own work, except an administrator who says why, for a site
+ * with one person on it. Sending work back closes nothing, so anyone with the right to check can do that.
+ */
+export async function verifyIncident(id: string, input: { decision: 'approve' | 'reject'; note?: string; user: { username: string; role?: string } }) {
+  const prisma = getPrisma();
+  const incident = await prisma.cameraIncident.findUnique({ where: { id } });
+  if (!incident) throw new VerificationError('NOT_FOUND', 404, 'Incident not found');
+  if (incident.status !== 'pending') throw new VerificationError('NOT_PENDING', 409, 'This incident is not waiting to be checked');
+  const note = input.note?.trim() || undefined;
+  const now = new Date();
+  const by = input.user.username;
+
+  if (input.decision === 'reject') {
+    if (!note) throw new VerificationError('REASON_REQUIRED', 400, 'Say why the work is being sent back');
+    return prisma.cameraIncident.update({
+      where: { id },
+      data: {
+        status: 'open',
+        closedAt: null,
+        closedBy: null,
+        actualFinish: null,
+        workflowStage: 'in_progress',
+        verificationNote: note,
+        verificationLog: [...logOf(incident), { at: now.toISOString(), by, action: 'rejected', note }] as never,
+      },
+    });
+  }
+
+  const own = incident.closedBy === by;
+  if (own && input.user.role !== 'admin') throw new VerificationError('SELF_VERIFY', 403, 'Someone else has to check this work');
+  if (own && !note) throw new VerificationError('REASON_REQUIRED', 400, 'Say why you are approving your own work');
+  return prisma.cameraIncident.update({
+    where: { id },
+    data: {
+      status: 'resolved',
+      verifiedBy: by,
+      verifiedAt: now,
+      verificationNote: note ?? null,
+      verificationLog: [...logOf(incident), { at: now.toISOString(), by, action: own ? 'approved_own' : 'approved', ...(note ? { note } : {}) }] as never,
+    },
+  });
+}
+
 export async function getIncidents(params: {
   cameraId?: string;
   status?: string;
@@ -371,11 +467,9 @@ export async function getResolutionStats(params: { reason?: string; rootCause?: 
 }
 
 // --- P21: Maintenance Work Order ---
-export async function createWorkOrder(incidentId: string, _username: string) {
+/** The next work order number. Exported for moving old work orders across, which can need a fresh one. */
+export async function nextWorkOrderNumber(): Promise<string> {
   const prisma = getPrisma();
-  const inc = await prisma.cameraIncident.findUnique({ where: { id: incidentId } });
-  if (!inc) throw new Error('Incident not found');
-  if (inc.workOrderNumber) return inc;
   const prefix = `WO-${new Date().getFullYear()}-`;
   const next = await nextDocumentNumber(prefix.slice(0, -1), async () => {
     const latest = await prisma.cameraIncident.findFirst({
@@ -385,7 +479,16 @@ export async function createWorkOrder(incidentId: string, _username: string) {
     });
     return numberOf(latest?.workOrderNumber);
   });
-  const workOrderNumber = `${prefix}${String(next).padStart(5, '0')}`;
+  return `${prefix}${String(next).padStart(5, '0')}`;
+}
+
+export async function createWorkOrder(incidentId: string, username: string) {
+  const prisma = getPrisma();
+  const inc = await prisma.cameraIncident.findUnique({ where: { id: incidentId } });
+  if (!inc) throw new Error('Incident not found');
+  if (inc.workOrderNumber) return inc;
+  const workOrderNumber = await nextWorkOrderNumber();
+  await prisma.workOrder.create({ data: { number: workOrderNumber, incidentId, status: 'open', createdBy: username } });
   return prisma.cameraIncident.update({
     where: { id: incidentId },
     data: { workOrderNumber, workOrderStatus: 'open' },
@@ -394,6 +497,11 @@ export async function createWorkOrder(incidentId: string, _username: string) {
 
 export async function updateWorkOrderStatus(incidentId: string, status: string) {
   const prisma = getPrisma();
+  const before = await prisma.workOrder.findUnique({ where: { incidentId }, select: { status: true } });
+  await prisma.workOrder.updateMany({
+    where: { incidentId },
+    data: { status, ...(status === 'completed' && before?.status !== 'completed' ? { completedAt: new Date() } : {}), ...(status !== 'completed' ? { completedAt: null } : {}) },
+  });
   return prisma.cameraIncident.update({ where: { id: incidentId }, data: { workOrderStatus: status } });
 }
 

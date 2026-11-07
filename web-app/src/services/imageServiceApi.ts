@@ -169,6 +169,21 @@ export function createImageServiceApi(api: any) {
     deleteIncident: (id: string) =>
       api.delete(`${BASE}/cameras/incidents/${id}`).then((r: any) => r.data),
 
+    verifyIncident: (id: string, data: { decision: 'approve' | 'reject'; note?: string }) =>
+      api.post(`${BASE}/cameras/incidents/${id}/verify`, data).then((r: any) => r.data),
+    getWorkOrders: (params: { q?: string; status?: string; page?: number; limit?: number }) =>
+      api.get(`${BASE}/work-orders`, { params }).then((r: any) => r.data),
+    updateWorkOrder: (id: string, data: Record<string, unknown>) =>
+      api.patch(`${BASE}/work-orders/${id}`, data).then((r: any) => r.data),
+    uploadWorkOrderAttachment: (id: string, file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post(`${BASE}/work-orders/${id}/attachments`, form).then((r: any) => r.data);
+    },
+    getWorkOrderAttachment: (id: string, filename: string) =>
+      api.get(`${BASE}/work-orders/${id}/attachments/${encodeURIComponent(filename)}`, { responseType: 'blob' }).then((r: any) => r.data),
+    removeWorkOrderAttachment: (id: string, filename: string) =>
+      api.delete(`${BASE}/work-orders/${id}/attachments/${encodeURIComponent(filename)}`).then((r: any) => r.data),
     resolveIncident: (id: string, data: Record<string, unknown>) =>
       api.post(`${BASE}/cameras/incidents/${id}/resolve`, data).then((r: any) => r.data),
 

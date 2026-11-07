@@ -35,9 +35,13 @@ const WORKFLOW_STAGE_COLORS: Record<string, string> = {
   waiting_vendor: 'bg-orange-500/20 text-orange-400',
 }
 
+const statusLabel = (status: string, ic: (key: string) => string) =>
+  status === 'open' ? ic('open') : status === 'pending' ? ic('pendingVerification') : ic('resolved')
+
 const STATUS_COLORS: Record<string, string> = {
   open: 'bg-blue-500/20 text-blue-400',
   resolved: 'bg-green-500/20 text-green-400',
+  pending: 'bg-amber-500/20 text-amber-300',
 }
 
 const WO_STATUS_COLORS: Record<string, string> = {
@@ -189,6 +193,7 @@ export default function IncidentCenter() {
   const [filterRootCause, setFilterRootCause] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [closingId, setClosingId] = useState<string | null>(null)
+  const [verifyingId, setVerifyingId] = useState<string | null>(null)
   const [filterPriority, setFilterPriority] = useState('')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
@@ -304,6 +309,7 @@ export default function IncidentCenter() {
   const statusOptions = [
     { value: '', label: ic('filterStatus') },
     { value: 'open', label: ic('open') },
+    { value: 'pending', label: ic('pendingVerification') },
     { value: 'resolved', label: ic('resolved') },
   ]
   const priorityOptions = [
@@ -450,12 +456,18 @@ export default function IncidentCenter() {
                           <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium capitalize ${PRIORITY_COLORS[i.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(i.priority, t)}</span></td>
                           <td data-incident-status className="px-3 py-2">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_COLORS[i.status] || 'bg-gray-500/20 text-gray-400'}`}>{i.status === 'open' ? ic('open') : ic('resolved')}</span>
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_COLORS[i.status] || 'bg-gray-500/20 text-gray-400'}`}>{statusLabel(i.status, ic)}</span>
                               {i.reopenCount > 0 && (
                                 <span data-reopened={i.reopenCount} title={ic('reopenedHint')} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300">{ic('reopenedTimes', { n: i.reopenCount })}</span>
                               )}
                               {i.status === 'open' && hasPermission(user, 'cameras:update') && (
                                 <button type="button" data-close-incident={i.id} onClick={(e) => { e.stopPropagation(); setClosingId(i.id) }} className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25">{ic('closeIncident')}</button>
+                              )}
+                              {i.status === 'pending' && hasPermission(user, 'incidents:verify') && (
+                                <button type="button" data-verify-incident={i.id} onClick={(e) => { e.stopPropagation(); setVerifyingId(i.id) }} className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25">{ic('verifyIncident')}</button>
+                              )}
+                              {i.status === 'open' && i.verificationNote && (
+                                <span data-sent-back title={i.verificationNote} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-500/15 text-rose-300">{ic('sentBack')}</span>
                               )}
                             </div>
                           </td>
@@ -592,6 +604,7 @@ export default function IncidentCenter() {
       )}
 
       {closingId && <CloseIncidentDialog incidentId={closingId} onClose={() => setClosingId(null)} ic={ic} />}
+      {verifyingId && <VerifyIncidentDialog incidentId={verifyingId} onClose={() => setVerifyingId(null)} ic={ic} labelFor={labelFor} rootCauses={rootCauses} resolutions={resolutions} />}
 
       {clearDialogOpen && (
         <Modal isOpen={clearDialogOpen} onClose={() => { setClearDialogOpen(false); setClearPassword('') }} title={t('imageService.incidentCenter.clearIncidentsTitle', 'ยืนยันล้างประวัติ Incident ทั้งหมด')}>
@@ -704,7 +717,7 @@ function CloseIncidentDialog({ incidentId, onClose, onClosed, ic }: { incidentId
         correctiveAction: form.correctiveAction || undefined,
         preventiveAction: form.preventiveAction || undefined,
       })
-      toast.success(t('imageService.incidents.incidentResolved'))
+      toast.success(ic('closeIncidentSubmitted'))
       onClose()
       onClosed?.()
     } catch (err: any) {
@@ -757,6 +770,82 @@ function CloseIncidentDialog({ incidentId, onClose, onClosed, ic }: { incidentId
   )
 }
 
+/** Someone other than whoever did the work looks it over, and approves it or sends it back with a reason. */
+function VerifyIncidentDialog({ incidentId, onClose, onClosed, ic, labelFor, rootCauses, resolutions }: { incidentId: string; onClose: () => void; onClosed?: () => void; ic: (key: string, options?: any) => string; labelFor: (list: any[], code: string) => string; rootCauses: any[]; resolutions: any[] }) {
+  const { t, i18n } = useTranslation()
+  const { themeConfig } = useTheme()
+  const { user } = useAuth()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const { data: incident } = useQuery({
+    queryKey: ['incident-detail', incidentId],
+    queryFn: () => imageServiceApi.getIncidentDetail(incidentId),
+    staleTime: 0,
+  })
+  const own = !!incident && incident.closedBy === (user as any)?.username
+  const isAdmin = (user as any)?.role === 'admin'
+  const needsNoteToApprove = own && isAdmin
+  const cannotApprove = own && !isAdmin
+  const hasNote = note.trim().length > 0
+  const offline = incident?.camera?.operationalStatus === 'offline'
+  const row = (label: string, value?: string | null) => value ? (
+    <div className="grid grid-cols-3 gap-2 text-sm">
+      <span className={themeConfig.text.secondary}>{label}</span>
+      <span className={`col-span-2 ${themeConfig.text.primary} whitespace-pre-wrap`}>{value}</span>
+    </div>
+  ) : null
+
+  const decide = async (decision: 'approve' | 'reject') => {
+    setBusy(true)
+    try {
+      await imageServiceApi.verifyIncident(incidentId, { decision, note: note.trim() || undefined })
+      toast.success(ic(decision === 'approve' ? 'verifyApproved' : 'verifySentBack'))
+      onClose()
+      onClosed?.()
+    } catch (err: any) {
+      const code = err?.response?.data?.details?.code
+      if (!err?._handled) toast.error(code ? ic(`verifyError_${code}`) : t('common.error'))
+    } finally {
+      setBusy(false)
+      for (const queryKey of [['incidents-search'], ['incident-detail', incidentId], ['sidebar-open-incidents-count'], ['sidebar-pending-incidents-count']]) {
+        queryClient.invalidateQueries({ queryKey })
+      }
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title={ic('verifyTitle', { number: incident?.incidentNumber ?? '' })}>
+      <div data-verify-dialog className="space-y-4">
+        <div className="space-y-2">
+          {row(ic('verifyCamera'), incident?.camera?.name)}
+          {row(ic('verifySubmittedBy'), incident?.closedBy)}
+          {row(ic('verifySubmittedAt'), incident?.closedAt ? formatDateTime(incident.closedAt, i18n.language) : null)}
+          {row(t('imageService.incidents.resolution'), incident?.resolution ? labelFor(resolutions, incident.resolution) : ic('verifyNotGiven'))}
+          {row(t('imageService.incidents.rootCause'), incident?.rootCause ? labelFor(rootCauses, incident.rootCause) : null)}
+          {row(t('imageService.incidents.correctiveAction'), incident?.correctiveAction)}
+          {row(t('imageService.incidents.preventiveAction'), incident?.preventiveAction)}
+        </div>
+        {offline && <p data-verify-offline className="text-xs text-amber-300">{ic('verifyStillOffline')}</p>}
+        {cannotApprove && <p data-verify-own className="text-xs text-rose-300">{ic('verifyOwnBlocked')}</p>}
+        {needsNoteToApprove && <p data-verify-own className="text-xs text-amber-300">{ic('verifyOwnAdmin')}</p>}
+        <div>
+          <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{ic('verifyNote')}</label>
+          <textarea data-verify-note rows={3} maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)}
+            className={`w-full px-3 py-2 rounded-md text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} resize-none`} />
+          <p className={`mt-1 text-[11px] ${themeConfig.text.secondary}`}>{ic('verifyNoteHint')}</p>
+        </div>
+        <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <button type="button" onClick={onClose} className={`px-3 py-1.5 rounded-lg text-sm ${themeConfig.text.secondary} hover:bg-white/5`}>{t('common.cancel')}</button>
+          <button type="button" data-verify-reject disabled={busy || !hasNote || !incident} onClick={() => decide('reject')} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-rose-600/80 hover:bg-rose-500 text-white disabled:opacity-40">{ic('verifyReject')}</button>
+          <button type="button" data-verify-approve disabled={busy || !incident || cannotApprove || (needsNoteToApprove && !hasNote)} onClick={() => decide('approve')} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40">{ic('verifyApprove')}</button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, labelRootCause, labelResolution, ic }: any) {
   const { i18n, t } = useTranslation()
   const { themeConfig } = useTheme()
@@ -764,9 +853,16 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
   const toast = useToast()
   const queryClient = useQueryClient()
   const canUpdateWorkflow = hasPermission(user, 'cameras:update')
+  const { data: detailOptions } = useQuery({
+    queryKey: ['incident-options'],
+    queryFn: () => imageServiceApi.getIncidentOptions(),
+    staleTime: 300000,
+  })
   const sc = (k: string) => t(`imageService.sopChecklists.${k}`)
   const [woBusy, setWoBusy] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const canVerify = hasPermission(user, 'incidents:verify')
   const [localWo, setLocalWo] = useState<{ number: string | null; status: string | null } | null>(null)
 
   const { data: incident, isLoading, refetch } = useQuery({
@@ -800,7 +896,12 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
       { at: incident.openedAt, label: sc('timelineOpened'), kind: 'opened' },
       ...cameraEvents.map((e: any) => ({ at: e.createdAt, label: localizeHealthMonitorText(e.message, t) ?? e.message, kind: e.eventType })),
     ]
-    if (incident.closedAt) {
+    const checks: any[] = Array.isArray(incident.verificationLog) ? incident.verificationLog : []
+    if (checks.length > 0) {
+      for (const entry of checks) {
+        items.push({ at: entry.at, label: `${ic(`verifyLog_${entry.action}`, { by: entry.by })}${entry.note ? `: ${entry.note}` : ''}`, kind: entry.action === 'rejected' ? 'offline' : entry.action === 'submitted' ? 'recovering' : 'resolved' })
+      }
+    } else if (incident.closedAt) {
       items.push({ at: incident.closedAt, label: incident.autoResolved ? sc('timelineAutoResolved') : sc('timelineResolved'), kind: 'resolved' })
     }
     return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
@@ -948,6 +1049,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
     <>
     {/* Once closed there is nothing left to do here, so the incident closes along with the dialog. */}
     {closing && <CloseIncidentDialog incidentId={incidentId} onClose={() => setClosing(false)} onClosed={onClose} ic={ic} />}
+    {verifying && <VerifyIncidentDialog incidentId={incidentId} onClose={() => setVerifying(false)} onClosed={onClose} ic={ic} labelFor={(list: any[], code: string) => getLocalizedValue(list.find((x: any) => x.code === code) ?? { nameEn: code }, i18n.language) || code} rootCauses={detailOptions?.rootCauses ?? []} resolutions={detailOptions?.resolutions ?? []} />}
     <Modal isOpen onClose={onClose} size="4xl" title={incident?.incidentNumber || ic('colIncident')}>
       {isLoading || !incident ? (
         <TableSkeleton rows={6} cols={2} />
@@ -956,10 +1058,13 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
           {/* Header badges */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`text-lg font-mono font-bold ${themeConfig.text.primary}`}>{incident.incidentNumber}</span>
-            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[incident.status] || 'bg-gray-500/20 text-gray-400'}`}>{incident.status === 'open' ? ic('open') : ic('resolved')}</span>
+            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[incident.status] || 'bg-gray-500/20 text-gray-400'}`}>{statusLabel(incident.status, ic)}</span>
             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium capitalize ${PRIORITY_COLORS[incident.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(incident.priority, t)}</span>
             {incident.status === 'open' && canUpdateWorkflow && (
               <button type="button" data-close-incident-detail onClick={() => setClosing(true)} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">{ic('closeIncident')}</button>
+            )}
+            {incident.status === 'pending' && canVerify && (
+              <button type="button" data-verify-incident-detail onClick={() => setVerifying(true)} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white">{ic('verifyIncident')}</button>
             )}
           </div>
 
@@ -1115,6 +1220,8 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <Field label={ic('correctiveAction')} value={incident.correctiveAction} />
             <Field label={ic('preventiveAction')} value={incident.preventiveAction} />
             <Field label={ic('colOpened')} value={incident.openedAt ? `${formatDateTime(incident.openedAt, i18n.language)} (${incident.openedBy || '—'})` : null} />
+            {incident.verifiedBy && <Field label={ic('verifiedBy')} value={`${incident.verifiedBy}${incident.verifiedAt ? ` (${formatDateTime(incident.verifiedAt, i18n.language)})` : ''}`} />}
+            {incident.verificationNote && <Field label={ic('verifyNote')} value={incident.verificationNote} />}
             <Field label={t('ui.incidentCenter.closed')} value={incident.closedAt ? `${formatDateTime(incident.closedAt, i18n.language)} (${incident.closedBy || '—'})` : null} />
             {incident.status === 'open' && canUpdateWorkflow ? (
               <div>
@@ -1179,7 +1286,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <p className={`text-sm font-semibold mb-2 flex items-center gap-2 ${themeConfig.text.primary}`}><Wrench size={15} className="text-cyan-400" /> {ic('maintenance')}</p>
             {woNumber ? (
               <div className="flex items-center gap-3 flex-wrap">
-                <span className={`text-sm font-mono ${themeConfig.text.primary}`}>{ic('workOrder')}: {woNumber}</span>
+                <Link data-open-work-order to={`/cctv/work-orders?number=${woNumber}`} className="text-sm font-mono text-cyan-400 hover:underline">{ic('workOrder')}: {woNumber}</Link>
                 <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${WO_STATUS_COLORS[woStatus || 'open'] || 'bg-gray-500/20 text-gray-400'}`}>
                   {woStatus === 'completed' ? ic('woCompleted') : woStatus === 'in_progress' ? ic('woInProgress') : ic('woOpen')}
                 </span>

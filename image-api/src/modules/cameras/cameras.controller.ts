@@ -14,6 +14,7 @@ import { openRtspUrl, extractRtspPassword } from '../../lib/rtsp-credentials.js'
 import { getRedisClient } from '../../lib/redis.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { createAlert } from '../alerts/alerts.service.js';
+import { removeWorkOrderFiles } from '../work-orders/work-orders.service.js';
 import { sendWebhook } from '../../lib/webhook.js';
 import { formatDuration } from '../../lib/format.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
@@ -206,17 +207,20 @@ async function updateHandler(request: FastifyRequest, reply: FastifyReply) {
       // Resolving: auto-resolve any open incident for this camera
       const openIncident = await incidentService.getOpenIncidentForCamera(id);
       if (openIncident) {
-        const resolved = await incidentService.resolveIncident(openIncident.id, {
+        // A person's work goes to be checked. A service key is the system itself, with nobody to check it.
+        const closing = {
           resolution: incidentFields.resolution,
           rootCause: incidentFields.rootCause,
           correctiveAction: incidentFields.correctiveAction,
           preventiveAction: incidentFields.preventiveAction,
-          closedBy: user?.username ?? 'system',
-        });
+        };
+        const resolved = user?.username && user.role !== 'system'
+          ? await incidentService.submitForVerification(openIncident.id, { ...closing, submittedBy: user.username })
+          : await incidentService.resolveIncident(openIncident.id, { ...closing, closedBy: user?.username ?? 'system' });
         incidentNumber = resolved.incidentNumber;
         downtimeLabel = formatDuration(Date.now() - openIncident.openedAt.getTime());
         detailParts.push(`Downtime: ${downtimeLabel}`);
-        detailParts.push(`Incident ${incidentNumber} resolved`);
+        detailParts.push(`Incident ${incidentNumber} ${resolved.status === 'pending' ? 'waiting to be checked' : 'resolved'}`);
         if (incidentFields.resolution) detailParts.push(`Resolution: ${incidentFields.resolution}`);
         if (incidentFields.rootCause) detailParts.push(`RootCause: ${incidentFields.rootCause}`);
         if (incidentFields.correctiveAction) detailParts.push(`CorrectiveAction: ${incidentFields.correctiveAction}`);
@@ -474,7 +478,7 @@ async function resolveIncidentHandler(request: FastifyRequest, reply: FastifyRep
   if (!before) return reply.status(404).send({ message: 'Incident not found' });
   if (before.status !== 'open') return reply.status(409).send({ message: 'This incident is already closed' });
 
-  const incident = await incidentService.resolveIncident(id, { ...body, closedBy: user?.username ?? 'system' });
+  const incident = await incidentService.submitForVerification(id, { ...body, submittedBy: user?.username ?? 'system' });
 
   // A person who set the camera to error or inactive when opening this has now finished with it.
   // Maintenance set separately, or another incident still open, leaves the camera as it is.
@@ -488,7 +492,7 @@ async function resolveIncidentHandler(request: FastifyRequest, reply: FastifyRep
       severity: 'info',
       source: before.cameraId,
       title: `Camera online: ${camera.name}`,
-      message: `Camera "${camera.name}" status changed to active by ${user?.username ?? 'system'}. Incident ${incident.incidentNumber} resolved.`,
+      message: `Camera "${camera.name}" status changed to active by ${user?.username ?? 'system'}. Incident ${incident.incidentNumber} waiting to be checked.`,
       details: { cameraId: before.cameraId, cameraName: camera.name, previousStatus: camera.status, newStatus: 'active', changedBy: user?.username, incidentNumber: incident.incidentNumber },
       skipDedup: true,
       closeOnCreate: true,
@@ -499,11 +503,49 @@ async function resolveIncidentHandler(request: FastifyRequest, reply: FastifyRep
     action: 'incident_resolve',
     entity: 'incident',
     entityId: id,
-    description: `Incident ${incident.incidentNumber} closed by ${user?.username ?? 'system'}`,
+    description: `Incident ${incident.incidentNumber} sent to be checked by ${user?.username ?? 'system'}`,
     metadata: { cameraId: before.cameraId, resolution: body.resolution, rootCause: body.rootCause, cameraRestored },
     ipAddress: request.ip,
   });
   return reply.send({ ...incident, cameraRestored });
+}
+
+const verifyIncidentSchema = z.object({
+  decision: z.enum(['approve', 'reject']),
+  note: z.string().max(4000).optional(),
+});
+
+async function verifyIncidentHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  const input = verifyIncidentSchema.parse(request.body);
+  try {
+    const incident = await incidentService.verifyIncident(id, { ...input, user: { username: user?.username ?? 'unknown', role: user?.role } });
+    await createAuditLog({
+      userId: user?.id,
+      action: input.decision === 'approve' ? 'incident_approve' : 'incident_reject',
+      entity: 'incident',
+      entityId: id,
+      description: `Incident ${incident.incidentNumber} ${input.decision === 'approve' ? 'approved' : 'sent back'} by ${user?.username ?? 'unknown'}`,
+      metadata: { note: input.note, ownWork: incident.closedBy === user?.username, cameraId: incident.cameraId },
+      ipAddress: request.ip,
+    });
+    if (input.decision === 'reject') {
+      await createAlert({
+        alertType: 'incident_escalation',
+        severity: 'warning',
+        source: id,
+        title: `Incident sent back: ${incident.incidentNumber}`,
+        message: `Incident ${incident.incidentNumber} was sent back by ${user?.username ?? 'unknown'}: ${input.note}`,
+        details: { incidentId: id, incidentNumber: incident.incidentNumber, cameraId: incident.cameraId },
+        skipDedup: true,
+      });
+    }
+    return reply.send(incident);
+  } catch (err) {
+    if (err instanceof incidentService.VerificationError) return reply.status(err.statusCode).send({ message: err.message, details: { code: err.code } });
+    throw err;
+  }
 }
 
 async function updateIncidentWorkflowHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -718,6 +760,7 @@ async function deleteIncidentHandler(request: FastifyRequest, reply: FastifyRepl
     }
   }
 
+  await removeWorkOrderFiles({ incidentId: id });
   // SOP check logs have no DB cascade — clear them first.
   await prisma.cameraIncident.delete({ where: { id } });
 
@@ -802,6 +845,7 @@ async function clearAllIncidentsHandler(request: FastifyRequest, reply: FastifyR
   }
 
   // 2. Delete targeted records from CameraIncident table
+  await removeWorkOrderFiles({ incident: deleteWhere });
   const result = await prisma.cameraIncident.deleteMany({ where: deleteWhere });
 
   // 3. Create audit log
@@ -965,6 +1009,11 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/incidents/:id/resolve',
     { preHandler: [app.authenticate, requirePermission('cameras:update')] },
     resolveIncidentHandler,
+  );
+  app.post(
+    '/incidents/:id/verify',
+    { preHandler: [app.authenticate, requirePermission('incidents:verify')] },
+    verifyIncidentHandler,
   );
   app.patch(
     '/incidents/:id/workflow',

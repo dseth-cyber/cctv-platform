@@ -933,7 +933,7 @@ export default function ImageServiceCameras() {
         preventiveAction: resolveForm.preventiveAction || undefined,
         resolutionDesc: resolveForm.resolutionDesc || undefined,
       });
-      toast.success(t('imageService.incidents.incidentResolved'));
+      toast.success(t('imageService.incidentCenter.closeIncidentSubmitted'));
       queryClient.invalidateQueries({ queryKey: ['cameras-list'] }); queryClient.invalidateQueries({ queryKey: ['cctv-cameras'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-open-incidents-count'] });
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')); }

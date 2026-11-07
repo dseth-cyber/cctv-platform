@@ -29,6 +29,8 @@ import { startDevicePlayback, stopDevicePlayback } from './modules/device-playba
 import { snapshotRoutes, startSnapshotScheduler, stopSnapshotScheduler } from './modules/snapshots/snapshots.controller.js';
 import { siteRoutes } from './modules/sites/sites.controller.js';
 import { recordingsRoutes } from './modules/recordings/recordings.controller.js';
+import { workOrderRoutes } from './modules/work-orders/work-orders.controller.js';
+import { ensureWorkOrderRows } from './modules/work-orders/work-orders.service.js';
 import { mediaAuthRoutes } from './modules/media/media-auth.controller.js';
 import { mediaNodeRoutes } from './modules/media-nodes/media-nodes.controller.js';
 import { releaseRoutes } from './modules/release/release.controller.js';
@@ -149,6 +151,7 @@ export async function buildApp() {
       await api.register(devicePlaybackRoutes, { prefix: '/api/v1/device-playback' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
       await api.register(recordingsRoutes, { prefix: '/api/v1/recordings' });
+      await api.register(workOrderRoutes, { prefix: '/api/v1/work-orders' });
       await api.register(mediaAuthRoutes, { prefix: '/api/v1/media' });
       await api.register(mediaNodeRoutes, { prefix: '/api/v1/media-nodes' });
       await api.register(cameraTemplateRoutes, { prefix: '/api/v1/camera-templates' });
@@ -206,6 +209,7 @@ export async function startApp() {
   startSnapshotScheduler();
   startDevicePlayback();
   startDeviceHealthChecks();
+  void ensureWorkOrderRows().catch((err) => logger.warn({ err: err?.message }, 'Could not move old work orders across'));
   void ensureMasterdataDefaults().catch((err) => logger.warn({ err: err?.message }, 'Could not prepare master data lists'));
   startSystemCleanup();
   startTelegramBot();

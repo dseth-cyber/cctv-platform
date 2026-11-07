@@ -127,6 +127,7 @@ const PERMISSION_MODULES = [
       { key: 'cameras:read', labelTh: 'ดูรายการกล้อง', labelEn: 'View Cameras' },
       { key: 'cameras:create', labelTh: 'เพิ่มกล้องใหม่', labelEn: 'Create Camera' },
       { key: 'cameras:update', labelTh: 'แก้ไขกล้อง', labelEn: 'Update Camera' },
+      { key: 'incidents:verify', labelTh: 'ตรวจรับ Incident', labelEn: 'Verify Incidents' },
       { key: 'cameras:delete', labelTh: 'ลบกล้อง (Deactivate)', labelEn: 'Delete/Deactivate Camera' }
     ]
   },
