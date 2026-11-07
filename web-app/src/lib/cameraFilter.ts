@@ -70,7 +70,7 @@ export function groupCamerasByDevice(cameras: any[]): CameraGroup[] {
     group.cameras.push(cam);
     groups.set(cam.deviceId, group);
   }
-  const sorted = [...groups.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const sorted = [...groups.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
   return standalone.length > 0 ? [...sorted, { id: null, name: null, cameras: standalone }] : sorted;
 }
 

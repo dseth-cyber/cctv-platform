@@ -1,3 +1,4 @@
+import { allowedCameraIds, guardAllCameras } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
 import { createAuditLog } from '../audit/audit.service.js';
@@ -16,8 +17,12 @@ function audit(request: FastifyRequest, action: string, entityId: string, descri
   }).catch(() => {});
 }
 
-async function listHandler(_request: FastifyRequest, reply: FastifyReply) {
-  return reply.send(await service.listCameraGroups());
+async function listHandler(request: FastifyRequest, reply: FastifyReply) {
+  const groups = await service.listCameraGroups();
+  const allowed = await allowedCameraIds(request);
+  if (allowed === null) return reply.send(groups);
+  // A group shows with only the cameras within reach, or not at all.
+  return reply.send(groups.map((g) => ({ ...g, cameraIds: g.cameraIds.filter((id: string) => allowed.includes(id)) })).filter((g) => g.cameraIds.length > 0));
 }
 
 async function createHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -44,7 +49,7 @@ async function deleteHandler(request: FastifyRequest, reply: FastifyReply) {
 
 export async function cameraGroupRoutes(app: FastifyInstance): Promise<void> {
   app.get('/', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, listHandler);
-  app.post('/', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, createHandler);
-  app.patch('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, updateHandler);
-  app.delete('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, deleteHandler);
+  app.post('/', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] }, createHandler);
+  app.patch('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] }, updateHandler);
+  app.delete('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] }, deleteHandler);
 }

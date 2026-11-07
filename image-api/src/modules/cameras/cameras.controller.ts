@@ -1,3 +1,4 @@
+import { allowedCameraIds, cameraWhere, guardAllCameras, guardCameraIdsBody, guardCameraParam, guardIncidentAttachment, guardIncidentParam } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { cameraDeletionImpact } from './camera-deletion.js';
@@ -32,7 +33,7 @@ function ensureAttachmentDir() {
 
 async function listHandler(request: FastifyRequest, reply: FastifyReply) {
   const filters = cameraQuerySchema.parse(request.query);
-  const cameras = await camerasService.listCameras(filters);
+  const cameras = await camerasService.listCameras(await cameraWhere(request), filters);
   const role = (request as any).user?.role;
   return reply.status(200).send(cameras.map((c) => camerasService.toPublicCamera(c, role)));
 }
@@ -378,8 +379,8 @@ async function deletionImpactHandler(request: FastifyRequest, reply: FastifyRepl
   return reply.send(impact);
 }
 
-async function trashListHandler(_request: FastifyRequest, reply: FastifyReply) {
-  const cameras = await camerasService.listDeletedCameras();
+async function trashListHandler(request: FastifyRequest, reply: FastifyReply) {
+  const cameras = await camerasService.listDeletedCameras(await cameraWhere(request));
   return reply.status(200).send(cameras);
 }
 
@@ -436,7 +437,7 @@ async function analyticsHandler(request: FastifyRequest, reply: FastifyReply) {
 
 async function comparisonHandler(request: FastifyRequest, reply: FastifyReply) {
   const { period } = request.query as { period?: string };
-  const result = await cameraAnalytics.getCameraComparisonReport(period || '7d');
+  const result = await cameraAnalytics.getCameraComparisonReport(period || '7d', await cameraWhere(request));
   return reply.send(result);
 }
 
@@ -447,6 +448,7 @@ async function listIncidentsHandler(request: FastifyRequest, reply: FastifyReply
     cameraId?: string; status?: string; page?: string; limit?: string;
   };
   const result = await incidentService.getIncidents({
+    scope: await cameraWhere(request),
     cameraId,
     status,
     page: page ? parseInt(page) : undefined,
@@ -684,6 +686,7 @@ async function searchIncidentsHandler(request: FastifyRequest, reply: FastifyRep
     sortBy?: string; sortDir?: string;
   };
   const result = await incidentService.searchIncidents({
+    scope: await cameraWhere(request),
     siteId, zoneId, q, cameraId, reason, rootCause, status, priority,
     page: page ? parseInt(page) : undefined,
     limit: limit ? parseInt(limit) : undefined,
@@ -695,6 +698,7 @@ async function searchIncidentsHandler(request: FastifyRequest, reply: FastifyRep
 async function incidentKnowledgeHandler(request: FastifyRequest, reply: FastifyReply) {
   const { cameraId, days } = request.query as { cameraId?: string; days?: string };
   const result = await incidentService.getIncidentKnowledge({
+    scope: await cameraWhere(request),
     cameraId,
     days: days ? parseInt(days) : undefined,
   });
@@ -703,26 +707,26 @@ async function incidentKnowledgeHandler(request: FastifyRequest, reply: FastifyR
 
 async function relatedIncidentsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const result = await incidentService.getRelatedIncidents(id);
+  const result = await incidentService.getRelatedIncidents(id, await cameraWhere(request));
   return reply.send(result);
 }
 
 async function resolutionStatsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { reason, rootCause } = request.query as { reason?: string; rootCause?: string };
-  const result = await incidentService.getResolutionStats({ reason, rootCause });
+  const result = await incidentService.getResolutionStats({ ...({ reason, rootCause }), scope: await cameraWhere(request) });
   return reply.send(result);
 }
 
 async function topIncidentCausesHandler(request: FastifyRequest, reply: FastifyReply) {
   const { days } = request.query as { days?: string };
   const d = Math.min(730, Math.max(1, parseInt(days ?? '7', 10) || 7));
-  return reply.send(await incidentService.getTopIncidentCauses(d));
+  return reply.send(await incidentService.getTopIncidentCauses(d, await cameraWhere(request)));
 }
 
 async function incidentMonthlyTrendHandler(request: FastifyRequest, reply: FastifyReply) {
   const { months } = request.query as { months?: string };
   const m = Math.min(24, Math.max(2, parseInt(months ?? '6', 10) || 6));
-  return reply.send(await incidentService.getIncidentMonthlyTrend(m));
+  return reply.send(await incidentService.getIncidentMonthlyTrend(m, await cameraWhere(request)));
 }
 
 async function createWorkOrderHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -871,7 +875,8 @@ async function listFavoritesHandler(request: FastifyRequest, reply: FastifyReply
   const userId = favoriteUserId(request);
   if (!userId) return reply.send([]);
   const rows = await getPrisma().cameraFavorite.findMany({ where: { userId }, select: { cameraId: true } });
-  return reply.send(rows.map((r) => r.cameraId));
+  const allowed = await allowedCameraIds(request);
+  return reply.send(rows.map((r) => r.cameraId).filter((id) => allowed === null || allowed.includes(id)));
 }
 
 async function setFavoriteHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -923,7 +928,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.post(
     '/trash/empty',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardAllCameras] },
     emptyCameraTrashHandler,
   );
   app.get(
@@ -938,12 +943,12 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.post(
     '/incidents/clear-all',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardAllCameras] },
     clearAllIncidentsHandler,
   );
   app.get(
     '/incidents/attachments/:filename',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardIncidentAttachment] },
     serveAttachmentHandler,
   );
   app.get(
@@ -973,13 +978,13 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.get(
     '/incidents/:id/related',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardIncidentParam()] },
     relatedIncidentsHandler,
   );
   // A viewer's own stars, so reading cameras is all it takes.
   app.get('/favorites', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, listFavoritesHandler);
-  app.put('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, setFavoriteHandler);
-  app.delete('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, removeFavoriteHandler);
+  app.put('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] }, setFavoriteHandler);
+  app.delete('/:id/favorite', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] }, removeFavoriteHandler);
   app.post(
     '/detect-stream',
     { preHandler: [app.authenticate, requirePermission('cameras:update')] },
@@ -987,98 +992,98 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.post(
     '/incidents/:id/work-order',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardIncidentParam()] },
     createWorkOrderHandler,
   );
   app.patch(
     '/incidents/:id/work-order',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardIncidentParam()] },
     updateWorkOrderStatusHandler,
   );
   app.get(
     '/incidents/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardIncidentParam()] },
     getIncidentHandler,
   );
   app.delete(
     '/incidents/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardIncidentParam()] },
     deleteIncidentHandler,
   );
   app.post(
     '/incidents/:id/resolve',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardIncidentParam()] },
     resolveIncidentHandler,
   );
   app.post(
     '/incidents/:id/verify',
-    { preHandler: [app.authenticate, requirePermission('incidents:verify')] },
+    { preHandler: [app.authenticate, requirePermission('incidents:verify'), guardIncidentParam()] },
     verifyIncidentHandler,
   );
   app.patch(
     '/incidents/:id/workflow',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardIncidentParam()] },
     updateIncidentWorkflowHandler,
   );
   app.post(
     '/incidents/:id/attachments',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardIncidentParam()] },
     uploadAttachmentHandler,
   );
   app.get(
     '/:id/analytics',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] },
     analyticsHandler,
   );
   app.post(
     '/:id/restore',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardCameraParam()] },
     restoreCameraHandler,
   );
   app.delete(
     '/:id/permanent',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardCameraParam()] },
     permanentDeleteCameraHandler,
   );
   app.get(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] },
     getByIdHandler,
   );
   app.get(
     '/:id/events',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] },
     eventsHandler,
   );
   app.get(
     '/:id/stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] },
     getStreamHandler,
   );
   app.post(
     '/',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardAllCameras] },
     createHandler,
   );
   // Only reads, but a list of ids is too long for a query string.
   app.post(
     '/deletion-impact',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardCameraIdsBody()] },
     deletionImpactHandler,
   );
   app.patch(
     '/bulk',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardCameraIdsBody()] },
     bulkUpdateHandler,
   );
   app.patch(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardCameraParam()] },
     updateHandler,
   );
   app.delete(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardCameraParam()] },
     deleteCameraHandler,
   );
 }

@@ -1009,7 +1009,7 @@ export default function ImageServiceCameras() {
     const av = getSortValue(a, sortCol);
     const bv = getSortValue(b, sortCol);
     if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
-    return String(av).localeCompare(String(bv)) * dir;
+    return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
   });
 
   const totalItems = sorted.length;

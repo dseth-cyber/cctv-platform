@@ -1,3 +1,4 @@
+import { cameraScopeSchema } from '../access/camera-scope.js';
 import { z } from 'zod';
 
 export const createRoleSchema = z.object({
@@ -9,6 +10,7 @@ export const createRoleSchema = z.object({
   nameJp: z.string().min(1).max(256).optional(),
   description: z.string().optional(),
   permissions: z.array(z.string()).default([]),
+  cameraScope: cameraScopeSchema.optional(),
   sortOrder: z.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -21,6 +23,7 @@ export const updateRoleSchema = z.object({
   nameJp: z.string().min(1).max(256).optional(),
   description: z.string().optional(),
   permissions: z.array(z.string()).optional(),
+  cameraScope: cameraScopeSchema.optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });

@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+import { sortByName } from '../../lib/natural-sort.js';
 import { decrypt } from '../../lib/encryption.js';
 import { logger } from '../../lib/logger.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -241,24 +243,26 @@ export function stopDeviceHealthChecks() {
 }
 
 /** One row per device for the report: what it is, how it is, and how its cameras did over the period. */
-export async function buildDeviceReport(days: number) {
+export async function buildDeviceReport(days: number, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const since = new Date(Date.now() - days * 86400000);
+  const reachable: Prisma.CameraWhereInput = { deletedAt: null, ...(scope ? { AND: [scope] } : {}) };
   const devices = await prisma.device.findMany({
+    where: scope ? { cameras: { some: reachable } } : {},
     include: {
       site: { select: { name: true } },
       zone: { select: { name: true } },
-      cameras: { where: { deletedAt: null }, select: { id: true, enabled: true, operationalStatus: true, operationalReason: true } },
+      cameras: { where: reachable, select: { id: true, enabled: true, operationalStatus: true, operationalReason: true } },
     },
     orderBy: { name: 'asc' },
   });
-  return Promise.all(devices.map(async (device) => {
+  return Promise.all(sortByName(devices).map(async (device) => {
     const inUse = device.cameras.filter((c) => c.enabled);
     const downtimes = await Promise.all(inUse.map((c) => getCameraDowntimeReport(c.id, `${days}d`).catch(() => null)));
     const known = downtimes.filter((r): r is NonNullable<typeof r> => r !== null);
     const [incidents, openIncidents] = await Promise.all([
-      prisma.cameraIncident.count({ where: { openedAt: { gte: since }, camera: { deviceId: device.id } } }),
-      prisma.cameraIncident.count({ where: { status: 'open', camera: { deviceId: device.id } } }),
+      prisma.cameraIncident.count({ where: { openedAt: { gte: since }, cameraId: { in: device.cameras.map((c) => c.id) } } }),
+      prisma.cameraIncident.count({ where: { status: 'open', cameraId: { in: device.cameras.map((c) => c.id) } } }),
     ]);
     const health = (device.healthInfo ?? null) as DeviceHealth | null;
     return {

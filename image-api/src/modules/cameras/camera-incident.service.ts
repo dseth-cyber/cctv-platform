@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { getPrisma } from '../../lib/prisma.js';
 import { redactRtspUrl } from '../../lib/rtsp-credentials.js';
 
@@ -280,6 +281,7 @@ export async function getIncidents(params: {
   status?: string;
   page?: number;
   limit?: number;
+  scope?: Prisma.CameraWhereInput;
 }) {
   const prisma = getPrisma();
   const page = params.page ?? 1;
@@ -287,6 +289,7 @@ export async function getIncidents(params: {
   const where: any = {};
   if (params.cameraId) where.cameraId = params.cameraId;
   if (params.status) where.status = params.status;
+  if (params.scope) where.camera = params.scope;
 
   const [total, data] = await Promise.all([
     prisma.cameraIncident.count({ where }),
@@ -353,6 +356,7 @@ export async function searchIncidents(params: {
   q?: string; cameraId?: string; reason?: string; rootCause?: string;
   status?: string; priority?: string; page?: number; limit?: number;
   sortBy?: string; sortDir?: 'asc' | 'desc';
+  scope?: Prisma.CameraWhereInput;
 }) {
   const prisma = getPrisma();
   const page = params.page ?? 1;
@@ -361,6 +365,7 @@ export async function searchIncidents(params: {
   if (params.siteId || params.zoneId) {
     where.camera = { ...(params.siteId ? { siteId: params.siteId } : {}), ...(params.zoneId ? { zoneId: params.zoneId } : {}) };
   }
+  if (params.scope) where.camera = where.camera ? { AND: [where.camera, params.scope] } : params.scope;
   if (params.cameraId) where.cameraId = params.cameraId;
   if (params.reason) where.reason = params.reason;
   if (params.rootCause) where.rootCause = params.rootCause;
@@ -397,9 +402,10 @@ export async function searchIncidents(params: {
 }
 
 // Knowledge Base aggregations
-export async function getIncidentKnowledge(params: { cameraId?: string; days?: number }) {
+export async function getIncidentKnowledge(params: { cameraId?: string; days?: number; scope?: Prisma.CameraWhereInput }) {
   const prisma = getPrisma();
   const where: any = {};
+  if (params.scope) where.camera = params.scope;
   if (params.cameraId) where.cameraId = params.cameraId;
   if (params.days) where.openedAt = { gte: new Date(Date.now() - params.days * 86400000) };
 
@@ -436,13 +442,14 @@ export async function getIncidentKnowledge(params: { cameraId?: string; days?: n
 }
 
 // Related incidents (same reason or rootCause)
-export async function getRelatedIncidents(incidentId: string) {
+export async function getRelatedIncidents(incidentId: string, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const inc = await prisma.cameraIncident.findUnique({ where: { id: incidentId } });
   if (!inc) return [];
   const related = await prisma.cameraIncident.findMany({
     where: {
       id: { not: incidentId },
+      ...(scope ? { camera: scope } : {}),
       OR: [{ reason: inc.reason }, ...(inc.rootCause ? [{ rootCause: inc.rootCause }] : [])],
     },
     orderBy: { openedAt: 'desc' }, take: 10,
@@ -452,9 +459,10 @@ export async function getRelatedIncidents(incidentId: string) {
 }
 
 // Resolution suggestions: given a reason/rootCause, what resolutions worked
-export async function getResolutionStats(params: { reason?: string; rootCause?: string }) {
+export async function getResolutionStats(params: { reason?: string; rootCause?: string; scope?: Prisma.CameraWhereInput }) {
   const prisma = getPrisma();
   const where: any = { status: 'resolved' };
+  if (params.scope) where.camera = params.scope;
   if (params.reason) where.reason = params.reason;
   if (params.rootCause) where.rootCause = params.rootCause;
   const resolved = await prisma.cameraIncident.findMany({ where, select: { resolution: true } });
@@ -520,14 +528,14 @@ export async function getIncidentOptions() {
  * the last `days`, grouped by reason — count, cumulative downtime, still-open
  * count, and the machines affected — so the biggest recurring cause is obvious.
  */
-export async function getTopIncidentCauses(days: number) {
+export async function getTopIncidentCauses(days: number, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const now = Date.now();
   const start = new Date(now - days * 24 * 60 * 60 * 1000);
 
   const [incidents, cameras, reasons] = await Promise.all([
     prisma.cameraIncident.findMany({
-      where: { openedAt: { gte: start } },
+      where: { openedAt: { gte: start }, ...(scope ? { camera: scope } : {}) },
       select: { reason: true, cameraId: true, openedAt: true, closedAt: true, status: true },
     }),
     prisma.camera.findMany({ select: { id: true, name: true } }),
@@ -572,13 +580,13 @@ export async function getTopIncidentCauses(days: number) {
  * average MTTR (closed incidents) and cumulative downtime hours. Shows whether
  * repairs are getting faster and machine-stops rarer.
  */
-export async function getIncidentMonthlyTrend(months: number) {
+export async function getIncidentMonthlyTrend(months: number, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const now = new Date();
   const since = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
 
   const incidents = await prisma.cameraIncident.findMany({
-    where: { openedAt: { gte: since } },
+    where: { openedAt: { gte: since }, ...(scope ? { camera: scope } : {}) },
     select: { openedAt: true, closedAt: true, status: true },
   });
 

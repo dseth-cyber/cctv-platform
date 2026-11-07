@@ -487,9 +487,10 @@ export class RecordingsService {
   /**
    * Retrieves list of exported event clips.
    */
-  static async getClips(cameraId?: string, incidentId?: string) {
+  static async getClips(cameraId?: string, incidentId?: string, scope?: object) {
     const prisma = getPrisma();
     const where: any = {};
+    if (scope) where.camera = scope;
     if (cameraId) where.cameraId = cameraId;
     if (incidentId) where.incidentId = incidentId;
 

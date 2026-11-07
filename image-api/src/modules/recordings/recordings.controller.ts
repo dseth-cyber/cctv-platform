@@ -1,3 +1,4 @@
+import { cameraWhere, guardAllCameras, guardCameraBody, guardCameraQuery, guardClipFilename, guardClipParam, guardSegmentParam } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'node:fs';
 import { RecordingsService } from './recordings.service.js';
@@ -124,7 +125,7 @@ export async function cancelClipHandler(request: FastifyRequest, reply: FastifyR
 
 export async function getClipsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { cameraId, incidentId } = request.query as { cameraId?: string; incidentId?: string };
-  const clips = await RecordingsService.getClips(cameraId, incidentId);
+  const clips = await RecordingsService.getClips(cameraId, incidentId, await cameraWhere(request));
   return reply.status(200).send({ items: clips });
 }
 
@@ -247,17 +248,17 @@ export async function downloadClipHandler(request: FastifyRequest, reply: Fastif
 export async function recordingsRoutes(app: FastifyInstance) {
   app.get(
     '/timeline',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
     getTimelineHandler,
   );
   app.get(
     '/segments',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
     getSegmentsHandler,
   );
   app.post(
     '/clips',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardCameraBody()] },
     exportClipHandler,
   );
   app.get(
@@ -267,50 +268,50 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.delete(
     '/clips/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardClipParam()] },
     cancelClipHandler,
   );
   app.get(
     '/clips/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipParam()] },
     getClipByIdHandler,
   );
   app.get(
     '/coverage',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
     getCoverageHandler,
   );
   app.post(
     '/clips/:id/download-link',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipParam()] },
     createDownloadLinkHandler,
   );
   // Authorized by the signed `dl` token issued above, not by a bearer header.
   app.get('/clips/file/:filename', downloadClipByLinkHandler);
   app.get(
     '/clips/download/:filename',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipFilename] },
     downloadClipHandler,
   );
 
   app.patch(
     '/segments/:id/legal-hold',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardSegmentParam()] },
     toggleSegmentLegalHoldHandler,
   );
   app.patch(
     '/clips/:id/legal-hold',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardClipParam()] },
     toggleClipLegalHoldHandler,
   );
   app.post(
     '/seed-dev',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardAllCameras] },
     seedDevRecordingsHandler,
   );
   app.get(
     '/playback-stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
     getPlaybackStreamHandler,
   );
 }

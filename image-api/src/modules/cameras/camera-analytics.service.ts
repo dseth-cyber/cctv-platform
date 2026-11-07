@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 
@@ -380,10 +381,10 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
   };
 }
 
-export async function getCameraComparisonReport(period: string) {
+export async function getCameraComparisonReport(period: string, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const cameras = await prisma.camera.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, ...(scope ? { AND: [scope] } : {}) },
     select: { id: true, name: true },
   });
 

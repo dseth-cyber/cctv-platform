@@ -1,3 +1,5 @@
+import { allowedAlertSources, cameraWhere } from '../access/camera-scope.js';
+import { getUserPermissions } from '../../middleware/rbac.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getPrisma } from '../../lib/prisma.js';
 
@@ -6,19 +8,23 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
   if (!q || q.length < 2) return reply.send({ results: [] });
 
   const prisma = getPrisma();
+  const scope = await cameraWhere(request);
+  const sources = await allowedAlertSources(request);
+  const permissions = await getUserPermissions((request as any).user?.id ?? '');
+  const may = (permission: string) => permissions.includes('*') || permissions.includes(permission);
 
   const [cameras, alerts, users] = await Promise.all([
-    prisma.camera.findMany({
-      where: { OR: [{ name: { contains: q, mode: 'insensitive' } }, { ipAddress: { contains: q } }] },
+    !may('cameras:read') ? Promise.resolve([]) : prisma.camera.findMany({
+      where: { deletedAt: null, ...(scope ? { AND: [scope] } : {}), OR: [{ name: { contains: q, mode: 'insensitive' } }, { ipAddress: { contains: q } }] },
       select: { id: true, name: true, status: true, ipAddress: true },
       take: 5,
     }),
-    prisma.alert.findMany({
-      where: { deletedAt: null, OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
+    !may('alerts:read') ? Promise.resolve([]) : prisma.alert.findMany({
+      where: { deletedAt: null, ...(sources ? { source: { in: sources } } : {}), OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
       select: { id: true, title: true, severity: true },
       take: 5,
     }),
-    prisma.user.findMany({
+    !may('users:read') ? Promise.resolve([]) : prisma.user.findMany({
       where: { OR: [{ username: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] },
       select: { id: true, username: true, role: true },
       take: 5,

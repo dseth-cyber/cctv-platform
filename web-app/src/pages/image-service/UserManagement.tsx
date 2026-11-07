@@ -1,3 +1,4 @@
+import { CameraScopeFields, type CameraScopeValue } from '@/components/cctv/CameraScopeFields'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -128,6 +129,7 @@ const PERMISSION_MODULES = [
       { key: 'cameras:create', labelTh: 'เพิ่มกล้องใหม่', labelEn: 'Create Camera' },
       { key: 'cameras:update', labelTh: 'แก้ไขกล้อง', labelEn: 'Update Camera' },
       { key: 'incidents:verify', labelTh: 'ตรวจรับ Incident', labelEn: 'Verify Incidents' },
+      { key: 'workorders:cost', labelTh: 'ดูค่าใช้จ่ายในใบงาน', labelEn: 'View Work Order Costs' },
       { key: 'cameras:delete', labelTh: 'ลบกล้อง (Deactivate)', labelEn: 'Delete/Deactivate Camera' }
     ]
   },
@@ -306,11 +308,12 @@ const PERMISSION_MODULES = [
 ]
 
 function emptyUserForm() {
-  return { username: '', email: '', password: '', role: 'viewer', customPermissions: [] as string[] }
+  return { username: '', email: '', password: '', role: 'viewer', customPermissions: [] as string[], cameraScope: {} as CameraScopeValue }
 }
 
 function emptyRoleForm() {
   return {
+    cameraScope: {} as CameraScopeValue,
     code: '',
     nameTh: '',
     nameEn: '',
@@ -448,6 +451,7 @@ export default function UserManagement() {
       password: '',
       role: user.role,
       customPermissions: Array.isArray(user.customPermissions) ? user.customPermissions : [],
+      cameraScope: user.cameraScope ?? {},
     })
     setUserModal({ open: true, item: user })
   }
@@ -460,6 +464,7 @@ export default function UserManagement() {
           email: userForm.email,
           role: userForm.role,
           customPermissions: userForm.customPermissions,
+          cameraScope: userForm.cameraScope,
         }
         if (userForm.password) payload.password = userForm.password
         await imageServiceApi.updateUser(userModal.item.id, payload)
@@ -534,6 +539,7 @@ export default function UserManagement() {
       nameJp: role.nameJp || '',
       description: role.description || '',
       permissions: Array.isArray(role.permissions) ? role.permissions : [],
+      cameraScope: role.cameraScope ?? {},
       sortOrder: role.sortOrder || 0,
       isActive: role.isActive ?? true,
     })
@@ -1209,6 +1215,10 @@ export default function UserManagement() {
             </div>
           </div>
 
+          {userForm.role !== 'admin' && (
+            <CameraScopeFields value={userForm.cameraScope} onChange={(cameraScope) => setUserForm((f) => ({ ...f, cameraScope }))} hint={t('ui.cameraScope.userHint')} />
+          )}
+
           <div className="flex justify-end gap-2 pt-3">
             <Button variant="secondary" onClick={() => setUserModal({ open: false })}>{t('common.cancel')}</Button>
             <Button onClick={handleUserSubmit} disabled={submittingUser || !userForm.username || !userForm.email}>
@@ -1335,6 +1345,10 @@ export default function UserManagement() {
               </div>
             )}
           </div>
+
+          {roleForm.code !== 'admin' && (
+            <CameraScopeFields value={roleForm.cameraScope} onChange={(cameraScope) => setRoleForm((f) => ({ ...f, cameraScope }))} hint={t('ui.cameraScope.roleHint')} />
+          )}
 
           <div className="flex justify-end gap-2 pt-3">
             <Button variant="secondary" onClick={() => setRoleModal({ open: false })}>{t('common.cancel')}</Button>

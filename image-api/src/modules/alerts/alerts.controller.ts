@@ -1,3 +1,4 @@
+import { allowedAlertSources, guardAlertParam } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -18,7 +19,9 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
 
 async function listHandler(request: FastifyRequest, reply: FastifyReply) {
   const query = request.query as Record<string, string>;
+  const sources = await allowedAlertSources(request);
   const result = await alertsService.listAlerts({
+    ...(sources ? { sources } : {}),
     siteId: query.siteId,
     zoneId: query.zoneId,
     severity: query.severity,
@@ -63,9 +66,10 @@ async function snoozeHandler(request: FastifyRequest, reply: FastifyReply) {
 
 async function acknowledgeAllHandler(request: FastifyRequest, reply: FastifyReply) {
   const prisma = getPrisma();
+  const sources = await allowedAlertSources(request);
   const user = (request as any).user;
   const result = await prisma.alert.updateMany({
-    where: { acknowledgedAt: null },
+    where: { acknowledgedAt: null, ...(sources ? { source: { in: sources } } : {}) },
     data: { acknowledgedAt: new Date(), acknowledgedBy: user?.username ?? 'system' },
   });
   return reply.send({ acknowledged: result.count });
@@ -103,7 +107,7 @@ async function auditAlerts(request: FastifyRequest, action: string, description:
 
 async function clearAllHandler(request: FastifyRequest, reply: FastifyReply) {
   if (!(await passwordConfirmed(request, reply))) return reply;
-  const cleared = await alertsService.moveAllToTrash((request as any).user?.username ?? 'system');
+  const cleared = await alertsService.moveAllToTrash((request as any).user?.username ?? 'system', (await allowedAlertSources(request)) ?? undefined);
   await auditAlerts(request, 'bulk_clear', `Moved ${cleared} alerts to the trash`);
   return reply.send({ cleared });
 }
@@ -125,7 +129,7 @@ async function restoreHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 async function restoreAllHandler(request: FastifyRequest, reply: FastifyReply) {
-  const restored = await alertsService.restoreFromTrash();
+  const restored = await alertsService.restoreFromTrash(undefined, (await allowedAlertSources(request)) ?? undefined);
   await auditAlerts(request, 'restore', `Restored ${restored} alerts from the trash`);
   return reply.send({ restored });
 }
@@ -141,31 +145,32 @@ async function deleteForGoodHandler(request: FastifyRequest, reply: FastifyReply
 
 async function emptyTrashHandler(request: FastifyRequest, reply: FastifyReply) {
   if (!(await passwordConfirmed(request, reply))) return reply;
-  const deleted = await alertsService.deleteFromTrash();
+  const deleted = await alertsService.deleteFromTrash(undefined, (await allowedAlertSources(request)) ?? undefined);
   await auditAlerts(request, 'delete_permanent', `Emptied the alert trash (${deleted} alerts)`);
   return reply.send({ deleted });
 }
 
-async function unacknowledgedCountHandler(_request: FastifyRequest, reply: FastifyReply) {
+async function unacknowledgedCountHandler(request: FastifyRequest, reply: FastifyReply) {
   const prisma = getPrisma();
+  const sources = await allowedAlertSources(request);
   // A closed alert asks nothing of anyone, even if nobody acknowledged it first.
-  const count = await prisma.alert.count({ where: { acknowledgedAt: null, resolvedAt: null } });
+  const count = await prisma.alert.count({ where: { acknowledgedAt: null, resolvedAt: null, deletedAt: null, ...(sources ? { source: { in: sources } } : {}) } });
   return reply.send({ count });
 }
 
 export async function alertRoutes(app: FastifyInstance): Promise<void> {
   app.post('/', { preHandler: [app.authenticate, requirePermission('alerts:create')] }, createHandler);
   app.get('/', { preHandler: [app.authenticate, requirePermission('alerts:read')] }, listHandler);
-  app.get('/:id', { preHandler: [app.authenticate, requirePermission('alerts:read')] }, getByIdHandler);
-  app.patch('/:id/acknowledge', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, acknowledgeHandler);
-  app.post('/:id/snooze', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, snoozeHandler);
-  app.patch('/:id/resolve', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, resolveHandler);
+  app.get('/:id', { preHandler: [app.authenticate, requirePermission('alerts:read'), guardAlertParam()] }, getByIdHandler);
+  app.patch('/:id/acknowledge', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, acknowledgeHandler);
+  app.post('/:id/snooze', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, snoozeHandler);
+  app.patch('/:id/resolve', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, resolveHandler);
   app.post('/acknowledge-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, acknowledgeAllHandler);
   app.get('/unacknowledged-count', { preHandler: [app.authenticate] }, unacknowledgedCountHandler);
   app.post('/clear-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, clearAllHandler);
   app.post('/trash/restore-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, restoreAllHandler);
   app.post('/trash/empty', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, emptyTrashHandler);
-  app.post('/trash/:id/restore', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, restoreHandler);
-  app.post('/trash/:id/delete', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, deleteForGoodHandler);
-  app.post('/:id/trash', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, moveToTrashHandler);
+  app.post('/trash/:id/restore', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, restoreHandler);
+  app.post('/trash/:id/delete', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, deleteForGoodHandler);
+  app.post('/:id/trash', { preHandler: [app.authenticate, requirePermission('alerts:update'), guardAlertParam()] }, moveToTrashHandler);
 }

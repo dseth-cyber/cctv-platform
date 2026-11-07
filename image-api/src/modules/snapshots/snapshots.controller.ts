@@ -1,3 +1,4 @@
+import { allowedCameraIds, guardCameraParam } from '../access/camera-scope.js';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -101,8 +102,9 @@ const requestSchema = z.object({ ids: z.array(z.guid()).max(MAX_IDS_PER_REQUEST)
 
 async function requestHandler(request: FastifyRequest, reply: FastifyReply) {
   const { ids } = requestSchema.parse(request.body);
+  const allowed = await allowedCameraIds(request);
   const current = await refreshSettings();
-  const items = scheduler.request(await loadTargets(ids));
+  const items = scheduler.request(await loadTargets(allowed === null ? ids : ids.filter((id) => allowed.includes(id))));
   return reply.send({ items, refreshSeconds: current.refreshSeconds, behind: scheduler.stats().behind });
 }
 
@@ -153,7 +155,7 @@ async function adviceHandler(request: FastifyRequest, reply: FastifyReply) {
 
 export async function snapshotRoutes(app: FastifyInstance): Promise<void> {
   app.post('/request', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, requestHandler);
-  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, imageHandler);
+  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] }, imageHandler);
   app.get('/settings', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, settingsHandler);
   app.get('/advice', { preHandler: [app.authenticate, requirePermission('system-config:read')] }, adviceHandler);
   refreshSettings().catch((err) => logger.warn({ err }, 'Could not load snapshot settings yet'));

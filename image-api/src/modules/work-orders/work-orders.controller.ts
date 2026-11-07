@@ -1,3 +1,5 @@
+import { cameraWhere, guardWorkOrderParam } from '../access/camera-scope.js';
+import { getUserPermissions } from '../../middleware/rbac.js';
 import { readFile } from 'node:fs/promises';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -29,26 +31,42 @@ const audit = (request: FastifyRequest, action: string, id: string, description:
   createAuditLog({ userId: user?.id, action, entity: 'work_order', entityId: id, description: `${description} by ${user?.username ?? 'system'}`, metadata, ipAddress: request.ip }).catch(() => {});
 };
 
+const canSeeCost = async (request: FastifyRequest) => {
+  const permissions = await getUserPermissions((request as any).user?.id ?? '');
+  return permissions.includes('*') || permissions.includes('workorders:cost');
+};
+
+/** What a job cost goes only to those allowed to see it, whichever way they ask. */
+const withoutCost = <T extends { cost?: unknown }>(order: T) => ({ ...order, cost: undefined });
+
 export async function workOrderRoutes(app: FastifyInstance) {
   app.get('/', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) =>
-    respond(reply, () => listWorkOrders(listWorkOrdersSchema.parse(request.query))));
+    respond(reply, async () => {
+      const result = await listWorkOrders(listWorkOrdersSchema.parse(request.query), await cameraWhere(request));
+      return (await canSeeCost(request)) ? result : { ...result, data: result.data.map(withoutCost) };
+    }));
 
-  app.get('/:id', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) => {
+  app.get('/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardWorkOrderParam()] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    return respond(reply, () => getWorkOrder(id));
-  });
-
-  app.patch('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const input = updateWorkOrderSchema.parse(request.body);
     return respond(reply, async () => {
-      const order = await updateWorkOrder(id, input);
-      audit(request, 'work_order_update', id, `Work order ${order.number} updated`, { changes: Object.keys(input), status: input.status });
-      return order;
+      const order = await getWorkOrder(id);
+      return (await canSeeCost(request)) ? order : withoutCost(order);
     });
   });
 
-  app.post('/:id/attachments', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, async (request, reply) => {
+  app.patch('/:id', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardWorkOrderParam()] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const input = updateWorkOrderSchema.parse(request.body);
+    return respond(reply, async () => {
+      const seesCost = await canSeeCost(request);
+      if (!seesCost) delete input.cost;
+      const order = await updateWorkOrder(id, input);
+      audit(request, 'work_order_update', id, `Work order ${order.number} updated`, { changes: Object.keys(input), status: input.status });
+      return seesCost ? order : withoutCost(order);
+    });
+  });
+
+  app.post('/:id/attachments', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardWorkOrderParam()] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const user = (request as any).user;
     return respond(reply, async () => {
@@ -69,7 +87,7 @@ export async function workOrderRoutes(app: FastifyInstance) {
     }, 201);
   });
 
-  app.get('/:id/attachments/:filename', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, async (request, reply) => {
+  app.get('/:id/attachments/:filename', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardWorkOrderParam()] }, async (request, reply) => {
     const { id, filename } = request.params as { id: string; filename: string };
     try {
       const file = await attachmentFile(id, filename);
@@ -84,7 +102,7 @@ export async function workOrderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete('/:id/attachments/:filename', { preHandler: [app.authenticate, requirePermission('cameras:update')] }, async (request, reply) => {
+  app.delete('/:id/attachments/:filename', { preHandler: [app.authenticate, requirePermission('cameras:update'), guardWorkOrderParam()] }, async (request, reply) => {
     const { id, filename } = request.params as { id: string; filename: string };
     return respond(reply, async () => {
       await removeAttachment(id, filename);

@@ -1,3 +1,4 @@
+import { sortByName } from '../../lib/natural-sort.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { randomBytes } from 'node:crypto';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
@@ -9,7 +10,7 @@ import { buildChannelRtspUrl, findDeviceTemplate } from '../devices/devices.serv
 import type { CreateCameraInput, UpdateCameraInput } from './cameras.schema.js';
 import type { Prisma } from '@prisma/client';
 
-export async function listCameras(filters?: { status?: string; enabled?: boolean; deviceId?: string; siteId?: string; zoneId?: string }) {
+export async function listCameras(scope: Prisma.CameraWhereInput | undefined, filters?: { status?: string; enabled?: boolean; deviceId?: string; siteId?: string; zoneId?: string }) {
   const prisma = getPrisma();
 
   const where: Record<string, unknown> = { deletedAt: null };
@@ -18,8 +19,9 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
   if (filters?.deviceId) where.deviceId = filters.deviceId;
   if (filters?.siteId) where.siteId = filters.siteId;
   if (filters?.zoneId) where.zoneId = filters.zoneId;
+  if (scope) where.AND = [scope];
 
-  const cameras = await prisma.camera.findMany({
+  const cameras = sortByName(await prisma.camera.findMany({
     where,
     include: {
       retentionPolicy: { select: { id: true, name: true } },
@@ -30,7 +32,7 @@ export async function listCameras(filters?: { status?: string; enabled?: boolean
       groupMemberships: { select: { group: { select: { id: true, name: true } } } },
     },
     orderBy: { name: 'asc' },
-  });
+  }));
 
   const cameraIds = cameras.map(c => c.id);
 
@@ -493,10 +495,10 @@ export async function restoreCamera(id: string) {
   return { restored: true };
 }
 
-export async function listDeletedCameras() {
+export async function listDeletedCameras(scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   return prisma.camera.findMany({
-    where: { deletedAt: { not: null } },
+    where: { deletedAt: { not: null }, ...(scope ? { AND: [scope] } : {}) },
     orderBy: { deletedAt: 'desc' },
     select: { id: true, name: true, ipAddress: true, status: true, deletedAt: true },
   });

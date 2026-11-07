@@ -206,7 +206,7 @@ function CameraReport() {
       if (bv === null || bv === undefined) return -dir;
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
       if (Array.isArray(av) || Array.isArray(bv)) return String(av).localeCompare(String(bv)) * dir;
-      return String(av).localeCompare(String(bv)) * dir;
+      return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
     });
   }, [camerasArr, q, filterStatus, sortCol, sortDir]);
 

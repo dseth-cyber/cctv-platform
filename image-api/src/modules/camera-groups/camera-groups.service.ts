@@ -1,3 +1,4 @@
+import { sortByName } from '../../lib/natural-sort.js';
 import { z } from 'zod';
 import { getPrisma } from '../../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../lib/errors.js';
@@ -25,7 +26,7 @@ export async function listCameraGroups() {
     orderBy: { name: 'asc' },
     include: { members: { where: { camera: { deletedAt: null } }, select: { cameraId: true } } },
   });
-  return groups.map(({ members, ...group }) => ({ ...group, cameraIds: members.map((m) => m.cameraId) }));
+  return sortByName(groups).map(({ members, ...group }) => ({ ...group, cameraIds: members.map((m) => m.cameraId) }));
 }
 
 async function assertNameFree(name: string, exceptId?: string) {

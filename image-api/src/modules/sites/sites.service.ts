@@ -1,3 +1,4 @@
+import { sortByName } from '../../lib/natural-sort.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import type { CreateSiteInput, UpdateSiteInput, CreateZoneInput, UpdateZoneInput } from './sites.schema.js';
@@ -22,13 +23,14 @@ export async function resolveLocation(siteId: string | null | undefined, zoneId:
 
 export async function listSites() {
   const prisma = getPrisma();
-  return prisma.site.findMany({
+  const sites = await prisma.site.findMany({
     include: {
       zones: { orderBy: { name: 'asc' } },
       _count: { select: { cameras: true, devices: true } },
     },
     orderBy: { name: 'asc' },
   });
+  return sortByName(sites).map((site) => ({ ...site, zones: sortByName(site.zones) }));
 }
 
 export async function getSiteById(id: string) {

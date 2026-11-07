@@ -1,3 +1,5 @@
+import { sortByName } from '../../lib/natural-sort.js';
+import type { Prisma } from '@prisma/client';
 import { readDeviceInfo, RecorderError } from '../device-playback/hikvision-recorder.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
@@ -53,25 +55,28 @@ export function buildChannelRtspUrl(
   return `rtsp://${auth}${ip}:${port}${path}`;
 }
 
-export async function listDevices(filters?: DeviceQueryInput) {
+export async function listDevices(filters?: DeviceQueryInput, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const where: Record<string, unknown> = {};
 
   if (filters?.deviceType) where.deviceType = filters.deviceType;
   if (filters?.siteId) where.siteId = filters.siteId;
   if (filters?.enabled !== undefined) where.enabled = filters.enabled;
+  // A device shows when at least one of its cameras is within reach, and shows only those.
+  const reachable: Prisma.CameraWhereInput = { deletedAt: null, ...(scope ? { AND: [scope] } : {}) };
+  if (scope) where.cameras = { some: reachable };
 
   const devices = await prisma.device.findMany({
     where,
     include: {
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
-      cameras: { where: { deletedAt: null }, select: { channelNumber: true, enabled: true } },
+      cameras: { where: reachable, select: { channelNumber: true, enabled: true } },
     },
     orderBy: { name: 'asc' },
   });
 
-  return devices.map(({ cameras, ...d }) => ({
+  return sortByName(devices).map(({ cameras, ...d }) => ({
     ...d,
     passwordEncrypted: d.passwordEncrypted ? '********' : null,
     cameraCount: cameras.length,
@@ -601,17 +606,21 @@ export async function bulkImportDevices(devicesInput: CreateDeviceInput[]) {
   };
 }
 
-export async function getDashboardSummary() {
+export async function getDashboardSummary(scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
+  const inScope = scope ? { AND: [scope] } : {};
+  // Only what is within reach: the devices and sites holding those cameras, counted by those cameras.
+  const reachableIds = scope ? (await prisma.camera.findMany({ where: { ...inScope, deletedAt: null }, select: { deviceId: true, siteId: true } })) : null;
 
   const [devices, cameras, sites, recentIncidents] = await Promise.all([
     prisma.device.findMany({
+      where: reachableIds ? { id: { in: reachableIds.flatMap((c) => (c.deviceId ? [c.deviceId] : [])) } } : {},
       include: {
-        _count: { select: { cameras: true } },
+        _count: { select: { cameras: scope ? { where: { ...inScope, deletedAt: null } } : true } },
       },
     }),
     prisma.camera.findMany({
-      where: { enabled: true, deletedAt: null },
+      where: { enabled: true, deletedAt: null, ...inScope },
       select: {
         id: true,
         name: true,
@@ -626,12 +635,13 @@ export async function getDashboardSummary() {
       },
     }),
     prisma.site.findMany({
+      where: reachableIds ? { id: { in: reachableIds.flatMap((c) => (c.siteId ? [c.siteId] : [])) } } : {},
       include: {
-        _count: { select: { devices: true, cameras: true } },
+        _count: { select: { devices: true, cameras: scope ? { where: { ...inScope, deletedAt: null } } : true } },
       },
     }),
     prisma.cameraIncident.findMany({
-      where: { status: 'open' },
+      where: { status: 'open', ...(scope ? { camera: scope } : {}) },
       take: 6,
       orderBy: { openedAt: 'desc' },
       include: {

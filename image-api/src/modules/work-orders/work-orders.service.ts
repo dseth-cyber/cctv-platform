@@ -50,12 +50,13 @@ const WITH_INCIDENT = {
   incident: { select: { id: true, incidentNumber: true, status: true, reason: true, camera: { select: { id: true, name: true } } } },
 } as const;
 
-export async function listWorkOrders(params: z.infer<typeof listWorkOrdersSchema>) {
+export async function listWorkOrders(params: z.infer<typeof listWorkOrdersSchema>, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
   const page = params.page ?? 1;
   const limit = params.limit ?? 50;
   const where: Prisma.WorkOrderWhereInput = {
     ...(params.status ? { status: params.status } : {}),
+    ...(scope ? { incident: { camera: scope } } : {}),
     ...(params.q ? {
       OR: [
         { number: { contains: params.q, mode: 'insensitive' } },

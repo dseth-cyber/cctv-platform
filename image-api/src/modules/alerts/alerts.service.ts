@@ -131,6 +131,8 @@ export async function listAlerts(params: {
   limit?: number;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  /** Only alerts naming one of these. Absent means all of them. */
+  sources?: string[];
 }) {
   const prisma = getPrisma();
   const where: any = {};
@@ -141,6 +143,10 @@ export async function listAlerts(params: {
       select: { id: true },
     });
     where.source = { in: cameras.map((c) => c.id) };
+  }
+  if (params.sources) {
+    const allowed = new Set(params.sources);
+    where.source = { in: where.source ? (where.source.in as string[]).filter((id) => allowed.has(id)) : params.sources };
   }
   if (params.severity) where.severity = params.severity;
   if (params.resolved === true) where.resolvedAt = { not: null };
@@ -213,11 +219,12 @@ export async function snoozeAlert(id: string, hours: number, snoozedBy: string) 
 }
 
 /** Everything goes to the trash, closed, so nothing in there still counts as a problem or blocks a new alert. */
-export async function moveAllToTrash(username: string): Promise<number> {
+export async function moveAllToTrash(username: string, sources?: string[]): Promise<number> {
+  const within = sources ? { source: { in: sources } } : {};
   const prisma = getPrisma();
   const now = new Date();
-  await prisma.alert.updateMany({ where: { deletedAt: null, resolvedAt: null }, data: { resolvedAt: now, resolvedBy: username } });
-  const moved = await prisma.alert.updateMany({ where: { deletedAt: null }, data: { deletedAt: now, deletedBy: username } });
+  await prisma.alert.updateMany({ where: { ...within, deletedAt: null, resolvedAt: null }, data: { resolvedAt: now, resolvedBy: username } });
+  const moved = await prisma.alert.updateMany({ where: { ...within, deletedAt: null }, data: { deletedAt: now, deletedBy: username } });
   return moved.count;
 }
 
@@ -230,16 +237,16 @@ export async function moveToTrash(id: string, username: string): Promise<number>
 }
 
 /** Comes back closed: whatever it reported may be long over, and the health check raises a new alert if not. */
-export async function restoreFromTrash(id?: string): Promise<number> {
+export async function restoreFromTrash(id?: string, sources?: string[]): Promise<number> {
   const restored = await getPrisma().alert.updateMany({
-    where: { ...(id ? { id } : {}), deletedAt: { not: null } },
+    where: { ...(id ? { id } : {}), ...(sources ? { source: { in: sources } } : {}), deletedAt: { not: null } },
     data: { deletedAt: null, deletedBy: null },
   });
   return restored.count;
 }
 
 /** Only what is in the trash can be deleted for good. */
-export async function deleteFromTrash(id?: string): Promise<number> {
-  const deleted = await getPrisma().alert.deleteMany({ where: { ...(id ? { id } : {}), deletedAt: { not: null } } });
+export async function deleteFromTrash(id?: string, sources?: string[]): Promise<number> {
+  const deleted = await getPrisma().alert.deleteMany({ where: { ...(id ? { id } : {}), ...(sources ? { source: { in: sources } } : {}), deletedAt: { not: null } } });
   return deleted.count;
 }

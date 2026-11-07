@@ -26,7 +26,7 @@ const toInput = (iso?: string | null) => {
 };
 const fromInput = (value: string) => (value ? new Date(`${value}:00+07:00`).toISOString() : null);
 
-function WorkOrderDialog({ order, canEdit, onClose }: { order: any; canEdit: boolean; onClose: () => void }) {
+function WorkOrderDialog({ order, canEdit, canSeeCost, onClose }: { order: any; canEdit: boolean; canSeeCost: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
@@ -62,7 +62,7 @@ function WorkOrderDialog({ order, canEdit, onClose }: { order: any; canEdit: boo
         contactPhone: form.contactPhone.trim() || null,
         scheduledAt: fromInput(form.scheduledAt),
         parts: form.parts.trim() || null,
-        cost: form.cost === '' ? null : Number(form.cost),
+        ...(canSeeCost ? { cost: form.cost === '' ? null : Number(form.cost) } : {}),
         notes: form.notes.trim() || null,
       });
       toast.success(t('common.saveSuccess'));
@@ -144,10 +144,12 @@ function WorkOrderDialog({ order, canEdit, onClose }: { order: any; canEdit: boo
             <label className={labelClass}>{w('contactPhone')}</label>
             <input data-field="contactPhone" disabled={!canEdit} maxLength={64} value={form.contactPhone} onChange={(e) => setForm((p) => ({ ...p, contactPhone: e.target.value }))} className={fieldClass} />
           </div>
+          {canSeeCost && (
           <div>
             <label className={labelClass}>{w('cost')}</label>
             <input data-field="cost" type="number" min={0} step="0.01" disabled={!canEdit} value={form.cost} onChange={(e) => setForm((p) => ({ ...p, cost: e.target.value }))} className={fieldClass} />
           </div>
+          )}
         </div>
         <div>
           <label className={labelClass}>{w('parts')}</label>
@@ -211,6 +213,7 @@ export default function WorkOrders() {
   const [status, setStatus] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const canEdit = hasPermission(user, 'cameras:update');
+  const canSeeCost = hasPermission(user, 'workorders:cost');
   const w = (key: string, options?: Record<string, unknown>) => String(t(`ui.workOrders.${key}`, options as any));
 
   const { data, isLoading } = useQuery<any>({
@@ -243,9 +246,9 @@ export default function WorkOrders() {
     { key: 'contactPhone', label: w('contactPhone'), text: (r: any) => r.contactPhone ?? '—' },
     { key: 'scheduledAt', label: w('scheduledAt'), text: (r: any) => when(r.scheduledAt) },
     { key: 'completedAt', label: w('completedAt'), text: (r: any) => when(r.completedAt) },
-    { key: 'cost', label: w('cost'), text: (r: any) => money(r.cost) },
+    ...(canSeeCost ? [{ key: 'cost', label: w('cost'), text: (r: any) => money(r.cost) }] : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [i18n.language]);
+  ], [i18n.language, canSeeCost]);
 
   return (
     <div className="p-6">
@@ -310,7 +313,7 @@ export default function WorkOrders() {
         )}
       </div>
 
-      {opened && <WorkOrderDialog key={opened.id} order={opened} canEdit={canEdit} onClose={() => setOpenId(null)} />}
+      {opened && <WorkOrderDialog key={opened.id} order={opened} canEdit={canEdit} canSeeCost={canSeeCost} onClose={() => setOpenId(null)} />}
     </div>
   );
 }

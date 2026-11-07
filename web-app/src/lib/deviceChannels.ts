@@ -45,7 +45,7 @@ export function spareChannels(devices: any[]): SpareRow[] {
       return { device, total, inUse: on.size, spare };
     })
     .filter((row) => row.spare.length > 0)
-    .sort((a, b) => b.spare.length - a.spare.length || String(a.device.name).localeCompare(String(b.device.name)));
+    .sort((a, b) => b.spare.length - a.spare.length || String(a.device.name).localeCompare(String(b.device.name), undefined, { numeric: true }));
 }
 
 /** How many spare channels per key, largest first. */

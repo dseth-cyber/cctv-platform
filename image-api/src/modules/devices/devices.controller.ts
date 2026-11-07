@@ -1,3 +1,4 @@
+import { allowedCameraIds, cameraWhere, guardAllCameras, guardDeviceVisible } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { buildDeviceReport, checkDeviceHealthNow } from './device-health.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
@@ -17,7 +18,7 @@ import { requirePermission } from '../../middleware/rbac.js';
 
 async function listDevicesHandler(request: FastifyRequest, reply: FastifyReply) {
   const query = deviceQuerySchema.parse(request.query);
-  const devices = await devicesService.listDevices(query);
+  const devices = await devicesService.listDevices(query, await cameraWhere(request));
   return reply.status(200).send(devices);
 }
 
@@ -28,8 +29,8 @@ async function getDeviceTemplatesHandler(_request: FastifyRequest, reply: Fastif
   return reply.status(200).send(templates);
 }
 
-async function getDashboardSummaryHandler(_request: FastifyRequest, reply: FastifyReply) {
-  const summary = await devicesService.getDashboardSummary();
+async function getDashboardSummaryHandler(request: FastifyRequest, reply: FastifyReply) {
+  const summary = await devicesService.getDashboardSummary(await cameraWhere(request));
   return reply.status(200).send(summary);
 }
 
@@ -52,7 +53,7 @@ async function checkHealthHandler(request: FastifyRequest, reply: FastifyReply) 
 async function deviceReportHandler(request: FastifyRequest, reply: FastifyReply) {
   const { days } = request.query as { days?: string };
   const period = Number(days);
-  return reply.status(200).send(await buildDeviceReport([7, 30, 90].includes(period) ? period : 30));
+  return reply.status(200).send(await buildDeviceReport([7, 30, 90].includes(period) ? period : 30, await cameraWhere(request)));
 }
 
 async function bulkImportHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -63,7 +64,9 @@ async function bulkImportHandler(request: FastifyRequest, reply: FastifyReply) {
 
 async function getDeviceHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const device = await devicesService.getDeviceById(id);
+  const device: any = await devicesService.getDeviceById(id);
+  const allowed = await allowedCameraIds(request);
+  if (allowed !== null && Array.isArray(device?.cameras)) device.cameras = device.cameras.filter((c: any) => allowed.includes(c.id));
   return reply.status(200).send(device);
 }
 
@@ -113,7 +116,7 @@ async function provisionChannelsHandler(request: FastifyRequest, reply: FastifyR
 export async function deviceRoutes(app: FastifyInstance) {
   app.put(
     '/:id/channels',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     setChannelsHandler,
   );
   app.get(
@@ -139,7 +142,7 @@ export async function deviceRoutes(app: FastifyInstance) {
   // Sends a login to the device, so it takes more than being able to look at cameras.
   app.post(
     '/read-info',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     readDeviceInfoHandler,
   );
   app.get(
@@ -149,37 +152,37 @@ export async function deviceRoutes(app: FastifyInstance) {
   );
   app.post(
     '/:id/health/check',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     checkHealthHandler,
   );
   app.post(
     '/bulk-import',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardAllCameras] },
     bulkImportHandler,
   );
   app.get(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardDeviceVisible()] },
     getDeviceHandler,
   );
   app.post(
     '/',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardAllCameras] },
     createDeviceHandler,
   );
   app.patch(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     updateDeviceHandler,
   );
   app.delete(
     '/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:delete')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardAllCameras] },
     deleteDeviceHandler,
   );
   app.post(
     '/:id/provision-channels',
-    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardAllCameras] },
     provisionChannelsHandler,
   );
 }
