@@ -8,7 +8,7 @@ import { imageServiceApi } from '@/services/imageServiceApi'
 import { formatDateTime } from '@/utils/dateUtils'
 import { translateAlertTitle, translateAlertMessage, getLocalizedValue, type IncidentLabelMaps } from '@/utils/textUtils'
 import { Modal, Button, SearchableSelect, TableSkeleton } from '@/components/ui'
-import { Search, Bell, Eye, CheckCircle, XCircle, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, AlertTriangle } from 'lucide-react'
+import { Search, Bell, Eye, CheckCircle, XCircle, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, AlertTriangle, RotateCcw, ArrowLeft } from 'lucide-react'
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: 'bg-red-500/20 text-red-400',
@@ -17,7 +17,6 @@ const SEVERITY_COLORS: Record<string, string> = {
   info: 'bg-blue-500/20 text-blue-400',
 }
 
-const CLEARED_AT_KEY = 'cctv_alerts_cleared_at'
 
 export default function AlertManagement() {
   const { t, i18n } = useTranslation()
@@ -30,27 +29,25 @@ export default function AlertManagement() {
   const [limit, setLimit] = useState(50)
   const [severity, setSeverity] = useState('')
   const [resolved, setResolved] = useState('all')
-  // "All" starts after the last clear, so a cleared list stays clear. Closed alerts stay under "resolved".
-  const [clearedAt, setClearedAt] = useState<string | null>(() => {
-    try { return localStorage.getItem(CLEARED_AT_KEY) } catch { return null }
-  })
+  const [showTrash, setShowTrash] = useState(false)
+  // What the password dialog is about to do.
+  const [confirmAction, setConfirmAction] = useState<{ kind: 'clear' } | { kind: 'empty' } | { kind: 'delete'; id: string } | null>(null)
   const [sortCol, setSortCol] = useState('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [detailId, setDetailId] = useState<string | null>(null)
   const [viewing, setViewing] = useState<any>(null)
-  const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearPassword, setClearPassword] = useState('')
   const [clearing, setClearing] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['alerts', place.siteId, place.zoneId, page, limit, severity, resolved, clearedAt, sortCol, sortDir],
+    queryKey: ['alerts', place.siteId, place.zoneId, page, limit, severity, resolved, showTrash, sortCol, sortDir],
     queryFn: async () => {
       const res = await imageServiceApi.getAlerts({
         siteId: place.siteId,
         zoneId: place.zoneId,
         severity: severity || undefined,
-        resolved: resolved === 'all' ? undefined : resolved === 'resolved' ? true : false,
-        createdAfter: resolved === 'all' ? clearedAt ?? undefined : undefined,
+        resolved: showTrash || resolved === 'all' ? undefined : resolved === 'resolved' ? true : false,
+        trash: showTrash || undefined,
         page,
         limit,
         sortBy: sortCol,
@@ -101,28 +98,71 @@ export default function AlertManagement() {
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')) }
   }
 
-  const handleClearAllAlerts = async () => {
-    if (!clearPassword) {
-      toast.warning(t('imageService.alerts.clearAllPasswordConfirm', 'กรุณากรอกรหัสผ่านเพื่อยืนยันการล้างแจ้งเตือน'))
+  const refreshAlerts = () => {
+    queryClient.invalidateQueries({ queryKey: ['alerts'] })
+    queryClient.invalidateQueries({ queryKey: ['alerts-trash-count'] })
+    queryClient.invalidateQueries({ queryKey: ['navbar-alerts'] })
+    queryClient.invalidateQueries({ queryKey: ['unacknowledged-count'] })
+  }
+
+  const closeConfirm = () => {
+    setConfirmAction(null)
+    setClearPassword('')
+  }
+
+  const handleConfirmed = async () => {
+    if (!clearPassword || !confirmAction) {
+      toast.warning(t('imageService.alerts.clearAllPasswordConfirm'))
       return
     }
     setClearing(true)
     try {
-      const res = await imageServiceApi.clearAllAlerts(clearPassword)
-      toast.success(t('imageService.alerts.clearAllSuccess', { count: res.cleared }))
-      setClearedAt(res.clearedAt)
+      if (confirmAction.kind === 'clear') {
+        const res = await imageServiceApi.clearAllAlerts(clearPassword)
+        toast.success(t('imageService.alerts.clearAllSuccess', { count: res.cleared }))
+      } else if (confirmAction.kind === 'empty') {
+        const res = await imageServiceApi.emptyAlertTrash(clearPassword)
+        toast.success(t('imageService.alerts.deletedForGood', { count: res.deleted }))
+      } else {
+        await imageServiceApi.deleteAlertForGood(confirmAction.id, clearPassword)
+        toast.success(t('imageService.alerts.deletedForGood', { count: 1 }))
+      }
       setPage(1)
-      try { localStorage.setItem(CLEARED_AT_KEY, res.clearedAt) } catch { /* the list still clears for this visit */ }
-      setClearDialogOpen(false)
-      setClearPassword('')
-      queryClient.invalidateQueries({ queryKey: ['alerts'] })
-      queryClient.invalidateQueries({ queryKey: ['navbar-alerts'] })
+      closeConfirm()
+      refreshAlerts()
     } catch (e: any) {
-      if (!e?._handled) toast.error(t('imageService.alerts.clearAllPasswordError', 'รหัสผ่านไม่ถูกต้อง หรือไม่สามารถดำเนินการได้'))
+      if (!e?._handled) toast.error(t('imageService.alerts.clearAllPasswordError'))
     } finally {
       setClearing(false)
     }
   }
+
+  const runTrashAction = async (action: () => Promise<unknown>, message: string) => {
+    try {
+      await action()
+      toast.success(message)
+      refreshAlerts()
+    } catch (e: any) {
+      if (!e?._handled) toast.error(t('common.error'))
+    }
+  }
+
+  const { data: trashCount = 0 } = useQuery<number>({
+    queryKey: ['alerts-trash-count'],
+    queryFn: async () => (await imageServiceApi.getAlerts({ trash: true, limit: 1 })).pagination?.total ?? 0,
+  })
+
+  const trashActions = (item: any) => showTrash ? (
+    <>
+      <button title={t('imageService.alerts.restore')} data-alert-restore onClick={() => runTrashAction(() => imageServiceApi.restoreAlert(item.id), t('imageService.alerts.restored'))}
+        className="p-2 rounded-lg hover:bg-cyan-500/20"><RotateCcw size={15} className="text-cyan-400" /></button>
+      <button title={t('imageService.alerts.deleteForGood')} data-alert-delete onClick={() => setConfirmAction({ kind: 'delete', id: item.id })}
+        className="p-2 rounded-lg hover:bg-red-500/20"><Trash2 size={15} className="text-red-400" /></button>
+    </>
+  ) : (
+    <button title={t('imageService.alerts.moveToTrash')} data-alert-to-trash onClick={() => runTrashAction(() => imageServiceApi.moveAlertToTrash(item.id), t('imageService.alerts.movedToTrash'))}
+      className="p-2 rounded-lg hover:bg-red-500/20"><Trash2 size={15} className="text-red-400" /></button>
+  )
 
   const thCls = (col: string) =>
     `px-4 py-3 text-left text-sm font-semibold cursor-pointer select-none hover:text-cyan-300 ${themeConfig.text.primary}`
@@ -155,15 +195,37 @@ export default function AlertManagement() {
             <SearchableSelect value={severity} onChange={v => { setSeverity(v); setPage(1) }}
               placeholder={t('imageService.alerts.allSeverity')} options={severityOptions} />
           </div>
+          {!showTrash && (
           <div className="w-40">
             <SearchableSelect value={resolved} onChange={v => { setResolved(v); setPage(1) }}
               placeholder={t('imageService.alerts.status')} options={resolvedOptions} />
           </div>
+          )}
           <div className="ml-auto">
-            <Button variant="secondary" onClick={() => setClearDialogOpen(true)}>
-              <Trash2 size={14} className="mr-1.5 inline" />
-              {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : t('common.clearAll')}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+            {showTrash ? (
+              <>
+                <Button variant="secondary" onClick={() => { setShowTrash(false); setPage(1) }}>
+                  <ArrowLeft size={14} className="mr-1.5" />{t('imageService.alerts.backToAlerts')}
+                </Button>
+                <Button variant="secondary" disabled={trashCount === 0} onClick={() => runTrashAction(() => imageServiceApi.restoreAllAlerts(), t('imageService.alerts.restored'))}>
+                  <RotateCcw size={14} className="mr-1.5" />{t('imageService.alerts.restoreAll')}
+                </Button>
+                <Button variant="secondary" disabled={trashCount === 0} onClick={() => setConfirmAction({ kind: 'empty' })}>
+                  <Trash2 size={14} className="mr-1.5 text-red-400" />{t('imageService.alerts.emptyTrash')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="secondary" data-alert-trash-open onClick={() => { setShowTrash(true); setPage(1) }}>
+                  <Trash2 size={14} className="mr-1.5" />{t('imageService.alerts.trash')} ({trashCount})
+                </Button>
+                <Button variant="secondary" onClick={() => setConfirmAction({ kind: 'clear' })}>
+                  <Trash2 size={14} className="mr-1.5 text-red-400" />{t('imageService.alerts.clearAll')}
+                </Button>
+              </>
+            )}
+            </div>
           </div>
         </div>
       </div>
@@ -191,14 +253,15 @@ export default function AlertManagement() {
                 <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5">
                   <button onClick={() => { setDetailId(item.id); setViewing(item) }}
                     className="p-2 rounded-lg hover:bg-cyan-500/20"><Eye size={16} className="text-cyan-400" /></button>
-                  {!item.acknowledgedAt && (
+                  {!showTrash && !item.acknowledgedAt && (
                     <button onClick={() => handleAcknowledge(item.id)}
                       className="p-2 rounded-lg hover:bg-blue-500/20"><CheckCircle size={16} className="text-blue-400" /></button>
                   )}
-                  {!item.resolvedAt && (
+                  {!showTrash && !item.resolvedAt && (
                     <button onClick={() => handleResolve(item.id)}
                       className="p-2 rounded-lg hover:bg-green-500/20"><XCircle size={16} className="text-green-400" /></button>
                   )}
+                  {trashActions(item)}
                 </div>
               </div>
             ))}
@@ -248,14 +311,15 @@ export default function AlertManagement() {
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => { setDetailId(item.id); setViewing(item) }}
                           className="p-2 rounded-lg hover:bg-cyan-500/20"><Eye size={15} className="text-cyan-400" /></button>
-                        {!item.acknowledgedAt && (
+                        {!showTrash && !item.acknowledgedAt && (
                           <button onClick={() => handleAcknowledge(item.id)}
                             className="p-2 rounded-lg hover:bg-blue-500/20"><CheckCircle size={15} className="text-blue-400" /></button>
                         )}
-                        {!item.resolvedAt && (
+                        {!showTrash && !item.resolvedAt && (
                           <button onClick={() => handleResolve(item.id)}
                             className="p-2 rounded-lg hover:bg-green-500/20"><XCircle size={15} className="text-green-400" /></button>
                         )}
+                        {trashActions(item)}
                       </div>
                     </td>
                   </tr>
@@ -397,8 +461,8 @@ export default function AlertManagement() {
         )}
       </Modal>
 
-      {clearDialogOpen && (
-        <Modal isOpen={clearDialogOpen} onClose={() => { setClearDialogOpen(false); setClearPassword('') }} title={t('imageService.alerts.clearAllTitle', 'ยืนยันล้างแจ้งเตือนทั้งหมด')}>
+      {confirmAction && (
+        <Modal isOpen onClose={closeConfirm} title={confirmAction.kind === 'clear' ? t('imageService.alerts.clearAllTitle') : t('imageService.alerts.deleteForGood')}>
           <div className="space-y-4 p-1 max-w-md">
             <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
               <AlertTriangle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
@@ -407,7 +471,7 @@ export default function AlertManagement() {
                   {t('imageService.alerts.clearAllWarningTitle', 'คำเตือน')}
                 </p>
                 <p className={`text-xs ${themeConfig.text.secondary}`}>
-                  {t('imageService.alerts.clearAllWarning', 'การดำเนินการนี้จะล้างการแจ้งเตือนที่ยังไม่ได้แก้ไขทั้งหมดออกจากระบบอย่างถาวร ข้อมูลนี้จะไม่สามารถกู้คืนกลับมาได้อีก')}
+                  {confirmAction.kind === 'clear' ? t('imageService.alerts.clearAllWarning') : t('imageService.alerts.deleteForGoodWarning')}
                 </p>
               </div>
             </div>
@@ -429,7 +493,7 @@ export default function AlertManagement() {
             <div className="flex justify-end gap-2 mt-2">
               <button
                 type="button"
-                onClick={() => { setClearDialogOpen(false); setClearPassword('') }}
+                onClick={closeConfirm}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${themeConfig.cardBorder} ${themeConfig.text.secondary} hover:bg-white/5`}
               >
                 {t('common.cancel')}
@@ -437,7 +501,7 @@ export default function AlertManagement() {
               <button
                 type="button"
                 disabled={clearing || !clearPassword}
-                onClick={handleClearAllAlerts}
+                onClick={handleConfirmed}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 flex items-center gap-1.5"
               >
                 {clearing ? (
@@ -445,7 +509,7 @@ export default function AlertManagement() {
                 ) : (
                   <Trash2 size={13} />
                 )}
-                {t('imageService.alerts.clearAll') !== 'imageService.alerts.clearAll' ? t('imageService.alerts.clearAll') : t('common.clearAll')}
+                {confirmAction.kind === 'clear' ? t('imageService.alerts.clearAll') : t('imageService.alerts.deleteForGood')}
               </button>
             </div>
           </div>

@@ -14,7 +14,7 @@ async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
       take: 5,
     }),
     prisma.alert.findMany({
-      where: { OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
+      where: { deletedAt: null, OR: [{ title: { contains: q, mode: 'insensitive' } }, { message: { contains: q, mode: 'insensitive' } }], resolvedAt: null },
       select: { id: true, title: true, severity: true },
       take: 5,
     }),

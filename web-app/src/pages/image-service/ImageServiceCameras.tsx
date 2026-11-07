@@ -89,7 +89,7 @@ export default function ImageServiceCameras() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { options: cameraTypeOptions } = useMasterdataOptions('camera_type');
-  const { options: cameraBrandOptions } = useMasterdataOptions('device_brand');
+  const { options: cameraBrandOptions } = useMasterdataOptions('camera_brand');
   const cameraBrandLabel = (code?: string | null) => (code ? cameraBrandOptions.find((o) => o.value.toLowerCase() === code.toLowerCase())?.label ?? code : '—');
   const cameraTypeLabel = (code?: string | null) => (code ? cameraTypeOptions.find((o) => o.value === code)?.label ?? code : '—');
 

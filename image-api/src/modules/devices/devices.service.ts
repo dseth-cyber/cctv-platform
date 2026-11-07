@@ -128,7 +128,14 @@ async function assertDeviceAddressFree(ipAddress: string, rtspPort: number, exce
   if (clash) throw new ConflictError(`Device "${clash.name}" already uses ${ipAddress}:${rtspPort}`, { code: 'DEVICE_ADDRESS_TAKEN', device: clash.name });
 }
 
+async function assertDeviceTypeExists(code: string | undefined) {
+  if (code === undefined) return;
+  const found = await getPrisma().masterdata.findFirst({ where: { type: 'device_type', code }, select: { id: true } });
+  if (!found) throw new ValidationError(`Unknown device type "${code}"`, { code: 'DEVICE_TYPE_UNKNOWN' });
+}
+
 export async function createDevice(input: CreateDeviceInput) {
+  await assertDeviceTypeExists(input.deviceType);
   const prisma = getPrisma();
 
   const location = await resolveLocation(input.siteId, input.zoneId);
@@ -253,6 +260,7 @@ export async function setEnabledChannels(deviceId: string, enabledChannels: numb
 }
 
 export async function updateDevice(id: string, input: UpdateDeviceInput) {
+  await assertDeviceTypeExists(input.deviceType);
   const prisma = getPrisma();
 
   const existing = await prisma.device.findUnique({ where: { id } });

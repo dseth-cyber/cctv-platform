@@ -23,7 +23,7 @@ async function listHandler(request: FastifyRequest, reply: FastifyReply) {
     zoneId: query.zoneId,
     severity: query.severity,
     resolved: query.resolved === 'true' ? true : query.resolved === 'false' ? false : undefined,
-    createdAfter: query.createdAfter,
+    trash: query.trash === 'true',
     page: query.page ? parseInt(query.page, 10) : undefined,
     limit: query.limit ? parseInt(query.limit, 10) : undefined,
     sortBy: query.sortBy,
@@ -71,37 +71,79 @@ async function acknowledgeAllHandler(request: FastifyRequest, reply: FastifyRepl
   return reply.send({ acknowledged: result.count });
 }
 
-async function clearAllHandler(request: FastifyRequest, reply: FastifyReply) {
+/** Destructive alert actions ask for the password again. Sends the refusal itself and returns false. */
+async function passwordConfirmed(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
   const user = (request as any).user;
   const { password } = (request.body ?? {}) as { password?: string };
   if (!password) {
-    return reply.status(400).send({ error: 'Password required', code: 'PASSWORD_REQUIRED' });
+    reply.status(400).send({ error: 'Password required', code: 'PASSWORD_REQUIRED' });
+    return false;
   }
-
-  const prisma = getPrisma();
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-
+  const dbUser = await getPrisma().user.findUnique({ where: { id: user.id } });
   const bcrypt = await import('bcryptjs');
   const compare = bcrypt.default?.compare || bcrypt.compare;
   if (!dbUser || !(await compare(password, dbUser.password))) {
-    return reply.status(403).send({ error: 'Invalid password', code: 'INVALID_PASSWORD' });
+    reply.status(403).send({ error: 'Invalid password', code: 'INVALID_PASSWORD' });
+    return false;
   }
+  return true;
+}
 
-  const result = await prisma.alert.updateMany({
-    where: { resolvedAt: null },
-    data: { resolvedAt: new Date(), resolvedBy: user?.username ?? 'system' },
-  });
-
+async function auditAlerts(request: FastifyRequest, action: string, description: string) {
+  const user = (request as any).user;
   const { createAuditLog } = await import('../audit/audit.service.js');
   await createAuditLog({
     userId: user.id,
-    action: 'bulk_clear',
+    action,
     entity: 'alert',
-    description: `Cleared ${result.count} active alerts by ${user.username}`,
+    description: `${description} by ${user.username}`,
     ipAddress: request.ip,
   }).catch(() => {});
+}
 
-  return reply.send({ cleared: result.count, clearedAt: new Date().toISOString() });
+async function clearAllHandler(request: FastifyRequest, reply: FastifyReply) {
+  if (!(await passwordConfirmed(request, reply))) return reply;
+  const cleared = await alertsService.moveAllToTrash((request as any).user?.username ?? 'system');
+  await auditAlerts(request, 'bulk_clear', `Moved ${cleared} alerts to the trash`);
+  return reply.send({ cleared });
+}
+
+async function moveToTrashHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const moved = await alertsService.moveToTrash(id, (request as any).user?.username ?? 'system');
+  if (moved === 0) return reply.status(404).send({ error: 'Alert not found' });
+  await auditAlerts(request, 'delete', `Moved alert ${id} to the trash`);
+  return reply.send({ moved });
+}
+
+async function restoreHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const restored = await alertsService.restoreFromTrash(id);
+  if (restored === 0) return reply.status(404).send({ error: 'Not in the trash' });
+  await auditAlerts(request, 'restore', `Restored alert ${id} from the trash`);
+  return reply.send({ restored });
+}
+
+async function restoreAllHandler(request: FastifyRequest, reply: FastifyReply) {
+  const restored = await alertsService.restoreFromTrash();
+  await auditAlerts(request, 'restore', `Restored ${restored} alerts from the trash`);
+  return reply.send({ restored });
+}
+
+async function deleteForGoodHandler(request: FastifyRequest, reply: FastifyReply) {
+  if (!(await passwordConfirmed(request, reply))) return reply;
+  const { id } = request.params as { id: string };
+  const deleted = await alertsService.deleteFromTrash(id);
+  if (deleted === 0) return reply.status(404).send({ error: 'Not in the trash' });
+  await auditAlerts(request, 'delete_permanent', `Permanently deleted alert ${id}`);
+  return reply.send({ deleted });
+}
+
+async function emptyTrashHandler(request: FastifyRequest, reply: FastifyReply) {
+  if (!(await passwordConfirmed(request, reply))) return reply;
+  const deleted = await alertsService.deleteFromTrash();
+  await auditAlerts(request, 'delete_permanent', `Emptied the alert trash (${deleted} alerts)`);
+  return reply.send({ deleted });
 }
 
 async function unacknowledgedCountHandler(_request: FastifyRequest, reply: FastifyReply) {
@@ -121,4 +163,9 @@ export async function alertRoutes(app: FastifyInstance): Promise<void> {
   app.post('/acknowledge-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, acknowledgeAllHandler);
   app.get('/unacknowledged-count', { preHandler: [app.authenticate] }, unacknowledgedCountHandler);
   app.post('/clear-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, clearAllHandler);
+  app.post('/trash/restore-all', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, restoreAllHandler);
+  app.post('/trash/empty', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, emptyTrashHandler);
+  app.post('/trash/:id/restore', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, restoreHandler);
+  app.post('/trash/:id/delete', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, deleteForGoodHandler);
+  app.post('/:id/trash', { preHandler: [app.authenticate, requirePermission('alerts:update')] }, moveToTrashHandler);
 }

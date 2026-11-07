@@ -221,7 +221,7 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/retention-policies/${id}`),
 
     // Alerts
-    getAlerts: (params?: { siteId?: string; zoneId?: string; severity?: string; resolved?: boolean; createdAfter?: string; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
+    getAlerts: (params?: { siteId?: string; zoneId?: string; severity?: string; resolved?: boolean; trash?: boolean; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/alerts`, { params, ...options }).then((r: any) => r.data),
 
     getAlert: (id: string) =>
@@ -429,6 +429,12 @@ export function createImageServiceApi(api: any) {
     // Alerts bulk actions
     clearAllAlerts: (password: string) =>
       api.post(`${BASE}/alerts/clear-all`, { password }).then((r: any) => r.data),
+    moveAlertToTrash: (id: string) => api.post(`${BASE}/alerts/${id}/trash`).then((r: any) => r.data),
+    restoreAlert: (id: string) => api.post(`${BASE}/alerts/trash/${id}/restore`).then((r: any) => r.data),
+    restoreAllAlerts: () => api.post(`${BASE}/alerts/trash/restore-all`).then((r: any) => r.data),
+    deleteAlertForGood: (id: string, password: string) =>
+      api.post(`${BASE}/alerts/trash/${id}/delete`, { password }).then((r: any) => r.data),
+    emptyAlertTrash: (password: string) => api.post(`${BASE}/alerts/trash/empty`, { password }).then((r: any) => r.data),
     acknowledgeAllAlerts: () => api.post(`${BASE}/alerts/acknowledge-all`).then((r: any) => r.data),
     getUnacknowledgedCount: () => api.get(`${BASE}/alerts/unacknowledged-count`).then((r: any) => r.data),
     snoozeAlert: (id: string, hours = 4) =>

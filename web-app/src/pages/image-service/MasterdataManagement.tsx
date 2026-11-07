@@ -10,10 +10,12 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 
-type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count';
+type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count' | 'device_type' | 'camera_brand';
 
 const TABS: { key: TabType; labelKey: string }[] = [
   { key: 'camera_type', labelKey: 'imageService.masterdataManagement.tabCameraType' },
+  { key: 'camera_brand', labelKey: 'imageService.masterdataManagement.tabCameraBrand' },
+  { key: 'device_type', labelKey: 'imageService.masterdataManagement.tabDeviceType' },
   { key: 'device_brand', labelKey: 'imageService.masterdataManagement.tabDeviceBrand' },
   { key: 'device_channel_count', labelKey: 'imageService.masterdataManagement.tabChannelCount' },
   { key: 'camera_status', labelKey: 'imageService.masterdataManagement.tabCameraStatus' },

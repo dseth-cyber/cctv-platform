@@ -4,10 +4,14 @@ import { redactRtspUrl } from '../../lib/rtsp-credentials.js';
 async function generateIncidentNumber(): Promise<string> {
   const prisma = getPrisma();
   const year = new Date().getFullYear();
-  const count = await prisma.cameraIncident.count({
-    where: { incidentNumber: { startsWith: `INC-${year}-` } }
+  // Not a count of rows: after a deletion that would repeat a number and the new incident would fail.
+  const latest = await prisma.cameraIncident.findFirst({
+    where: { incidentNumber: { startsWith: `INC-${year}-` } },
+    orderBy: { incidentNumber: 'desc' },
+    select: { incidentNumber: true },
   });
-  return `INC-${year}-${String(count + 1).padStart(6, '0')}`;
+  const last = latest ? Number(latest.incidentNumber.split('-')[2]) : 0;
+  return `INC-${year}-${String(last + 1).padStart(6, '0')}`;
 }
 
 export async function createIncident(data: {

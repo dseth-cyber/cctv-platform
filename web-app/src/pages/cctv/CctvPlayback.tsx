@@ -1,3 +1,4 @@
+import { SearchableSelect } from '@/components/ui';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -294,6 +295,12 @@ export const CctvPlayback: React.FC = () => {
 
   // GET /cameras returns a plain array (other CCTV pages read it the same way).
   const cameras: any[] = Array.isArray(camerasData) ? camerasData : (camerasData?.items ?? []);
+  const cameraOptions = useMemo(() => [...cameras]
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true }))
+    .map((c: any) => ({
+      value: c.id as string,
+      label: `${c.name}${c.site?.name ? ` (${c.site.name})` : ''} ${t('ui.cctvPlayback.ch')}${c.channelNumber || 1}`,
+    })), [cameras, t]);
 
   const selectedCamera = cameras.find((c: any) => c.id === selectedCameraId);
 
@@ -928,17 +935,13 @@ export const CctvPlayback: React.FC = () => {
           {/* Camera Picker */}
           <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
             <span className="text-xs text-slate-400 font-medium">{t('ui.cctvPlayback.camera')}</span>
-            <select
-              value={selectedCameraId}
-              onChange={(e) => setSelectedCameraId(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer"
-            >
-              {cameras.map((c: any) => (
-                <option key={c.id} value={c.id} className="bg-slate-900 text-white">
-                  {c.name} {c.site?.name ? `(${c.site.name})` : ''}{' '}{t('ui.cctvPlayback.ch')}{c.channelNumber || 1}
-                </option>
-              ))}
-            </select>
+            <div data-playback-camera className="w-[26rem]">
+              <SearchableSelect
+                value={selectedCameraId}
+                onChange={setSelectedCameraId}
+                options={cameraOptions}
+              />
+            </div>
           </div>
 
           {/* Date Picker */}

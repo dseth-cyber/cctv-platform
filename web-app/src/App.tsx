@@ -598,6 +598,15 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
   onToggleCollapse?: () => void
   updateHiddenMenuItems: (hiddenMenuItems: string[]) => Promise<void>
 }) {
+  // Shares the bell's query, so both always show the same number.
+  const { data: alertCountData } = useQuery({
+    queryKey: ['unacknowledged-count'],
+    queryFn: () => imageServiceApi.getUnacknowledgedCount(),
+    refetchInterval: 1000 * 15,
+    staleTime: 1000 * 10,
+  })
+  const alertCount: number = alertCountData?.count ?? 0
+  const badgeOf = (path: string) => (path === '/cctv/incidents' ? openCount : path === '/cctv/alerts' ? alertCount : 0)
   const { theme } = useTheme()
   const visibleNav = useMemo(() => navItems.filter(item => (item.anyOf ?? [item.permission]).some(p => hasPermission(user, p))), [navItems, user])
   const { ordered, reorder, reset } = useSidebarOrder(user?.username, visibleNav)
@@ -684,9 +693,9 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
                   {collapsed ? (
                     <div className="relative">
                       <Icon size={16} className="flex-shrink-0" />
-                      {item.path === '/cctv/incidents' && openCount > 0 && (
+                      {badgeOf(item.path) > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse z-10">
-                          {openCount > 99 ? '99+' : openCount}
+                          {badgeOf(item.path) > 99 ? '99+' : badgeOf(item.path)}
                         </span>
                       )}
                     </div>
@@ -694,9 +703,9 @@ function SidebarNav({ navItems, settingsSubItems, user, locationPath, t, onNavig
                     <>
                       <Icon size={16} className="flex-shrink-0" />
                       <span className="truncate">{t(`imageService.${item.labelKey}`)}</span>
-                      {item.path === '/cctv/incidents' && openCount > 0 && (
+                      {badgeOf(item.path) > 0 && (
                         <span className="ml-auto w-5 h-5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse flex-shrink-0">
-                          {openCount > 99 ? '99+' : openCount}
+                          {badgeOf(item.path) > 99 ? '99+' : badgeOf(item.path)}
                         </span>
                       )}
                     </>

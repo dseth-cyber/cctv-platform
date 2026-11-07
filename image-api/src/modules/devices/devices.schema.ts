@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const deviceTypeEnum = z.enum(['dvr', 'nvr', 'ip_camera', 'other']);
+// The code of a device_type in master data; the service checks that it exists.
+export const deviceTypeEnum = z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_-]+$/);
 
 const ipv4 = z.string().trim().regex(
   /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/,

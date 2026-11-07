@@ -3,7 +3,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { builtInDeviceTemplates, setCustomDeviceTemplates, type DeviceVendorTemplate } from '../devices/devices.service.js';
 
-export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count'] as const;
+export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
 export async function listMasterdata(params: {
@@ -175,7 +175,7 @@ export async function deleteMasterdata(id: string) {
 
 
 /** Lists a person chooses from on other pages. Readable by anyone who can see cameras. */
-export const OPTION_TYPES = ['camera_type', 'device_brand', 'device_channel_count'] as const;
+export const OPTION_TYPES = ['camera_type', 'camera_brand', 'device_type', 'device_brand', 'device_channel_count'] as const;
 
 export async function listMasterdataOptions(type: (typeof OPTION_TYPES)[number]) {
   return getPrisma().masterdata.findMany({
@@ -213,13 +213,9 @@ function validateChannelCount(code: string) {
 async function countUses(type: string, code: string): Promise<number> {
   const prisma = getPrisma();
   if (type === 'camera_type') return prisma.camera.count({ where: { cameraType: code, deletedAt: null } });
-  if (type === 'device_brand') {
-    const [devices, cameras] = await Promise.all([
-      prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } }),
-      prisma.camera.count({ where: { cameraBrand: { equals: code, mode: 'insensitive' }, deletedAt: null } }),
-    ]);
-    return devices + cameras;
-  }
+  if (type === 'camera_brand') return prisma.camera.count({ where: { cameraBrand: { equals: code, mode: 'insensitive' }, deletedAt: null } });
+  if (type === 'device_type') return prisma.device.count({ where: { deviceType: code } });
+  if (type === 'device_brand') return prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } });
   return 0;
 }
 
@@ -258,6 +254,13 @@ const CAMERA_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
   ['box', names('กล่อง', 'Box', '枪式', 'Box', 'ボックス')],
 ];
 
+const DEVICE_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
+  ['dvr', names('DVR (เครื่องบันทึกแบบสาย Coaxial/BNC)', 'DVR (Digital Video Recorder - Coaxial/BNC)', 'DVR（数字录像机 - 同轴/BNC）', 'DVR (Digital Video Recorder - Coaxial/BNC)', 'DVR（デジタルビデオレコーダー - 同軸/BNC）')],
+  ['nvr', names('NVR (เครื่องบันทึกแบบเครือข่าย IP/PoE)', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（网络录像机 - IP/PoE）', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（ネットワークビデオレコーダー - IP/PoE）')],
+  ['ip_camera', names('กล้อง IP แบบเดี่ยว', 'Stand-alone IP Camera', '独立 IP 摄像机', 'သီးသန့် IP ကင်မရာ', '単体 IP カメラ')],
+  ['other', names('อื่นๆ / ไฮบริด', 'Other / Hybrid', '其他 / 混合', 'အခြား / Hybrid', 'その他 / ハイブリッド')],
+];
+
 /** A list starts filled once. After that it belongs to the people using it: nothing here puts a deleted row back. */
 export async function ensureMasterdataDefaults() {
   const prisma = getPrisma();
@@ -289,6 +292,24 @@ export async function ensureMasterdataDefaults() {
         sortOrder: (i + 1) * 10,
         isDefault: n === 16,
       })),
+    });
+  }
+  if (await empty('device_type')) {
+    await prisma.masterdata.createMany({
+      data: DEVICE_TYPE_DEFAULTS.map(([code, n], i) => ({ type: 'device_type', code, ...n, sortOrder: (i + 1) * 10, isDefault: code === 'dvr' })),
+    });
+  }
+  if (await empty('camera_brand')) {
+    // Starts from the brands people could already pick, plus anything cameras already hold.
+    const brands = await prisma.masterdata.findMany({ where: { type: 'device_brand' }, orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }] });
+    const held = await prisma.camera.findMany({ where: { cameraBrand: { not: null } }, distinct: ['cameraBrand'], select: { cameraBrand: true } });
+    const known = new Set(brands.map((b) => b.code.toLowerCase()));
+    const extra = held.map((c) => c.cameraBrand as string).filter((code) => !known.has(code.toLowerCase()));
+    await prisma.masterdata.createMany({
+      data: [
+        ...brands.map((b, i) => ({ type: 'camera_brand', code: b.code, nameTh: b.nameTh, nameEn: b.nameEn, nameCn: b.nameCn, nameMm: b.nameMm, nameJp: b.nameJp, sortOrder: (i + 1) * 10 })),
+        ...extra.map((code, i) => ({ type: 'camera_brand', code, ...names(code, code, code, code, code), sortOrder: (brands.length + i + 1) * 10 })),
+      ],
     });
   }
   await refreshBrandTemplates();

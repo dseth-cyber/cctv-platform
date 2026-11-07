@@ -133,7 +133,7 @@ export default function ImageServiceReports() {
   }, []);
 
   const { data: typeItems = [] } = useQuery<any[]>({ queryKey: ['masterdata-options-raw', 'camera_type'], queryFn: () => imageServiceApi.getMasterdataOptions('camera_type'), staleTime: 60_000 });
-  const { data: brandItems = [] } = useQuery<any[]>({ queryKey: ['masterdata-options-raw', 'device_brand'], queryFn: () => imageServiceApi.getMasterdataOptions('device_brand'), staleTime: 60_000 });
+  const { data: brandItems = [] } = useQuery<any[]>({ queryKey: ['masterdata-options-raw', 'camera_brand'], queryFn: () => imageServiceApi.getMasterdataOptions('camera_brand'), staleTime: 60_000 });
 
   // Fetch cameras data
   const { data: cameras = [], isLoading } = useQuery({

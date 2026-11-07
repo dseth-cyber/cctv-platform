@@ -700,7 +700,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
     if (incident.closedAt) {
       items.push({ at: incident.closedAt, label: incident.autoResolved ? sc('timelineAutoResolved') : sc('timelineResolved'), kind: 'resolved' })
     }
-    return items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+    return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
   }, [incident, cameraEvents, t])
 
 

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { imageServiceApi } from '@/services/imageServiceApi';
 
-export type MasterdataOptionType = 'camera_type' | 'device_brand' | 'device_channel_count';
+export type MasterdataOptionType = 'camera_type' | 'camera_brand' | 'device_type' | 'device_brand' | 'device_channel_count';
 
 const NAME_FIELD: Record<string, string> = { th: 'nameTh', en: 'nameEn', cn: 'nameCn', mm: 'nameMm', jp: 'nameJp' };
 

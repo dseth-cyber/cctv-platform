@@ -53,15 +53,6 @@ enum CameraEventType {
 }
 
 // ── CCTV Foundation Enums (Phase 1) ───────────────────────────
-enum DeviceType {
-  dvr
-  nvr
-  ip_camera
-  other
-
-  @@map("device_type")
-}
-
 // Operational Status: system-derived reachability state (P35 Phase A).
 // Kept separate from CameraStatus ("Business Status", human-controlled) so the
 // two never conflict — analytics/automation read this one, workflows/permissions
@@ -372,7 +363,8 @@ model Device {
   id                String     @id @default(uuid()) @db.Uuid
   name              String     @db.VarChar(128)
   description       String?    @db.Text
-  deviceType        DeviceType @default(dvr) @map("device_type")
+  // Code from masterdata type device_type.
+  deviceType        String     @default("dvr") @map("device_type") @db.VarChar(32)
   brand             String?    @db.VarChar(64)
   model             String?    @db.VarChar(64)
   serialNumber      String?    @map("serial_number") @db.VarChar(128)
@@ -513,10 +505,14 @@ model Alert {
   acknowledgedBy String?       @map("acknowledged_by") @db.VarChar(128)
   resolvedAt     DateTime?     @map("resolved_at")
   resolvedBy     String?       @map("resolved_by") @db.VarChar(128)
+  // In the trash: closed, out of every list and count, until restored or deleted for good.
+  deletedAt      DateTime?     @map("deleted_at")
+  deletedBy      String?       @map("deleted_by") @db.VarChar(128)
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
   @@index([severity, createdAt(sort: Desc)])
+  @@index([deletedAt])
   @@map("alerts")
 }
 

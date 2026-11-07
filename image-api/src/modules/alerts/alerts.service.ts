@@ -126,7 +126,7 @@ export async function listAlerts(params: {
   zoneId?: string;
   severity?: string;
   resolved?: boolean;
-  createdAfter?: string;
+  trash?: boolean;
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -145,9 +145,7 @@ export async function listAlerts(params: {
   if (params.severity) where.severity = params.severity;
   if (params.resolved === true) where.resolvedAt = { not: null };
   else if (params.resolved === false) where.resolvedAt = null;
-  if (params.createdAfter && !Number.isNaN(Date.parse(params.createdAfter))) {
-    where.createdAt = { gt: new Date(params.createdAfter) };
-  }
+  where.deletedAt = params.trash ? { not: null } : null;
 
   const page = params.page ?? 1;
   const limit = Math.min(params.limit ?? 20, 100);
@@ -214,3 +212,34 @@ export async function snoozeAlert(id: string, hours: number, snoozedBy: string) 
   });
 }
 
+/** Everything goes to the trash, closed, so nothing in there still counts as a problem or blocks a new alert. */
+export async function moveAllToTrash(username: string): Promise<number> {
+  const prisma = getPrisma();
+  const now = new Date();
+  await prisma.alert.updateMany({ where: { deletedAt: null, resolvedAt: null }, data: { resolvedAt: now, resolvedBy: username } });
+  const moved = await prisma.alert.updateMany({ where: { deletedAt: null }, data: { deletedAt: now, deletedBy: username } });
+  return moved.count;
+}
+
+export async function moveToTrash(id: string, username: string): Promise<number> {
+  const prisma = getPrisma();
+  const now = new Date();
+  await prisma.alert.updateMany({ where: { id, deletedAt: null, resolvedAt: null }, data: { resolvedAt: now, resolvedBy: username } });
+  const moved = await prisma.alert.updateMany({ where: { id, deletedAt: null }, data: { deletedAt: now, deletedBy: username } });
+  return moved.count;
+}
+
+/** Comes back closed: whatever it reported may be long over, and the health check raises a new alert if not. */
+export async function restoreFromTrash(id?: string): Promise<number> {
+  const restored = await getPrisma().alert.updateMany({
+    where: { ...(id ? { id } : {}), deletedAt: { not: null } },
+    data: { deletedAt: null, deletedBy: null },
+  });
+  return restored.count;
+}
+
+/** Only what is in the trash can be deleted for good. */
+export async function deleteFromTrash(id?: string): Promise<number> {
+  const deleted = await getPrisma().alert.deleteMany({ where: { ...(id ? { id } : {}), deletedAt: { not: null } } });
+  return deleted.count;
+}

@@ -104,6 +104,7 @@ export default function DeviceManagement() {
   const { user } = useAuth();
   const canEditChannels = hasPermission(user, 'cameras:update');
   const { options: brandOptions } = useMasterdataOptions('device_brand');
+  const { options: deviceTypeOptions } = useMasterdataOptions('device_type');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
   const { data: sites = [] } = useSitesWithZones();
   const sitesForChip = sites;
@@ -583,7 +584,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <span className="text-xs text-slate-400 font-medium">{t('ui.deviceManagement.type')}</span>
-          {['all', 'dvr', 'nvr', 'ip_camera'].map((type) => (
+          {['all', ...deviceTypeOptions.map((o) => o.value)].map((type) => (
             <button
               key={type}
               onClick={() => setSelectedType(type)}
@@ -593,7 +594,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                   : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
               }`}
             >
-              {type === 'all' ? t('ui.deviceManagement.allTypes') : type.replace('_', ' ').toUpperCase()}
+              {type === 'all' ? t('ui.deviceManagement.allTypes') : type.replace(/_/g, ' ').toUpperCase()}
             </button>
           ))}
         </div>
@@ -770,10 +771,13 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 onChange={(e) => setFormData({ ...formData, deviceType: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
-                <option value="dvr">{t('ui.deviceManagement.dvrDigitalVideoRecorderCoaxialBnc')}</option>
-                <option value="nvr">{t('ui.deviceManagement.nvrNetworkVideoRecorderIpPoE')}</option>
-                <option value="ip_camera">{t('ui.deviceManagement.standAloneIpCamera')}</option>
-                <option value="other">{t('ui.deviceManagement.otherHybrid')}</option>
+                {/* A type switched off in master data stays selectable for the device already using it. */}
+                {!deviceTypeOptions.some((o) => o.value === formData.deviceType) && (
+                  <option value={formData.deviceType}>{formData.deviceType}</option>
+                )}
+                {deviceTypeOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
             </div>
           </div>
