@@ -1,3 +1,4 @@
+import { defaultExportQueue } from './export-queue.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RecordingsService } from './recordings.service.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -61,6 +62,23 @@ describe('Recordings Export & Download Service [AUDIT-CRIT-03]', () => {
     expect(prisma.recordingClip.update).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) }),
     );
+  });
+
+  it('gives two clips of the same moment separate files', async () => {
+    const prisma = getPrisma() as any;
+    const start = new Date(Date.now() - 120000);
+    const end = new Date();
+    prisma.cameraRecording.findMany.mockResolvedValue([{ id: 'seg', startTime: new Date(start.getTime() - 60000), endTime: new Date(end.getTime() + 60000), fileSizeBytes: BigInt(1000), filePath: '/tmp/seg.mp4' }]);
+    const enqueue = vi.spyOn(defaultExportQueue, 'enqueue').mockResolvedValue({});
+    const dto = { cameraId: '00000000-0000-0000-0000-000000000001', title: 'same', startTime: start.toISOString(), endTime: end.toISOString(), preBufferSeconds: 0, postBufferSeconds: 0, exportedBy: 'auditor' };
+
+    await RecordingsService.exportClip(dto, { asyncProcess: true });
+    await RecordingsService.exportClip(dto, { asyncProcess: true });
+
+    const [first, second] = prisma.recordingClip.create.mock.calls.map(([arg]: any) => arg.data.filePath);
+    expect(first).not.toBe(second);
+    expect(enqueue.mock.calls[0][0].fullDiskPath).not.toBe(enqueue.mock.calls[1][0].fullDiskPath);
+    enqueue.mockRestore();
   });
 
   it('should reject an end before the start and windows longer than the limit', async () => {

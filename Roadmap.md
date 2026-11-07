@@ -57,7 +57,7 @@
 
 ### Phase R4 — ตรวจรับจริง
 
-- [x] R4.1 Pilot 10 กล้องจริง (ไม่ใช่ DRY_RUN) พร้อม report ที่ไม่มี password — รันแล้ว 2026-11-06 **ยังไม่ผ่านตรวจรับ**: ถอดสายแลนจริง (UAT-01) ผ่านตามเกณฑ์ที่อนุมัติกับกล้อง 1 ตัว แต่ยังเหลือบันทึกลง Server (ดิสก์ D: 93.2%) และ Sub-stream H.265 5 ตัว ดู [รายงาน](docs/pilot/PILOT_WAVE1_REPORT_2026-11-06.md)
+- [x] R4.1 Pilot 10 กล้องจริง (ไม่ใช่ DRY_RUN) พร้อม report ที่ไม่มี password — รันแล้ว 2026-11-06 **รอผู้ใช้ลงนามตรวจรับ**: UAT-01 ผ่านตามเกณฑ์เดิมกับกล้อง 1 ตัว แต่เกณฑ์แจ้งเตือนตามระดับยังไม่ได้ถอดสายจริง, ทดสอบบันทึกลง Server สั้นๆ ผ่าน 2026-11-07, Sub-stream H.265 19 ช่องผู้ใช้ยอมรับเป็นข้อยกเว้น ดู [รายงาน](docs/pilot/PILOT_WAVE1_REPORT_2026-11-06.md)
 - [A] R4.2 Legal Hold ระหว่าง cleanup, restart/recovery ของ image-api และ MediaMTX — ตรวจ 2026-10-31: segment หมดอายุ 2 ตัว (ติด hold 1) → `quarantined 1, skippedLegalHold 1`, ไฟล์ที่ติด hold อยู่ที่เดิม, อีกไฟล์อยู่ใน `.quarantine` (ไม่ลบ); restart image-api ระหว่างบันทึก → reconcile เก็บ segment ที่พลาด. พบและแก้: MediaMTX รันเป็น root ทำให้ image-api (uid 1001) ย้ายไฟล์ไม่ได้ (EACCES) → MediaMTX `user: 1001:1001`; กล้องลงทะเบียนเป็น `sourceOnDemand` ทำให้บันทึกเฉพาะตอนมีคนดู → ดึงตลอดเวลา. เพิ่ม 2026-11-02: พบ MediaMTX ลบ segment เก่ากว่า 1 วันเอง (default `recordDeleteAfter: 1d`) ข้าม Legal Hold/quarantine → ตั้ง `0s` + audit ไฟล์หายรายชั่วโมง; Legal Hold บน segment ใน quarantine ย้ายไฟล์กลับ; MediaMTX restart → path sync ลงทะเบียนกล้องคืนใน 43 วินาทีและบันทึกต่อ (เดิม path หายจนกว่าจะมีคนเปิดดูสด)
 - [ ] R4.3 Failover ที่ย้ายสตรีมจริงบน media node ปลายทาง + load test จริงตามขนาดที่จะรับรอง — ต้องมี media node ที่สองและกล้องจริง
 - [x] R4.4 ปรับ HANDOFF/Roadmap แยก "ทำโค้ดแล้ว" กับ "ตรวจรับผ่านแล้ว"

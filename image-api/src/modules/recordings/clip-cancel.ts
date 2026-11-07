@@ -35,7 +35,9 @@ export async function cancelClip(clipId: string, user: { username?: string; role
   const after = await prisma.recordingClip.findUnique({ where: { id: clipId } });
   if (after?.status === 'COMPLETED') throw new ClipCancelError('ALREADY_FINISHED', 409, 'This clip has already finished');
 
-  if (clip.filePath) {
+  // Clips made before each had its own file can share one.
+  const sharedFile = clip.filePath ? await prisma.recordingClip.count({ where: { filePath: clip.filePath, id: { not: clipId } } }) : 0;
+  if (clip.filePath && sharedFile === 0) {
     const fullPath = path.join(RecordingsService.getClipsDir(), path.basename(clip.filePath));
     fs.rmSync(fullPath, { force: true });
     fs.rmSync(`${fullPath}.partial`, { force: true });

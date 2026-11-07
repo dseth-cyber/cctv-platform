@@ -367,7 +367,8 @@ export class RecordingsService {
     const durationSeconds = Math.round((bufferedEnd.getTime() - actualStartTime.getTime()) / 1000);
 
     const timestampSlug = actualStartTime.toISOString().replace(/[:.]/g, '-');
-    const clipFilename = `clip_${dto.cameraId.slice(0, 8)}_${timestampSlug}.mp4`;
+    // Two clips of the same moment are separate evidence and must never share a file.
+    const clipFilename = `clip_${dto.cameraId.slice(0, 8)}_${timestampSlug}_${crypto.randomUUID().slice(0, 8)}.mp4`;
     const clipsDir = this.getClipsDir();
     const fullDiskPath = path.join(clipsDir, clipFilename);
     const filePath = `/recordings/clips/${clipFilename}`;
