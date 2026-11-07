@@ -14,7 +14,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   const { t } = useTranslation();
   const toast = useToast();
   const { options: types } = useMasterdataOptions('camera_type');
-  const { options: brands } = useMasterdataOptions('device_brand');
+  const { options: brands } = useMasterdataOptions('camera_brand');
   const [cameraType, setCameraType] = useState(KEEP);
   const [cameraBrand, setCameraBrand] = useState(KEEP);
   const [cameraModel, setCameraModel] = useState('');
