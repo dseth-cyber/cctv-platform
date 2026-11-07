@@ -20,10 +20,13 @@ import {
   RecorderError,
   searchRecordings,
   secondsBetween,
+  toCompact,
   type RecorderClock,
   type RecorderLogin,
   type WallRange,
 } from './hikvision-recorder.js';
+
+import { closeFastSource, openFastSource, startFastPlaybackProxy, stopFastPlaybackProxy } from './fast-playback-proxy.js';
 
 export type PlaybackProblem =
   | 'NOT_SUPPORTED'
@@ -62,6 +65,8 @@ interface Session {
   deviceId: string;
   path: string | null;
   transcoded: boolean;
+  speed: number;
+  fastSourceId: string | null;
   createdAt: number;
   lifetimeMs: number;
 }
@@ -228,6 +233,7 @@ function transcodePathConfig(source: string, name: string) {
 }
 
 async function closeSessionPath(session: Session) {
+  closeFastSource(session.fastSourceId);
   if (session.path) await MediaMtxService.removeStreamPath(session.path);
 }
 
@@ -239,7 +245,7 @@ export async function closePlaybackSession(id: string, userId: string): Promise<
   return true;
 }
 
-export async function openPlaybackSession(userId: string, input: { cameraId: string; start: string; canPlayH265: boolean }) {
+export async function openPlaybackSession(userId: string, input: { cameraId: string; start: string; canPlayH265: boolean; speed?: number }) {
   const target = await findTarget(input.cameraId);
   if (!target) throw new PlaybackError('NOT_SUPPORTED', 400, 'This camera has no recorder whose recordings can be read');
 
@@ -260,6 +266,12 @@ export async function openPlaybackSession(userId: string, input: { cameraId: str
   const problem = checkSessionLimits([...sessions.values()], { userId, deviceId: target.deviceId }, limits, clipsOnDevice);
   if (problem) throw new PlaybackError(problem, 429, `Playback limit reached: ${problem}`, { limits: { perUser: limits.perUser, perDevice: limits.perDevice, total: limits.total } });
 
+  // A recording sent this fast costs the recorder many times the usual, so each recorder serves one at a time.
+  const speed = input.speed ?? 1;
+  if (speed > 1 && [...sessions.values()].some((s) => s.deviceId === target.deviceId && s.speed > 1)) {
+    throw new PlaybackError('LIMIT_DEVICE', 429, 'This recorder is already serving a fast playback');
+  }
+
   // Holds the place during the checks below, so requests arriving together cannot pass the limit together.
   const id = crypto.randomUUID();
   const session: Session = {
@@ -269,6 +281,8 @@ export async function openPlaybackSession(userId: string, input: { cameraId: str
     deviceId: target.deviceId,
     path: null,
     transcoded: false,
+    speed,
+    fastSourceId: null,
     createdAt: Date.now(),
     lifetimeMs: (SESSION_WINDOW_SECONDS + 60) * 1000,
   };
@@ -292,7 +306,12 @@ export async function openPlaybackSession(userId: string, input: { cameraId: str
     }
 
     const name = `${PLAYBACK_PATH_PREFIX}${id.replace(/-/g, '')}`;
-    const source = playbackUrl(target.login, target.channel, input.start, end);
+    let source = playbackUrl(target.login, target.channel, input.start, end);
+    if (speed > 1) {
+      const fast = openFastSource({ login: target.login, channel: target.channel, start: toCompact(input.start), end: toCompact(end), speed });
+      session.fastSourceId = fast.id;
+      source = fast.url;
+    }
     const res = await MediaMtxService.apiFetch(`/v3/config/paths/add/${name}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -302,9 +321,10 @@ export async function openPlaybackSession(userId: string, input: { cameraId: str
     session.path = name;
 
     const urls = MediaMtxService.getStreamUrls(name, MediaMtxService.generateStreamToken(name, userId, SESSION_WINDOW_SECONDS + 300));
-    return { sessionId: id, webrtcWhepUrl: urls.webrtcWhepUrl, start: input.start, end, codec, transcoded: transcode };
+    return { sessionId: id, webrtcWhepUrl: urls.webrtcWhepUrl, start: input.start, end, codec, transcoded: transcode, speed };
   } catch (err) {
     sessions.delete(id);
+    closeFastSource(session.fastSourceId);
     throw err;
   }
 }
@@ -350,12 +370,14 @@ async function cleanUpAfterRestart() {
 
 export function startDevicePlayback() {
   if (sweeper) return;
+  startFastPlaybackProxy();
   void cleanUpAfterRestart().catch((err) => logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Playback clean-up failed'));
   sweeper = setInterval(() => void sweepPlaybackSessions().catch(() => {}), SWEEP_MS);
   sweeper.unref();
 }
 
 export function stopDevicePlayback() {
+  stopFastPlaybackProxy();
   if (sweeper) clearInterval(sweeper);
   sweeper = null;
 }

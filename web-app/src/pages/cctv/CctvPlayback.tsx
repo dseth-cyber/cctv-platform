@@ -100,6 +100,7 @@ interface DevicePlayback {
   endSec: number;
   codec: string | null;
   transcoded: boolean;
+  speed: number;
 }
 
 // No first frame by then means this browser accepted H.265 but cannot really show it.
@@ -392,6 +393,10 @@ export const CctvPlayback: React.FC = () => {
   // Playback from a recorder: a video stream opened at a time. It cannot pause or change speed, so pausing
   // closes it (the recorder gets its slot back) and every seek opens a new one.
   const [devicePlayback, setDevicePlayback] = useState<DevicePlayback | null>(null);
+  // Being tried on one recorder first: only offered with ?fast=1 in the address.
+  const fastPlaybackOffered = searchParams.get('fast') === '1';
+  const [deviceSpeed, setDeviceSpeed] = useState(1);
+  const deviceSpeedRef = useRef(1);
   const [playingSince, setPlayingSince] = useState<number | null>(null);
   const deviceSessionRef = useRef<string | null>(null);
   const openRequestRef = useRef(0);
@@ -424,6 +429,7 @@ export const CctvPlayback: React.FC = () => {
         cameraId: selectedCameraId,
         start: dayToWall(selectedDate, atSec),
         canPlayH265: !forceConversion && canPlayH265(),
+        ...(deviceSpeedRef.current > 1 ? { speed: deviceSpeedRef.current } : {}),
       });
       if (request !== openRequestRef.current) {
         imageServiceApi.closeDevicePlayback(res.sessionId).catch(() => {});
@@ -438,6 +444,7 @@ export const CctvPlayback: React.FC = () => {
         endSec: atSec + (new Date(`${res.end}Z`).getTime() - new Date(`${res.start}Z`).getTime()) / 1000,
         codec: res.codec ?? null,
         transcoded: !!res.transcoded,
+        speed: res.speed ?? 1,
       });
       setIsPlaying(true);
     } catch (err: any) {
@@ -458,7 +465,7 @@ export const CctvPlayback: React.FC = () => {
     // It was playing and the connection dropped: carry on from where it got to, a few times at most.
     if (playingSince !== null && reopenCountRef.current < MAX_REOPENS) {
       reopenCountRef.current += 1;
-      startDevicePlayback(Math.floor(devicePlayback.startSec + (Date.now() - playingSince) / 1000), devicePlayback.transcoded);
+      startDevicePlayback(Math.floor(devicePlayback.startSec + ((Date.now() - playingSince) / 1000) * devicePlayback.speed), devicePlayback.transcoded);
       return;
     }
     if (playingSince === null && !devicePlayback.transcoded) {
@@ -602,7 +609,7 @@ export const CctvPlayback: React.FC = () => {
     const timer = setInterval(() => {
       // The person is choosing a time: moving the playhead now would take it out of their hand.
       if (draggingRef.current) return;
-      const next = Math.floor(devicePlayback.startSec + (Date.now() - playingSince) / 1000);
+      const next = Math.floor(devicePlayback.startSec + ((Date.now() - playingSince) / 1000) * devicePlayback.speed);
       if (next >= 86399) {
         closeDeviceSession();
         setIsPlaying(false);
@@ -1288,17 +1295,35 @@ export const CctvPlayback: React.FC = () => {
             <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs">
               <span className="text-slate-400">{t('ui.cctvPlayback.speed')}</span>
               <select
-                value={isDeviceMode ? 1 : playbackSpeed}
-                disabled={isDeviceMode}
-                title={isDeviceMode ? t('ui.cctvPlayback.deviceSpeedNote') : undefined}
-                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                value={isDeviceMode ? deviceSpeed : playbackSpeed}
+                disabled={isDeviceMode && !fastPlaybackOffered}
+                title={isDeviceMode && !fastPlaybackOffered ? t('ui.cctvPlayback.deviceSpeedNote') : undefined}
+                onChange={(e) => {
+                  const speed = Number(e.target.value);
+                  if (!isDeviceMode) {
+                    setPlaybackSpeed(speed);
+                    return;
+                  }
+                  deviceSpeedRef.current = speed;
+                  setDeviceSpeed(speed);
+                  // A recorder sends at the speed asked for when the stream opens, so a new speed is a new stream.
+                  if (devicePlayback) startDevicePlayback(currentTimeSec);
+                }}
                 className="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {/* Above 4x the browser's video froze for good on an H.264 recording, even after slowing down again. */}
                 <option value={0.5} className="bg-slate-900 text-white">0.5x</option>
                 <option value={1} className="bg-slate-900 text-white">{t('ui.cctvPlayback.n10xNormal')}</option>
                 <option value={2} className="bg-slate-900 text-white">2.0x</option>
-                <option value={4} className="bg-slate-900 text-white">4.0x</option>
+                {isDeviceMode ? (
+                  <>
+                    <option value={5} className="bg-slate-900 text-white">5.0x</option>
+                    <option value={8} className="bg-slate-900 text-white">8.0x</option>
+                    <option value={16} className="bg-slate-900 text-white">16.0x</option>
+                  </>
+                ) : (
+                  <option value={4} className="bg-slate-900 text-white">4.0x</option>
+                )}
               </select>
             </div>
 

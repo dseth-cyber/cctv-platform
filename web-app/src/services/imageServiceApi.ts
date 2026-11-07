@@ -478,7 +478,7 @@ export function createImageServiceApi(api: any) {
 
     getDeviceTimeline: (cameraId: string, date: string) =>
       api.get(`${BASE}/device-playback/timeline`, { params: { cameraId, date } }).then((r: any) => r.data),
-    openDevicePlayback: (data: { cameraId: string; start: string; canPlayH265: boolean }) =>
+    openDevicePlayback: (data: { cameraId: string; start: string; canPlayH265: boolean; speed?: number }) =>
       api.post(`${BASE}/device-playback/sessions`, data).then((r: any) => r.data),
     closeDevicePlayback: (sessionId: string) =>
       api.delete(`${BASE}/device-playback/sessions/${sessionId}`).then((r: any) => r.data),

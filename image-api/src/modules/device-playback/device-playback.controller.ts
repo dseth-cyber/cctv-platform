@@ -8,12 +8,18 @@ import {
   PlaybackError,
   startDeviceClip,
 } from './device-playback.service.js';
+import { FAST_SPEEDS } from './fast-playback-proxy.js';
 
 const WALL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
 const wallTime = z.string().regex(WALL_TIME).refine((v) => !Number.isNaN(new Date(`${v}Z`).getTime()));
 
 const timelineSchema = z.object({ cameraId: z.guid(), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
-const sessionSchema = z.object({ cameraId: z.guid(), start: wallTime, canPlayH265: z.boolean() });
+const sessionSchema = z.object({
+  cameraId: z.guid(),
+  start: wallTime,
+  canPlayH265: z.boolean(),
+  speed: z.number().refine((n) => n === 1 || (FAST_SPEEDS as readonly number[]).includes(n)).optional(),
+});
 const clipSchema = z.object({
   cameraId: z.guid(),
   start: wallTime,
