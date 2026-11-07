@@ -116,6 +116,8 @@ export default function ImageServiceSettings() {
     { value: 'disk_space', label: t('imageService.settings.alertTypes.disk_space', 'Disk Space') },
     { value: 'storage_warning', label: t('imageService.settings.alertTypes.storage_warning', 'Storage Warning') },
     { value: 'retention_violation', label: t('imageService.settings.alertTypes.retention_violation', 'Retention Violation') },
+    { value: 'hdd_problem', label: t('imageService.settings.alertTypes.hdd_problem', 'HDD Problem') },
+    { value: 'recording_stopped', label: t('imageService.settings.alertTypes.recording_stopped', 'Recording Stopped') },
     { value: 'incident_escalation', label: t('imageService.settings.alertTypes.incident_escalation', 'Incident Escalation') },
     { value: 'auth_anomaly', label: t('imageService.settings.alertTypes.auth_anomaly', 'Suspicious Login Activity') },
   ];

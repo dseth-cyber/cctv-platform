@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest';
+import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseSmart } from '../device-playback/hikvision-recorder.js';
+import { diskProblems } from './device-health.service.js';
+
+const disk = (over: Record<string, unknown> = {}) => ({ id: '1', type: 'SATA', state: 'ok', capacityMB: 1000, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 10, ...over });
+
+describe('parseDeviceInfo', () => {
+  it('reads what the recorder says about itself', () => {
+    const xml = '<DeviceInfo><deviceName>x</deviceName><model>DS-7208HQHI-K1</model><serialNumber>ABC123</serialNumber><macAddress>84:9a:40:62:64:be</macAddress><firmwareVersion>V4.21.002</firmwareVersion></DeviceInfo>';
+    expect(parseDeviceInfo(xml)).toEqual({ model: 'DS-7208HQHI-K1', serialNumber: 'ABC123', macAddress: '84:9a:40:62:64:be', firmwareVersion: 'V4.21.002', deviceType: 'dvr' });
+  });
+
+  it('gives nothing back for an answer that is not device info', () => {
+    expect(parseDeviceInfo('<html>hello</html>')).toBeNull();
+  });
+});
+
+describe('guessDeviceType', () => {
+  it('goes by the model, because recorders report their own type as IPC', () => {
+    expect(guessDeviceType('DS-7208HQHI-K1')).toBe('dvr');
+    expect(guessDeviceType('iDS-7216HQHI-M2/S')).toBe('dvr');
+    expect(guessDeviceType('DS-7216HQHI-K2')).toBe('dvr');
+    expect(guessDeviceType('DS-7716NXI-K4(D)')).toBe('nvr');
+    expect(guessDeviceType('DS-2CD2143G2-I')).toBe('ip_camera');
+  });
+
+  it('says nothing about a model it does not know', () => {
+    expect(guessDeviceType('XYZ-100')).toBeNull();
+    expect(guessDeviceType(null)).toBeNull();
+  });
+});
+
+describe('parseDisks', () => {
+  it('reads each disk', () => {
+    const xml = '<hddList><hdd><id>1</id><hddType>SATA</hddType><status>ok</status><capacity>1907729</capacity><freeSpace>0</freeSpace></hdd><hdd><id>2</id><hddType>SATA</hddType><status>idle</status><capacity>11444224</capacity><freeSpace>11274240</freeSpace></hdd></hddList>';
+    expect(parseDisks(xml)).toEqual([
+      { id: '1', type: 'SATA', state: 'ok', capacityMB: 1907729, freeMB: 0 },
+      { id: '2', type: 'SATA', state: 'idle', capacityMB: 11444224, freeMB: 11274240 },
+    ]);
+  });
+
+  it('finds no disks in an empty list', () => {
+    expect(parseDisks('<hddList></hddList>')).toEqual([]);
+  });
+});
+
+describe('parseSmart', () => {
+  it('reads the fields under their real, misspelt names', () => {
+    expect(parseSmart('<SmartTestStatus><temprature>37</temprature><powerOnDay>3285</powerOnDay><selfEvaluaingStatus>ok</selfEvaluaingStatus></SmartTestStatus>')).toEqual({ smart: 'ok', temperature: 37, powerOnDays: 3285 });
+  });
+
+  it('copes with a recorder that says nothing', () => {
+    expect(parseSmart('<x/>')).toEqual({ smart: null, temperature: null, powerOnDays: null });
+  });
+});
+
+describe('parseContinuousChannels', () => {
+  const track = (id: number, modes: string[]) => `<Track><id>${id}</id>${modes.map((m) => `<ScheduleAction><ActionRecordingMode>${m}</ActionRecordingMode></ScheduleAction>`).join('')}</Track>`;
+
+  it('keeps main-stream tracks set to record all the time', () => {
+    const channels = parseContinuousChannels(`<TrackList>${track(101, ['CMR', 'CMR'])}${track(102, ['CMR'])}${track(201, ['MOTION'])}${track(301, ['CMR', 'MOTION'])}</TrackList>`);
+    expect([...(channels ?? [])]).toEqual([1]);
+  });
+
+  it('does not guess from an answer with no tracks', () => {
+    expect(parseContinuousChannels('<TrackList></TrackList>')).toBeNull();
+  });
+});
+
+describe('diskProblems', () => {
+  it('finds nothing wrong with healthy disks, asleep or at work', () => {
+    expect(diskProblems([disk(), disk({ state: 'idle', smart: null, temperature: null })] as any)).toEqual([]);
+  });
+
+  it('calls a recorder with no disks a problem', () => {
+    expect(diskProblems([])).toEqual(['no_disk']);
+  });
+
+  it('names each kind of fault', () => {
+    expect(diskProblems([disk({ state: 'error' })] as any)).toEqual(['disk_fault']);
+    expect(diskProblems([disk({ smart: 'warning' })] as any)).toEqual(['disk_smart']);
+    expect(diskProblems([disk({ temperature: 60 })] as any)).toEqual(['disk_hot']);
+  });
+});

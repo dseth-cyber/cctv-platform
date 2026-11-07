@@ -1,3 +1,4 @@
+import { readDeviceInfo, RecorderError } from '../device-playback/hikvision-recorder.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
@@ -154,6 +155,8 @@ export async function createDevice(input: CreateDeviceInput) {
       brand: input.brand,
       model: input.model,
       serialNumber: input.serialNumber,
+      macAddress: input.macAddress || null,
+      firmwareVersion: input.firmwareVersion || null,
       shortCode: input.shortCode || null,
       alertLevel: input.alertLevel || null,
       ipAddress: input.ipAddress,
@@ -280,6 +283,8 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (input.brand !== undefined) data.brand = input.brand;
   if (input.model !== undefined) data.model = input.model;
   if (input.serialNumber !== undefined) data.serialNumber = input.serialNumber;
+  if (input.macAddress !== undefined) data.macAddress = input.macAddress || null;
+  if (input.firmwareVersion !== undefined) data.firmwareVersion = input.firmwareVersion || null;
   if (input.shortCode !== undefined) data.shortCode = input.shortCode || null;
   if (input.alertLevel !== undefined) data.alertLevel = input.alertLevel || null;
   if (input.ipAddress !== undefined) data.ipAddress = input.ipAddress;
@@ -548,6 +553,29 @@ export async function probeDeviceConnection(ip: string, rtspPort = 554, httpPort
       ? `Device reachable (${latencyMs}ms)${rtspResult.open ? ', RTSP active' : ''}`
       : `Cannot connect to ${ip}:${rtspPort} or ${ip}:${httpPort}`,
   };
+}
+
+/**
+ * What the device says about itself, for the form. A stored password is only ever sent to the address it was
+ * saved for, so typing another address into the form cannot send it elsewhere.
+ */
+export async function readDeviceInfoForForm(input: { deviceId?: string; ipAddress: string; httpPort?: number; username?: string; password?: string }) {
+  let username = input.username ?? '';
+  let password = input.password ?? '';
+  if (!password && input.deviceId) {
+    const saved = await getPrisma().device.findUnique({ where: { id: input.deviceId }, select: { ipAddress: true, username: true, passwordEncrypted: true } });
+    if (saved?.passwordEncrypted && saved.ipAddress === input.ipAddress) {
+      username = input.username || saved.username || '';
+      password = decrypt(saved.passwordEncrypted);
+    }
+  }
+  if (!password) return { status: 'no_login' as const };
+  try {
+    const info = await readDeviceInfo({ host: input.ipAddress, httpPort: input.httpPort ?? 80, rtspPort: 554, username, password });
+    return info ? { status: 'ok' as const, brand: 'Hikvision', ...info } : { status: 'not_supported' as const };
+  } catch (err) {
+    return { status: err instanceof RecorderError && err.kind === 'login' ? ('login_failed' as const) : ('not_supported' as const) };
+  }
 }
 
 export async function bulkImportDevices(devicesInput: CreateDeviceInput[]) {

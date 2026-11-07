@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { buildDeviceReport, checkDeviceHealthNow } from './device-health.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { listMasterdataOptions } from '../masterdata/masterdata.service.js';
@@ -7,6 +8,7 @@ import {
   updateDeviceSchema,
   deviceQuerySchema,
   probeDeviceSchema,
+  readDeviceInfoSchema,
   bulkImportDeviceSchema,
   deviceChannelsSchema,
 } from './devices.schema.js';
@@ -35,6 +37,22 @@ async function probeDeviceHandler(request: FastifyRequest, reply: FastifyReply) 
   const input = probeDeviceSchema.parse(request.body);
   const res = await devicesService.probeDeviceConnection(input.ipAddress, input.rtspPort, input.httpPort);
   return reply.status(200).send(res);
+}
+
+async function readDeviceInfoHandler(request: FastifyRequest, reply: FastifyReply) {
+  return reply.status(200).send(await devicesService.readDeviceInfoForForm(readDeviceInfoSchema.parse(request.body)));
+}
+
+async function checkHealthHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const health = await checkDeviceHealthNow(id);
+  return reply.status(200).send({ health });
+}
+
+async function deviceReportHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { days } = request.query as { days?: string };
+  const period = Number(days);
+  return reply.status(200).send(await buildDeviceReport([7, 30, 90].includes(period) ? period : 30));
 }
 
 async function bulkImportHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -117,6 +135,22 @@ export async function deviceRoutes(app: FastifyInstance) {
     '/probe',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     probeDeviceHandler,
+  );
+  // Sends a login to the device, so it takes more than being able to look at cameras.
+  app.post(
+    '/read-info',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    readDeviceInfoHandler,
+  );
+  app.get(
+    '/report',
+    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    deviceReportHandler,
+  );
+  app.post(
+    '/:id/health/check',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    checkHealthHandler,
   );
   app.post(
     '/bulk-import',

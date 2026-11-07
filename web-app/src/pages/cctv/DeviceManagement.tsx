@@ -1,3 +1,5 @@
+import { DeviceHealthChip, DeviceHealthPanel } from '@/components/cctv/DeviceHealthPanel';
+import { compareDeviceInfo, type InfoField } from '@/lib/deviceHealth';
 import { cleanShortCode } from '@/lib/clipName';
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -80,6 +82,8 @@ export default function DeviceManagement() {
     result: any | null;
     error: string | null;
   }>({ loading: false, result: null, error: null });
+  // What the device said about itself when asked, against what the form held.
+  const [infoReading, setInfoReading] = useState<{ status: string; filled: string[]; differs: Array<{ field: InfoField; saved: string; reported: string }> } | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -91,6 +95,8 @@ export default function DeviceManagement() {
     serialNumber: '',
     shortCode: '',
     alertLevel: '',
+    macAddress: '',
+    firmwareVersion: '',
     ipAddress: '',
     rtspPort: 554,
     httpPort: 80,
@@ -111,6 +117,7 @@ export default function DeviceManagement() {
   const { options: deviceTypeOptions } = useMasterdataOptions('device_type');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
   const { options: alertLevelOptions } = useMasterdataOptions('alert_level');
+  const canUpdateDevices = hasPermission(user, 'cameras:update');
   const { data: sites = [] } = useSitesWithZones();
   const sitesForChip = sites;
 
@@ -217,6 +224,7 @@ export default function DeviceManagement() {
       return;
     }
     setProbeState({ loading: true, result: null, error: null });
+    setInfoReading(null);
     try {
       const res = await imageServiceApi.probeDevice({
         ipAddress: formData.ipAddress,
@@ -224,6 +232,22 @@ export default function DeviceManagement() {
         httpPort: formData.httpPort,
       });
       setProbeState({ loading: false, result: res, error: null });
+      if (res?.reachability?.http?.reachable) {
+        const info = await imageServiceApi.readDeviceInfo({
+          deviceId: editingDevice?.id,
+          ipAddress: formData.ipAddress,
+          httpPort: formData.httpPort,
+          username: formData.username || undefined,
+          password: formData.password || undefined,
+        }).catch(() => null);
+        if (info?.status === 'ok') {
+          const { fill, differs } = compareDeviceInfo(formData, info);
+          setFormData((prev) => ({ ...prev, ...fill }));
+          setInfoReading({ status: 'ok', filled: Object.keys(fill), differs });
+        } else if (info) {
+          setInfoReading({ status: info.status, filled: [], differs: [] });
+        }
+      }
     } catch (err: any) {
       setProbeState({
         loading: false,
@@ -356,6 +380,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: '',
       shortCode: '',
       alertLevel: '',
+      macAddress: '',
+      firmwareVersion: '',
       ipAddress: '',
       rtspPort: 554,
       httpPort: 80,
@@ -389,6 +415,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: '',
       shortCode: '',
       alertLevel: dev.alertLevel || '',
+      macAddress: '',
+      firmwareVersion: '',
       ipAddress: cloneIpPlaceholder(dev.ipAddress),
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -418,6 +446,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: dev.serialNumber || '',
       shortCode: dev.shortCode || '',
       alertLevel: dev.alertLevel || '',
+      macAddress: dev.macAddress || '',
+      firmwareVersion: dev.firmwareVersion || '',
       ipAddress: dev.ipAddress || '',
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -666,6 +696,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                               {dev.brand} {dev.model || ''}
                             </span>
                           )}
+                          <DeviceHealthChip device={dev} />
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-400">
@@ -736,6 +767,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                   {/* Expanded Channel List / Preview */}
                   {isExpanded && (
                     <div className="px-6 py-4 bg-slate-950/60 border-t border-slate-800/60 space-y-3">
+                      <DeviceHealthPanel device={dev} canCheck={canUpdateDevices} />
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-cyan-400" />
@@ -951,6 +983,41 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               <span className="font-semibold uppercase tracking-wider text-[10px]">
                 {probeState.result.overallStatus}
               </span>
+            </div>
+          )}
+
+          {infoReading && (
+            <div data-device-info-reading={infoReading.status} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5">
+              {infoReading.status !== 'ok' ? (
+                <p className="flex items-center gap-1.5 text-amber-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{t(`ui.deviceManagement.info_${infoReading.status}`)}</p>
+              ) : (
+                <>
+                  <p className="text-emerald-300">
+                    {infoReading.filled.length > 0
+                      ? t('ui.deviceManagement.infoFilled', { fields: infoReading.filled.map((f) => t(`ui.deviceManagement.infoField_${f}`)).join(', ') })
+                      : infoReading.differs.length === 0 ? t('ui.deviceManagement.infoSame') : t('ui.deviceManagement.infoRead')}
+                  </p>
+                  {infoReading.differs.map((d) => (
+                    <div key={d.field} data-info-differs={d.field} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-300">
+                      <span className="font-semibold">{t(`ui.deviceManagement.infoField_${d.field}`)}:</span>
+                      <span>{t('ui.deviceManagement.infoSaved', { value: d.saved })}</span>
+                      <span className="text-amber-300">{t('ui.deviceManagement.infoReported', { value: d.reported })}</span>
+                      <button type="button" className="text-cyan-400 hover:text-cyan-300 font-medium"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, [d.field]: d.reported }));
+                          setInfoReading((prev) => prev && { ...prev, differs: prev.differs.filter((x) => x.field !== d.field) });
+                        }}>
+                        {t('ui.deviceManagement.infoUse')}
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+              {(formData.macAddress || formData.firmwareVersion || formData.serialNumber) && (
+                <p className="text-slate-500">
+                  {[formData.macAddress && `MAC ${formData.macAddress}`, formData.serialNumber && `S/N ${formData.serialNumber}`, formData.firmwareVersion && `FW ${formData.firmwareVersion}`].filter(Boolean).join(' · ')}
+                </p>
+              )}
             </div>
           )}
 

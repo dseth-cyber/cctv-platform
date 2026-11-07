@@ -116,6 +116,12 @@ export function createImageServiceApi(api: any) {
     getDashboardSummary: () =>
       api.get(`${BASE}/devices/dashboard-summary`).then((r: any) => r.data),
 
+    readDeviceInfo: (data: { deviceId?: string; ipAddress: string; httpPort?: number; username?: string; password?: string }) =>
+      api.post(`${BASE}/devices/read-info`, data, { silent403: true } as any).then((r: any) => r.data),
+    checkDeviceHealth: (id: string) =>
+      api.post(`${BASE}/devices/${id}/health/check`).then((r: any) => r.data),
+    getDeviceReport: (days: number) =>
+      api.get(`${BASE}/devices/report`, { params: { days } }).then((r: any) => r.data),
     probeDevice: (data: { ipAddress: string; rtspPort?: number; httpPort?: number }) =>
       api.post(`${BASE}/devices/probe`, data).then((r: any) => r.data),
 

@@ -99,6 +99,100 @@ async function get(login: RecorderLogin, path: string) {
   }
 }
 
+export interface RecorderInfo {
+  model: string | null;
+  serialNumber: string | null;
+  macAddress: string | null;
+  firmwareVersion: string | null;
+  deviceType: 'dvr' | 'nvr' | 'ip_camera' | null;
+}
+
+/** Goes by the model name, because these recorders report their own type as IPC. */
+export function guessDeviceType(model: string | null | undefined): RecorderInfo['deviceType'] {
+  if (!model) return null;
+  if (/^i?DS-2[A-Z]/i.test(model)) return 'ip_camera';
+  if (/^i?DS-\d+(HQH|HUH|HGH|HTH)/i.test(model)) return 'dvr';
+  if (/^i?DS-\d+N/i.test(model)) return 'nvr';
+  return null;
+}
+
+export function parseDeviceInfo(xml: string): RecorderInfo | null {
+  const model = tag(xml, 'model') ?? null;
+  const macAddress = tag(xml, 'macAddress') ?? null;
+  if (!model && !macAddress) return null;
+  return { model, serialNumber: tag(xml, 'serialNumber') ?? null, macAddress, firmwareVersion: tag(xml, 'firmwareVersion') ?? null, deviceType: guessDeviceType(model) };
+}
+
+export async function readDeviceInfo(login: RecorderLogin): Promise<RecorderInfo | null> {
+  const res = await get(login, '/ISAPI/System/deviceInfo');
+  return res.status === 200 ? parseDeviceInfo(res.body.toString()) : null;
+}
+
+export interface RecorderDisk {
+  id: string;
+  type: string | null;
+  state: string | null;
+  capacityMB: number | null;
+  freeMB: number | null;
+  smart: string | null;
+  temperature: number | null;
+  powerOnDays: number | null;
+}
+
+const numberOrNull = (text: string | undefined) => {
+  const value = Number(text);
+  return text !== undefined && text !== '' && Number.isFinite(value) ? value : null;
+};
+
+export function parseDisks(xml: string) {
+  return [...xml.matchAll(/<hdd[ >][\s\S]*?<\/hdd>/g)].map((m) => ({
+    id: tag(m[0], 'id') ?? '',
+    type: tag(m[0], 'hddType') ?? null,
+    state: tag(m[0], 'status') ?? null,
+    capacityMB: numberOrNull(tag(m[0], 'capacity')),
+    freeMB: numberOrNull(tag(m[0], 'freeSpace')),
+  }));
+}
+
+export function parseSmart(xml: string) {
+  return {
+    // The recorder really does spell them this way.
+    smart: tag(xml, 'selfEvaluaingStatus') ?? tag(xml, 'allEvaluaingStatus') ?? null,
+    temperature: numberOrNull(tag(xml, 'temprature') ?? tag(xml, 'temperature')),
+    powerOnDays: numberOrNull(tag(xml, 'powerOnDay')),
+  };
+}
+
+/** The disks, each with its own health report. A disk that gives no report still counts as present. */
+export async function readDisks(login: RecorderLogin): Promise<RecorderDisk[]> {
+  const res = await get(login, '/ISAPI/ContentMgmt/Storage/hdd');
+  if (res.status !== 200) throw new RecorderError('unreachable');
+  const disks: RecorderDisk[] = [];
+  for (const disk of parseDisks(res.body.toString())) {
+    const smart = await get(login, `/ISAPI/ContentMgmt/Storage/hdd/${encodeURIComponent(disk.id)}/SMARTTest/status`);
+    disks.push({ ...disk, ...(smart.status === 200 ? parseSmart(smart.body.toString()) : { smart: null, temperature: null, powerOnDays: null }) });
+  }
+  return disks;
+}
+
+/** Channels set to record all the time, or null when the recorder does not say. A track id is channel then stream: 101. */
+export function parseContinuousChannels(xml: string): Set<number> | null {
+  const tracks = [...xml.matchAll(/<Track[ >][\s\S]*?<\/Track>/g)];
+  if (tracks.length === 0) return null;
+  const channels = new Set<number>();
+  for (const [track] of tracks) {
+    const id = Number(tag(track, 'id'));
+    const modes = [...track.matchAll(/<ActionRecordingMode>([^<]*)</g)].map((m) => m[1]);
+    if (id % 100 === 1 && modes.length > 0 && modes.every((mode) => mode === 'CMR')) channels.add(Math.floor(id / 100));
+  }
+  return channels;
+}
+
+export async function readContinuousChannels(login: RecorderLogin): Promise<Set<number> | null> {
+  const res = await get(login, '/ISAPI/ContentMgmt/record/tracks');
+  return res.status === 200 ? parseContinuousChannels(res.body.toString()) : null;
+}
+
 export async function readClock(login: RecorderLogin): Promise<RecorderClock | null> {
   const res = await get(login, '/ISAPI/System/time');
   return res.status === 200 ? parseClock(res.body.toString(), Date.now()) : null;
@@ -135,6 +229,21 @@ export async function searchRecordings(login: RecorderLogin, channel: number, fr
     if (!more) return { ranges: mergeRanges(found), complete: true };
   }
   return { ranges: mergeRanges(found), complete: false };
+}
+
+/** The start of the oldest recording of a channel in this period. Only the first page is asked for: it comes oldest first. */
+export async function earliestRecording(login: RecorderLogin, channel: number, from: string, to: string): Promise<string | null> {
+  const body = '<?xml version="1.0" encoding="UTF-8"?><CMSearchDescription>'
+    + `<searchID>${crypto.randomUUID()}</searchID><trackIDList><trackID>${channel}01</trackID></trackIDList>`
+    + `<timeSpanList><timeSpan><startTime>${from}Z</startTime><endTime>${to}Z</endTime></timeSpan></timeSpanList>`
+    + '<maxResults>1</maxResults><searchResultPostion>0</searchResultPostion>'
+    + '<metadataList><metadataDescriptor>//recordType.meta.std-cgi.com</metadataDescriptor></metadataList></CMSearchDescription>';
+  try {
+    const res = checked(await digestPost(`http://${login.host}:${login.httpPort}/ISAPI/ContentMgmt/search`, login.username, login.password, body, { timeoutMs: TIMEOUT_MS, maxBytes: MAX_BYTES }));
+    return res.status === 200 ? parseSearch(res.body.toString()).items[0]?.start ?? null : null;
+  } catch (err) {
+    throw err instanceof RecorderError ? err : new RecorderError('unreachable');
+  }
 }
 
 /** Holds the login, so it must never reach a log or an API answer. */

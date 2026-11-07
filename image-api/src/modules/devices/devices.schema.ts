@@ -15,6 +15,8 @@ export const createDeviceSchema = z.object({
   brand: z.string().max(64).optional(),
   model: z.string().max(64).optional(),
   serialNumber: z.string().max(128).optional(),
+  macAddress: z.string().max(32).optional().nullable(),
+  firmwareVersion: z.string().max(64).optional().nullable(),
   alertLevel: z.string().max(64).optional().nullable(),
   shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
   ipAddress: ipv4,
@@ -33,6 +35,15 @@ export const createDeviceSchema = z.object({
   enabledChannels: z.array(z.number().int().min(1).max(256)).max(256).optional(),
 });
 
+/** Connection details as typed in the form. A saved device can be named instead of typing its password again. */
+export const readDeviceInfoSchema = z.object({
+  deviceId: z.guid().optional(),
+  ipAddress: ipv4,
+  httpPort: z.number().int().min(1).max(65535).optional(),
+  username: z.string().max(128).optional(),
+  password: z.string().max(256).optional(),
+});
+
 export const updateDeviceSchema = z.object({
   name: z.string().min(1).max(128).optional(),
   description: z.string().optional(),
@@ -40,6 +51,8 @@ export const updateDeviceSchema = z.object({
   brand: z.string().max(64).optional(),
   model: z.string().max(64).optional(),
   serialNumber: z.string().max(128).optional(),
+  macAddress: z.string().max(32).optional().nullable(),
+  firmwareVersion: z.string().max(64).optional().nullable(),
   alertLevel: z.string().max(64).optional().nullable(),
   shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
   ipAddress: ipv4.optional(),

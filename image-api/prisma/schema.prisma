@@ -87,6 +87,8 @@ enum AlertType {
   checksum_mismatch
   incident_escalation
   storage_cleanup
+  hdd_problem
+  recording_stopped
   auth_anomaly
 
   @@map("alert_type")
@@ -372,6 +374,11 @@ model Device {
   brand             String?    @db.VarChar(64)
   model             String?    @db.VarChar(64)
   serialNumber      String?    @map("serial_number") @db.VarChar(128)
+  macAddress        String?    @map("mac_address") @db.VarChar(32)
+  firmwareVersion   String?    @map("firmware_version") @db.VarChar(64)
+  // The latest reading from the recorder itself: disks, clock, how far back it records.
+  healthInfo        Json?      @map("health_info")
+  healthCheckedAt   DateTime?  @map("health_checked_at")
   ipAddress         String     @map("ip_address") @db.VarChar(45)
   rtspPort          Int        @default(554) @map("rtsp_port")
   httpPort          Int?       @default(80) @map("http_port")
