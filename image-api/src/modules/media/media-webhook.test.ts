@@ -8,6 +8,7 @@ import { config } from '../../config/index.js';
 const mockPrisma = {
   camera: {
     findFirst: vi.fn(),
+    findUnique: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
   },
@@ -35,6 +36,12 @@ vi.mock('../system-config/system-config.service.js', () => ({
     camera_auto_resolve_enabled: { value: true },
     camera_recovery_grace_minutes: { value: 1 },
   }),
+}));
+
+const mockProbe = vi.fn();
+vi.mock('../cameras/camera-probe.service.js', () => ({
+  NO_PROBE_TARGET: 'No probe target configured',
+  probeCameraHealth: (...args: unknown[]) => mockProbe(...args),
 }));
 
 vi.mock('../alerts/alerts.service.js', () => ({
@@ -179,9 +186,59 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       expect(where.OR).toEqual([{ streamPath: 'sim/ch1' }, { streamPath: 'sim/ch1' }]);
     });
 
-    it('ignores not_ready from on-demand streams (live-only camera, or any sub stream)', async () => {
+    it('marks an on-demand camera offline when its stream closes and it stopped answering', async () => {
+      mockPrisma.camera.findFirst.mockResolvedValueOnce({ ...mockCamera, lastPolledAt: new Date('2026-11-07T01:00:00Z') });
+      mockPrisma.camera.findUnique.mockResolvedValueOnce({ id: mockCamera.id, name: mockCamera.name });
+      mockPrisma.alert.findFirst.mockResolvedValueOnce(null);
+      mockProbe.mockResolvedValueOnce({ reachable: false, latencyMs: 3000, reason: 'Connection timed out' });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/stream-status',
+        headers: { 'x-media-webhook-secret': SECRET },
+        payload: { path: 'camera_gate1_sub', status: 'not_ready' },
+      });
+      expect(res.json()).toMatchObject({ success: true, status: 'offline' });
+      expect(mockPrisma.camera.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ operationalStatus: 'offline' }),
+      }));
+      const { createAlert } = await import('../alerts/alerts.service.js');
+      expect(createAlert).toHaveBeenCalledWith(expect.objectContaining({
+        severity: 'critical',
+        details: expect.objectContaining({ lastPolledAt: expect.any(Date) }),
+      }));
+    });
+
+    it('does not call a camera with nothing to probe offline when its stream closes', async () => {
+      mockPrisma.camera.findFirst.mockResolvedValueOnce(mockCamera);
+      mockPrisma.camera.findUnique.mockResolvedValueOnce({ id: mockCamera.id, name: mockCamera.name });
+      mockProbe.mockResolvedValueOnce({ reachable: false, latencyMs: 0, reason: 'No probe target configured' });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/stream-status',
+        headers: { 'x-media-webhook-secret': SECRET },
+        payload: { path: 'camera_gate1_sub', status: 'not_ready' },
+      });
+      expect(res.json()).toMatchObject({ message: expect.stringMatching(/no viewers/) });
+      expect(mockPrisma.camera.update).not.toHaveBeenCalled();
+    });
+
+    it('does not probe or repeat the outage for a camera already offline', async () => {
+      mockPrisma.camera.findFirst.mockResolvedValueOnce({ ...mockCamera, operationalStatus: 'offline' });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/stream-status',
+        headers: { 'x-media-webhook-secret': SECRET },
+        payload: { path: 'camera_gate1_sub', status: 'not_ready' },
+      });
+      expect(mockProbe).not.toHaveBeenCalled();
+      expect(mockPrisma.camera.update).not.toHaveBeenCalled();
+    });
+
+    it('ignores not_ready from on-demand streams while the camera still answers (the last viewer left)', async () => {
       for (const [cam, path] of [[{ ...mockCamera, recordingMode: 'live_only' }, 'camera_gate1'], [mockCamera, 'camera_gate1_sub']] as const) {
         mockPrisma.camera.findFirst.mockResolvedValueOnce(cam);
+        mockPrisma.camera.findUnique.mockResolvedValueOnce({ id: cam.id, name: cam.name });
+        mockProbe.mockResolvedValueOnce({ reachable: true, latencyMs: 2 });
         mockPrisma.camera.update.mockClear();
         const res = await app.inject({
           method: 'POST',

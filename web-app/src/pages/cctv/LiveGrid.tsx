@@ -97,6 +97,16 @@ function readSavedFilter(): { ids: string[]; onlyOffline: boolean } {
   }
 }
 
+
+function CameraOfflineBanner() {
+  const { t } = useTranslation();
+  return (
+    <div data-camera-offline className="absolute top-10 left-2 right-2 z-30 px-2 py-1 rounded bg-rose-950/90 border border-rose-700 text-[11px] font-semibold text-rose-100 pointer-events-none">
+      {t('ui.liveGrid.cameraOfflineBanner')}
+    </div>
+  );
+}
+
 export default function LiveGrid() {
   const { t } = useTranslation()
   const { themeConfig } = useTheme();
@@ -810,6 +820,7 @@ export default function LiveGrid() {
               if (!(e.target as HTMLElement).closest('button, a')) setFocus(null);
             }}
           >
+            {cameras.find((c: any) => c.id === focus.cameraId)?.operationalStatus === 'offline' && <CameraOfflineBanner />}
             <WhepPlayer
               key={focus.streamUrl}
               streamUrl={focus.streamUrl}
@@ -882,6 +893,9 @@ export default function LiveGrid() {
                         onFatalError={() => handleStreamFailed(cell.slotIndex)}
                         className="w-full h-full"
                       />
+                      {cameras.find((c: any) => c.id === cell.cameraId)?.operationalStatus === 'offline' && (
+                        <CameraOfflineBanner />
+                      )}
                       {cell.streamProfile === 'sub' && cell.mainFailedFor === cell.cameraId && (
                         <div className="absolute bottom-2 left-2 right-2 z-20 px-2 py-1 rounded bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
                           {t('ui.liveGrid.mainStreamFellBack')}

@@ -2881,6 +2881,7 @@
       "openPlayback": "このカメラの録画を見る",
       "focusHint": "1 台を大きく表示中 · ダブルクリックまたは Esc で戻ります",
       "focusClose": "閉じる",
+      "cameraOfflineBanner": "カメラはオフラインです：システムからカメラに接続できません",
       "mainStreamFellBack": "このブラウザではメインストリームを開けないため、サブストリームを表示しています",
       "cctvLiveWall": "CCTV ライブウォール",
       "total": "合計:",

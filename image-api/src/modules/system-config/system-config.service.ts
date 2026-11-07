@@ -11,7 +11,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   alert_critical_threshold: { value: '90', description: 'Disk usage percentage for critical alert', valueType: 'number', category: 'alert', min: 1, max: 100 },
   alert_warning_threshold: { value: '75', description: 'Disk usage percentage for warning alert', valueType: 'number', category: 'alert', min: 1, max: 100 },
   max_storage_gb: { value: '1000', description: 'Global max storage capacity in GB for forecast', valueType: 'number', category: 'storage', min: 1, max: 1000000 },
-  camera_offline_threshold_minutes: { value: '5', description: 'Minutes without poll before camera is considered offline', valueType: 'number', category: 'alert', min: 1, max: 1440 },
+  camera_offline_threshold_minutes: { value: '2', description: 'Minutes without poll before camera is considered offline', valueType: 'number', category: 'alert', min: 1, max: 1440 },
   camera_sla_target: { value: '99.5', description: 'Camera availability SLA target (%)', valueType: 'number', category: 'alert', min: 0, max: 100 },
   login_max_failed_attempts: { value: '5', description: 'Failed login attempts (per username) before temporary account lockout', valueType: 'number', category: 'alert', min: 1, max: 100 },
   login_failure_window_minutes: { value: '10', description: 'Time window for counting failed login attempts (minutes) — the counter resets after this long with no failures', valueType: 'number', category: 'alert', min: 1, max: 1440 },

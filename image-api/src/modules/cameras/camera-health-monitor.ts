@@ -6,11 +6,46 @@ import { createAlert } from '../alerts/alerts.service.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
-import { probeCameraHealth } from './camera-probe.service.js';
+import { NO_PROBE_TARGET, probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { isKnownNoSignal, readChannelsWithoutSignal } from './device-channel-signal.js';
 
 let cronTask: ScheduledTask | null = null;
+
+// The check runs once a minute but never exactly 60 s apart: without this, a 1 minute grace waits for a second tick.
+const TICK_JITTER_MS = 5000;
+const AUTO_DETECTED_INCIDENT_SOURCES = ['health_monitor', 'realtime_webhook'];
+
+// Info alerts share this type ("Camera online", "Camera created") and say nothing about an outage.
+const openOutageAlert = (cameraId: string) => ({
+  alertType: 'camera_offline' as const,
+  source: cameraId,
+  resolvedAt: null,
+  severity: { not: 'info' as const },
+});
+
+/** From the last time the camera answered until it answered again, not from when the system noticed. */
+export function computeDowntimeMs(
+  alert: { createdAt: Date | string; details?: unknown },
+  respondingAgainAt: Date | string | null | undefined,
+  now = Date.now(),
+): number {
+  const lastSeen = (alert.details as { lastPolledAt?: string | null } | null)?.lastPolledAt;
+  const from = new Date(lastSeen ?? alert.createdAt).getTime();
+  const to = respondingAgainAt ? new Date(respondingAgainAt).getTime() : now;
+  return Math.max(0, to - from);
+}
+
+/** An on-demand stream also closes when the last viewer leaves, so ask the camera itself. */
+async function cameraStoppedResponding(cameraId: string): Promise<boolean> {
+  const target = await getPrisma().camera.findUnique({
+    where: { id: cameraId },
+    select: { id: true, name: true, ipAddress: true, rtspUrl: true, device: { select: { ipAddress: true, rtspPort: true } } },
+  });
+  if (!target) return false;
+  const probe = await probeCameraHealth(target);
+  return !probe.reachable && probe.reason !== NO_PROBE_TARGET;
+}
 
 // Flapping detection: cameraId -> array of offline transition timestamps (ms)
 export const cameraFlapHistory = new Map<string, number[]>();
@@ -108,18 +143,23 @@ export async function checkCameraHealth(): Promise<void> {
       ? { reachable: true, latencyMs: 0 }
       : await probeCameraHealth(cam);
     const isProbeSuccess = probeResult.reachable;
+    if (streamReady) {
+      await prisma.camera.update({ where: { id: cam.id }, data: { lastPolledAt: new Date() } });
+    }
+    const prev = cam.operationalStatus;
+    // The threshold only delays the first verdict. A camera already down stays down until it answers.
+    const alreadyDown = prev === 'offline' || prev === 'recovering';
 
     const timeSinceLastPoll = cam.lastPolledAt ? Date.now() - new Date(cam.lastPolledAt).getTime() : Infinity;
     const channelProblem = cam.device?.id && cam.channelNumber !== null ? noSignal.get(cam.device.id)?.get(cam.channelNumber) : undefined;
     const hasNoSignal = !!channelProblem;
-    const isOffline = hasNoSignal || cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && timeSinceLastPoll > thresholdMs);
+    const isOffline = hasNoSignal || cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && (alreadyDown || timeSinceLastPoll > thresholdMs));
     const rawNext = isOffline ? 'offline' : 'online';
     // What the recorder says comes first: the network being fine says nothing about a camera behind it.
     const offlineReason = !isOffline ? null : channelProblem ?? (cam.status === 'error' || cam.status === 'inactive' ? 'status_set' : 'unreachable');
     if ((cam.operationalReason ?? null) !== offlineReason) {
       await prisma.camera.update({ where: { id: cam.id }, data: { operationalReason: offlineReason } });
     }
-    const prev = cam.operationalStatus;
 
     // First-ever observation for this camera — record a baseline only, no event/alert noise.
     if (prev === 'unknown') {
@@ -159,12 +199,7 @@ export async function checkCameraHealth(): Promise<void> {
       });
 
       const recentAlert = await prisma.alert.findFirst({
-        where: {
-          alertType: 'camera_offline',
-          source: cam.id,
-          resolvedAt: null,
-          createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
-        },
+        where: { ...openOutageAlert(cam.id), createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
       });
 
       if (!recentAlert) {
@@ -219,7 +254,7 @@ export async function checkCameraHealth(): Promise<void> {
     // recovering -> stayed reachable: confirm fully online (after the configured grace period), resolve/notify.
     if (prev === 'recovering' && rawNext === 'online') {
       const recoveringSince = cam.operationalSince ? new Date(cam.operationalSince).getTime() : 0;
-      if (Date.now() - recoveringSince < recoveryGraceMs) {
+      if (Date.now() - recoveringSince < recoveryGraceMs - TICK_JITTER_MS) {
         // Still within the grace period — stay in "recovering" and check again next tick.
         continue;
       }
@@ -232,13 +267,13 @@ export async function checkCameraHealth(): Promise<void> {
       });
 
       const openAlert = await prisma.alert.findFirst({
-        where: { alertType: 'camera_offline', source: cam.id, resolvedAt: null },
+        where: openOutageAlert(cam.id),
         orderBy: { createdAt: 'desc' },
       });
 
       let downtimeMs = 0;
       if (openAlert) {
-        downtimeMs = Date.now() - new Date(openAlert.createdAt).getTime();
+        downtimeMs = computeDowntimeMs(openAlert, cam.operationalSince);
         await prisma.alert.update({
           where: { id: openAlert.id },
           data: {
@@ -262,11 +297,12 @@ export async function checkCameraHealth(): Promise<void> {
         title: `Camera online: ${cam.name}`,
         message: `Camera "${cam.name}" is back online${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
         details: { cameraId: cam.id, cameraName: cam.name, event: 'back_online' },
+        skipDedup: true,
       });
 
       if (autoResolveEnabled) {
         const openIncident = await incidentService.getOpenIncidentForCamera(cam.id);
-        if (openIncident && openIncident.detectionSource === 'health_monitor') {
+        if (openIncident && AUTO_DETECTED_INCIDENT_SOURCES.includes(openIncident.detectionSource || '')) {
           const openDurationMs = downtimeMs || (Date.now() - new Date(openIncident.openedAt).getTime());
           await incidentService.resolveIncident(openIncident.id, {
             resolution: `Camera reconnected automatically after ${formatDuration(openDurationMs)} offline.`,
@@ -282,7 +318,7 @@ export async function checkCameraHealth(): Promise<void> {
     // Still offline: escalate the auto-created incident's priority as downtime grows.
     if (prev === 'offline' && rawNext === 'offline' && autoIncidentEnabled) {
       const openIncident = await incidentService.getOpenIncidentForCamera(cam.id);
-      if (openIncident && openIncident.detectionSource === 'health_monitor') {
+      if (openIncident && AUTO_DETECTED_INCIDENT_SOURCES.includes(openIncident.detectionSource || '')) {
         const offlineMs = Date.now() - new Date(openIncident.openedAt).getTime();
         const nextPriority = computeEscalatedPriority(offlineMs, escalateHighMin, escalateCriticalMin);
         if (nextPriority !== openIncident.priority) {
@@ -419,10 +455,11 @@ export async function handleStreamStatusEvent(
   const prev = camera.operationalStatus;
 
   // Live-only main streams and every sub stream are pulled only while someone watches, so their
-  // stream closing just means the last viewer left. Reachability for those comes from the
-  // 1-minute health check (TCP probe), not from this event.
+  // stream closing usually means the last viewer left. It is an outage only if the camera stopped
+  // answering too. Unwatched cameras are covered by the 1-minute health check.
   const onDemand = cleanPath.endsWith('_sub') || (camera as any).recordingMode !== 'continuous';
-  if (status === 'not_ready' && onDemand) {
+  const wasUp = prev === 'online' || prev === 'recovering';
+  if (status === 'not_ready' && onDemand && (!wasUp || camera.status === 'maintenance' || !(await cameraStoppedResponding(camera.id)))) {
     return { success: true, cameraId: camera.id, status: prev ?? 'unknown', message: 'On-demand stream closed (no viewers)' };
   }
 
@@ -468,12 +505,7 @@ export async function handleStreamStatusEvent(
     });
 
     const recentAlert = await prisma.alert.findFirst({
-      where: {
-        alertType: 'camera_offline',
-        source: camera.id,
-        resolvedAt: null,
-        createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
-      },
+      where: { ...openOutageAlert(camera.id), createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
     });
 
     if (!recentAlert) {
@@ -482,8 +514,8 @@ export async function handleStreamStatusEvent(
         severity: 'critical',
         source: camera.id,
         title: `Camera offline: ${camera.name}`,
-        message: `Camera "${camera.name}" stream disconnected instantly (< 3s detection). Stream: ${cleanPath}.`,
-        details: { cameraId: camera.id, cameraName: camera.name, streamPath: cleanPath, detectionSource: 'realtime_webhook' },
+        message: `Camera "${camera.name}" stream disconnected. Stream: ${cleanPath}.`,
+        details: { cameraId: camera.id, cameraName: camera.name, streamPath: cleanPath, detectionSource: 'realtime_webhook', lastPolledAt: new Date() },
       });
     }
 
@@ -565,13 +597,13 @@ export async function handleStreamStatusEvent(
       });
 
       const openAlert = await prisma.alert.findFirst({
-        where: { alertType: 'camera_offline', source: camera.id, resolvedAt: null },
+        where: openOutageAlert(camera.id),
         orderBy: { createdAt: 'desc' },
       });
 
       let downtimeMs = 0;
       if (openAlert) {
-        downtimeMs = Date.now() - new Date(openAlert.createdAt).getTime();
+        downtimeMs = computeDowntimeMs(openAlert, camera.operationalSince);
         await prisma.alert.update({
           where: { id: openAlert.id },
           data: {
@@ -594,6 +626,7 @@ export async function handleStreamStatusEvent(
         title: `Camera online: ${camera.name}`,
         message: `Camera "${camera.name}" is back online via real-time webhook${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
         details: { cameraId: camera.id, cameraName: camera.name, event: 'back_online', detectionSource: 'realtime_webhook' },
+        skipDedup: true,
       });
 
       if (autoResolveEnabled) {

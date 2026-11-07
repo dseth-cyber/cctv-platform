@@ -78,6 +78,7 @@ export async function createAlert(input: CreateAlertInput & { skipDedup?: boolea
       where: {
         alertType: input.alertType,
         source: input.source,
+        severity: input.severity ?? 'warning',
         resolvedAt: null,
         createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
       },

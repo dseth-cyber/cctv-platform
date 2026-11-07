@@ -2,6 +2,8 @@ import net from 'net';
 import { openRtspUrl } from '../../lib/rtsp-credentials.js';
 import { getPrisma } from '../../lib/prisma.js';
 
+export const NO_PROBE_TARGET = 'No probe target configured';
+
 export interface ProbeResult {
   reachable: boolean;
   latencyMs: number;
@@ -107,5 +109,5 @@ export async function probeCameraHealth(camera: {
     return res;
   }
 
-  return { reachable: false, latencyMs: 0, reason: 'No probe target configured' };
+  return { reachable: false, latencyMs: 0, reason: NO_PROBE_TARGET };
 }

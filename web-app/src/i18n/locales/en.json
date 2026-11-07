@@ -2884,6 +2884,7 @@
       "openPlayback": "Recordings of this camera",
       "focusHint": "One camera at full size · double-click or press Esc to go back",
       "focusClose": "Close",
+      "cameraOfflineBanner": "Camera offline: the system cannot reach this camera",
       "mainStreamFellBack": "This browser could not open the main stream, so the sub stream is shown instead",
       "cctvLiveWall": "CCTV Live Wall",
       "total": "Total:",
