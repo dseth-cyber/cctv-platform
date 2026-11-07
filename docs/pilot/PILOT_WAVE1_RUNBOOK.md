@@ -100,6 +100,7 @@ node scripts/pilot-verify-cameras.mjs --config scripts/pilot-cameras.json --time
    - **ผลลัพธ์:** ไฟล์คลิปที่ได้มีค่า `SHA-256 Checksum` ตรงกับเนื้อไฟล์ สามารถเปิดเล่นได้ปกติ และระบบบันทึก Audit Log ครบถ้วน
 
 ### UAT-03: ตรวจสอบ Dynamic Security Watermark Overlay (`ENH-04`)
+> ผู้ใช้อนุมัติเมื่อ 2026-11-07: ลายน้ำปิดเป็นค่าเริ่มต้น เปิดได้ที่หน้าตั้งค่า (`watermark_enabled`) ทดสอบข้อนี้เฉพาะเมื่อเปิดใช้
 1. เข้าสู่หน้าจอ `LiveGrid` และคลิกดูสดกล้องตัวใดก็ได้ผ่าน `WhepPlayer`
 2. ตรวจสอบองค์ประกอบของลายน้ำบนจอภาพ:
    - **ข้อมูลที่ต้องปรากฏ:** `[ชื่อผู้ใช้ / บทบาท] • [Session ID หรือ IP] • [วัน-เวลา Asia/Bangkok ปัจจุบัน]`

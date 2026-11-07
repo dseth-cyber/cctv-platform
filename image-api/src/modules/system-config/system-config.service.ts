@@ -33,6 +33,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   webhook_secret: { value: '', description: 'Webhook secret for HMAC signature', valueType: 'string', category: 'general' },
 
   // General settings — managed via UI
+  watermark_enabled: { value: 'false', description: 'Show the name of the signed-in person across video, to trace a photo of the screen back to them', valueType: 'boolean', category: 'general' },
   system_logo: { value: '', description: 'System logo (base64 data URL)', valueType: 'string', category: 'general' },
   system_name: { value: 'iSmart CCTV', description: 'Application name', valueType: 'string', category: 'general' },
   system_description: { value: 'Enterprise CCTV Management System', description: 'Application description', valueType: 'string', category: 'general' },
@@ -67,7 +68,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
 const REQUIRED_FIELDS_KEY = 'required_fields';
 
 // The only settings readable without a login: the login page needs them to draw itself.
-const PUBLIC_CONFIG_KEYS = ['system_logo', 'system_name', 'system_description', 'system_version', 'system_copyright'];
+const PUBLIC_CONFIG_KEYS = ['system_logo', 'system_name', 'system_description', 'system_version', 'system_copyright', 'watermark_enabled'];
 const SECRET_CONFIG_KEYS = ['webhook_secret'];
 const URL_CONFIG_KEYS = ['webhook_url', 'public_base_url'];
 const MAX_LOGO_LENGTH = 2_000_000;

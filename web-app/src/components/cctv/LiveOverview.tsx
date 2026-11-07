@@ -57,7 +57,7 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isChoosing, i
   return (
     <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video ${isWaiting ? 'ring-2 ring-cyan-400 ' : ''}rounded-lg overflow-hidden bg-slate-900 border-2 group ${isLive ? 'border-emerald-500' : 'border-amber-400'}`}>
       {isLive && streamUrl ? (
-        <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" onFatalError={() => onStreamFailed(camera.id)} onCancelLive={() => onClose(camera.id)} cancelLiveTitle={t('ui.liveGrid.overview.backToStill')} cancelLiveHighlight={isChoosing} />
+        <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" noWatermark onFatalError={() => onStreamFailed(camera.id)} onCancelLive={() => onClose(camera.id)} cancelLiveTitle={t('ui.liveGrid.overview.backToStill')} cancelLiveHighlight={isChoosing} />
       ) : (
         <button type="button" onClick={() => onOpen(camera.id)} title={t('ui.liveGrid.overview.clickForLive')} className="block w-full h-full">
           {imageUrl ? (

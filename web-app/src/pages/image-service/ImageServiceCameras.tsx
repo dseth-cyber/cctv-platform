@@ -971,6 +971,8 @@ export default function ImageServiceCameras() {
   const filtered = applyLocationFilter(applyCameraSelection(cameras as any[], cameraPick.ids, cameraPick.onlyOffline), siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
     .filter((c: any) => stateParam !== 'problem' || (c.enabled !== false && c.operationalStatus !== 'online'))
     .filter((c: any) => stateParam !== 'off' || c.enabled === false)
+    .filter((c: any) => stateParam !== 'offline' || c.operationalStatus === 'offline')
+    .filter((c: any) => stateParam !== 'unknown' || c.operationalStatus === 'unknown')
     .filter((c: any) => !typeParam || (typeParam === 'none' ? !c.cameraType : c.cameraType === typeParam))
     .filter((c: any) => !brandParam || (brandParam === 'none' ? !c.cameraBrand : c.cameraBrand?.toLowerCase() === brandParam.toLowerCase()))
     .filter((c: any) => (!inUseOnly || c.enabled !== false) && (!search.trim() || matchesCameraQuery(searchTextOf(c), search)));
@@ -983,7 +985,7 @@ export default function ImageServiceCameras() {
     if (!siteParam && !zoneParam) return null;
     const anyCamera = (cameras as any[]).find((c) => (siteParam && c.siteId === siteParam) || (zoneParam && c.zoneId === zoneParam));
     const zoneName = zoneParam === NO_LOCATION ? t('ui.location.noZoneLabel') : (cameras as any[]).find((c) => c.zoneId === zoneParam)?.zone?.name;
-    const stateName = stateParam === 'problem' ? t('ui.location.stateProblem') : stateParam === 'off' ? t('imageService.cameras.switchedOff') : null;
+    const stateName = stateParam === 'problem' ? t('ui.location.stateProblem') : stateParam === 'off' ? t('imageService.cameras.switchedOff') : stateParam === 'offline' ? t('ui.cctvDashboard.offlineCameras') : stateParam === 'unknown' ? t('ui.cctvDashboard.videoStalled') : null;
     return [siteParam ? anyCamera?.site?.name : null, zoneName, stateName].filter(Boolean).join(' / ') || '—';
   })();
 
@@ -1454,10 +1456,10 @@ export default function ImageServiceCameras() {
     )}
     </div>
 
-      <Modal isOpen={modal.open} onClose={() => setModal({ open: false })}
+      <Modal isOpen={modal.open} onClose={() => setModal({ open: false })} size="5xl"
         title={modal.item ? t('imageService.cameras.editCamera') : t('imageService.cameras.newCamera')}>
-        <form onSubmit={handleSubmit} className="space-y-4 p-1 max-w-lg">
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="space-y-4 p-1">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
                 {t('imageService.cameras.cameraName')} <span className="text-red-400">*</span>
@@ -1601,7 +1603,7 @@ export default function ImageServiceCameras() {
           </div>
 
           {showAdvanced && (
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
             {form.connMode === 'simple' ? (
               <>
                 <div className="col-span-2">

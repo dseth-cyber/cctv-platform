@@ -40,6 +40,10 @@ interface WhepPlayerProps {
   onPlaying?: () => void;
   /** For a stream opened at a point in a recording: reconnecting by itself would start it over. */
   noReconnect?: boolean;
+  /** The page shows one watermark over everything, so this tile should not add its own. */
+  noWatermark?: boolean;
+  /** The page makes itself full screen with its own controls: double-click and the button go there. */
+  onToggleFullscreen?: () => void;
   /** Turns the live badge into a button that stops this camera's live video. */
   onCancelLive?: () => void;
   cancelLiveTitle?: string;
@@ -62,6 +66,8 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   onFatalError,
   onPlaying,
   noReconnect = false,
+  noWatermark = false,
+  onToggleFullscreen,
   onCancelLive,
   cancelLiveTitle,
   cancelLiveHighlight = false,
@@ -383,7 +389,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onDoubleClick={handleResetPtz}
+        onDoubleClick={onToggleFullscreen ? undefined : handleResetPtz}
       >
         <video
           ref={videoRef}
@@ -401,7 +407,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       </div>
 
       {/* Dynamic Anti-Screen-Capture Watermark Overlay [ENH-04] */}
-      <SecurityWatermark />
+      {!noWatermark && <SecurityWatermark />}
 
       {/* Top Overlay Badge */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
@@ -645,7 +651,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
             <CameraIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={handleToggleFullscreen}
+            onClick={onToggleFullscreen ?? handleToggleFullscreen}
             className="p-1.5 hover:bg-slate-800/80 rounded transition text-slate-300 hover:text-white"
             title={t('ui.whepPlayer.fullscreen')}
           >

@@ -46,6 +46,18 @@ export default function CctvDashboard() {
   const { themeConfig } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const cardLink = (card: string, path: string) => ({
+    'data-status-card': card,
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => navigate(path),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        navigate(path);
+      }
+    },
+  });
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -292,7 +304,7 @@ export default function CctvDashboard() {
         </div>
 
         {/* Live Active Streams */}
-        <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+        <div {...cardLink('online', '/cctv/live-grid')} className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-emerald-500/40 transition-all cursor-pointer hover:border-cyan-500/50 transition">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
             <span>{t('ui.cctvDashboard.streamsActive')}</span>
             <CheckCircle2 size={15} className="text-emerald-400" />
@@ -308,7 +320,7 @@ export default function CctvDashboard() {
         </div>
 
         {/* Video Stalled / Dropped */}
-        <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-amber-500/40 transition-all">
+        <div {...cardLink('unknown', '/cctv/cameras?on=1&state=unknown')} className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-pointer hover:border-cyan-500/50 transition">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
             <span>{t('ui.cctvDashboard.videoStalled')}</span>
             <AlertTriangle size={15} className="text-amber-400" />
@@ -323,7 +335,7 @@ export default function CctvDashboard() {
         </div>
 
         {/* Offline / Unreachable */}
-        <div className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-rose-500/40 transition-all">
+        <div {...cardLink('offline', '/cctv/cameras?on=1&state=offline')} className="bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg relative overflow-hidden group hover:border-rose-500/40 transition-all cursor-pointer hover:border-cyan-500/50 transition">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
             <span>{t('ui.cctvDashboard.offlineCameras')}</span>
             <XCircle size={15} className="text-rose-400" />

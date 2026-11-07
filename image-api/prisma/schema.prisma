@@ -598,6 +598,14 @@ model ApiKey {
   @@map("api_keys")
 }
 
+// The last number issued for each kind of document and year. It only goes up, so deleting a record never frees its number.
+model DocumentCounter {
+  key   String @id @db.VarChar(32)
+  value Int
+
+  @@map("document_counters")
+}
+
 model Masterdata {
   id          String   @id @default(uuid()) @db.Uuid
   type        String   @db.VarChar(64)

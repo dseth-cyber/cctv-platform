@@ -104,6 +104,7 @@ interface DevicePlayback {
 }
 
 const FAST_PROGRESS_MS = 2000;
+const DOCK_HIDE_MS = 3000;
 const FAST_NOTICE_BELOW = 0.8;
 
 // No first frame by then means this browser accepted H.265 but cannot really show it.
@@ -239,6 +240,12 @@ export const CctvPlayback: React.FC = () => {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
+  // Full screen takes the picture and its tools together, so nothing needs leaving it to be used.
+  const fullscreenRootRef = useRef<HTMLDivElement>(null);
+  const dockHoveredRef = useRef(false);
+  const dockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [dockVisible, setDockVisible] = useState(true);
   const { user } = useAuth();
   const canExportClips = hasPermission(user, 'cameras:create');
   const queryClient = useQueryClient();
@@ -857,7 +864,37 @@ export const CctvPlayback: React.FC = () => {
     onSettled: () => refetchClips(),
   });
 
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    else void fullscreenRootRef.current?.requestFullscreen().catch(() => {});
+  }, []);
+
+  const revealDock = useCallback(() => {
+    setDockVisible(true);
+    if (dockTimerRef.current) clearTimeout(dockTimerRef.current);
+    dockTimerRef.current = setTimeout(() => {
+      if (!dockHoveredRef.current) setDockVisible(false);
+    }, DOCK_HIDE_MS);
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => {
+      const full = document.fullscreenElement === fullscreenRootRef.current && !!fullscreenRootRef.current;
+      setIsFullscreen(full);
+      dockHoveredRef.current = false;
+      if (full) revealDock();
+      else setDockVisible(true);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      if (dockTimerRef.current) clearTimeout(dockTimerRef.current);
+    };
+  }, [revealDock]);
+
   const handleOpenExportModal = (incident?: IncidentMarker) => {
+    // The form opens on the page, which full screen would hide.
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     if (incident) {
       setSelectedIncidentForClip(incident);
       setClipTitle(`Evidence Clip - ${incident.incidentNumber} (${incident.reason})`);
@@ -1042,8 +1079,20 @@ export const CctvPlayback: React.FC = () => {
 
       {/* Main Playback Area */}
       <div className="flex-1 p-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto">
+        <div
+          ref={fullscreenRootRef}
+          data-playback-root
+          onMouseMove={isFullscreen ? revealDock : undefined}
+          className={isFullscreen ? `relative w-full h-full bg-black overflow-hidden ${dockVisible ? '' : 'cursor-none'}` : 'flex flex-col gap-5'}
+        >
         {/* Video Player Box & Status Viewport */}
-        <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl aspect-video max-h-[540px] flex items-center justify-center group">
+        <div
+          data-playback-picture
+          onDoubleClick={(e) => {
+            if (!(e.target as HTMLElement).closest('button, select, input, a')) toggleFullscreen();
+          }}
+          className={`overflow-hidden bg-slate-900 flex items-center justify-center group ${isFullscreen ? 'absolute inset-0' : 'relative rounded-2xl border border-slate-800 shadow-2xl aspect-video max-h-[540px]'}`}
+        >
           {/* Dynamic Anti-Screen-Capture Watermark Overlay [ENH-04] */}
           <SecurityWatermark />
 
@@ -1088,6 +1137,8 @@ export const CctvPlayback: React.FC = () => {
                 cameraName={selectedCamera?.name || ''}
                 className="w-full h-full"
                 noReconnect
+                noWatermark
+                onToggleFullscreen={toggleFullscreen}
                 onPlaying={() => {
                   setIsLoadingPlayback(false);
                   // The recorder began sending when the session opened, so a late first picture is not the
@@ -1122,6 +1173,8 @@ export const CctvPlayback: React.FC = () => {
             <div className="absolute inset-0 bg-black">
               <WhepPlayer
                 key={liveView.url}
+                noWatermark
+                onToggleFullscreen={toggleFullscreen}
                 streamUrl={liveView.url}
                 cameraName={selectedCamera?.name || ''}
                 streamProfile={liveView.profile}
@@ -1233,7 +1286,7 @@ export const CctvPlayback: React.FC = () => {
           )}
         </div>
 
-        {isDeviceMode && (
+        {isDeviceMode && !isFullscreen && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-xs text-cyan-100">
             <Database size={14} className="text-cyan-400 flex-shrink-0" />
             <span>{t('ui.cctvPlayback.deviceSource')}</span>
@@ -1243,6 +1296,14 @@ export const CctvPlayback: React.FC = () => {
           </div>
         )}
 
+        <div
+          data-playback-dock
+          onMouseEnter={() => { dockHoveredRef.current = true; }}
+          onMouseLeave={() => { dockHoveredRef.current = false; }}
+          className={isFullscreen
+            ? `absolute left-0 right-0 bottom-0 z-40 p-4 flex flex-col gap-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-200 ${dockVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
+            : 'flex flex-col gap-5'}
+        >
         {/* Transport Controls Bar */}
         <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
           {/* Left: Playback controls */}
@@ -1368,6 +1429,16 @@ export const CctvPlayback: React.FC = () => {
                 )}
               </select>
             </div>
+
+            <button
+              type="button"
+              data-playback-fullscreen
+              onClick={toggleFullscreen}
+              title={t('ui.whepPlayer.fullscreen')}
+              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
+            >
+              <Maximize size={15} />
+            </button>
 
             {/* Export Clip Button */}
             <button
@@ -1518,6 +1589,9 @@ export const CctvPlayback: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        </div>
         </div>
 
         {/* Exported Evidence Clips & Archive Table */}

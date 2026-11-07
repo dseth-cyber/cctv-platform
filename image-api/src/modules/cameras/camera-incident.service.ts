@@ -1,17 +1,44 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { redactRtspUrl } from '../../lib/rtsp-credentials.js';
 
+const numberOf = (documentNumber: string | null | undefined) => Number(documentNumber?.split('-')[2] ?? 0) || 0;
+
+/**
+ * The next number in a series. The counter only goes up, so a deleted record's number is never used again.
+ * It starts from the highest number already known, including ones only the audit log still remembers.
+ */
+export async function nextDocumentNumber(key: string, highestKnown: () => Promise<number>): Promise<number> {
+  const prisma = getPrisma();
+  const increment = async () => (await prisma.documentCounter.update({ where: { key }, data: { value: { increment: 1 } } })).value;
+  try {
+    return await increment();
+  } catch (err: any) {
+    if (err?.code !== 'P2025') throw err;
+  }
+  try {
+    return (await prisma.documentCounter.create({ data: { key, value: (await highestKnown()) + 1 } })).value;
+  } catch (err: any) {
+    // Someone else started the series in that moment.
+    if (err?.code !== 'P2002') throw err;
+    return increment();
+  }
+}
+
 async function generateIncidentNumber(): Promise<string> {
   const prisma = getPrisma();
-  const year = new Date().getFullYear();
-  // Not a count of rows: after a deletion that would repeat a number and the new incident would fail.
-  const latest = await prisma.cameraIncident.findFirst({
-    where: { incidentNumber: { startsWith: `INC-${year}-` } },
-    orderBy: { incidentNumber: 'desc' },
-    select: { incidentNumber: true },
+  const prefix = `INC-${new Date().getFullYear()}-`;
+  const next = await nextDocumentNumber(prefix.slice(0, -1), async () => {
+    const latest = await prisma.cameraIncident.findFirst({
+      where: { incidentNumber: { startsWith: prefix } },
+      orderBy: { incidentNumber: 'desc' },
+      select: { incidentNumber: true },
+    });
+    const logged = await prisma.auditLog.findMany({ where: { description: { contains: prefix } }, select: { description: true } });
+    const pattern = new RegExp(`${prefix}(\\d+)`);
+    const fromLog = logged.map((row) => Number(row.description?.match(pattern)?.[1] ?? 0));
+    return Math.max(numberOf(latest?.incidentNumber), ...fromLog);
   });
-  const last = latest ? Number(latest.incidentNumber.split('-')[2]) : 0;
-  return `INC-${year}-${String(last + 1).padStart(6, '0')}`;
+  return `${prefix}${String(next).padStart(6, '0')}`;
 }
 
 export async function createIncident(data: {
@@ -348,9 +375,17 @@ export async function createWorkOrder(incidentId: string, _username: string) {
   const prisma = getPrisma();
   const inc = await prisma.cameraIncident.findUnique({ where: { id: incidentId } });
   if (!inc) throw new Error('Incident not found');
-  const year = new Date().getFullYear();
-  const count = await prisma.cameraIncident.count({ where: { workOrderNumber: { startsWith: `WO-${year}-` } } });
-  const workOrderNumber = `WO-${year}-${String(count + 1).padStart(5, '0')}`;
+  if (inc.workOrderNumber) return inc;
+  const prefix = `WO-${new Date().getFullYear()}-`;
+  const next = await nextDocumentNumber(prefix.slice(0, -1), async () => {
+    const latest = await prisma.cameraIncident.findFirst({
+      where: { workOrderNumber: { startsWith: prefix } },
+      orderBy: { workOrderNumber: 'desc' },
+      select: { workOrderNumber: true },
+    });
+    return numberOf(latest?.workOrderNumber);
+  });
+  const workOrderNumber = `${prefix}${String(next).padStart(5, '0')}`;
   return prisma.cameraIncident.update({
     where: { id: incidentId },
     data: { workOrderNumber, workOrderStatus: 'open' },

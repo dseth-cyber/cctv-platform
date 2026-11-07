@@ -759,6 +759,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       {/* Add / Edit Device Modal */}
       <Modal
         isOpen={isModalOpen}
+        size="5xl"
         onClose={() => setIsModalOpen(false)}
         title={cloneSource ? t('ui.deviceManagement.cloneTitle', { name: cloneSource }) : editingDevice ? t('ui.deviceManagement.editRecordingDevice') : t('ui.deviceManagement.addRecordingDeviceDvrNvrIp')}
       >
@@ -794,7 +795,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.vendorBrand')}</label>
               <select
@@ -846,7 +847,9 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               </select>
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.alertLevelHint')}</p>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.totalChannels')}</label>
               <select
@@ -861,9 +864,6 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 {!channelCountOptions.some((o) => Number(o.value) === formData.totalChannels) && <option value={formData.totalChannels}>{formData.totalChannels}</option>}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-1">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium text-slate-300">{t('ui.deviceManagement.ipAddress')}</label>

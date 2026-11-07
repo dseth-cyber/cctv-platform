@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { imageServiceApi } from '@/services/imageServiceApi';
 
 interface SecurityWatermarkProps {
   className?: string;
@@ -19,6 +21,11 @@ export const SecurityWatermark: React.FC<SecurityWatermarkProps> = ({
   opacity = 0.18,
 }) => {
   const { user } = useAuth();
+  const { data: publicConfig } = useQuery<any>({
+    queryKey: ['system-public-config'],
+    queryFn: () => imageServiceApi.getSystemBranding(),
+    staleTime: 60_000,
+  });
   const [liveTime, setLiveTime] = useState<string>('');
   const [positionStep, setPositionStep] = useState<number>(0);
 
@@ -79,6 +86,8 @@ export const SecurityWatermark: React.FC<SecurityWatermarkProps> = ({
     'translate(-12px, 8px)',
     'translate(8px, -10px)',
   ];
+
+  if (publicConfig?.watermark_enabled?.value !== true) return null;
 
   return (
     <div

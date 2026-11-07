@@ -40,10 +40,10 @@ describe('findConfigProblems', () => {
 describe('system config access', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('exposes only branding without a login', async () => {
+  it('exposes only branding and the watermark switch without a login', async () => {
     stored([{ key: 'webhook_secret', value: 'topsecret' }]);
     const pub = await getPublicConfigs();
-    expect(Object.keys(pub).sort()).toEqual(['system_copyright', 'system_description', 'system_logo', 'system_name', 'system_version']);
+    expect(Object.keys(pub).sort()).toEqual(['system_copyright', 'system_description', 'system_logo', 'system_name', 'system_version', 'watermark_enabled']);
     expect(JSON.stringify(pub)).not.toContain('topsecret');
   });
 
