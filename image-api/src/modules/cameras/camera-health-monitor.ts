@@ -298,6 +298,7 @@ export async function checkCameraHealth(): Promise<void> {
         message: `Camera "${cam.name}" is back online${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
         details: { cameraId: cam.id, cameraName: cam.name, event: 'back_online' },
         skipDedup: true,
+        closeOnCreate: true,
       });
 
       if (autoResolveEnabled) {
@@ -546,9 +547,14 @@ export async function handleStreamStatusEvent(
     };
   }
 
+  // A recorder streams its NO VIDEO picture to whoever opens the channel: that is not the camera coming back.
+  if (status === 'ready' && prev === 'offline' && isKnownNoSignal((camera as any).deviceId, (camera as any).channelNumber)) {
+    return { success: true, cameraId: camera.id, status: 'offline', message: `Camera ${camera.name} has no video signal` };
+  }
+
   // Stream is up (ready)
   if (status === 'ready') {
-    if (prev === 'offline' && !isKnownNoSignal((camera as any).deviceId, (camera as any).channelNumber)) {
+    if (prev === 'offline') {
       await prisma.camera.update({
         where: { id: camera.id },
         data: { operationalStatus: 'recovering', operationalSince: new Date(), lastPolledAt: new Date() },
@@ -627,6 +633,7 @@ export async function handleStreamStatusEvent(
         message: `Camera "${camera.name}" is back online via real-time webhook${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
         details: { cameraId: camera.id, cameraName: camera.name, event: 'back_online', detectionSource: 'realtime_webhook' },
         skipDedup: true,
+        closeOnCreate: true,
       });
 
       if (autoResolveEnabled) {

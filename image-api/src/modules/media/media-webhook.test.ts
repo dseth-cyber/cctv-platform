@@ -38,6 +38,12 @@ vi.mock('../system-config/system-config.service.js', () => ({
   }),
 }));
 
+const mockNoSignal = vi.hoisted(() => vi.fn().mockReturnValue(false));
+vi.mock('../cameras/device-channel-signal.js', () => ({
+  isKnownNoSignal: mockNoSignal,
+  readChannelsWithoutSignal: vi.fn().mockResolvedValue(new Map()),
+}));
+
 const mockProbe = vi.fn();
 vi.mock('../cameras/camera-probe.service.js', () => ({
   NO_PROBE_TARGET: 'No probe target configured',
@@ -305,6 +311,19 @@ describe('Real-time Camera Health Webhook [ENH-01]', () => {
       const data = JSON.parse(res.body);
       expect(data.success).toBe(true);
       expect(data.status).toBe('flapping_throttled');
+    });
+
+    it('keeps a no-signal channel offline when someone opens its NO VIDEO stream', async () => {
+      mockNoSignal.mockReturnValueOnce(true);
+      mockPrisma.camera.findFirst.mockResolvedValueOnce({ ...mockCamera, operationalStatus: 'offline', deviceId: 'dev-1', channelNumber: 2 });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/media/events/stream-status',
+        headers: { 'x-media-webhook-secret': SECRET },
+        payload: { path: 'camera_gate1_sub', status: 'ready' },
+      });
+      expect(res.json()).toMatchObject({ success: true, status: 'offline' });
+      expect(mockPrisma.camera.update).not.toHaveBeenCalled();
     });
 
     it('moves offline camera to RECOVERING state when stream is restored', async () => {

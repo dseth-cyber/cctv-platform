@@ -40,6 +40,11 @@ interface WhepPlayerProps {
   onPlaying?: () => void;
   /** For a stream opened at a point in a recording: reconnecting by itself would start it over. */
   noReconnect?: boolean;
+  /** Turns the live badge into a button that stops this camera's live video. */
+  onCancelLive?: () => void;
+  cancelLiveTitle?: string;
+  /** Live is full and someone is waiting: draws attention to the badge as the thing to press. */
+  cancelLiveHighlight?: boolean;
 }
 
 const DISCONNECT_GRACE_MS = 8_000;
@@ -57,6 +62,9 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   onFatalError,
   onPlaying,
   noReconnect = false,
+  onCancelLive,
+  cancelLiveTitle,
+  cancelLiveHighlight = false,
   onSnapshot,
 }) => {
   const { t } = useTranslation()
@@ -441,7 +449,19 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           )}
 
           {/* Live Indicator */}
-          {status === 'connected' && (
+          {onCancelLive ? (
+            <button
+              type="button"
+              data-no-focus
+              data-cancel-live
+              onClick={(e) => { e.stopPropagation(); onCancelLive(); }}
+              title={cancelLiveTitle}
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${cancelLiveHighlight ? 'bg-rose-600 border-rose-300 text-white animate-pulse' : 'bg-emerald-950/80 border-emerald-500/40 text-emerald-400 hover:bg-rose-900 hover:border-rose-400 hover:text-rose-100'}`}
+            >
+              <Signal className="w-3 h-3" />
+              <span>{t('ui.whepPlayer.live')}</span>
+            </button>
+          ) : status === 'connected' && (
             <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-mono font-medium">
               <Signal className="w-3 h-3" />
               <span>{t('ui.whepPlayer.live')}</span>

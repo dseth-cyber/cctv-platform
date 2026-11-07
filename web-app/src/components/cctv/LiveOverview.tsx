@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, ImageIcon, Radio, X } from 'lucide-react';
+import { AlertCircle, ImageIcon, Radio } from 'lucide-react';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { chooseLiveCameras } from '@/lib/liveAllocation';
 import { favoritesFirst } from '@/lib/cameraFilter';
@@ -26,7 +26,8 @@ interface TileProps {
   camera: any;
   streamUrl: string | null;
   isLive: boolean;
-  isPinned: boolean;
+  isChoosing: boolean;
+  isWaiting: boolean;
   isFavorite: boolean;
   status?: SnapshotStatus;
   imageUrl?: string;
@@ -39,7 +40,8 @@ interface TileProps {
   onFocus?: (camera: any) => void;
 }
 
-const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isFavorite, status, imageUrl, now, staleSeconds, onOpen, onClose, onToggleFavorite, onStreamFailed, onFocus }: TileProps) {
+
+const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isChoosing, isWaiting, isFavorite, status, imageUrl, now, staleSeconds, onOpen, onClose, onToggleFavorite, onStreamFailed, onFocus }: TileProps) {
   const { t } = useTranslation();
   const ageSeconds = status?.capturedAt ? Math.max(0, Math.round((now - status.capturedAt) / 1000)) : null;
   const isStale = ageSeconds !== null && ageSeconds > staleSeconds;
@@ -51,9 +53,9 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
   const problem = status && status.state !== 'ok' && status.state !== 'waiting' ? knownReason ?? t(`ui.liveGrid.overview.state.${status.state}`) : null;
 
   return (
-    <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>
+    <div data-camera-id={camera.id} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-no-focus]')) onFocus?.(camera); }} className={`relative aspect-video ${isWaiting ? 'ring-2 ring-cyan-400 ' : ''}rounded-lg overflow-hidden bg-slate-900 border group ${isLive ? 'border-emerald-500/60' : isStale || problem ? 'border-amber-500/40' : 'border-slate-800'}`}>
       {isLive && streamUrl ? (
-        <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" onFatalError={() => onStreamFailed(camera.id)} />
+        <WhepPlayer streamUrl={streamUrl} cameraName={camera.name} streamProfile="sub" className="w-full h-full" onFatalError={() => onStreamFailed(camera.id)} onCancelLive={() => onClose(camera.id)} cancelLiveTitle={t('ui.liveGrid.overview.backToStill')} cancelLiveHighlight={isChoosing} />
       ) : (
         <button type="button" onClick={() => onOpen(camera.id)} title={t('ui.liveGrid.overview.clickForLive')} className="block w-full h-full">
           {imageUrl ? (
@@ -79,11 +81,6 @@ const Tile = React.memo(function Tile({ camera, streamUrl, isLive, isPinned, isF
       )}
 
       <div className={`absolute right-1 flex items-center gap-1 z-30 ${isLive ? 'top-9' : 'top-1'}`}>
-        {isLive && isPinned && (
-          <button type="button" data-no-focus onClick={() => onClose(camera.id)} title={t('ui.liveGrid.overview.backToStill')} className="p-1 rounded bg-slate-950/80 text-slate-300 hover:text-white">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
         <CameraQuickActions cameraId={camera.id} deviceId={camera.deviceId} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
       </div>
     </div>
@@ -125,6 +122,9 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
   const [behind, setBehind] = useState(false);
   const [refreshSeconds, setRefreshSeconds] = useState<number | null>(null);
   const [limitUntil, setLimitUntil] = useState(0);
+  // Live is full: this camera waits until the person cancels one of the live ones.
+  const [waiting, setWaiting] = useState<string | null>(null);
+  const [released, setReleased] = useState<string[]>([]);
   // Cameras whose live video would not open: back to stills for a while, and their slot goes to another.
   const [failedUntil, setFailedUntil] = useState<Record<string, number>>({});
 
@@ -181,11 +181,12 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
       favorites,
       previous: liveRef.current,
       unavailable: new Set(unavailableKey ? unavailableKey.split(',') : []),
+      released: new Set(released),
       // At the system-wide limit, what already plays keeps playing and nothing new starts.
       quota: atLimit ? Math.min(quota, liveRef.current.size) : quota,
     });
     setLiveIds(next);
-  }, [visible, pinned, favorites, unavailableKey, quota, pageVisible, limitUntil]);
+  }, [visible, pinned, favorites, unavailableKey, released, quota, pageVisible, limitUntil]);
 
   // Stream URLs for what just went live
   const streamsRef = useRef(streams);
@@ -279,7 +280,16 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
 
   useEffect(() => () => Object.values(imagesRef.current).forEach((url) => URL.revokeObjectURL(url)), []);
 
-  const handleOpen = useCallback((id: string) => setPinned((prev) => [id, ...prev.filter((p) => p !== id)]), []);
+  const liveFull = liveIds.size >= quota;
+  const handleOpen = useCallback((id: string) => {
+    if (liveFull) {
+      setWaiting(id);
+      return;
+    }
+    setWaiting(null);
+    setReleased((prev) => prev.filter((r) => r !== id));
+    setPinned((prev) => [id, ...prev.filter((p) => p !== id)]);
+  }, [liveFull]);
   const handleStreamFailed = useCallback((id: string) => {
     setFailedUntil((prev) => ({ ...prev, [id]: Date.now() + FAILED_RETRY_MS }));
     setNow(Date.now());
@@ -290,7 +300,14 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
       return next;
     });
   }, []);
-  const handleClose = useCallback((id: string) => setPinned((prev) => prev.filter((p) => p !== id)), []);
+  const handleClose = useCallback((id: string) => {
+    setReleased((prev) => [...prev.filter((r) => r !== id && r !== waiting), id]);
+    setPinned((prev) => {
+      const kept = prev.filter((p) => p !== id);
+      return waiting ? [waiting, ...kept.filter((p) => p !== waiting)] : kept;
+    });
+    setWaiting(null);
+  }, [waiting]);
   const stills = ordered.length - liveIds.size;
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
@@ -304,6 +321,16 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
         {behind && <span className="text-amber-400">{t('ui.liveGrid.overview.behind')}</span>}
         {limitUntil > now && <span className="text-amber-400">{t('ui.liveGrid.overview.limitReached')}</span>}
       </div>
+      {waiting && (
+        <div data-live-waiting className="px-3 py-2 border-b border-cyan-800 bg-cyan-950 flex flex-wrap items-center gap-3 text-xs text-cyan-100 shrink-0">
+          <span className="font-semibold">
+            {t('ui.liveGrid.overview.liveFullPick', { quota, name: cameras.find((c) => c.id === waiting)?.name ?? '' })}
+          </span>
+          <button type="button" onClick={() => setWaiting(null)} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-100">
+            {t('ui.liveGrid.overview.keepCurrentLive')}
+          </button>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-2">
         {ordered.length === 0 ? (
           <p className="p-10 text-center text-sm text-slate-500">{t('ui.liveGrid.filter.noMatch')}</p>
@@ -315,7 +342,8 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
                 camera={camera}
                 isLive={liveIds.has(camera.id)}
                 streamUrl={streams[camera.id] ?? null}
-                isPinned={pinned.includes(camera.id)}
+                isChoosing={!!waiting}
+                isWaiting={waiting === camera.id}
                 isFavorite={favorites.has(camera.id)}
                 status={statuses[camera.id]}
                 imageUrl={images[camera.id]}

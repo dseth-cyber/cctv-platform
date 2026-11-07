@@ -116,7 +116,7 @@ describe('Camera health transitions', () => {
     ]);
     mockProbe.mockResolvedValue({ reachable: true, latencyMs: 2 });
     await checkCameraHealth();
-    expect(createAlert).toHaveBeenCalledWith(expect.objectContaining({ severity: 'info', skipDedup: true }));
+    expect(createAlert).toHaveBeenCalledWith(expect.objectContaining({ severity: 'info', skipDedup: true, closeOnCreate: true }));
   });
 });
 

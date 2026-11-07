@@ -17,7 +17,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   login_failure_window_minutes: { value: '10', description: 'Time window for counting failed login attempts (minutes) — the counter resets after this long with no failures', valueType: 'number', category: 'alert', min: 1, max: 1440 },
   login_lockout_minutes: { value: '15', description: 'How long an account stays locked after too many failed login attempts (minutes)', valueType: 'number', category: 'alert', min: 1, max: 1440 },
 
-  camera_auto_incident_enabled: { value: 'false', description: 'Automatically create an Incident when a camera goes offline (debounced by the offline threshold above)', valueType: 'boolean', category: 'automation' },
+  camera_auto_incident_enabled: { value: 'true', description: 'Automatically create an Incident when a camera goes offline (debounced by the offline threshold above)', valueType: 'boolean', category: 'automation' },
   camera_auto_resolve_enabled: { value: 'true', description: 'Automatically resolve an auto-created Incident when the camera comes back online', valueType: 'boolean', category: 'automation' },
   camera_auto_workorder_enabled: { value: 'false', description: 'Automatically create a Work Order when an auto-created Incident escalates to Critical', valueType: 'boolean', category: 'automation' },
   camera_incident_escalate_high_minutes: { value: '15', description: 'Minutes offline before an open auto-created Incident escalates to High priority', valueType: 'number', category: 'automation', min: 1, max: 10080 },

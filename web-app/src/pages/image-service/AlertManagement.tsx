@@ -27,7 +27,7 @@ export default function AlertManagement() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
   const [severity, setSeverity] = useState('')
-  const [resolved, setResolved] = useState('')
+  const [resolved, setResolved] = useState('all')
   const [sortCol, setSortCol] = useState('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -172,7 +172,7 @@ export default function AlertManagement() {
                       </span>
                       <span className={`text-[10px] ${themeConfig.text.secondary}`}>#{(page - 1) * limit + idx + 1}</span>
                     </div>
-                    <p className={`text-sm font-medium ${themeConfig.text.primary} break-words`}>{translateAlertTitle(item.title, t)}</p>
+                    <p className={`text-sm font-medium ${themeConfig.text.primary} break-words`}>{translateAlertTitle(item.title, t)}{item.resolvedAt && <span data-alert-closed className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300">{t('imageService.alerts.closedBadge')}</span>}</p>
                     <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>
                       {item.source ?? '—'} · {formatDateTime(item.createdAt, i18n.language)}
                     </p>
@@ -229,7 +229,7 @@ export default function AlertManagement() {
                         {t(`imageService.alerts.${item.severity}`)}
                       </span>
                     </td>
-                    <td className={`px-4 py-3 text-sm ${themeConfig.text.primary} max-w-[250px] truncate`}>{translateAlertTitle(item.title, t)}</td>
+                    <td className={`px-4 py-3 text-sm ${themeConfig.text.primary} max-w-[320px] truncate`}>{translateAlertTitle(item.title, t)}{item.resolvedAt && <span data-alert-closed className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300">{t('imageService.alerts.closedBadge')}</span>}</td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{item.source ?? '—'}</td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {formatDateTime(item.createdAt, i18n.language)}

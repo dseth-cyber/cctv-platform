@@ -70,7 +70,7 @@ export async function dispatchAlertNotifications(input: {
   }
 }
 
-export async function createAlert(input: CreateAlertInput & { skipDedup?: boolean; bypassCooldown?: boolean }) {
+export async function createAlert(input: CreateAlertInput & { skipDedup?: boolean; bypassCooldown?: boolean; closeOnCreate?: boolean }) {
   const prisma = getPrisma();
 
   if (input.source && !input.skipDedup) {
@@ -94,6 +94,11 @@ export async function createAlert(input: CreateAlertInput & { skipDedup?: boolea
       title: input.title,
       message: input.message,
       details: (input.details ?? {}) as Prisma.InputJsonValue,
+      // A notice that needs no action stays in the history without counting as something to handle.
+      ...(input.closeOnCreate ? (() => {
+        const at = new Date();
+        return { acknowledgedAt: at, acknowledgedBy: 'system', resolvedAt: at, resolvedBy: 'system' };
+      })() : {}),
     },
   });
 
