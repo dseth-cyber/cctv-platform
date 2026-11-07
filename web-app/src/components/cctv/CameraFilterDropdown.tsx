@@ -111,16 +111,17 @@ export function CameraFilterDropdown({ cameras, selectedIds, onlyOffline, onAppl
         type="button"
         onClick={toggleOpen}
         aria-expanded={open}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition ${
+        data-camera-filter-button
+        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm border backdrop-blur-md transition ${
           selectedIds.length > 0 || onlyOffline
-            ? 'bg-cyan-950 border-cyan-500/50 text-cyan-300'
-            : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-slate-100'
+            ? 'bg-cyan-500/15 border-cyan-400/60 text-cyan-100'
+            : 'bg-white/10 border-white/30 text-gray-400'
         }`}
       >
-        <Filter className="w-3.5 h-3.5" />
+        <Filter size={14} className="text-gray-400 shrink-0" />
         <span className="whitespace-nowrap">{summary}</span>
         {onlyOffline && <span className="text-rose-300 whitespace-nowrap">· {t('ui.liveGrid.filter.onlyOffline')}</span>}
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
