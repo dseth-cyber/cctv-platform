@@ -2218,6 +2218,16 @@
   },
   "ui": {
     "cctvDashboard": {
+      "deviceCount": "DVR/NVR 機器",
+      "deviceCountSub": "合計 {{n}} チャンネル",
+      "byDeviceType": "機器タイプ別",
+      "byDeviceBrand": "機器メーカー別",
+      "byCameraType": "カメラタイプ別",
+      "byCameraBrand": "カメラメーカー別",
+      "notSpecified": "未指定",
+      "otherItems": "その他",
+      "openList": "一覧を開く",
+      "noInventoryData": "データがありません",
       "noIpOrRtspUrlConfigured": "カメラに IP または RTSP URL が設定されていません",
       "failedToProbeCamera": "カメラの疎通確認に失敗しました",
       "incidentAcknowledged": "インシデントを確認しました",

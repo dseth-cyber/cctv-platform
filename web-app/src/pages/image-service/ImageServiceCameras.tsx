@@ -130,6 +130,8 @@ export default function ImageServiceCameras() {
   const zoneParam = urlParams.get('zone');
   const inUseOnly = urlParams.get('on') === '1';
   const stateParam = urlParams.get('state');
+  const typeParam = urlParams.get('type');
+  const brandParam = urlParams.get('brand');
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -958,10 +960,15 @@ export default function ImageServiceCameras() {
   const filtered = applyLocationFilter(cameras as any[], siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
     .filter((c: any) => stateParam !== 'problem' || (c.enabled !== false && c.operationalStatus !== 'online'))
     .filter((c: any) => stateParam !== 'off' || c.enabled === false)
+    .filter((c: any) => !typeParam || (typeParam === 'none' ? !c.cameraType : c.cameraType === typeParam))
+    .filter((c: any) => !brandParam || (brandParam === 'none' ? !c.cameraBrand : c.cameraBrand?.toLowerCase() === brandParam.toLowerCase()))
     .filter((c: any) => (!inUseOnly || c.enabled !== false) && (!search.trim() || matchesCameraQuery(searchTextOf(c), search)));
   const { data: devicesForSummary = [] } = useQuery<any[]>({ queryKey: ['cctv-devices'], queryFn: () => imageServiceApi.getDevices() });
   const listStats = useMemo(() => summarizeCameraList(filtered, devicesForSummary), [filtered, devicesForSummary]);
   const locationChip = (() => {
+    const notSpecified = t('ui.cctvDashboard.notSpecified');
+    if (typeParam) return `${t('imageService.cameras.cameraType')}: ${typeParam === 'none' ? notSpecified : cameraTypeOptions.find((o) => o.value === typeParam)?.label ?? typeParam}`;
+    if (brandParam) return `${t('imageService.cameras.cameraBrand')}: ${brandParam === 'none' ? notSpecified : cameraBrandLabel(brandParam)}`;
     if (!siteParam && !zoneParam) return null;
     const anyCamera = (cameras as any[]).find((c) => (siteParam && c.siteId === siteParam) || (zoneParam && c.zoneId === zoneParam));
     const zoneName = zoneParam === NO_LOCATION ? t('ui.location.noZoneLabel') : (cameras as any[]).find((c) => c.zoneId === zoneParam)?.zone?.name;

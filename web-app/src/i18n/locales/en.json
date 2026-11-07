@@ -2221,6 +2221,16 @@
   },
   "ui": {
     "cctvDashboard": {
+      "deviceCount": "DVR/NVR devices",
+      "deviceCountSub": "{{n}} channels in total",
+      "byDeviceType": "By device type",
+      "byDeviceBrand": "By device brand",
+      "byCameraType": "By camera type",
+      "byCameraBrand": "By camera brand",
+      "notSpecified": "Not specified",
+      "otherItems": "Other",
+      "openList": "Open the full list",
+      "noInventoryData": "No data yet",
       "noIpOrRtspUrlConfigured": "No IP or RTSP URL configured for camera",
       "failedToProbeCamera": "Failed to probe camera",
       "incidentAcknowledged": "Incident acknowledged",

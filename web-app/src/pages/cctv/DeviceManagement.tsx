@@ -58,7 +58,8 @@ export default function DeviceManagement() {
   const deviceParam = urlParams.get('device');
   const cameBack = urlParams.get('back') === '1';
   const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>(() => urlParams.get('type') ?? 'all');
+  const brandParam = urlParams.get('brand');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
@@ -115,9 +116,10 @@ export default function DeviceManagement() {
     queryFn: () => imageServiceApi.getDevices(selectedType !== 'all' ? { deviceType: selectedType } : undefined),
   });
 
-  const devices = (allDevices as any[]).filter((d) => (!siteParam || d.siteId === siteParam) && (!zoneParam || d.zoneId === zoneParam) && (!deviceParam || d.id === deviceParam));
+  const devices = (allDevices as any[]).filter((d) => (!brandParam || (brandParam === 'none' ? !d.brand : d.brand?.toLowerCase() === brandParam.toLowerCase())) && (!siteParam || d.siteId === siteParam) && (!zoneParam || d.zoneId === zoneParam) && (!deviceParam || d.id === deviceParam));
   const placeChip = (() => {
     if (deviceParam) return (allDevices as any[]).find((d) => d.id === deviceParam)?.name ?? '—';
+    if (brandParam) return `${t('ui.deviceManagement.vendorBrand')}: ${brandParam === 'none' ? t('ui.cctvDashboard.notSpecified') : brandParam}`;
     if (!siteParam && !zoneParam) return null;
     const site = (sitesForChip as any[]).find((x) => x.id === siteParam);
     const zone = (sitesForChip as any[]).flatMap((x) => x.zones ?? []).find((z: any) => z.id === zoneParam);

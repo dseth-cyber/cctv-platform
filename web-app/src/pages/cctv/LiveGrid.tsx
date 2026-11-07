@@ -874,11 +874,14 @@ export default function LiveGrid() {
                     const cam = cameras.find((c: any) => c.id === cell.cameraId);
                     if (cam) openFocus(cam);
                   }}
-                  className={`relative rounded-lg overflow-hidden bg-slate-900 border transition cursor-pointer group ${
-                    isSelected
-                      ? 'border-cyan-500 ring-2 ring-cyan-500/30'
-                      : 'border-slate-800/80 hover:border-slate-700'
-                  }`}
+                  data-grid-slot={cell.slotIndex}
+                  className={`relative rounded-lg overflow-hidden bg-slate-900 border-2 transition cursor-pointer group ${
+                    !cell.cameraId
+                      ? 'border-slate-800/80 hover:border-slate-700'
+                      : cell.streamUrl && cameras.find((c: any) => c.id === cell.cameraId)?.operationalStatus !== 'offline'
+                        ? 'border-emerald-500'
+                        : 'border-amber-400'
+                  } ${isSelected ? 'ring-2 ring-cyan-400' : ''}`}
                 >
                   {cell.streamUrl && !focus ? (
                     <div className="w-full h-full relative">

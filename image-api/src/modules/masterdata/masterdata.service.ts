@@ -254,6 +254,12 @@ const CAMERA_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
   ['box', names('กล่อง', 'Box', '枪式', 'Box', 'ボックス')],
 ];
 
+// A device brand's name can describe its recorders, which says nothing about its cameras.
+const cameraBrandNames = (b: { nameTh: string | null; nameEn: string | null; nameCn: string | null; nameMm: string | null; nameJp: string | null }) => {
+  const clean = (name: string | null) => name?.replace(/\s*\((?:DVR|XVR)\/NVR\)|\s*\(NetSurveillance\)/, '') ?? null;
+  return { nameTh: clean(b.nameTh), nameEn: clean(b.nameEn), nameCn: clean(b.nameCn), nameMm: clean(b.nameMm), nameJp: clean(b.nameJp) };
+};
+
 const DEVICE_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
   ['dvr', names('DVR (เครื่องบันทึกแบบสาย Coaxial/BNC)', 'DVR (Digital Video Recorder - Coaxial/BNC)', 'DVR（数字录像机 - 同轴/BNC）', 'DVR (Digital Video Recorder - Coaxial/BNC)', 'DVR（デジタルビデオレコーダー - 同軸/BNC）')],
   ['nvr', names('NVR (เครื่องบันทึกแบบเครือข่าย IP/PoE)', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（网络录像机 - IP/PoE）', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（ネットワークビデオレコーダー - IP/PoE）')],
@@ -307,7 +313,7 @@ export async function ensureMasterdataDefaults() {
     const extra = held.map((c) => c.cameraBrand as string).filter((code) => !known.has(code.toLowerCase()));
     await prisma.masterdata.createMany({
       data: [
-        ...brands.map((b, i) => ({ type: 'camera_brand', code: b.code, nameTh: b.nameTh, nameEn: b.nameEn, nameCn: b.nameCn, nameMm: b.nameMm, nameJp: b.nameJp, sortOrder: (i + 1) * 10 })),
+        ...brands.map((b, i) => ({ type: 'camera_brand', code: b.code, ...cameraBrandNames(b), sortOrder: (i + 1) * 10 })),
         ...extra.map((code, i) => ({ type: 'camera_brand', code, ...names(code, code, code, code, code), sortOrder: (brands.length + i + 1) * 10 })),
       ],
     });

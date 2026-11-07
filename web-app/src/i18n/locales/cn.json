@@ -2218,6 +2218,16 @@
   },
   "ui": {
     "cctvDashboard": {
+      "deviceCount": "DVR/NVR 设备",
+      "deviceCountSub": "共 {{n}} 个通道",
+      "byDeviceType": "按设备类型",
+      "byDeviceBrand": "按设备品牌",
+      "byCameraType": "按摄像机类型",
+      "byCameraBrand": "按摄像机品牌",
+      "notSpecified": "未指定",
+      "otherItems": "其他",
+      "openList": "查看完整列表",
+      "noInventoryData": "暂无数据",
       "noIpOrRtspUrlConfigured": "该摄像机未配置 IP 或 RTSP URL",
       "failedToProbeCamera": "摄像机探测失败",
       "incidentAcknowledged": "事件已确认",

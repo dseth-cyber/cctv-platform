@@ -10,6 +10,7 @@ import { Button, Modal } from '@/components/ui';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
 import { useSitesWithZones } from '@/components/cctv/LocationFields';
 import { SpareChannelsModal } from '@/components/cctv/SpareChannelsModal';
+import { InventoryCharts } from '@/components/cctv/InventoryCharts';
 import { spareChannels } from '@/lib/deviceChannels';
 import {
   Activity,
@@ -375,7 +376,15 @@ export default function CctvDashboard() {
       </div>
 
       {/* Places, and room for more cameras */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <button type="button" data-device-card onClick={() => navigate('/cctv/devices')} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-cyan-500/50 transition">
+          <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
+            <span>{t('ui.cctvDashboard.deviceCount')}</span>
+            <Server size={15} className="text-cyan-400" />
+          </div>
+          <div className="text-2xl font-extrabold text-white tracking-tight">{(devices as any[]).length.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400 mt-1">{t('ui.cctvDashboard.deviceCountSub', { n: stats.devices.totalChannels })}</div>
+        </button>
         <button type="button" onClick={() => navigate('/cctv/sites')} className="text-left bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-cyan-500/50 transition">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1.5">
             <span>{t('ui.location.site')}</span>
@@ -408,6 +417,9 @@ export default function CctvDashboard() {
         </button>
       </div>
       {spareOpen && <SpareChannelsModal devices={devices as any[]} onClose={() => setSpareOpen(false)} />}
+
+      {/* What is installed, by type and brand */}
+      <InventoryCharts devices={devices as any[]} cameras={cameras as any[]} />
 
       {/* Main Grid: Sites Breakdown & Live Incident Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

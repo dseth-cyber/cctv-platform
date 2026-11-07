@@ -2224,6 +2224,16 @@
   },
   "ui": {
     "cctvDashboard": {
+      "deviceCount": "อุปกรณ์ DVR/NVR",
+      "deviceCountSub": "รวม {{n}} ช่องสัญญาณ",
+      "byDeviceType": "แยกตามประเภทอุปกรณ์",
+      "byDeviceBrand": "แยกตามยี่ห้ออุปกรณ์",
+      "byCameraType": "แยกตามประเภทกล้อง",
+      "byCameraBrand": "แยกตามยี่ห้อกล้อง",
+      "notSpecified": "ไม่ระบุ",
+      "otherItems": "อื่นๆ",
+      "openList": "ดูรายการทั้งหมด",
+      "noInventoryData": "ยังไม่มีข้อมูล",
       "noIpOrRtspUrlConfigured": "กล้องนี้ยังไม่ได้ตั้งค่า IP หรือ RTSP URL",
       "failedToProbeCamera": "ตรวจสอบการเชื่อมต่อกล้องไม่สำเร็จ",
       "incidentAcknowledged": "รับทราบ Incident แล้ว",

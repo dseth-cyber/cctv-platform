@@ -2213,6 +2213,16 @@
   },
   "ui": {
     "cctvDashboard": {
+      "deviceCount": "DVR/NVR စက်များ",
+      "deviceCountSub": "စုစုပေါင်း ချန်နယ် {{n}} ခု",
+      "byDeviceType": "စက်အမျိုးအစားအလိုက်",
+      "byDeviceBrand": "စက်အမှတ်တံဆိပ်အလိုက်",
+      "byCameraType": "ကင်မရာအမျိုးအစားအလိုက်",
+      "byCameraBrand": "ကင်မရာအမှတ်တံဆိပ်အလိုက်",
+      "notSpecified": "မသတ်မှတ်ရသေး",
+      "otherItems": "အခြား",
+      "openList": "စာရင်းအပြည့်အစုံကို ဖွင့်ရန်",
+      "noInventoryData": "ဒေတာ မရှိသေးပါ",
       "noIpOrRtspUrlConfigured": "ဤကင်မရာတွင် IP သို့မဟုတ် RTSP URL မသတ်မှတ်ရသေးပါ",
       "failedToProbeCamera": "ကင်မရာ စစ်ဆေးမှု မအောင်မြင်ပါ",
       "incidentAcknowledged": "Incident ကို အသိအမှတ်ပြုပြီးပါပြီ",
