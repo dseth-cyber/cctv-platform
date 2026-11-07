@@ -1963,6 +1963,8 @@
         "overview_read": "ดูหน้าแดชบอร์ด",
         "cameras_read": "ดูรายการกล้อง",
         "cameras_create": "เพิ่มกล้องใหม่",
+        "incidents_verify": "ตรวจรับ Incident",
+        "workorders_cost": "ดูค่าใช้จ่ายในใบงาน",
         "cameras_update": "แก้ไขกล้อง",
         "cameras_delete": "ลบกล้อง (Deactivate)",
         "camera-template_read": "ดูเทมเพลตกล้อง",

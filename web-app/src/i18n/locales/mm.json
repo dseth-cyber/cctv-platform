@@ -1697,6 +1697,8 @@
         "overview_read": "ဒက်ရှ်ဘုတ်ကြည့်ရှုရန်",
         "cameras_read": "ကင်မရာများကြည့်ရှုရန်",
         "cameras_create": "ကင်မရာအသစ်ဖန်တီးရန်",
+        "incidents_verify": "Verify Incidents",
+        "workorders_cost": "View Work Order Costs",
         "cameras_update": "ကင်မရာပြင်ဆင်ရန်",
         "cameras_delete": "ကင်မရာဖျက်ရန်",
         "camera-template_read": "ကင်မရာတမ်းပလိတ် ကြည့်ရန်",

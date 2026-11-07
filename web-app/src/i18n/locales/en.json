@@ -1960,6 +1960,8 @@
         "overview_read": "View Dashboard",
         "cameras_read": "View Cameras",
         "cameras_create": "Create Camera",
+        "incidents_verify": "Verify Incidents",
+        "workorders_cost": "View Work Order Costs",
         "cameras_update": "Update Camera",
         "cameras_delete": "Delete/Deactivate Camera",
         "camera-template_read": "View Camera Templates",

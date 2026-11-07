@@ -1702,6 +1702,8 @@
         "overview_read": "查看仪表板",
         "cameras_read": "查看摄像头",
         "cameras_create": "创建摄像头",
+        "incidents_verify": "Verify Incidents",
+        "workorders_cost": "View Work Order Costs",
         "cameras_update": "更新摄像头",
         "cameras_delete": "删除/停用摄像头",
         "camera-template_read": "查看摄像头模板",

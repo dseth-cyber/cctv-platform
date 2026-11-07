@@ -1702,6 +1702,8 @@
         "overview_read": "ダッシュボードを表示",
         "cameras_read": "カメラを表示",
         "cameras_create": "カメラを作成",
+        "incidents_verify": "Verify Incidents",
+        "workorders_cost": "View Work Order Costs",
         "cameras_update": "カメラを更新",
         "cameras_delete": "カメラを削除/無効化",
         "camera-template_read": "カメラテンプレートを表示",
