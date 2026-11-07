@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, ImageIcon, Radio } from 'lucide-react';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { chooseLiveCameras } from '@/lib/liveAllocation';
+import { camerasToStream, chooseLiveCameras } from '@/lib/liveAllocation';
 import { favoritesFirst } from '@/lib/cameraFilter';
 import { useCameraFavorites } from '@/hooks/useCameraFavorites';
 import { CameraQuickActions } from '@/components/cctv/CameraQuickActions';
@@ -178,12 +178,9 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
   const liveRef = useRef(liveIds);
   liveRef.current = liveIds;
   useEffect(() => {
-    if (!pageVisible) {
-      setLiveIds(new Set());
-      return;
-    }
     const atLimit = limitUntil > Date.now();
     const next = chooseLiveCameras({
+      cameras: orderKey ? orderKey.split(',') : [],
       visible,
       pinned,
       favorites,
@@ -194,14 +191,17 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
       quota: atLimit ? Math.min(quota, liveRef.current.size) : quota,
     });
     setLiveIds(next);
-  }, [visible, pinned, favorites, unavailableKey, released, quota, pageVisible, limitUntil]);
+  }, [orderKey, visible, pinned, favorites, unavailableKey, released, quota, limitUntil]);
 
-  // Stream URLs for what just went live
+  // Stream URLs for what is live and on screen. Scrolling away closes the stream, not the camera's place.
+  const streaming = camerasToStream(liveIds, visible, pageVisible);
+  const streamingKey = streaming.join(',');
   const streamsRef = useRef(streams);
   streamsRef.current = streams;
   useEffect(() => {
     let cancelled = false;
-    for (const id of liveIds) {
+    const wantedStreams = new Set(streamingKey ? streamingKey.split(',') : []);
+    for (const id of wantedStreams) {
       if (streamsRef.current[id]) continue;
       imageServiceApi.getCameraStream(id, { profile: 'sub' }).then(
         (data: any) => {
@@ -219,7 +219,7 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
       );
     }
     setStreams((prev) => {
-      const stale = Object.keys(prev).filter((id) => !liveIds.has(id));
+      const stale = Object.keys(prev).filter((id) => !wantedStreams.has(id));
       if (stale.length === 0) return prev;
       const next = { ...prev };
       stale.forEach((id) => delete next[id]);
@@ -228,7 +228,7 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
     return () => {
       cancelled = true;
     };
-  }, [liveIds]);
+  }, [streamingKey]);
 
   // Still images: tell the server what is on screen, then load whatever is newer than what we hold
   const loaded = useRef<Record<string, number>>({});
@@ -290,6 +290,8 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
 
   const liveFull = liveIds.size >= quota;
   const handleOpen = useCallback((id: string) => {
+    // Already live, and reconnecting after a scroll.
+    if (liveRef.current.has(id)) return;
     if (liveFull) {
       setWaiting(id);
       return;
@@ -317,12 +319,15 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
     setWaiting(null);
   }, [waiting]);
   const stills = ordered.length - liveIds.size;
+  const onScreen = new Set(visible);
+  const liveOffScreen = ordered.filter((c) => liveIds.has(c.id) && !onScreen.has(c.id));
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
       <div className="px-3 py-1.5 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] shrink-0">
         <span className="flex items-center gap-1 text-emerald-400 font-semibold">
           <Radio className="w-3.5 h-3.5" /> {t('ui.liveGrid.overview.liveCount', { n: liveIds.size, quota })}
         </span>
+        {liveOffScreen.length > 0 && <span data-live-off-screen={liveOffScreen.length} className="text-emerald-300">{t('ui.liveGrid.overview.liveOffScreen', { n: liveOffScreen.length })}</span>}
         <span className="text-slate-400">{t('ui.liveGrid.overview.stillCount', { n: stills })}</span>
         {refreshSeconds && <span className="text-slate-500">{t('ui.liveGrid.overview.refreshEvery', { n: refreshSeconds })}</span>}
         <span className="text-slate-500">{t('ui.liveGrid.overview.hint')}</span>
@@ -337,6 +342,17 @@ export function LiveOverview({ cameras, onFocusCamera }: { cameras: any[]; onFoc
           <button type="button" onClick={() => setWaiting(null)} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-100">
             {t('ui.liveGrid.overview.keepCurrentLive')}
           </button>
+          {/* The camera to cancel may be anywhere on the page. */}
+          {liveOffScreen.length > 0 && (
+            <div data-live-off-screen-list className="w-full flex flex-wrap items-center gap-1.5">
+              <span className="text-cyan-300">{t('ui.liveGrid.overview.cancelOffScreen')}</span>
+              {liveOffScreen.map((camera) => (
+                <button key={camera.id} type="button" data-cancel-live={camera.id} onClick={() => handleClose(camera.id)} className="px-2 py-0.5 rounded bg-emerald-900 hover:bg-rose-900 border border-emerald-600 text-slate-100">
+                  {camera.name} ✕
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-2">

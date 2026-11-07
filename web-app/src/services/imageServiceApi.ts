@@ -460,6 +460,8 @@ export function createImageServiceApi(api: any) {
       api.get(`${BASE}/recordings/clips`, { params }).then((r: any) => r.data),
     toggleSegmentLegalHold: (id: string, legalHold: boolean) =>
       api.patch(`${BASE}/recordings/segments/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
+    cancelRecordingClip: (id: string) =>
+      api.delete(`${BASE}/recordings/clips/${id}`).then((r: any) => r.data),
     toggleClipLegalHold: (id: string, legalHold: boolean) =>
       api.patch(`${BASE}/recordings/clips/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     seedDevRecordings: (cameraId: string, date?: string) =>

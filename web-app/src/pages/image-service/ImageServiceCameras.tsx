@@ -9,7 +9,8 @@ import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { LocationFields } from '@/components/cctv/LocationFields';
 import { LocationStatsLine } from '@/components/cctv/LocationStatsRow';
 import { summarizeCameraList } from '@/lib/locationSummary';
-import { applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
+import { applyCameraSelection, applyLocationFilter, cameraSearchText, matchesCameraQuery, NO_LOCATION } from '@/lib/cameraFilter';
+import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
 import { useSearchParams } from 'react-router-dom';
 import { BulkCameraEditModal } from '@/components/cctv/BulkCameraEditModal';
 import { DeletionImpactNote, useDeletionImpact } from '@/components/cctv/DeletionImpactNote';
@@ -134,10 +135,11 @@ export default function ImageServiceCameras() {
   const brandParam = urlParams.get('brand');
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [cameraPick, setCameraPick] = useState<{ ids: string[]; onlyOffline: boolean }>({ ids: [], onlyOffline: false });
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, cameraPick]);
   const [sortCol, setSortCol] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<{ open: boolean; item?: any | null }>({ open: false });
@@ -957,7 +959,8 @@ export default function ImageServiceCameras() {
     c.lastPolledAt ? formatDateTime(c.lastPolledAt, i18n.language) : '',
     c.createdAt ? formatDateTime(c.createdAt, i18n.language) : '',
   ].filter(Boolean).join(' ').normalize('NFC').toLocaleLowerCase();
-  const filtered = applyLocationFilter(cameras as any[], siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
+  const filterableCameras = inUseOnly ? (cameras as any[]).filter((c: any) => c.enabled !== false) : (cameras as any[]);
+  const filtered = applyLocationFilter(applyCameraSelection(cameras as any[], cameraPick.ids, cameraPick.onlyOffline), siteParam ? [siteParam] : [], zoneParam ? [zoneParam] : [])
     .filter((c: any) => stateParam !== 'problem' || (c.enabled !== false && c.operationalStatus !== 'online'))
     .filter((c: any) => stateParam !== 'off' || c.enabled === false)
     .filter((c: any) => !typeParam || (typeParam === 'none' ? !c.cameraType : c.cameraType === typeParam))
@@ -1088,6 +1091,9 @@ export default function ImageServiceCameras() {
               }
             }}
           />
+          <div data-camera-pick>
+            <CameraFilterDropdown cameras={filterableCameras} selectedIds={cameraPick.ids} onlyOffline={cameraPick.onlyOffline} onApply={(ids, onlyOffline) => setCameraPick({ ids, onlyOffline })} />
+          </div>
           <div className="relative">
             <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${themeConfig.text.secondary}`} />
             <input value={search} onChange={e => setSearch(e.target.value)}

@@ -5,6 +5,8 @@ import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
+import { ClipCancelError, cancelClip } from './clip-cancel.js';
+import { createAuditLog } from '../audit/audit.service.js';
 
 export async function getTimelineHandler(request: FastifyRequest, reply: FastifyReply) {
   const { cameraId, date } = request.query as { cameraId: string; date?: string };
@@ -95,6 +97,28 @@ export async function downloadClipByLinkHandler(request: FastifyRequest, reply: 
   const username = RecordingsService.verifyDownloadToken(filename, dl ?? '');
   if (!username) return reply.status(403).send({ message: 'Download link is invalid or expired' });
   return downloadClipHandler(request, reply);
+}
+
+/** The person changed their mind about a clip still being made. Finished clips are evidence and stay. */
+export async function cancelClipHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  try {
+    const clip = await cancelClip(id, { username: user?.username, role: user?.role });
+    await createAuditLog({
+      userId: user?.id,
+      action: 'clip_export_cancelled',
+      entity: 'recording_clip',
+      entityId: id,
+      description: `Clip export "${clip.title}" cancelled by ${user?.username ?? 'unknown'}`,
+      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, wasStatus: clip.status },
+      ipAddress: request.ip,
+    });
+    return reply.status(204).send();
+  } catch (err) {
+    if (err instanceof ClipCancelError) return reply.status(err.statusCode).send({ message: err.message, details: { code: err.code } });
+    throw err;
+  }
 }
 
 export async function getClipsHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -237,6 +261,11 @@ export async function recordingsRoutes(app: FastifyInstance) {
     '/clips',
     { preHandler: [app.authenticate, requirePermission('cameras:read')] },
     getClipsHandler,
+  );
+  app.delete(
+    '/clips/:id',
+    { preHandler: [app.authenticate, requirePermission('cameras:create')] },
+    cancelClipHandler,
   );
   app.get(
     '/clips/:id',

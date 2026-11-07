@@ -5,7 +5,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
 import { ValidationError } from '../../lib/errors.js';
-import { defaultExportQueue, findGaps } from './export-queue.js';
+import { defaultExportQueue, findGaps, ClipCancelledError } from './export-queue.js';
 import { restoreRecordingFromQuarantine } from '../retention-sweeper/retention-sweeper.service.js';
 
 export interface RecordingCoverage {
@@ -414,6 +414,7 @@ export class RecordingsService {
 
     if (options?.asyncProcess) {
       defaultExportQueue.enqueue(exportJob).catch((err) => {
+        if (err instanceof ClipCancelledError) return;
         logger.error({ err, clipId: initialClip.id }, 'Background export queue job failed');
       });
       return {

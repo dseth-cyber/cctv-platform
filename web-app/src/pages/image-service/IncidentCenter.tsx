@@ -185,6 +185,7 @@ export default function IncidentCenter() {
   const [filterReason, setFilterReason] = useState('')
   const [filterRootCause, setFilterRootCause] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [closingId, setClosingId] = useState<string | null>(null)
   const [filterPriority, setFilterPriority] = useState('')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
@@ -463,6 +464,9 @@ export default function IncidentCenter() {
                             </div>
                           </td>
                           <td className="px-3 py-2 text-center whitespace-nowrap">
+                            {i.status === 'open' && hasPermission(user, 'cameras:update') && (
+                              <button data-close-incident={i.id} onClick={(e) => { e.stopPropagation(); setClosingId(i.id) }} className="mr-2 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25">{ic('closeIncident')}</button>
+                            )}
                             <button onClick={(e) => { e.stopPropagation(); setDetailId(i.id) }} className="text-xs text-cyan-400 hover:underline">{t('common.view', 'View')}</button>
                             {hasPermission(user, 'cameras:delete') && (
                               <button
@@ -577,6 +581,8 @@ export default function IncidentCenter() {
         />
       )}
 
+      {closingId && <CloseIncidentDialog incidentId={closingId} onClose={() => setClosingId(null)} ic={ic} />}
+
       {clearDialogOpen && (
         <Modal isOpen={clearDialogOpen} onClose={() => { setClearDialogOpen(false); setClearPassword('') }} title={t('imageService.incidentCenter.clearIncidentsTitle', 'ยืนยันล้างประวัติ Incident ทั้งหมด')}>
           <div className="space-y-4 p-1 max-w-md">
@@ -655,6 +661,91 @@ export default function IncidentCenter() {
 
 
 /* ---------------- Detail Modal ---------------- */
+/** Closes an incident where it is being looked at, with the same questions as the camera page. */
+function CloseIncidentDialog({ incidentId, onClose, ic }: { incidentId: string; onClose: () => void; ic: (key: string, options?: any) => string }) {
+  const { t, i18n } = useTranslation()
+  const { themeConfig } = useTheme()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState({ resolution: '', rootCause: '', correctiveAction: '', preventiveAction: '' })
+  const [busy, setBusy] = useState(false)
+  const { data: incident } = useQuery({
+    queryKey: ['incident-detail', incidentId],
+    queryFn: () => imageServiceApi.getIncidentDetail(incidentId),
+    staleTime: 0,
+  })
+  const { data: options } = useQuery({
+    queryKey: ['incident-options'],
+    queryFn: () => imageServiceApi.getIncidentOptions(),
+    staleTime: 300000,
+  })
+  const camera = incident?.camera
+  const restoresCamera = !!camera && camera.status !== 'active' && camera.status === incident.toStatus
+  const stillOffline = !restoresCamera && camera?.operationalStatus === 'offline'
+  const fieldClass = `w-full px-3 py-2 rounded-md text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} resize-none`
+  const labelClass = `block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`
+
+  const confirm = async () => {
+    setBusy(true)
+    try {
+      await imageServiceApi.resolveIncident(incidentId, {
+        resolution: form.resolution || undefined,
+        rootCause: form.rootCause || undefined,
+        correctiveAction: form.correctiveAction || undefined,
+        preventiveAction: form.preventiveAction || undefined,
+      })
+      toast.success(t('imageService.incidents.incidentResolved'))
+      onClose()
+    } catch (err: any) {
+      if (!err?._handled) toast.error(err?.response?.status === 409 ? ic('closeIncidentAlreadyClosed') : t('common.error'))
+    } finally {
+      setBusy(false)
+      for (const queryKey of [['incidents-search'], ['incident-detail', incidentId], ['sidebar-open-incidents-count'], ['cameras-list'], ['cctv-cameras']]) {
+        queryClient.invalidateQueries({ queryKey })
+      }
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title={ic('closeIncidentTitle', { number: incident?.incidentNumber ?? '' })}>
+      <div data-close-incident-dialog className="space-y-4">
+        <p className={`text-sm font-semibold ${themeConfig.text.primary}`}>{camera?.name}</p>
+        {restoresCamera && <p className="text-xs text-cyan-300">{ic('closeIncidentRestores')}</p>}
+        {stillOffline && <p className="text-xs text-amber-300">{ic('closeIncidentStillOffline')}</p>}
+        <div>
+          <p className={labelClass}>{t('imageService.incidents.resolution')}</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(options?.resolutions ?? []).map((r: any) => (
+              <button key={r.code} type="button" aria-pressed={form.resolution === r.code}
+                onClick={() => setForm((p) => ({ ...p, resolution: p.resolution === r.code ? '' : r.code }))}
+                className={`px-3 py-2 rounded-lg text-xs text-left border transition ${form.resolution === r.code ? 'border-green-500 bg-green-500/15 text-green-300' : `${themeConfig.inputBorder} ${themeConfig.text.primary}`}`}>
+                {getLocalizedValue(r, i18n.language)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className={labelClass}>{t('imageService.incidents.rootCause')}</p>
+          <SearchableSelect value={form.rootCause} onChange={(v) => setForm((p) => ({ ...p, rootCause: v }))} placeholder={t('imageService.incidents.rootCause')}
+            options={(options?.rootCauses ?? []).map((r: any) => ({ value: r.code, label: getLocalizedValue(r, i18n.language) }))} />
+        </div>
+        <div>
+          <label className={labelClass}>{t('imageService.incidents.correctiveAction')}</label>
+          <textarea rows={2} value={form.correctiveAction} onChange={(e) => setForm((p) => ({ ...p, correctiveAction: e.target.value }))} className={fieldClass} />
+        </div>
+        <div>
+          <label className={labelClass}>{t('imageService.incidents.preventiveAction')}</label>
+          <textarea rows={2} value={form.preventiveAction} onChange={(e) => setForm((p) => ({ ...p, preventiveAction: e.target.value }))} className={fieldClass} />
+        </div>
+        <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <button type="button" onClick={onClose} className={`px-3 py-1.5 rounded-lg text-sm ${themeConfig.text.secondary} hover:bg-white/5`}>{t('common.cancel')}</button>
+          <button type="button" data-close-incident-confirm disabled={busy || !incident} onClick={confirm} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50">{ic('closeIncident')}</button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, labelRootCause, labelResolution, ic }: any) {
   const { i18n, t } = useTranslation()
   const { themeConfig } = useTheme()
@@ -664,6 +755,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
   const canUpdateWorkflow = hasPermission(user, 'cameras:update')
   const sc = (k: string) => t(`imageService.sopChecklists.${k}`)
   const [woBusy, setWoBusy] = useState(false)
+  const [closing, setClosing] = useState(false)
   const [localWo, setLocalWo] = useState<{ number: string | null; status: string | null } | null>(null)
 
   const { data: incident, isLoading, refetch } = useQuery({
@@ -842,6 +934,8 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
   })()
 
   return (
+    <>
+    {closing && <CloseIncidentDialog incidentId={incidentId} onClose={() => setClosing(false)} ic={ic} />}
     <Modal isOpen onClose={onClose} size="4xl" title={incident?.incidentNumber || ic('colIncident')}>
       {isLoading || !incident ? (
         <TableSkeleton rows={6} cols={2} />
@@ -852,6 +946,9 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             <span className={`text-lg font-mono font-bold ${themeConfig.text.primary}`}>{incident.incidentNumber}</span>
             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[incident.status] || 'bg-gray-500/20 text-gray-400'}`}>{incident.status === 'open' ? ic('open') : ic('resolved')}</span>
             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium capitalize ${PRIORITY_COLORS[incident.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(incident.priority, t)}</span>
+            {incident.status === 'open' && canUpdateWorkflow && (
+              <button type="button" data-close-incident-detail onClick={() => setClosing(true)} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">{ic('closeIncident')}</button>
+            )}
           </div>
 
           {/* CCTV Operations Quick Bar */}
@@ -1133,5 +1230,6 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
         </div>
       )}
     </Modal>
+    </>
   )
 }

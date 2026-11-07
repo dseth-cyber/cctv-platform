@@ -1820,6 +1820,11 @@
       "noRepairs": "无维修"
     },
     "incidentCenter": {
+      "closeIncident": "关闭",
+      "closeIncidentTitle": "关闭 {{number}}",
+      "closeIncidentRestores": "关闭后摄像机状态将恢复为“启用”。",
+      "closeIncidentStillOffline": "摄像机仍离线。可以关闭；如果摄像机恢复后再次掉线，将打开新的事件。",
+      "closeIncidentAlreadyClosed": "此事件已关闭",
       "periodAll": "全部",
       "title": "故障与事件中心",
       "subtitle": "管理和搜索所有摄像头故障事件",
@@ -2624,6 +2629,11 @@
       "caution": "注意：DVR 用于模拟摄像机，NVR 用于 IP 摄像机。移动前请现场检查"
     },
     "cctvPlayback": {
+      "clipCancelError": {"NOT_FOUND": "此任务已不存在", "ALREADY_FINISHED": "此剪辑已完成，无法取消", "LEGAL_HOLD": "请先解除此剪辑的法律保留", "NOT_YOURS": "只有发起人或管理员可以取消"},
+      "clipCancel": "取消",
+      "clipCancelled": "已取消剪辑导出",
+      "clipCancelFailed": "无法取消剪辑导出",
+      "clipCancelConfirm": "取消剪辑导出“{{title}}”？已生成的内容将被删除。",
       "waitingForPicture": "正在等待录像机的画面，最多可能需要 20 秒",
       "liveNow": "实时",
       "liveHint": "在此页面查看此摄像机的实时画面",
@@ -2972,6 +2982,8 @@
         "groups": "摄像机分组"
       },
       "overview": {
+        "liveOffScreen": "{{n}} 路在屏幕外（仍占用名额）",
+        "cancelOffScreen": "屏幕外的实时摄像机，点击取消：",
         "view": "总览",
         "viewHint": "查看所有摄像机：配额内为实时画面，其余为静态图",
         "liveFullPick": "实时画面已满 {{quota}} 路：点击要取消的摄像机上的实时标记，以显示 {{name}}",

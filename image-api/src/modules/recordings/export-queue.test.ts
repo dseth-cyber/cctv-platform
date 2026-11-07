@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExportConcurrencyQueue, ExportJob } from './export-queue.js';
+import { ClipCancelledError, ExportConcurrencyQueue, ExportJob } from './export-queue.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -166,6 +166,60 @@ describe('FFmpeg Clip Export Concurrency Queue & Stream Copy Guard [ENH-02]', ()
       );
       expect(result.status).toBe('COMPLETED');
       expect(fs.existsSync(`${output}.partial`)).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('takes a waiting job out of the queue without ever starting it', async () => {
+    const queue = new ExportConcurrencyQueue(1);
+    let release = () => {};
+    const execute = vi.spyOn(queue, 'executeJob').mockImplementation(async (job: ExportJob) => {
+      await new Promise<void>((res) => {
+        release = res;
+      });
+      return { id: job.clipId };
+    });
+    const first = queue.enqueue(makeJob('clip-running', '/tmp/a.mp4'));
+    const second = queue.enqueue(makeJob('clip-waiting', '/tmp/b.mp4'));
+
+    await expect(queue.cancel('clip-waiting')).resolves.toBe(true);
+    await expect(second).rejects.toBeInstanceOf(ClipCancelledError);
+    release();
+    await first;
+    expect(execute).toHaveBeenCalledTimes(1);
+    await expect(queue.cancel('clip-unknown')).resolves.toBe(false);
+  });
+
+  it('stops a running export: no file, no partial file, and neither COMPLETED nor FAILED is written', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cctv-export-'));
+    const segment = path.join(dir, 'seg-1.mp4');
+    fs.writeFileSync(segment, 'x');
+    const output = path.join(dir, 'clip.mp4');
+    mockPrisma.cameraRecording.findMany.mockResolvedValueOnce([segmentRow(segment)]);
+
+    const queue = new ExportConcurrencyQueue(1);
+    let started = () => {};
+    const isStarted = new Promise<void>((res) => {
+      started = res;
+    });
+    vi.spyOn(queue as any, 'runFfmpeg').mockImplementation((args: any, _timeout: any, signal: any) => new Promise<void>((_res, rej) => {
+      fs.writeFileSync(args[args.length - 1], 'half-written');
+      signal.addEventListener('abort', () => rej(new Error('ffmpeg failed: killed')));
+      started();
+    }));
+
+    try {
+      const job = queue.enqueue(makeJob('clip-stop', output));
+      const outcome = expect(job).rejects.toBeInstanceOf(ClipCancelledError);
+      await isStarted;
+      await expect(queue.cancel('clip-stop')).resolves.toBe(true);
+      await outcome;
+
+      expect(fs.existsSync(output)).toBe(false);
+      expect(fs.existsSync(`${output}.partial`)).toBe(false);
+      const written = mockPrisma.recordingClip.update.mock.calls.map(([call]: any) => call.data.status);
+      expect(written).toEqual(['PROCESSING']);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

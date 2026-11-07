@@ -182,7 +182,7 @@
       "estimatedFinish": "คาดว่าเสร็จ",
       "resolution": "การแก้ไข",
       "resolutionTitle": "บันทึกการแก้ไข",
-      "correctiveAction": "การแก้ไข",
+      "correctiveAction": "รายละเอียดการแก้ไข",
       "preventiveAction": "การแก้ไขเชิงป้องกัน",
       "incidentCreated": "สร้าง Incident สำเร็จ",
       "incidentResolved": "แก้ไข Incident สำเร็จ",
@@ -596,6 +596,11 @@
       "cameraGroups": "กลุ่มกล้อง"
     },
     "incidentCenter": {
+      "closeIncident": "ปิดงาน",
+      "closeIncidentTitle": "ปิดงาน {{number}}",
+      "closeIncidentRestores": "เมื่อปิดงาน สถานะกล้องจะกลับเป็น \"ใช้งาน\" โดยอัตโนมัติ",
+      "closeIncidentStillOffline": "กล้องยังออฟไลน์อยู่ ปิดงานได้ แต่ระบบจะเปิด Incident ใหม่เมื่อกล้องกลับมาแล้วหลุดอีกครั้ง",
+      "closeIncidentAlreadyClosed": "Incident นี้ถูกปิดไปแล้ว",
       "title": "ศูนย์จัดการ Incident",
       "subtitle": "จัดการและค้นหา Incident กล้องทั้งหมด",
       "tabList": "รายการ Incident",
@@ -2630,6 +2635,11 @@
       "caution": "ข้อควรระวัง: DVR ใช้กับกล้องอนาล็อก NVR ใช้กับกล้อง IP ตรวจสอบหน้างานก่อนย้าย"
     },
     "cctvPlayback": {
+      "clipCancelError": {"NOT_FOUND": "ไม่พบงานนี้แล้ว", "ALREADY_FINISHED": "คลิปนี้ทำเสร็จแล้ว ยกเลิกไม่ได้", "LEGAL_HOLD": "คลิปนี้ถูก Legal Hold อยู่ ต้องปลดก่อน", "NOT_YOURS": "ยกเลิกได้เฉพาะผู้ที่สั่งตัดคลิปหรือผู้ดูแลระบบ"},
+      "clipCancel": "ยกเลิก",
+      "clipCancelled": "ยกเลิกงานตัดคลิปแล้ว",
+      "clipCancelFailed": "ยกเลิกงานตัดคลิปไม่สำเร็จ",
+      "clipCancelConfirm": "ยกเลิกงานตัดคลิป \"{{title}}\"? ไฟล์ที่ทำไปแล้วจะถูกลบ",
       "waitingForPicture": "กำลังรอภาพจากเครื่องบันทึก อาจใช้เวลาถึง 20 วินาที",
       "liveNow": "ดูสด",
       "liveHint": "ดูภาพสดของกล้องนี้ในหน้านี้",
@@ -2978,6 +2988,8 @@
         "groups": "กลุ่มกล้อง"
       },
       "overview": {
+        "liveOffScreen": "อยู่นอกจอ {{n}} ตัว (ยังถือโควต้าไว้)",
+        "cancelOffScreen": "กล้องสดนอกจอ กดเพื่อยกเลิก:",
         "view": "ภาพรวม",
         "viewHint": "เห็นกล้องทั้งหมด: ภาพสดเท่าที่โควตาให้ ที่เหลือเป็นภาพนิ่ง",
         "liveFullPick": "กล้องสดเต็ม {{quota}} ตัว: กดป้าย สด บนกล้องที่จะยกเลิก เพื่อแสดง {{name}} แทน",

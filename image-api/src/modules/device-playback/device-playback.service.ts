@@ -78,6 +78,7 @@ const CLIP_FILE_PREFIX = 'dvrclip_';
 
 const sessions = new Map<string, Session>();
 const runningClips = new Map<string, string>(); // clip id -> device id
+const clipJobs = new Map<string, { controller: AbortController; finished: Promise<void> }>();
 const timelineCache = new Map<string, { at: number; value: unknown }>();
 const loginBlockedUntil = new Map<string, number>();
 let sweeper: NodeJS.Timeout | null = null;
@@ -359,9 +360,9 @@ export function stopDevicePlayback() {
   sweeper = null;
 }
 
-function run(cmd: string, args: string[], timeoutMs: number): Promise<{ failed: boolean; out: string }> {
+function run(cmd: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<{ failed: boolean; out: string }> {
   return new Promise((resolve) => {
-    execFile(cmd, args, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => resolve({ failed: !!err, out: String(stdout) }));
+    execFile(cmd, args, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, signal }, (err, stdout) => resolve({ failed: !!err, out: String(stdout) }));
   });
 }
 
@@ -425,12 +426,23 @@ export async function startDeviceClip(
       },
     });
 
-    void copyClip({ target, clipId, input, covered, codec, clock, filename, clipsDir, username })
+    const controller = new AbortController();
+    const { signal } = controller;
+    const finished = copyClip({ target, clipId, input, covered, codec, clock, filename, clipsDir, username, signal })
       .catch(async (err) => {
+        if (signal.aborted) {
+          fs.rmSync(path.join(clipsDir, filename), { force: true });
+          return;
+        }
         logger.warn({ clipId, reason: err instanceof Error ? err.message : 'failed' }, 'Clip from the recorder failed');
         await getPrisma().recordingClip.update({ where: { id: clipId }, data: { status: 'FAILED', description: err instanceof Error ? err.message : 'Export failed' } });
       })
-      .finally(() => runningClips.delete(clipId));
+      .catch((err) => logger.warn({ clipId, reason: err instanceof Error ? err.message : 'failed' }, 'Could not record the outcome of a clip'))
+      .finally(() => {
+        runningClips.delete(clipId);
+        clipJobs.delete(clipId);
+      });
+    clipJobs.set(clipId, { controller, finished });
 
     return { ...clip, fileSizeBytes: null };
   } catch (err) {
@@ -439,7 +451,17 @@ export async function startDeviceClip(
   }
 }
 
+/** Stops a copy and waits until it has cleaned up, which also gives the recorder its slot back. False when none is running. */
+export async function cancelDeviceClip(clipId: string): Promise<boolean> {
+  const job = clipJobs.get(clipId);
+  if (!job) return false;
+  job.controller.abort();
+  await job.finished;
+  return true;
+}
+
 async function copyClip(job: {
+  signal: AbortSignal;
   target: Target;
   clipId: string;
   input: { start: string; end: string };
@@ -461,13 +483,16 @@ async function copyClip(job: {
     '-y', '-hide_banner', '-loglevel', 'quiet', '-rtsp_transport', 'tcp', '-timeout', '15000000',
     '-i', source, '-t', String(seconds), '-c:v', 'copy', ...(isHevc(job.codec) ? ['-tag:v', 'hvc1'] : []), '-c:a', 'aac',
     '-movflags', '+faststart', '-f', 'mp4', partial,
-  ], (seconds + 120) * 1000);
+  ], (seconds + 120) * 1000, job.signal);
 
   try {
+    // A stopped ffmpeg leaves a playable partial file: that is not the clip the person asked for.
+    job.signal.throwIfAborted();
     if (result.failed && !(fs.existsSync(partial) && fs.statSync(partial).size > 0)) {
       throw new Error('The recorder did not deliver this recording');
     }
-    const probe = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', partial], 30_000);
+    const probe = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', partial], 30_000, job.signal);
+    job.signal.throwIfAborted();
     const measured = Number(probe.out.trim());
     if (probe.failed || !Number.isFinite(measured) || measured <= 0) throw new Error('The copied file is not playable');
     fs.renameSync(partial, fullPath);
@@ -476,11 +501,12 @@ async function copyClip(job: {
   }
 
   const hash = crypto.createHash('sha256');
-  await pipeline(fs.createReadStream(fullPath), hash);
+  await pipeline(fs.createReadStream(fullPath), hash, { signal: job.signal });
   const sha256Hash = hash.digest('hex');
   const size = fs.statSync(fullPath).size;
-  const probe = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', fullPath], 30_000);
+  const probe = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', fullPath], 30_000, job.signal);
   const measuredSeconds = Number(probe.out.trim());
+  job.signal.throwIfAborted();
 
   await getPrisma().recordingClip.update({
     where: { id: job.clipId },

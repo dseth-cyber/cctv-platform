@@ -23,6 +23,14 @@ export interface ExportJob {
   exportedBy: string;
 }
 
+/** The person changed their mind. Not a failure: nothing is recorded against the clip. */
+export class ClipCancelledError extends Error {
+  constructor() {
+    super('Clip export cancelled');
+    this.name = 'ClipCancelledError';
+  }
+}
+
 /**
  * In-process concurrency queue for FFmpeg clip exports [ENH-02].
  * Limits concurrent ffmpeg tasks to MAX_CONCURRENT_EXPORTS (default 2)
@@ -36,6 +44,7 @@ export class ExportConcurrencyQueue {
     resolve: (res: any) => void;
     reject: (err: any) => void;
   }> = [];
+  private runningJobs = new Map<string, { controller: AbortController; finished: Promise<void> }>();
 
   constructor(maxConcurrent = 2) {
     this.maxConcurrent = maxConcurrent;
@@ -56,6 +65,21 @@ export class ExportConcurrencyQueue {
     return 'UNKNOWN';
   }
 
+  /** Takes a job out of the queue, or stops it and waits until it has cleaned up. False when this queue does not hold it. */
+  async cancel(clipId: string): Promise<boolean> {
+    const index = this.queue.findIndex((item) => item.job.clipId === clipId);
+    if (index !== -1) {
+      const [item] = this.queue.splice(index, 1);
+      item.reject(new ClipCancelledError());
+      return true;
+    }
+    const running = this.runningJobs.get(clipId);
+    if (!running) return false;
+    running.controller.abort();
+    await running.finished;
+    return true;
+  }
+
   async enqueue(job: ExportJob): Promise<any> {
     return new Promise((resolve, reject) => {
       this.queue.push({ job, resolve, reject });
@@ -72,18 +96,26 @@ export class ExportConcurrencyQueue {
     if (!item) return;
 
     this.running++;
+    const controller = new AbortController();
+    let markFinished = () => {};
+    const finished = new Promise<void>((resolve) => {
+      markFinished = resolve;
+    });
+    this.runningJobs.set(item.job.clipId, { controller, finished });
     try {
-      const result = await this.executeJob(item.job);
+      const result = await this.executeJob(item.job, controller.signal);
       item.resolve(result);
     } catch (err) {
       item.reject(err);
     } finally {
+      this.runningJobs.delete(item.job.clipId);
+      markFinished();
       this.running--;
       this.processNext();
     }
   }
 
-  async executeJob(job: ExportJob): Promise<any> {
+  async executeJob(job: ExportJob, signal?: AbortSignal): Promise<any> {
     const prisma = getPrisma();
     logger.info({ clipId: job.clipId, active: this.running, queued: this.queue.length }, 'Processing clip export job');
 
@@ -136,14 +168,14 @@ export class ExportConcurrencyQueue {
       const partialPath = `${job.fullDiskPath}.partial`;
       try {
         if (validFiles.length === 1) {
-          await this.runFfmpeg(['-y', ...trimArgs, '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs);
+          await this.runFfmpeg(['-y', ...trimArgs, '-i', validFiles[0], '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs, signal);
         } else {
           const concatListPath = `${job.fullDiskPath}.concat.txt`;
           const concatContent = validFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
           fs.writeFileSync(concatListPath, concatContent);
 
           try {
-            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', ...trimArgs, '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs);
+            await this.runFfmpeg(['-y', '-f', 'concat', '-safe', '0', ...trimArgs, '-i', concatListPath, '-c', 'copy', '-movflags', '+faststart', '-f', 'mp4', partialPath], ffmpegTimeoutMs, signal);
           } finally {
             if (fs.existsSync(concatListPath)) {
               fs.unlinkSync(concatListPath);
@@ -151,6 +183,7 @@ export class ExportConcurrencyQueue {
           }
         }
 
+        signal?.throwIfAborted();
         if (!fs.existsSync(partialPath) || fs.statSync(partialPath).size === 0) {
           throw new Error('ffmpeg finished without producing an output file');
         }
@@ -164,7 +197,7 @@ export class ExportConcurrencyQueue {
       // 3. Compute SHA-256 and chain of custody
       // Hash as a stream: multi-hour clips are gigabytes and must not be read into memory.
       const hash = crypto.createHash('sha256');
-      await pipeline(fs.createReadStream(job.fullDiskPath), hash);
+      await pipeline(fs.createReadStream(job.fullDiskPath), hash, signal ? { signal } : {});
       const sha256Hash = hash.digest('hex');
       const fileStat = fs.statSync(job.fullDiskPath);
       const fileSizeBytes = BigInt(fileStat.size);
@@ -190,6 +223,7 @@ export class ExportConcurrencyQueue {
       ];
 
       // 4. Mark status COMPLETED in database
+      signal?.throwIfAborted();
       const updated = await prisma.recordingClip.update({
         where: { id: job.clipId },
         data: {
@@ -210,6 +244,10 @@ export class ExportConcurrencyQueue {
         fileSizeBytes: updated.fileSizeBytes ? updated.fileSizeBytes.toString() : null,
       };
     } catch (err: any) {
+      if (signal?.aborted) {
+        fs.rmSync(job.fullDiskPath, { force: true });
+        throw new ClipCancelledError();
+      }
       logger.error({ err, clipId: job.clipId }, 'Export job execution failed');
       await prisma.recordingClip.update({
         where: { id: job.clipId },
@@ -222,9 +260,9 @@ export class ExportConcurrencyQueue {
     }
   }
 
-  private async runFfmpeg(args: string[], timeoutMs = 120000): Promise<void> {
+  private async runFfmpeg(args: string[], timeoutMs = 120000, signal?: AbortSignal): Promise<void> {
     try {
-      await execFileAsync('ffmpeg', args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
+      await execFileAsync('ffmpeg', args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, signal });
     } catch (err: any) {
       // No copy fallback: copying the raw input (or the concat list) would yield a file that is not a valid clip.
       if (err.code === 'ENOENT') {

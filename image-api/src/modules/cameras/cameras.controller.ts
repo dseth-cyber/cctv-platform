@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { cameraDeletionImpact } from './camera-deletion.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { bulkUpdateCameraSchema, deletionImpactSchema, createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
@@ -457,19 +458,52 @@ async function getIncidentHandler(request: FastifyRequest, reply: FastifyReply) 
   return reply.send(incident);
 }
 
+const resolveIncidentSchema = z.object({
+  resolution: z.string().max(128).optional(),
+  rootCause: z.string().max(128).optional(),
+  correctiveAction: z.string().max(4000).optional(),
+  preventiveAction: z.string().max(4000).optional(),
+  resolutionDesc: z.string().max(4000).optional(),
+});
+
 async function resolveIncidentHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const user = (request as any).user;
-  const body = request.body as Record<string, any>;
-  const incident = await incidentService.resolveIncident(id, {
-    resolution: body.resolution,
-    rootCause: body.rootCause,
-    correctiveAction: body.correctiveAction,
-    preventiveAction: body.preventiveAction,
-    resolutionDesc: body.resolutionDesc,
-    closedBy: user?.username ?? 'system',
+  const body = resolveIncidentSchema.parse(request.body ?? {});
+  const before = await incidentService.getIncident(id);
+  if (!before) return reply.status(404).send({ message: 'Incident not found' });
+  if (before.status !== 'open') return reply.status(409).send({ message: 'This incident is already closed' });
+
+  const incident = await incidentService.resolveIncident(id, { ...body, closedBy: user?.username ?? 'system' });
+
+  // A person who set the camera to error or inactive when opening this has now finished with it.
+  // Maintenance set separately, or another incident still open, leaves the camera as it is.
+  const camera = before.camera;
+  const otherOpen = await incidentService.getOpenIncidentForCamera(before.cameraId);
+  const cameraRestored = !otherOpen && !!camera && camera.status !== 'active' && camera.status === before.toStatus;
+  if (cameraRestored) {
+    await camerasService.updateCamera(before.cameraId, { status: 'active', _changedBy: user?.username } as any);
+    await createAlert({
+      alertType: 'camera_offline',
+      severity: 'info',
+      source: before.cameraId,
+      title: `Camera online: ${camera.name}`,
+      message: `Camera "${camera.name}" status changed to active by ${user?.username ?? 'system'}. Incident ${incident.incidentNumber} resolved.`,
+      details: { cameraId: before.cameraId, cameraName: camera.name, previousStatus: camera.status, newStatus: 'active', changedBy: user?.username, incidentNumber: incident.incidentNumber },
+      skipDedup: true,
+      closeOnCreate: true,
+    });
+  }
+  await createAuditLog({
+    userId: user?.id,
+    action: 'incident_resolve',
+    entity: 'incident',
+    entityId: id,
+    description: `Incident ${incident.incidentNumber} closed by ${user?.username ?? 'system'}`,
+    metadata: { cameraId: before.cameraId, resolution: body.resolution, rootCause: body.rootCause, cameraRestored },
+    ipAddress: request.ip,
   });
-  return reply.send(incident);
+  return reply.send({ ...incident, cameraRestored });
 }
 
 async function updateIncidentWorkflowHandler(request: FastifyRequest, reply: FastifyReply) {

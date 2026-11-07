@@ -1820,6 +1820,11 @@
       "noRepairs": "修理なし"
     },
     "incidentCenter": {
+      "closeIncident": "クローズ",
+      "closeIncidentTitle": "{{number}} をクローズ",
+      "closeIncidentRestores": "クローズするとカメラの状態は「稼働中」に戻ります。",
+      "closeIncidentStillOffline": "カメラはまだオフラインです。クローズできますが、復旧後に再び切断すると新しいインシデントが開きます。",
+      "closeIncidentAlreadyClosed": "このインシデントはすでにクローズされています",
       "periodAll": "すべて",
       "title": "インシデント管理センター",
       "subtitle": "すべてのカメラインシデントの管理と検索",
@@ -2624,6 +2629,11 @@
       "caution": "注意: DVR はアナログカメラ、NVR は IP カメラ用です。移設前に現地を確認してください"
     },
     "cctvPlayback": {
+      "clipCancelError": {"NOT_FOUND": "このジョブはもうありません", "ALREADY_FINISHED": "このクリップは完了済みです", "LEGAL_HOLD": "先にこのクリップのリーガルホールドを解除してください", "NOT_YOURS": "依頼した本人または管理者のみキャンセルできます"},
+      "clipCancel": "キャンセル",
+      "clipCancelled": "クリップの書き出しをキャンセルしました",
+      "clipCancelFailed": "クリップの書き出しをキャンセルできませんでした",
+      "clipCancelConfirm": "クリップ「{{title}}」の書き出しをキャンセルしますか？作成済みの部分は削除されます。",
       "waitingForPicture": "レコーダーからの映像を待っています。最大 20 秒ほどかかる場合があります",
       "liveNow": "ライブ",
       "liveHint": "このページでカメラのライブ映像を見る",
@@ -2972,6 +2982,8 @@
         "groups": "カメラグループ"
       },
       "overview": {
+        "liveOffScreen": "画面外 {{n}} 台（枠は保持中）",
+        "cancelOffScreen": "画面外のライブカメラ（押すと取り消し）：",
         "view": "一覧",
         "viewHint": "すべてのカメラを表示: 上限までライブ、残りは静止画",
         "liveFullPick": "ライブは {{quota}} 台で満杯です：取り消すカメラのライブ表示を押すと {{name}} を表示します",

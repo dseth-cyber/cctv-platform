@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { toBangkokDateAndTimeString, isoToBangkokDaySeconds, bangkokDaySecondsToIso, isoToBangkokInput, bangkokInputToIso } from '@/utils/dateUtils';
 import {
@@ -232,6 +234,8 @@ export const CctvPlayback: React.FC = () => {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
+  const { user } = useAuth();
+  const canExportClips = hasPermission(user, 'cameras:create');
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -793,6 +797,18 @@ export const CctvPlayback: React.FC = () => {
       toast.success(t('ui.cctvPlayback.legalHoldUpdated'));
       refetchClips();
     },
+  });
+
+  const cancelClipMutation = useMutation({
+    mutationFn: (clipId: string) => imageServiceApi.cancelRecordingClip(clipId),
+    onSuccess: () => {
+      toast.success(t('ui.cctvPlayback.clipCancelled'));
+    },
+    onError: (err: any) => {
+      const code = err?.response?.data?.details?.code;
+      toast.error(code ? t(`ui.cctvPlayback.clipCancelError.${code}`) : t('ui.cctvPlayback.clipCancelFailed'));
+    },
+    onSettled: () => refetchClips(),
   });
 
   const handleOpenExportModal = (incident?: IncidentMarker) => {
@@ -1529,7 +1545,21 @@ export const CctvPlayback: React.FC = () => {
                           <span>{clip.legalHold ? t('ui.cctvPlayback.legalHoldOn') : t('ui.cctvPlayback.releaseHold')}</span>
                         </button>
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        {canExportClips && (clip.status === 'QUEUED' || clip.status === 'PROCESSING') && (
+                          <button
+                            type="button"
+                            data-cancel-clip={clip.id}
+                            disabled={cancelClipMutation.isPending}
+                            onClick={() => {
+                              if (window.confirm(t('ui.cctvPlayback.clipCancelConfirm', { title: clip.title }))) cancelClipMutation.mutate(clip.id);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 mr-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 transition-all disabled:opacity-40"
+                          >
+                            <XCircle size={13} />
+                            <span>{t('ui.cctvPlayback.clipCancel')}</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           disabled={clip.status !== 'COMPLETED' || !clip.downloadUrl}
