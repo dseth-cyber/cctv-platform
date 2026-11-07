@@ -126,6 +126,7 @@ export async function listAlerts(params: {
   zoneId?: string;
   severity?: string;
   resolved?: boolean;
+  createdAfter?: string;
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -144,6 +145,9 @@ export async function listAlerts(params: {
   if (params.severity) where.severity = params.severity;
   if (params.resolved === true) where.resolvedAt = { not: null };
   else if (params.resolved === false) where.resolvedAt = null;
+  if (params.createdAfter && !Number.isNaN(Date.parse(params.createdAfter))) {
+    where.createdAt = { gt: new Date(params.createdAfter) };
+  }
 
   const page = params.page ?? 1;
   const limit = Math.min(params.limit ?? 20, 100);

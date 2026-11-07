@@ -23,6 +23,7 @@ async function listHandler(request: FastifyRequest, reply: FastifyReply) {
     zoneId: query.zoneId,
     severity: query.severity,
     resolved: query.resolved === 'true' ? true : query.resolved === 'false' ? false : undefined,
+    createdAfter: query.createdAfter,
     page: query.page ? parseInt(query.page, 10) : undefined,
     limit: query.limit ? parseInt(query.limit, 10) : undefined,
     sortBy: query.sortBy,
@@ -100,12 +101,13 @@ async function clearAllHandler(request: FastifyRequest, reply: FastifyReply) {
     ipAddress: request.ip,
   }).catch(() => {});
 
-  return reply.send({ cleared: result.count });
+  return reply.send({ cleared: result.count, clearedAt: new Date().toISOString() });
 }
 
 async function unacknowledgedCountHandler(_request: FastifyRequest, reply: FastifyReply) {
   const prisma = getPrisma();
-  const count = await prisma.alert.count({ where: { acknowledgedAt: null } });
+  // A closed alert asks nothing of anyone, even if nobody acknowledged it first.
+  const count = await prisma.alert.count({ where: { acknowledgedAt: null, resolvedAt: null } });
   return reply.send({ count });
 }
 

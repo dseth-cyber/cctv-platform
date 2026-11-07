@@ -17,6 +17,8 @@ const SEVERITY_COLORS: Record<string, string> = {
   info: 'bg-blue-500/20 text-blue-400',
 }
 
+const CLEARED_AT_KEY = 'cctv_alerts_cleared_at'
+
 export default function AlertManagement() {
   const { t, i18n } = useTranslation()
   const { themeConfig } = useTheme()
@@ -28,6 +30,10 @@ export default function AlertManagement() {
   const [limit, setLimit] = useState(50)
   const [severity, setSeverity] = useState('')
   const [resolved, setResolved] = useState('all')
+  // "All" starts after the last clear, so a cleared list stays clear. Closed alerts stay under "resolved".
+  const [clearedAt, setClearedAt] = useState<string | null>(() => {
+    try { return localStorage.getItem(CLEARED_AT_KEY) } catch { return null }
+  })
   const [sortCol, setSortCol] = useState('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -37,13 +43,14 @@ export default function AlertManagement() {
   const [clearing, setClearing] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['alerts', place.siteId, place.zoneId, page, limit, severity, resolved, sortCol, sortDir],
+    queryKey: ['alerts', place.siteId, place.zoneId, page, limit, severity, resolved, clearedAt, sortCol, sortDir],
     queryFn: async () => {
       const res = await imageServiceApi.getAlerts({
         siteId: place.siteId,
         zoneId: place.zoneId,
         severity: severity || undefined,
         resolved: resolved === 'all' ? undefined : resolved === 'resolved' ? true : false,
+        createdAfter: resolved === 'all' ? clearedAt ?? undefined : undefined,
         page,
         limit,
         sortBy: sortCol,
@@ -103,6 +110,9 @@ export default function AlertManagement() {
     try {
       const res = await imageServiceApi.clearAllAlerts(clearPassword)
       toast.success(t('imageService.alerts.clearAllSuccess', { count: res.cleared }))
+      setClearedAt(res.clearedAt)
+      setPage(1)
+      try { localStorage.setItem(CLEARED_AT_KEY, res.clearedAt) } catch { /* the list still clears for this visit */ }
       setClearDialogOpen(false)
       setClearPassword('')
       queryClient.invalidateQueries({ queryKey: ['alerts'] })

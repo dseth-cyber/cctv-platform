@@ -221,7 +221,7 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/retention-policies/${id}`),
 
     // Alerts
-    getAlerts: (params?: { siteId?: string; zoneId?: string; severity?: string; resolved?: boolean; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
+    getAlerts: (params?: { siteId?: string; zoneId?: string; severity?: string; resolved?: boolean; createdAfter?: string; page?: number; limit?: number; sortBy?: string; sortDir?: 'asc' | 'desc' }, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/alerts`, { params, ...options }).then((r: any) => r.data),
 
     getAlert: (id: string) =>
