@@ -38,6 +38,9 @@
       "rowsPerPage": "Rows per page:"
     },
     "cameras": {
+      "alertLevel": "Alert level",
+      "alertLevelFromDevice": "Follow the device ({{level}})",
+      "alertLevelDefault": "Default ({{level}})",
       "shortCode": "Short code",
       "shortCodeHint": "Starts evidence clip names. Left empty, the device's code is used.",
       "shortCodeFromDevice": "From the device: {{code}}",
@@ -599,6 +602,9 @@
       "cameraGroups": "Camera Groups"
     },
     "incidentCenter": {
+      "reopenedTimes": "Reopened {{n}}x",
+      "reopenedHint": "The camera dropped again soon after this closed itself, so it carried on instead of a new one opening.",
+      "evtReopened": "Camera \"{{name}}\" dropped again, so {{number}} was reopened",
       "closeIncident": "Close",
       "closeIncidentTitle": "Close {{number}}",
       "closeIncidentRestores": "Closing this sets the camera status back to active.",
@@ -725,6 +731,17 @@
       }
     },
     "masterdataManagement": {
+      "tabAlertLevel": "Alert levels",
+      "hint_alert_level": "How long a camera must be down before an alert and an incident. Choose a level on a device or a camera. Online and offline on screen stay true at every level.",
+      "levelHelp": "Counted from when the camera last answered. 0 means as soon as it is detected, empty means never. The check runs every minute, so this can be up to about a minute late.",
+      "levelAlertDelay": "Alert after down for (min)",
+      "levelIncidentDelay": "Open incident after down for (min)",
+      "levelIsDefault": "Default for cameras with no level set",
+      "levelSummary": "Alert: {{alert}} · Incident: {{incident}}",
+      "levelNever": "Never",
+      "levelAtOnce": "At once",
+      "levelMinutes": "{{n}} min",
+      "error_ALERT_LEVEL_INVALID": "A delay is a whole number from 0 to 1440 minutes, or empty",
       "tabCameraType": "Camera types",
       "tabCameraBrand": "Camera Brand",
       "tabDeviceType": "Device Type",
@@ -807,6 +824,7 @@
         "camera_auto_incident_enabled": "Auto-Create Incident on Offline",
         "camera_auto_resolve_enabled": "Auto-Resolve on Recovery",
         "camera_auto_workorder_enabled": "Auto-Create Work Order on Critical",
+        "camera_incident_reopen_minutes": "Reopen the Incident if the Camera Drops Again Within (min)",
         "camera_incident_escalate_high_minutes": "Escalate to High Priority After (min)",
         "camera_incident_escalate_critical_minutes": "Escalate to Critical Priority After (min)",
         "camera_recovery_grace_minutes": "Recovery Confirmation Delay (min)",
@@ -845,6 +863,7 @@
         "camera_auto_incident_enabled": "Automatically create an Incident when a camera goes offline",
         "camera_auto_resolve_enabled": "Automatically resolve an auto-created Incident when the camera comes back online",
         "camera_auto_workorder_enabled": "Automatically create a Work Order when an auto-created Incident escalates to Critical",
+        "camera_incident_reopen_minutes": "If a camera drops again within this many minutes of its Incident closing itself, that Incident carries on instead of a new one opening. 0 turns this off.",
         "camera_incident_escalate_high_minutes": "Minutes offline before an open auto-created Incident escalates to High priority",
         "camera_incident_escalate_critical_minutes": "Minutes offline before an open auto-created Incident escalates to Critical priority",
         "camera_recovery_grace_minutes": "Minutes a camera must stay reachable while Recovering before it's confirmed Online (prevents flapping)",
@@ -2437,6 +2456,9 @@
       "estimateResourcesAt": "Estimate resources at 10, 50, 200, 500 and 1000 channels to size hardware, NIC bandwidth and disk capacity"
     },
     "deviceManagement": {
+      "alertLevel": "Alert level",
+      "alertLevelDefault": "Default ({{level}})",
+      "alertLevelHint": "Every channel uses this unless a camera has its own.",
       "shortCode": "Short code",
       "shortCodePlaceholder": "e.g. STR",
       "shortCodeHint": "Starts evidence clip names. Every channel uses it unless a camera has its own.",
@@ -2574,6 +2596,7 @@
       "vendorStreamUrlCh": "Vendor Stream URL (Ch 1):"
     },
     "bulkEdit": {
+      "alertLevelFollow": "Follow the device",
       "button": "Edit together",
       "title": "Edit {{count}} cameras together",
       "hint": "Only what you choose changes. Anything left at \"No change\" stays as it is",

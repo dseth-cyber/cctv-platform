@@ -3,7 +3,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { builtInDeviceTemplates, setCustomDeviceTemplates, type DeviceVendorTemplate } from '../devices/devices.service.js';
 
-export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand'] as const;
+export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand', 'alert_level'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
 export async function listMasterdata(params: {
@@ -55,6 +55,7 @@ export async function createMasterdata(input: CreateMasterdataInput) {
   const prisma = getPrisma();
   if (input.type === 'device_brand') validateBrand(input.code, input.config);
   if (input.type === 'device_channel_count') validateChannelCount(input.code);
+  if (input.type === 'alert_level') validateAlertLevel(input.config);
 
   const existing = await prisma.masterdata.findUnique({
     where: {
@@ -120,6 +121,7 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
     validateBrand(input.code ?? existing.code, input.config !== undefined ? input.config : (existing.config as Record<string, unknown> | null));
   }
   if (existing.type === 'device_channel_count' && input.code !== undefined) validateChannelCount(input.code);
+  if (existing.type === 'alert_level' && input.config !== undefined) validateAlertLevel(input.config);
 
   if (input.code !== undefined && input.code !== existing.code) {
     const uses = await countUses(existing.type, existing.code);
@@ -175,7 +177,7 @@ export async function deleteMasterdata(id: string) {
 
 
 /** Lists a person chooses from on other pages. Readable by anyone who can see cameras. */
-export const OPTION_TYPES = ['camera_type', 'camera_brand', 'device_type', 'device_brand', 'device_channel_count'] as const;
+export const OPTION_TYPES = ['camera_type', 'camera_brand', 'device_type', 'device_brand', 'device_channel_count', 'alert_level'] as const;
 
 export async function listMasterdataOptions(type: (typeof OPTION_TYPES)[number]) {
   return getPrisma().masterdata.findMany({
@@ -202,6 +204,16 @@ function validateBrand(code: string, config: Record<string, unknown> | null | un
   }
 }
 
+function validateAlertLevel(config: Record<string, unknown> | null | undefined) {
+  for (const key of ['alertDelayMinutes', 'incidentDelayMinutes']) {
+    const value = config?.[key];
+    if (value === null) continue;
+    if (!Number.isInteger(value) || (value as number) < 0 || (value as number) > 1440) {
+      throw new ValidationError('A delay is a whole number of minutes from 0 to 1440, or empty for never', { code: 'ALERT_LEVEL_INVALID' });
+    }
+  }
+}
+
 function validateChannelCount(code: string) {
   const n = Number(code);
   if (!Number.isInteger(n) || n < 1 || n > 256) {
@@ -216,6 +228,13 @@ async function countUses(type: string, code: string): Promise<number> {
   if (type === 'camera_brand') return prisma.camera.count({ where: { cameraBrand: { equals: code, mode: 'insensitive' }, deletedAt: null } });
   if (type === 'device_type') return prisma.device.count({ where: { deviceType: code } });
   if (type === 'device_brand') return prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } });
+  if (type === 'alert_level') {
+    const [cameras, devices] = await Promise.all([
+      prisma.camera.count({ where: { alertLevel: code, deletedAt: null } }),
+      prisma.device.count({ where: { alertLevel: code } }),
+    ]);
+    return cameras + devices;
+  }
   return 0;
 }
 
@@ -265,6 +284,13 @@ const DEVICE_TYPE_DEFAULTS: Array<[string, ReturnType<typeof names>]> = [
   ['nvr', names('NVR (เครื่องบันทึกแบบเครือข่าย IP/PoE)', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（网络录像机 - IP/PoE）', 'NVR (Network Video Recorder - IP/PoE)', 'NVR（ネットワークビデオレコーダー - IP/PoE）')],
   ['ip_camera', names('กล้อง IP แบบเดี่ยว', 'Stand-alone IP Camera', '独立 IP 摄像机', 'သီးသန့် IP ကင်မရာ', '単体 IP カメラ')],
   ['other', names('อื่นๆ / ไฮบริด', 'Other / Hybrid', '其他 / 混合', 'အခြား / Hybrid', 'その他 / ハイブリッド')],
+];
+
+const ALERT_LEVEL_DEFAULTS: Array<[string, ReturnType<typeof names>, number | null, number | null]> = [
+  ['critical', names('สำคัญ', 'Critical', '重要', 'အရေးကြီး', '重要'), 1, 0],
+  ['normal', names('ปกติ', 'Normal', '普通', 'ပုံမှန်', '通常'), 5, 15],
+  ['low', names('ต่ำ', 'Low', '低', 'နိမ့်', '低'), 30, null],
+  ['silent', names('ไม่แจ้งเตือน', 'No alerts', '不提醒', 'သတိမပေးပါ', '通知なし'), null, null],
 ];
 
 /** A list starts filled once. After that it belongs to the people using it: nothing here puts a deleted row back. */
@@ -317,6 +343,16 @@ export async function ensureMasterdataDefaults() {
         ...extra.map((code, i) => ({ type: 'camera_brand', code, ...names(code, code, code, code, code), sortOrder: (brands.length + i + 1) * 10 })),
       ],
     });
+  }
+  if (await empty('alert_level')) {
+    await prisma.masterdata.createMany({
+      data: ALERT_LEVEL_DEFAULTS.map(([code, n, alertDelayMinutes, incidentDelayMinutes], i) => ({
+        type: 'alert_level', code, ...n, sortOrder: (i + 1) * 10, isDefault: code === 'normal', config: { alertDelayMinutes, incidentDelayMinutes },
+      })),
+    });
+    // Outages already under way when levels arrive were handled by the old rules, so they raise nothing new.
+    const now = new Date();
+    await prisma.camera.updateMany({ where: { operationalStatus: { in: ['offline', 'recovering'] } }, data: { outageAlertedAt: now, outageIncidentAt: now } });
   }
   await refreshBrandTemplates();
 }

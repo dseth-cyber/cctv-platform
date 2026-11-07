@@ -38,6 +38,9 @@
       "clearSelection": "選択解除"
     },
     "cameras": {
+      "alertLevel": "通知レベル",
+      "alertLevelFromDevice": "機器に従う（{{level}}）",
+      "alertLevelDefault": "既定（{{level}}）",
       "shortCode": "略称",
       "shortCodeHint": "証拠クリップ名の先頭に使います。空欄の場合は機器の略称を使います。",
       "shortCodeFromDevice": "機器の略称: {{code}}",
@@ -500,6 +503,17 @@
       "cameraGroups": "カメラグループ"
     },
     "masterdataManagement": {
+      "tabAlertLevel": "通知レベル",
+      "hint_alert_level": "カメラが何分停止したら通知しインシデントを開くかを設定します。レベルは機器またはカメラで選択します。画面のオンライン/オフライン表示はどのレベルでも実際の状態です。",
+      "levelHelp": "カメラが最後に応答した時点から数えます。0 は検出次第、空欄は実行しません。確認は1分ごとのため、約1分遅れることがあります。",
+      "levelAlertDelay": "通知までの停止時間（分）",
+      "levelIncidentDelay": "インシデントを開くまでの停止時間（分）",
+      "levelIsDefault": "レベル未設定のカメラの既定値にする",
+      "levelSummary": "通知: {{alert}} · インシデント: {{incident}}",
+      "levelNever": "なし",
+      "levelAtOnce": "すぐ",
+      "levelMinutes": "{{n}} 分",
+      "error_ALERT_LEVEL_INVALID": "時間は 0〜1440 の整数（分）か空欄にしてください",
       "tabCameraType": "カメラの種類",
       "tabCameraBrand": "カメラメーカー",
       "tabDeviceType": "機器タイプ",
@@ -595,6 +609,7 @@
         "camera_auto_incident_enabled": "オフライン時にインシデントを自動作成",
         "camera_auto_resolve_enabled": "復旧時に自動解決",
         "camera_auto_workorder_enabled": "重大レベルに達したら作業指示書を自動作成",
+        "camera_incident_reopen_minutes": "再切断時にインシデントを再オープンする時間（分）",
         "camera_incident_escalate_high_minutes": "High優先度へエスカレーションするまでの分数",
         "camera_incident_escalate_critical_minutes": "Critical優先度へエスカレーションするまでの分数",
         "camera_recovery_grace_minutes": "オンライン確定までの猶予時間（分）",
@@ -640,6 +655,7 @@
         "camera_auto_incident_enabled": "カメラがオフラインになったら自動でインシデントを作成",
         "camera_auto_resolve_enabled": "カメラがオンラインに戻ったら自動作成したインシデントを自動で解決",
         "camera_auto_workorder_enabled": "自動作成インシデントが緊急に昇格したら作業指示を自動作成",
+        "camera_incident_reopen_minutes": "自動クローズ後この時間内に再び切断した場合、新規ではなく同じインシデントを継続します。0 で無効です。",
         "camera_incident_escalate_high_minutes": "オフラインが何分続いたら自動作成インシデントを優先度「高」に昇格するか",
         "camera_incident_escalate_critical_minutes": "オフラインが何分続いたら自動作成インシデントを「緊急」に昇格するか",
         "camera_recovery_grace_minutes": "復旧中のカメラがオンラインと確定されるまで到達可能であるべき時間（分、フラッピング防止）",
@@ -1823,6 +1839,9 @@
       "noRepairs": "修理なし"
     },
     "incidentCenter": {
+      "reopenedTimes": "再オープン {{n}} 回",
+      "reopenedHint": "自動クローズの直後にカメラが再び切断したため、新規ではなくこのインシデントを継続しました。",
+      "evtReopened": "カメラ「{{name}}」が再び切断したため {{number}} を再オープンしました",
       "closeIncident": "クローズ",
       "closeIncidentTitle": "{{number}} をクローズ",
       "closeIncidentRestores": "クローズするとカメラの状態は「稼働中」に戻ります。",
@@ -2434,6 +2453,9 @@
       "estimateResourcesAt": "10・50・200・500・1000 チャンネルでのリソースを見積もり、ハードウェア、NIC 帯域、ディスク容量を決めます"
     },
     "deviceManagement": {
+      "alertLevel": "通知レベル",
+      "alertLevelDefault": "既定（{{level}}）",
+      "alertLevelHint": "カメラ個別の設定がなければ全チャンネルで使います。",
       "shortCode": "略称",
       "shortCodePlaceholder": "例: STR",
       "shortCodeHint": "証拠クリップ名の先頭に使います。カメラ個別の略称がなければ全チャンネルで使います。",
@@ -2571,6 +2593,7 @@
       "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
     },
     "bulkEdit": {
+      "alertLevelFollow": "機器に従う",
       "button": "まとめて編集",
       "title": "{{count}} 台をまとめて編集",
       "hint": "選んだ項目だけ変更します。「変更なし」の項目はそのままです",

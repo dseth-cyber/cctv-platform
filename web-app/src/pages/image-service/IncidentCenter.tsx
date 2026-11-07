@@ -120,6 +120,9 @@ function localizeHealthMonitorText(text: string | null | undefined, t: any): str
   m = text.match(/^Camera reconnected automatically after (.+) offline\.$/)
   if (m) return t('imageService.incidentCenter.resolutionAutoReconnected', { duration: translateDuration(m[1], t) })
 
+  m = text.match(/^Camera "([^"]+)" dropped again, so incident (\S+) was reopened$/)
+  if (m) return t('imageService.incidentCenter.evtReopened', { name: m[1], number: m[2] })
+
   m = text.match(/^Camera "([^"]+)" status changed: ([^\s]+) → ([^\s]+)$/)
   if (m) {
     const [, name, from, to] = m
@@ -448,6 +451,9 @@ export default function IncidentCenter() {
                           <td data-incident-status className="px-3 py-2">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_COLORS[i.status] || 'bg-gray-500/20 text-gray-400'}`}>{i.status === 'open' ? ic('open') : ic('resolved')}</span>
+                              {i.reopenCount > 0 && (
+                                <span data-reopened={i.reopenCount} title={ic('reopenedHint')} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300">{ic('reopenedTimes', { n: i.reopenCount })}</span>
+                              )}
                               {i.status === 'open' && hasPermission(user, 'cameras:update') && (
                                 <button type="button" data-close-incident={i.id} onClick={(e) => { e.stopPropagation(); setClosingId(i.id) }} className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25">{ic('closeIncident')}</button>
                               )}

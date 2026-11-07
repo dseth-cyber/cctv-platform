@@ -24,6 +24,9 @@ const mockPrisma = {
     findFirst: vi.fn(),
     create: vi.fn(),
   },
+  // Delays of zero: these tests are about the stream event, not about waiting.
+  masterdata: { findMany: vi.fn().mockResolvedValue([{ code: 'test', isDefault: true, config: { alertDelayMinutes: 0, incidentDelayMinutes: 0 } }]) },
+  device: { findUnique: vi.fn().mockResolvedValue(null) },
 };
 
 vi.mock('../../lib/prisma.js', () => ({
@@ -57,6 +60,7 @@ vi.mock('../alerts/alerts.service.js', () => ({
 
 vi.mock('../cameras/camera-incident.service.js', () => ({
   getOpenIncidentForCamera: vi.fn().mockResolvedValue(null),
+  reopenRecentIncident: vi.fn().mockResolvedValue(null),
   createIncident: vi.fn().mockResolvedValue({ id: 'inc-123', incidentNumber: 'INC-TEST-01' }),
   resolveIncident: vi.fn().mockResolvedValue({ id: 'inc-123', status: 'resolved' }),
 }));

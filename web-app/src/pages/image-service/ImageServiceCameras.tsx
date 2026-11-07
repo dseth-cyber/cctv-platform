@@ -53,7 +53,7 @@ const emptyForm = () => ({
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
   enabled: true,
-  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '',
+  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '', alertLevel: '',
   siteId: '', zoneId: '', locationFromDevice: true,
 });
 
@@ -92,6 +92,11 @@ export default function ImageServiceCameras() {
   const { user } = useAuth();
   const { options: cameraTypeOptions } = useMasterdataOptions('camera_type');
   const { options: cameraBrandOptions } = useMasterdataOptions('camera_brand');
+  const { options: alertLevelOptions } = useMasterdataOptions('alert_level');
+  const alertLevelLabel = (code?: string | null) => alertLevelOptions.find((o) => o.value === code)?.label;
+  const defaultAlertLevelLabel = alertLevelOptions.find((o) => o.isDefault)?.label ?? '';
+  // What really applies to a camera: its own level, else its device's, else the default.
+  const inheritedAlertLevelLabel = (device?: { alertLevel?: string | null } | null) => alertLevelLabel(device?.alertLevel) ?? defaultAlertLevelLabel;
   const cameraBrandLabel = (code?: string | null) => (code ? cameraBrandOptions.find((o) => o.value.toLowerCase() === code.toLowerCase())?.label ?? code : '—');
   const cameraTypeLabel = (code?: string | null) => (code ? cameraTypeOptions.find((o) => o.value === code)?.label ?? code : '—');
 
@@ -100,9 +105,9 @@ export default function ImageServiceCameras() {
   const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(columnsKey) ?? 'null');
-      return Array.isArray(saved) ? saved : ['cameraModel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+      return Array.isArray(saved) ? saved : ['cameraModel', 'alertLevel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
     } catch {
-      return ['cameraModel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
+      return ['cameraModel', 'alertLevel', 'retentionPolicy', 'lastPoll', 'dateAdded', 'createdBy'];
     }
   });
   const showColumn = (key: string) => !hiddenColumns.includes(key);
@@ -306,7 +311,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
-      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '',
+      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '', alertLevel: item.alertLevel ?? '',
       siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
       enabled: item.enabled !== false,
     };
@@ -423,6 +428,7 @@ export default function ImageServiceCameras() {
           cameraBrand: form.cameraBrand || null,
           cameraModel: form.cameraModel.trim() || null,
           shortCode: form.shortCode.trim() || null,
+          alertLevel: form.alertLevel || null,
           ...(modal.item ? { enabled: form.enabled } : {}),
           ...(modal.item?.deviceId && form.locationFromDevice
             ? { locationFromDevice: true }
@@ -1018,6 +1024,7 @@ export default function ImageServiceCameras() {
     cameraType: cameraTypeLabel(camera.cameraType),
     cameraBrand: cameraBrandLabel(camera.cameraBrand),
     cameraModel: camera.cameraModel ?? '',
+    alertLevel: alertLevelLabel(camera.alertLevel) ?? inheritedAlertLevelLabel(camera.device),
     description: camera.description ?? '',
     device: camera.device?.name ?? '',
     site: camera.site?.name ?? '',
@@ -1026,12 +1033,13 @@ export default function ImageServiceCameras() {
     lastPolledAt: camera.lastPolledAt ? new Date(camera.lastPolledAt).toLocaleString() : '-',
     createdAt: camera.createdAt ? formatDateTime(camera.createdAt, i18n.language) : '-',
     createdBy: camera.createdBy || '-',
-  })), [sorted, i18n.language, cameraTypeOptions, cameraBrandOptions]);
+  })), [sorted, i18n.language, cameraTypeOptions, cameraBrandOptions, alertLevelOptions]);
 
   const cameraColumns = [
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
     { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
+    { key: 'alertLevel', label: t('imageService.cameras.alertLevel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
     { key: 'site', label: t('ui.location.site') },
@@ -1051,6 +1059,7 @@ export default function ImageServiceCameras() {
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
     { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
+    { key: 'alertLevel', label: t('imageService.cameras.alertLevel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
     { key: 'site', label: t('ui.location.site') },
@@ -1214,6 +1223,7 @@ export default function ImageServiceCameras() {
                 {showColumn('cameraType') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraType')}</th>}
                 {showColumn('cameraBrand') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraBrand')}</th>}
                 {showColumn('cameraModel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</th>}
+                {showColumn('alertLevel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.alertLevel')}</th>}
                 {showColumn('description') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.description')}</th>}
                 {showColumn('device') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.columnDevice')}</th>}
                 {showColumn('site') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('ui.location.site')}</th>}
@@ -1299,6 +1309,7 @@ export default function ImageServiceCameras() {
                     {showColumn('cameraType') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraTypeLabel(camera.cameraType)}</td>}
                     {showColumn('cameraBrand') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraBrandLabel(camera.cameraBrand)}</td>}
                     {showColumn('cameraModel') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.cameraModel || '—'}</td>}
+                    {showColumn('alertLevel') && <td data-camera-level-cell className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{alertLevelLabel(camera.alertLevel) ?? <span className="opacity-70">{inheritedAlertLevelLabel(camera.device)}</span>}</td>}
                     {showColumn('description') && <td className={`px-4 py-3 text-sm max-w-xs truncate ${themeConfig.text.secondary}`} title={camera.description ?? ''}>{camera.description || '—'}</td>}
                     {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}
                     {showColumn('site') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.site?.name ?? '—'}</td>}
@@ -1526,6 +1537,18 @@ export default function ImageServiceCameras() {
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</label>
               <input value={form.cameraModel} maxLength={64} onChange={e => setForm(p => ({ ...p, cameraModel: e.target.value }))}
                 className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+            </div>
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.alertLevel')}</label>
+              <div data-camera-alert-level>
+                <SearchableSelect value={form.alertLevel} onChange={(v) => setForm(p => ({ ...p, alertLevel: v }))} showSearch={false}
+                  options={[
+                    { value: '', label: modal.item?.deviceId
+                      ? t('imageService.cameras.alertLevelFromDevice', { level: inheritedAlertLevelLabel(modal.item?.device) })
+                      : t('imageService.cameras.alertLevelDefault', { level: defaultAlertLevelLabel }) },
+                    ...alertLevelOptions.map((o) => ({ value: o.value, label: o.label })),
+                  ]} />
+              </div>
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.shortCode')}</label>

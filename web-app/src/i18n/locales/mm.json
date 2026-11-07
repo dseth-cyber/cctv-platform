@@ -38,6 +38,9 @@
       "clearSelection": "ရွေးချယ်ထားသည်များ ဖျက်သိမ်းရန်"
     },
     "cameras": {
+      "alertLevel": "သတိပေးအဆင့်",
+      "alertLevelFromDevice": "စက်အတိုင်း ({{level}})",
+      "alertLevelDefault": "မူလ ({{level}})",
       "shortCode": "အတိုကောက်",
       "shortCodeHint": "အထောက်အထားကလစ်အမည်၏ အစတွင် သုံးသည်။ ဗလာထားပါက စက်၏ အတိုကောက်ကို သုံးသည်။",
       "shortCodeFromDevice": "စက်မှ: {{code}}",
@@ -500,6 +503,17 @@
       "cameraGroups": "ကင်မရာအုပ်စုများ"
     },
     "masterdataManagement": {
+      "tabAlertLevel": "သတိပေးအဆင့်",
+      "hint_alert_level": "ကင်မရာ မည်မျှကြာကြာ ပြတ်ပါက သတိပေးပြီး Incident ဖွင့်မည်ကို သတ်မှတ်သည်။ စက် သို့မဟုတ် ကင်မရာတွင် အဆင့်ရွေးပါ။ မျက်နှာပြင်ရှိ အွန်လိုင်း/အော့ဖ်လိုင်း အခြေအနေသည် အဆင့်တိုင်းတွင် အမှန်အတိုင်း ပြသည်။",
+      "levelHelp": "ကင်မရာ နောက်ဆုံးတုံ့ပြန်ချိန်မှ စတွက်သည်။ 0 သည် တွေ့တာနဲ့ ချက်ချင်း၊ ဗလာသည် မလုပ်ပါ။ တစ်မိနစ်တစ်ကြိမ် စစ်သဖြင့် တစ်မိနစ်ခန့် နောက်ကျနိုင်သည်။",
+      "levelAlertDelay": "ပြတ်ပြီး သတိပေးရန် (မိနစ်)",
+      "levelIncidentDelay": "ပြတ်ပြီး Incident ဖွင့်ရန် (မိနစ်)",
+      "levelIsDefault": "အဆင့်မသတ်မှတ်ရသေးသော ကင်မရာများ၏ မူလတန်ဖိုး",
+      "levelSummary": "သတိပေး: {{alert}} · Incident: {{incident}}",
+      "levelNever": "မလုပ်ပါ",
+      "levelAtOnce": "ချက်ချင်း",
+      "levelMinutes": "{{n}} မိနစ်",
+      "error_ALERT_LEVEL_INVALID": "အချိန်သည် 0 မှ 1440 မိနစ် ကိန်းပြည့် သို့မဟုတ် ဗလာ ဖြစ်ရမည်",
       "tabCameraType": "ကင်မရာအမျိုးအစား",
       "tabCameraBrand": "ကင်မရာအမှတ်တံဆိပ်",
       "tabDeviceType": "စက်အမျိုးအစား",
@@ -595,6 +609,7 @@
         "camera_auto_incident_enabled": "ကင်မရာလိုင်းပြတ်သောအခါ Incident အလိုအလျောက်ဖန်တီးရန်",
         "camera_auto_resolve_enabled": "ပြန်လည်ချိတ်ဆက်သောအခါ အလိုအလျောက်ဖြေရှင်းရန်",
         "camera_auto_workorder_enabled": "အရေးကြီးအဆင့်ရောက်သောအခါ အလုပ်အမိန့်အလိုအလျောက်ဖန်တီးရန်",
+        "camera_incident_reopen_minutes": "ပြန်ပြတ်ပါက Incident ပြန်ဖွင့်မည့်အချိန် (မိနစ်)",
         "camera_incident_escalate_high_minutes": "High အဆင့်တက်ရန် လိုအပ်သည့်မိနစ်",
         "camera_incident_escalate_critical_minutes": "Critical အဆင့်တက်ရန် လိုအပ်သည့်မိနစ်",
         "camera_recovery_grace_minutes": "အွန်လိုင်းအတည်ပြုမီ စောင့်ဆိုင်းချိန် (မိနစ်)",
@@ -640,6 +655,7 @@
         "camera_auto_incident_enabled": "ကင်မရာ Offline ဖြစ်သည့်အခါ Incident ကို အလိုအလျောက် ဖန်တီးရန်",
         "camera_auto_resolve_enabled": "ကင်မရာ Online ပြန်ဖြစ်သည့်အခါ အလိုအလျောက်ဖန်တီးထားသော Incident ကို ဖြေရှင်းပြီးဟု သတ်မှတ်ရန်",
         "camera_auto_workorder_enabled": "အလိုအလျောက်ဖန်တီးထားသော Incident အရေးကြီးဆုံးအဆင့်သို့ တက်ပါက Work Order ကို အလိုအလျောက် ဖန်တီးရန်",
+        "camera_incident_reopen_minutes": "အလိုအလျောက်ပိတ်ပြီး ဤအချိန်အတွင်း ထပ်ပြတ်ပါက Incident အသစ်မဖွင့်ဘဲ ယခင်တစ်ခုကို ဆက်သုံးသည်။ 0 ဆိုလျှင် ပိတ်သည်။",
         "camera_incident_escalate_high_minutes": "Offline ဖြစ်ပြီး မိနစ်မည်မျှကြာလျှင် အလိုအလျောက်ဖန်တီးထားသော Incident ကို မြင့်အဆင့်သို့ တင်မည်",
         "camera_incident_escalate_critical_minutes": "Offline ဖြစ်ပြီး မိနစ်မည်မျှကြာလျှင် အလိုအလျောက်ဖန်တီးထားသော Incident ကို အရေးကြီးဆုံးအဆင့်သို့ တင်မည်",
         "camera_recovery_grace_minutes": "Recovering အခြေအနေတွင် ကင်မရာ ချိတ်ဆက်နိုင်နေရမည့် မိနစ် (Online ဟု အတည်ပြုရန်၊ flapping ကာကွယ်ရန်)",
@@ -1818,6 +1834,9 @@
       "noRepairs": "ပြုပြင်မှု မရှိ"
     },
     "incidentCenter": {
+      "reopenedTimes": "{{n}} ကြိမ် ပြန်ဖွင့်",
+      "reopenedHint": "အလိုအလျောက်ပိတ်ပြီး မကြာမီ ကင်မရာ ထပ်ပြတ်သဖြင့် Incident အသစ်မဖွင့်ဘဲ ဤတစ်ခုကို ဆက်သုံးသည်။",
+      "evtReopened": "ကင်မရာ \"{{name}}\" ထပ်ပြတ်သဖြင့် {{number}} ကို ပြန်ဖွင့်သည်",
       "closeIncident": "ပိတ်ရန်",
       "closeIncidentTitle": "{{number}} ကို ပိတ်ရန်",
       "closeIncidentRestores": "ပိတ်လိုက်ပါက ကင်မရာအခြေအနေ အသုံးပြုနေသည်သို့ ပြန်ပြောင်းပါမည်။",
@@ -2429,6 +2448,9 @@
       "estimateResourcesAt": "Channel 10၊ 50၊ 200၊ 500၊ 1000 တွင် အရင်းအမြစ်များ ခန့်မှန်း၍ Hardware၊ NIC Bandwidth နှင့် Disk ပမာဏ သတ်မှတ်ရန်"
     },
     "deviceManagement": {
+      "alertLevel": "သတိပေးအဆင့်",
+      "alertLevelDefault": "မူလ ({{level}})",
+      "alertLevelHint": "ကင်မရာတွင် ကိုယ်ပိုင်မရှိပါက ချန်နယ်အားလုံး ဤအဆင့်ကို သုံးသည်။",
       "shortCode": "အတိုကောက်",
       "shortCodePlaceholder": "ဥပမာ STR",
       "shortCodeHint": "အထောက်အထားကလစ်အမည်၏ အစတွင် သုံးသည်။ ကင်မရာတွင် ကိုယ်ပိုင်မရှိပါက ချန်နယ်အားလုံး ဤအတိုကောက်ကို သုံးသည်။",
@@ -2566,6 +2588,7 @@
       "vendorStreamUrlCh": "ထုတ်လုပ်သူ Stream URL (Ch 1):"
     },
     "bulkEdit": {
+      "alertLevelFollow": "စက်အတိုင်း",
       "button": "အတူတကွပြင်ရန်",
       "title": "ကင်မရာ {{count}} လုံး အတူတကွပြင်ရန်",
       "hint": "ရွေးထားသည်များသာ ပြောင်းမည်။ \"မပြောင်းပါ\" သည် မူလအတိုင်းရှိမည်",

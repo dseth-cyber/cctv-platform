@@ -38,6 +38,9 @@
       "rowsPerPage": "แสดงต่อหน้า:"
     },
     "cameras": {
+      "alertLevel": "ระดับการแจ้งเตือน",
+      "alertLevelFromDevice": "ตามอุปกรณ์ ({{level}})",
+      "alertLevelDefault": "ค่าเริ่มต้น ({{level}})",
       "shortCode": "ตัวย่อ",
       "shortCodeHint": "ใช้ขึ้นต้นชื่อคลิปหลักฐาน ถ้าเว้นว่างจะใช้ตัวย่อของอุปกรณ์",
       "shortCodeFromDevice": "ใช้ของอุปกรณ์: {{code}}",
@@ -599,6 +602,9 @@
       "cameraGroups": "กลุ่มกล้อง"
     },
     "incidentCenter": {
+      "reopenedTimes": "เปิดซ้ำ {{n}} ครั้ง",
+      "reopenedHint": "กล้องหลุดอีกไม่นานหลัง Incident ปิดเอง ระบบจึงเปิดรายการเดิมต่อแทนการเปิดใหม่",
+      "evtReopened": "กล้อง \"{{name}}\" หลุดอีกครั้ง ระบบเปิด {{number}} ต่อ",
       "closeIncident": "ปิดงาน",
       "closeIncidentTitle": "ปิดงาน {{number}}",
       "closeIncidentRestores": "เมื่อปิดงาน สถานะกล้องจะกลับเป็น \"ใช้งาน\" โดยอัตโนมัติ",
@@ -725,6 +731,17 @@
       }
     },
     "masterdataManagement": {
+      "tabAlertLevel": "ระดับการแจ้งเตือน",
+      "hint_alert_level": "กำหนดว่ากล้องต้องหลุดนานเท่าไรจึงแจ้งเตือนและเปิด Incident เลือกระดับได้ที่อุปกรณ์หรือกล้อง สถานะออนไลน์/ออฟไลน์ในหน้าจอยังแสดงตามจริงทุกระดับ",
+      "levelHelp": "นับจากเวลาที่กล้องตอบล่าสุด 0 คือทันทีที่ระบบตรวจพบ เว้นว่างคือไม่ทำเลย ระบบตรวจทุก 1 นาที จึงอาจช้ากว่าที่ตั้งได้ถึงประมาณ 1 นาที",
+      "levelAlertDelay": "แจ้งเตือนเมื่อหลุดเกิน (นาที)",
+      "levelIncidentDelay": "เปิด Incident เมื่อหลุดเกิน (นาที)",
+      "levelIsDefault": "ใช้เป็นค่าเริ่มต้นของกล้องที่ไม่ได้ระบุ",
+      "levelSummary": "แจ้งเตือน: {{alert}} · Incident: {{incident}}",
+      "levelNever": "ไม่ทำ",
+      "levelAtOnce": "ทันที",
+      "levelMinutes": "{{n}} นาที",
+      "error_ALERT_LEVEL_INVALID": "เวลาต้องเป็นจำนวนเต็ม 0 ถึง 1440 นาที หรือเว้นว่าง",
       "tabCameraType": "ประเภทกล้อง",
       "tabCameraBrand": "ยี่ห้อกล้อง",
       "tabDeviceType": "ประเภทอุปกรณ์",
@@ -807,6 +824,7 @@
         "camera_auto_incident_enabled": "สร้าง Incident อัตโนมัติเมื่อกล้องออฟไลน์",
         "camera_auto_resolve_enabled": "ปิด Incident อัตโนมัติเมื่อกล้องกลับมาออนไลน์",
         "camera_auto_workorder_enabled": "สร้างใบสั่งงานอัตโนมัติเมื่อ Incident ระดับวิกฤต",
+        "camera_incident_reopen_minutes": "เปิด Incident เดิมต่อถ้าหลุดซ้ำภายใน (นาที)",
         "camera_incident_escalate_high_minutes": "ยกระดับเป็น High หลังออฟไลน์ (นาที)",
         "camera_incident_escalate_critical_minutes": "ยกระดับเป็น Critical หลังออฟไลน์ (นาที)",
         "camera_recovery_grace_minutes": "ระยะเวลารอยืนยันก่อนถือว่ากลับมาออนไลน์ (นาที)",
@@ -845,6 +863,7 @@
         "camera_auto_incident_enabled": "สร้าง Incident อัตโนมัติเมื่อระบบตรวจพบว่ากล้องออฟไลน์ (ผูกกับเกณฑ์ออฟไลน์ด้านบน)",
         "camera_auto_resolve_enabled": "ปิด Incident ที่ระบบสร้างไว้อัตโนมัติเมื่อกล้องกลับมาออนไลน์",
         "camera_auto_workorder_enabled": "สร้างใบสั่งงานอัตโนมัติเมื่อ Incident ที่ระบบสร้างไว้ถูกยกระดับเป็นวิกฤต",
+        "camera_incident_reopen_minutes": "ถ้ากล้องหลุดอีกภายในเวลานี้หลัง Incident ปิดเอง จะเปิดรายการเดิมต่อแทนการเปิดใหม่ ตั้ง 0 เพื่อปิดการทำงานนี้",
         "camera_incident_escalate_high_minutes": "จำนวนนาทีที่ออฟไลน์ก่อนที่ Incident ที่เปิดอยู่จะถูกยกระดับเป็น High",
         "camera_incident_escalate_critical_minutes": "จำนวนนาทีที่ออฟไลน์ก่อนที่ Incident ที่เปิดอยู่จะถูกยกระดับเป็น Critical",
         "camera_recovery_grace_minutes": "จำนวนนาทีที่กล้องต้องเชื่อมต่อได้ต่อเนื่องระหว่างสถานะ Recovering ก่อนจะยืนยันว่าออนไลน์จริง (กันปัญหาเชื่อมต่อกระตุก)",
@@ -2440,6 +2459,9 @@
       "estimateResourcesAt": "คำนวณการใช้ทรัพยากรที่ระดับ 10, 50, 200, 500, 1000 ช่องสัญญาณ เพื่อจัดสรรฮาร์ดแวร์ แบนด์วิดท์ NIC และขนาดฮาร์ดดิสก์"
     },
     "deviceManagement": {
+      "alertLevel": "ระดับการแจ้งเตือน",
+      "alertLevelDefault": "ค่าเริ่มต้น ({{level}})",
+      "alertLevelHint": "กล้องทุกช่องใช้ระดับนี้ ยกเว้นกล้องที่ตั้งของตัวเองไว้",
       "shortCode": "ตัวย่อ",
       "shortCodePlaceholder": "เช่น STR",
       "shortCodeHint": "ขึ้นต้นชื่อคลิปหลักฐานของทุกช่อง",
@@ -2577,6 +2599,7 @@
       "vendorStreamUrlCh": "URL สตรีมตามยี่ห้อ (ช่อง 1):"
     },
     "bulkEdit": {
+      "alertLevelFollow": "ตามอุปกรณ์",
       "button": "แก้ไขพร้อมกัน",
       "title": "แก้ไขกล้อง {{count}} ตัวพร้อมกัน",
       "hint": "เปลี่ยนเฉพาะช่องที่เลือก ช่องที่เป็น \"ไม่เปลี่ยน\" จะคงค่าเดิม",

@@ -15,9 +15,11 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   const toast = useToast();
   const { options: types } = useMasterdataOptions('camera_type');
   const { options: brands } = useMasterdataOptions('camera_brand');
+  const { options: alertLevels } = useMasterdataOptions('alert_level');
   const [cameraType, setCameraType] = useState(KEEP);
   const [cameraBrand, setCameraBrand] = useState(KEEP);
   const [cameraModel, setCameraModel] = useState('');
+  const [alertLevel, setAlertLevel] = useState(KEEP);
   const [enabled, setEnabled] = useState(KEEP);
   const [placeMode, setPlaceMode] = useState<'keep' | 'device' | 'set'>('keep');
   const [place, setPlace] = useState({ siteId: '', zoneId: '' });
@@ -31,6 +33,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   if (cameraType !== KEEP) changes.cameraType = cameraType === CLEAR ? null : cameraType;
   if (cameraBrand !== KEEP) changes.cameraBrand = cameraBrand === CLEAR ? null : cameraBrand;
   if (cameraModel.trim()) changes.cameraModel = cameraModel.trim();
+  if (alertLevel !== KEEP) changes.alertLevel = alertLevel === CLEAR ? null : alertLevel;
   if (enabled !== KEEP) changes.enabled = enabled === 'on';
   if (placeMode === 'device') changes.locationFromDevice = true;
   if (placeMode === 'set') Object.assign(changes, { locationFromDevice: false, siteId: place.siteId || null, zoneId: place.zoneId || null });
@@ -67,6 +70,10 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
           <div>
             <label className={label}>{t('imageService.cameras.cameraBrand')}</label>
             <SearchableSelect value={cameraBrand} onChange={setCameraBrand} options={[keepOption, clearOption, ...brands.map((o) => ({ value: o.value, label: o.label }))]} />
+          </div>
+          <div data-bulk-alert-level>
+            <label className={label}>{t('imageService.cameras.alertLevel')}</label>
+            <SearchableSelect value={alertLevel} onChange={setAlertLevel} showSearch={false} options={[keepOption, { value: CLEAR, label: t('ui.bulkEdit.alertLevelFollow') }, ...alertLevels.map((o) => ({ value: o.value, label: o.label }))]} />
           </div>
           <div>
             <label className={label}>{t('imageService.cameras.cameraModel')}</label>

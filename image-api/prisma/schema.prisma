@@ -364,6 +364,8 @@ model Device {
   name              String     @db.VarChar(128)
   // Starts the name of an evidence clip; a channel camera takes it from here unless it has its own.
   shortCode         String?    @map("short_code") @db.VarChar(20)
+  // Code from masterdata type alert_level. Empty means the default level.
+  alertLevel        String?    @map("alert_level") @db.VarChar(64)
   description       String?    @db.Text
   // Code from masterdata type device_type.
   deviceType        String     @default("dvr") @map("device_type") @db.VarChar(32)
@@ -420,6 +422,11 @@ model Camera {
   cameraBrand            String?                 @map("camera_brand") @db.VarChar(64)
   cameraModel            String?                 @map("camera_model") @db.VarChar(64)
   shortCode              String?                 @map("short_code") @db.VarChar(20)
+  // Code from masterdata type alert_level. Empty means it follows its device.
+  alertLevel             String?                 @map("alert_level") @db.VarChar(64)
+  // What this outage has already raised, so a later check does not raise it again.
+  outageAlertedAt        DateTime?               @map("outage_alerted_at")
+  outageIncidentAt       DateTime?               @map("outage_incident_at")
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
@@ -699,6 +706,9 @@ model CameraIncident {
   detectionSource     String?  @map("detection_source") @db.VarChar(32)
   rootCauseConfidence String?  @map("root_cause_confidence") @db.VarChar(16)
   autoResolved        Boolean  @default(false) @map("auto_resolved")
+  // The camera dropped again soon after this closed itself, so the same incident carried on.
+  reopenCount         Int       @default(0) @map("reopen_count")
+  lastReopenedAt      DateTime? @map("last_reopened_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 

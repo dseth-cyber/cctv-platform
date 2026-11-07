@@ -38,6 +38,9 @@
       "clearSelection": "取消选择"
     },
     "cameras": {
+      "alertLevel": "提醒级别",
+      "alertLevelFromDevice": "跟随设备（{{level}}）",
+      "alertLevelDefault": "默认（{{level}}）",
       "shortCode": "简称",
       "shortCodeHint": "用作证据剪辑名称的开头。留空则使用设备的简称。",
       "shortCodeFromDevice": "来自设备：{{code}}",
@@ -500,6 +503,17 @@
       "cameraGroups": "摄像机分组"
     },
     "masterdataManagement": {
+      "tabAlertLevel": "提醒级别",
+      "hint_alert_level": "设置摄像机掉线多久后提醒并打开事件。可在设备或摄像机上选择级别。各级别下屏幕上的在线/离线状态都如实显示。",
+      "levelHelp": "从摄像机最后一次响应开始计算。0 表示一检测到就执行，留空表示不执行。每分钟检查一次，因此可能晚约一分钟。",
+      "levelAlertDelay": "掉线超过多久提醒（分钟）",
+      "levelIncidentDelay": "掉线超过多久打开事件（分钟）",
+      "levelIsDefault": "作为未设置级别的摄像机的默认值",
+      "levelSummary": "提醒：{{alert}} · 事件：{{incident}}",
+      "levelNever": "不执行",
+      "levelAtOnce": "立即",
+      "levelMinutes": "{{n}} 分钟",
+      "error_ALERT_LEVEL_INVALID": "时间必须是 0 到 1440 的整数分钟，或留空",
       "tabCameraType": "摄像机类型",
       "tabCameraBrand": "摄像机品牌",
       "tabDeviceType": "设备类型",
@@ -595,6 +609,7 @@
         "camera_auto_incident_enabled": "摄像头离线时自动创建工单",
         "camera_auto_resolve_enabled": "恢复在线后自动解决",
         "camera_auto_workorder_enabled": "升级为严重级别时自动创建工作单",
+        "camera_incident_reopen_minutes": "在多少分钟内再次掉线时重新打开事件",
         "camera_incident_escalate_high_minutes": "升级为高优先级前的分钟数",
         "camera_incident_escalate_critical_minutes": "升级为严重优先级前的分钟数",
         "camera_recovery_grace_minutes": "确认恢复在线前的宽限时间（分钟）",
@@ -640,6 +655,7 @@
         "camera_auto_incident_enabled": "摄像机离线时自动创建事件",
         "camera_auto_resolve_enabled": "摄像机恢复在线时自动关闭自动创建的事件",
         "camera_auto_workorder_enabled": "自动创建的事件升级为严重时自动创建工单",
+        "camera_incident_reopen_minutes": "事件自动关闭后，如果摄像机在此时间内再次掉线，将继续使用该事件而不是打开新事件。设为 0 可关闭。",
         "camera_incident_escalate_high_minutes": "自动创建的未关闭事件在离线多少分钟后升级为高优先级",
         "camera_incident_escalate_critical_minutes": "自动创建的未关闭事件在离线多少分钟后升级为严重",
         "camera_recovery_grace_minutes": "摄像机在恢复中需保持可达多少分钟才确认在线（防止抖动）",
@@ -1823,6 +1839,9 @@
       "noRepairs": "无维修"
     },
     "incidentCenter": {
+      "reopenedTimes": "重新打开 {{n}} 次",
+      "reopenedHint": "事件自动关闭后不久摄像机再次掉线，因此继续使用此事件而不是打开新事件。",
+      "evtReopened": "摄像机“{{name}}”再次掉线，已重新打开 {{number}}",
       "closeIncident": "关闭",
       "closeIncidentTitle": "关闭 {{number}}",
       "closeIncidentRestores": "关闭后摄像机状态将恢复为“启用”。",
@@ -2434,6 +2453,9 @@
       "estimateResourcesAt": "估算 10、50、200、500、1000 个通道的资源用量，用于规划硬件、网卡带宽和磁盘容量"
     },
     "deviceManagement": {
+      "alertLevel": "提醒级别",
+      "alertLevelDefault": "默认（{{level}}）",
+      "alertLevelHint": "所有通道都使用此级别，除非摄像机有自己的设置。",
       "shortCode": "简称",
       "shortCodePlaceholder": "例如 STR",
       "shortCodeHint": "用作证据剪辑名称的开头。所有通道都使用它，除非摄像机有自己的简称。",
@@ -2571,6 +2593,7 @@
       "vendorStreamUrlCh": "厂商流地址（通道 1）："
     },
     "bulkEdit": {
+      "alertLevelFollow": "跟随设备",
       "button": "批量编辑",
       "title": "批量编辑 {{count}} 台摄像机",
       "hint": "只更改所选项目，\"不更改\"的项目保持原样",

@@ -90,6 +90,7 @@ export default function DeviceManagement() {
     model: '',
     serialNumber: '',
     shortCode: '',
+    alertLevel: '',
     ipAddress: '',
     rtspPort: 554,
     httpPort: 80,
@@ -109,6 +110,7 @@ export default function DeviceManagement() {
   const { options: brandOptions } = useMasterdataOptions('device_brand');
   const { options: deviceTypeOptions } = useMasterdataOptions('device_type');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
+  const { options: alertLevelOptions } = useMasterdataOptions('alert_level');
   const { data: sites = [] } = useSitesWithZones();
   const sitesForChip = sites;
 
@@ -353,6 +355,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       model: '',
       serialNumber: '',
       shortCode: '',
+      alertLevel: '',
       ipAddress: '',
       rtspPort: 554,
       httpPort: 80,
@@ -385,6 +388,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       model: dev.model || '',
       serialNumber: '',
       shortCode: '',
+      alertLevel: dev.alertLevel || '',
       ipAddress: cloneIpPlaceholder(dev.ipAddress),
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -413,6 +417,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       model: dev.model || '',
       serialNumber: dev.serialNumber || '',
       shortCode: dev.shortCode || '',
+      alertLevel: dev.alertLevel || '',
       ipAddress: dev.ipAddress || '',
       rtspPort: dev.rtspPort || 554,
       httpPort: dev.httpPort || 80,
@@ -826,6 +831,20 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.shortCodeHint')}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.alertLevel')}</label>
+              <select
+                data-device-alert-level
+                value={formData.alertLevel}
+                onChange={(e) => setFormData({ ...formData, alertLevel: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">{t('ui.deviceManagement.alertLevelDefault', { level: alertLevelOptions.find((o) => o.isDefault)?.label ?? '' })}</option>
+                {alertLevelOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.alertLevelHint')}</p>
             </div>
 
             <div>

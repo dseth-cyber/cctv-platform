@@ -125,6 +125,33 @@ export async function resolveIncident(id: string, data: {
   });
 }
 
+/**
+ * The camera dropped again soon after its incident closed itself: carry on with that incident instead of
+ * opening another. One closed by a person stays closed, since someone decided it was finished.
+ */
+export async function reopenRecentIncident(cameraId: string, withinMinutes: number) {
+  if (withinMinutes <= 0) return null;
+  const prisma = getPrisma();
+  const recent = await prisma.cameraIncident.findFirst({
+    where: { cameraId, status: 'resolved', autoResolved: true, closedAt: { gte: new Date(Date.now() - withinMinutes * 60_000) } },
+    orderBy: { closedAt: 'desc' },
+  });
+  if (!recent) return null;
+  return prisma.cameraIncident.update({
+    where: { id: recent.id },
+    data: {
+      status: 'open',
+      closedAt: null,
+      closedBy: null,
+      actualFinish: null,
+      resolution: null,
+      autoResolved: false,
+      reopenCount: { increment: 1 },
+      lastReopenedAt: new Date(),
+    },
+  });
+}
+
 export async function getIncidents(params: {
   cameraId?: string;
   status?: string;
