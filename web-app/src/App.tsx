@@ -119,7 +119,7 @@ const settingsSubItems = [
   { path: '/cctv/health', labelKey: 'nav.health', icon: HeartPulse, permission: 'health:read' },
   { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
   { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
-  { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read' },
+  { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read', allCameras: true },
   { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
   { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
 ]
@@ -466,7 +466,8 @@ function SettingsNavGroup({ settingsSubItems, locationPath, t, collapsed }: {
     if (onSettingsPage) setOpen(true)
   }, [onSettingsPage])
 
-  const visibleItems = settingsSubItems.filter(item => hasPermission(user, item.permission))
+  // The audit log covers every camera, so a person limited to some is not offered it.
+  const visibleItems = settingsSubItems.filter(item => hasPermission(user, item.permission) && (!(item as { allCameras?: boolean }).allCameras || user?.allCameras !== false))
   if (visibleItems.length === 0) return null
 
   const isInSettings = visibleItems.some(item => locationPath === item.path)
@@ -1140,7 +1141,7 @@ export default function App() {
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/audit-log" element={
-              hasPermission(user, 'audit-log:read') ? <AuditLogViewer /> : <UnauthorizedPage />
+              hasPermission(user, 'audit-log:read') && user?.allCameras !== false ? <AuditLogViewer /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/backup" element={
               hasPermission(user, 'backup:read') ? <BackupDashboard /> : <UnauthorizedPage />

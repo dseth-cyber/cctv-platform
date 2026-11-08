@@ -45,8 +45,13 @@ async function readScope(request: FastifyRequest): Promise<CameraScope> {
   const user = (request as any).user as { id?: string; role?: string } | undefined;
   if (user?.role === 'system') return { all: true };
   if (!user?.id) return { all: false, where: NOTHING };
+  return scopeOfUser(user.id);
+}
+
+/** What one account may see, read from the account itself. */
+export async function scopeOfUser(userId: string): Promise<CameraScope> {
   const prisma = getPrisma();
-  const row = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, cameraScope: true, enabled: true, deletedAt: true } });
+  const row = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, cameraScope: true, enabled: true, deletedAt: true } });
   if (!row || !row.enabled || row.deletedAt) return { all: false, where: NOTHING };
   if (row.role === 'admin' || row.role === 'system') return { all: true };
   const role = await prisma.customRole.findUnique({ where: { code: row.role }, select: { cameraScope: true } });

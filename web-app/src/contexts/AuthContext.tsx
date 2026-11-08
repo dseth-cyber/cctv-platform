@@ -8,6 +8,8 @@ export interface User {
   email: string
   role: string
   permissions?: string[]
+  /** False when this person is limited to some cameras. Missing on sessions from before it existed. */
+  allCameras?: boolean
   hiddenMenuItems?: string[]
   uiPreferences?: Record<string, any>
   lastLogin: string | null

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { searchAuditLogs, bulkDeleteAuditPreview, bulkDeleteAuditByAge, createAuditLog } from './audit.service.js';
 import { requirePermission } from '../../middleware/rbac.js';
+import { guardAllCameras } from '../access/camera-scope.js';
 
 async function searchHandler(request: FastifyRequest, reply: FastifyReply) {
   const params = request.query as Record<string, any>;
@@ -55,7 +56,9 @@ async function bulkDeleteHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/', { preHandler: [app.authenticate, requirePermission('audit-log:read')] }, searchHandler);
-  app.get('/bulk-delete-preview', { preHandler: [app.authenticate, requirePermission('audit-log:read')] }, bulkDeletePreviewHandler);
-  app.post('/bulk-delete', { preHandler: [app.authenticate, requirePermission('audit-log:delete')] }, bulkDeleteHandler);
+  // The log covers the whole system and names every camera and device touched. Read it whole or not at all:
+  // a person limited to some cameras does not get it.
+  app.get('/', { preHandler: [app.authenticate, requirePermission('audit-log:read'), guardAllCameras] }, searchHandler);
+  app.get('/bulk-delete-preview', { preHandler: [app.authenticate, requirePermission('audit-log:read'), guardAllCameras] }, bulkDeletePreviewHandler);
+  app.post('/bulk-delete', { preHandler: [app.authenticate, requirePermission('audit-log:delete'), guardAllCameras] }, bulkDeleteHandler);
 }

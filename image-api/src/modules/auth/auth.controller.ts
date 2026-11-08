@@ -6,6 +6,7 @@ import { config } from '../../config/index.js';
 import type { AuthenticatedUser } from '../../types/index.js';
 import { getUserPermissions } from '../../middleware/rbac.js';
 import { getPrisma } from '../../lib/prisma.js';
+import { scopeOfUser } from '../access/camera-scope.js';
 
 async function loginHandler(request: FastifyRequest, reply: FastifyReply) {
   const input = loginSchema.parse(request.body);
@@ -20,6 +21,8 @@ async function loginHandler(request: FastifyRequest, reply: FastifyReply) {
 
   const refreshToken = await authService.createRefreshToken(user.id);
   const permissions = await getUserPermissions(user.id);
+  // Tells the page whether to offer what needs every camera, such as the audit log. The server checks again anyway.
+  const allCameras = (await scopeOfUser(user.id)).all;
 
   // Track user session
   const userAgent = request.headers['user-agent'] || undefined;
@@ -33,7 +36,7 @@ async function loginHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.status(200).send({
     accessToken,
     refreshToken,
-    user: { ...user, permissions, lastLogin: new Date().toISOString() },
+    user: { ...user, permissions, allCameras, lastLogin: new Date().toISOString() },
   });
 }
 
@@ -57,8 +60,9 @@ async function meHandler(request: FastifyRequest, reply: FastifyReply) {
   if (!user) {
     return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Not authenticated' });
   }
-  const [permissions, dbUser] = await Promise.all([
+  const [permissions, scope, dbUser] = await Promise.all([
     getUserPermissions(user.id),
+    scopeOfUser(user.id),
     getPrisma().user.findUnique({ where: { id: user.id }, select: { hiddenMenuItems: true, uiPreferences: true } }),
   ]);
   return reply.status(200).send({
@@ -67,6 +71,7 @@ async function meHandler(request: FastifyRequest, reply: FastifyReply) {
     email: user.email,
     role: user.role,
     permissions,
+    allCameras: scope.all,
     hiddenMenuItems: Array.isArray(dbUser?.hiddenMenuItems) ? dbUser.hiddenMenuItems : [],
     uiPreferences: (dbUser?.uiPreferences && typeof dbUser.uiPreferences === 'object') ? dbUser.uiPreferences : {},
     lastLogin: null,
