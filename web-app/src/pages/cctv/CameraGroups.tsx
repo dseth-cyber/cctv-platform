@@ -5,7 +5,7 @@ import { Edit, FolderTree, Plus, Trash2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasPermission } from '@/App';
+import { canManageAll, hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Button, Modal, SearchableSelect, TableSkeleton } from '@/components/ui';
 import { useCctvCameras } from '@/hooks/useCctvCameras';
@@ -18,7 +18,7 @@ export default function CameraGroups() {
   const toast = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const canEdit = hasPermission(user, 'cameras:update');
+  const canEdit = canManageAll(user, 'cameras:update');
 
   const [modal, setModal] = useState<{ open: boolean; item?: any }>({ open: false });
   const [form, setForm] = useState(emptyForm());

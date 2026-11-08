@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { hasPermission } from '@/App'
+import { canManageAll, hasPermission } from '@/App'
 import { imageServiceApi } from '@/services/imageServiceApi'
 import { TableSkeleton, ExportButton, SearchableSelect, Modal } from '@/components/ui'
 import { formatDateTime, toBangkokDateAndTimeString } from '@/utils/dateUtils'
@@ -334,7 +334,7 @@ export default function IncidentCenter() {
         </div>
         {tab === 'list' && (
           <div className="flex items-center gap-2">
-            {hasPermission(user, 'cameras:delete') && (
+            {canManageAll(user, 'cameras:delete') && (
               <button
                 onClick={() => setClearDialogOpen(true)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30 transition-colors flex items-center gap-1.5"

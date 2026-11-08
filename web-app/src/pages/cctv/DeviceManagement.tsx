@@ -42,7 +42,7 @@ import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
 import { LocationFields, useSitesWithZones } from '@/components/cctv/LocationFields';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasPermission } from '@/App';
+import { canManageAll, hasPermission } from '@/App';
 import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib/csv';
 import { cloneIpPlaceholder, isValidIPv4, uniqueCopyName } from '@/lib/deviceChannels';
 
@@ -112,12 +112,14 @@ export default function DeviceManagement() {
   const [enabledChannels, setEnabledChannels] = useState<number[] | null>(null);
   const [cloneSource, setCloneSource] = useState<string | null>(null);
   const { user } = useAuth();
-  const canEditChannels = hasPermission(user, 'cameras:update');
+  const canEditChannels = canManageAll(user, 'cameras:update');
+  const canCreateDevices = canManageAll(user, 'cameras:create');
+  const canDeleteDevices = canManageAll(user, 'cameras:delete');
   const { options: brandOptions } = useMasterdataOptions('device_brand');
   const { options: deviceTypeOptions } = useMasterdataOptions('device_type');
   const { options: channelCountOptions } = useMasterdataOptions('device_channel_count');
   const { options: alertLevelOptions } = useMasterdataOptions('alert_level');
-  const canUpdateDevices = hasPermission(user, 'cameras:update');
+  const canUpdateDevices = canManageAll(user, 'cameras:update');
   const { data: sites = [] } = useSitesWithZones();
   const sitesForChip = sites;
 
@@ -516,17 +518,19 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setIsBulkModalOpen(true);
-              setBulkImportResult(null);
-            }}
-            className="flex items-center gap-1.5 border border-slate-700 hover:border-cyan-500"
-          >
-            <UploadCloud className="w-4 h-4 text-cyan-400" />
-            {t('ui.deviceManagement.bulkImportCsv')}
-          </Button>
+          {canCreateDevices && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsBulkModalOpen(true);
+                setBulkImportResult(null);
+              }}
+              className="flex items-center gap-1.5 border border-slate-700 hover:border-cyan-500"
+            >
+              <UploadCloud className="w-4 h-4 text-cyan-400" />
+              {t('ui.deviceManagement.bulkImportCsv')}
+            </Button>
+          )}
           <Button
             variant="secondary"
             onClick={handleExportCsv}
@@ -541,10 +545,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             <RefreshCw className="w-4 h-4" />
             {t('ui.deviceManagement.refresh')}
           </Button>
-          <Button onClick={openAddModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
-            <Plus className="w-4 h-4" />
-            {t('ui.deviceManagement.addDevice')}
-          </Button>
+          {canCreateDevices && (
+            <Button onClick={openAddModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
+              <Plus className="w-4 h-4" />
+              {t('ui.deviceManagement.addDevice')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -653,9 +659,11 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
               {t('ui.deviceManagement.addYourFirstDvrNvrOr')}
             </p>
-            <Button onClick={openAddModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
-              <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.deviceManagement.addDevice')}
-            </Button>
+            {canCreateDevices && (
+              <Button onClick={openAddModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
+                <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.deviceManagement.addDevice')}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-slate-800">
@@ -726,7 +734,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                         )}
                       </div>
 
-                      {hasUnprovisionedChannels && (
+                      {hasUnprovisionedChannels && canCreateDevices && (
                         <Button
                           variant="secondary"
                           onClick={() => provisionMutation.mutate(dev.id)}
@@ -737,30 +745,36 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                         </Button>
                       )}
 
-                      <button
-                        onClick={() => openCloneModal(dev)}
-                        className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-cyan-300 transition"
-                        title={t('ui.deviceManagement.cloneDevice')}
-                        aria-label={t('ui.deviceManagement.cloneDevice')}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
+                      {canCreateDevices && (
+                        <button
+                          onClick={() => openCloneModal(dev)}
+                          className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-cyan-300 transition"
+                          title={t('ui.deviceManagement.cloneDevice')}
+                          aria-label={t('ui.deviceManagement.cloneDevice')}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => openEditModal(dev)}
-                        className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                        title={t('ui.deviceManagement.editDevice')}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                      {canUpdateDevices && (
+                        <button
+                          onClick={() => openEditModal(dev)}
+                          className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
+                          title={t('ui.deviceManagement.editDevice')}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => setDeleteTarget(dev)}
-                        className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                        title={t('ui.deviceManagement.deleteDevice')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canDeleteDevices && (
+                        <button
+                          onClick={() => setDeleteTarget(dev)}
+                          className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
+                          title={t('ui.deviceManagement.deleteDevice')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

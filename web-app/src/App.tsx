@@ -57,6 +57,14 @@ export function hasPermission(user: any, permission: string): boolean {
   return user.permissions.includes(permission) || user.permissions.includes('*')
 }
 
+/**
+ * Adding or changing recorders, places and groups, or emptying a trash, reaches beyond one camera: the server takes
+ * someone who sees every camera. The page offers it only to them, so nobody presses a button that can only fail.
+ */
+export function canManageAll(user: any, permission: string): boolean {
+  return hasPermission(user, permission) && user?.allCameras !== false
+}
+
 // Sidebar nav item text/hover colors, aware of the light theme (whose sidebar bg is near-white —
 // the dark-theme gray-300/400 text used elsewhere is invisible against it).
 function sidebarItemClasses(theme: string, isActive: boolean, muted = false): string {

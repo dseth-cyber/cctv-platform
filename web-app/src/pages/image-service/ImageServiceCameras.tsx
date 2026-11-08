@@ -15,7 +15,7 @@ import { cleanShortCode } from '@/lib/clipName';
 import { useSearchParams } from 'react-router-dom';
 import { BulkCameraEditModal } from '@/components/cctv/BulkCameraEditModal';
 import { DeletionImpactNote, useDeletionImpact } from '@/components/cctv/DeletionImpactNote';
-import { hasPermission } from '@/App';
+import { canManageAll, hasPermission } from '@/App';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
 import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
@@ -113,6 +113,9 @@ export default function ImageServiceCameras() {
   const showColumn = (key: string) => !hiddenColumns.includes(key);
   const canUpdate = hasPermission(user, 'cameras:update');
   const canDelete = hasPermission(user, 'cameras:delete');
+  // A new camera, or a copy, may land outside what a limited person sees, so only someone who sees all adds one.
+  const canCreate = canManageAll(user, 'cameras:create');
+  const canEmptyTrash = canManageAll(user, 'cameras:delete');
   const hasUsersPermission = hasPermission(user, 'users:read');
   const hasMasterdataPermission = hasPermission(user, 'masterdata:read');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -1145,9 +1148,11 @@ export default function ImageServiceCameras() {
                   <Edit size={12} className="mr-1" /> {t('ui.bulkEdit.button')}
                 </Button>
               )}
-              <Button size="sm" onClick={() => setBulkCloneModal({ open: true })}>
-                <Copy size={12} className="mr-1" /> {t('imageService.cameras.bulkClone')}
-              </Button>
+              {canCreate && (
+                <Button size="sm" onClick={() => setBulkCloneModal({ open: true })}>
+                  <Copy size={12} className="mr-1" /> {t('imageService.cameras.bulkClone')}
+                </Button>
+              )}
               {canDelete && (
                 <Button size="sm" variant="destructive" onClick={() => setBulkDeleteModal({ open: true })}>
                   <Trash2 size={12} className="mr-1" /> {t('imageService.cameras.bulkDelete')}
@@ -1159,9 +1164,11 @@ export default function ImageServiceCameras() {
             </div>
           ) : (
             <>
-              <Button onClick={openCreate}>
-                <Plus size={16} className="mr-1.5" /> {t('imageService.cameras.newCamera')}
-              </Button>
+              {canCreate && (
+                <Button onClick={openCreate}>
+                  <Plus size={16} className="mr-1.5" /> {t('imageService.cameras.newCamera')}
+                </Button>
+              )}
               {canDelete && (
                 <button onClick={handleOpenCameraTrash}
                   className="px-3 py-2 rounded-md text-xs flex items-center gap-1.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors">
@@ -2070,7 +2077,7 @@ export default function ImageServiceCameras() {
                 >
                   <Undo2 size={14} /> {t('imageService.cameras.restoreAllCameras')}
                 </button>
-                {canDelete && !showEmptyConfirm && (
+                {canEmptyTrash && !showEmptyConfirm && (
                   <button onClick={() => { setPermaDeleteTarget(null); setShowEmptyConfirm(true); }}
                     disabled={trashSelected.size > 0}
                     className="px-4 py-2 rounded-md text-sm font-medium bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">

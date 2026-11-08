@@ -1,3 +1,5 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { canManageAll } from '@/App';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -32,6 +34,10 @@ export default function SiteManagement() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [siteModalOpen, setSiteModalOpen] = useState(false);
+  const { user } = useAuth();
+  const canCreate = canManageAll(user, 'cameras:create');
+  const canUpdate = canManageAll(user, 'cameras:update');
+  const canDelete = canManageAll(user, 'cameras:delete');
   const [editingSite, setEditingSite] = useState<any | null>(null);
   const [deleteSiteTarget, setDeleteSiteTarget] = useState<any | null>(null);
 
@@ -255,10 +261,12 @@ export default function SiteManagement() {
             <RefreshCw className="w-4 h-4" />
             {t('ui.siteManagement.refresh')}
           </Button>
-          <Button onClick={openAddSiteModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
-            <Plus className="w-4 h-4" />
-            {t('ui.siteManagement.addSite')}
-          </Button>
+          {canCreate && (
+            <Button onClick={openAddSiteModal} className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white">
+              <Plus className="w-4 h-4" />
+              {t('ui.siteManagement.addSite')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -328,9 +336,11 @@ export default function SiteManagement() {
             <Building2 className="w-12 h-12 mx-auto text-slate-600 mb-3" />
             <p className="text-base font-semibold text-slate-300">{t('ui.siteManagement.noSitesOrLocationsConfigured')}</p>
             <p className="text-xs text-slate-500 mt-1">{t('ui.siteManagement.createYourFirstSiteToGroup')}</p>
-            <Button onClick={openAddSiteModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
-              <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.siteManagement.addSite')}
-            </Button>
+            {canCreate && (
+              <Button onClick={openAddSiteModal} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs">
+                <Plus className="w-4 h-4 mr-1" />{' '}{t('ui.siteManagement.addSite')}
+              </Button>
+            )}
           </div>
         ) : (
           filteredSites.map((site: any) => (
@@ -364,30 +374,36 @@ export default function SiteManagement() {
                     {t('ui.location.statDevices', { n: summary.bySite.get(site.id)?.devices ?? 0 })} · {t('ui.location.statCameras', { n: summary.bySite.get(site.id)?.inUse ?? 0 })}
                   </span>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => openAddZoneModal(site)}
-                    className="text-xs py-1 px-2.5 flex items-center gap-1 bg-slate-800 hover:bg-slate-700"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {t('ui.siteManagement.addZone')}
-                  </Button>
+                  {canCreate && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => openAddZoneModal(site)}
+                      className="text-xs py-1 px-2.5 flex items-center gap-1 bg-slate-800 hover:bg-slate-700"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {t('ui.siteManagement.addZone')}
+                    </Button>
+                  )}
 
-                  <button
-                    onClick={() => openEditSiteModal(site)}
-                    className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                    title={t('ui.siteManagement.editSite')}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
+                  {canUpdate && (
+                    <button
+                      onClick={() => openEditSiteModal(site)}
+                      className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
+                      title={t('ui.siteManagement.editSite')}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => setDeleteSiteTarget(site)}
-                    className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                    title={t('ui.siteManagement.deleteSite')}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeleteSiteTarget(site)}
+                      className="p-1.5 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
+                      title={t('ui.siteManagement.deleteSite')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -426,20 +442,24 @@ export default function SiteManagement() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openEditZoneModal(site, zone)}
-                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-                            title={t('ui.siteManagement.editZone')}
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteZoneTarget(zone)}
-                            className="p-1 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
-                            title={t('ui.siteManagement.deleteZone')}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {canUpdate && (
+                            <button
+                              onClick={() => openEditZoneModal(site, zone)}
+                              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
+                              title={t('ui.siteManagement.editZone')}
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteZoneTarget(zone)}
+                              className="p-1 hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-400 transition"
+                              title={t('ui.siteManagement.deleteZone')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                         </div>
                         <LocationStatsRow stats={summary.byZone.get(zone.id)} query={`site=${site.id}&zone=${zone.id}`} />
