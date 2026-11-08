@@ -60,6 +60,8 @@ export async function createIncident(data: {
   observers?: any[];
   detectionSource?: string;
   rootCauseConfidence?: string;
+  deviceId?: string;
+  affectedCameras?: Array<{ id: string; name: string; channel: number | null }>;
 }) {
   const prisma = getPrisma();
   const incidentNumber = await generateIncidentNumber();
@@ -86,8 +88,48 @@ export async function createIncident(data: {
       status: 'open',
       detectionSource: data.detectionSource,
       rootCauseConfidence: data.rootCauseConfidence,
+      deviceId: data.deviceId ?? null,
+      affectedCameras: data.affectedCameras ?? [],
     },
   });
+}
+
+/**
+ * Puts a camera on the one incident for its recorder being down, opening that incident for the first camera.
+ * Callers hold the recorder's lock, so two channels reporting together cannot open two.
+ */
+export async function addCameraToRecorderIncident(
+  recorder: { id: string; name: string; ipAddress: string },
+  camera: { id: string; name: string; channelNumber?: number | null; status?: string | null },
+) {
+  const prisma = getPrisma();
+  const entry = { id: camera.id, name: camera.name, channel: camera.channelNumber ?? null };
+  const open = await prisma.cameraIncident.findFirst({
+    where: { deviceId: recorder.id, status: { in: ['open', 'pending'] } },
+    orderBy: { openedAt: 'desc' },
+  });
+  if (open) {
+    const list = Array.isArray(open.affectedCameras) ? (open.affectedCameras as Array<{ id?: string }>) : [];
+    if (list.some((c) => c?.id === camera.id)) return { incident: open, created: false };
+    const incident = await prisma.cameraIncident.update({ where: { id: open.id }, data: { affectedCameras: [...list, entry] } });
+    return { incident, created: false };
+  }
+  const incident = await createIncident({
+    cameraId: camera.id,
+    deviceId: recorder.id,
+    affectedCameras: [entry],
+    fromStatus: camera.status ?? 'active',
+    toStatus: camera.status ?? 'active',
+    reason: 'recorder_offline',
+    rootCause: 'network',
+    description: `Auto-detected: recorder "${recorder.name}" (${recorder.ipAddress}) is not answering, so its cameras cannot be seen. This one incident covers every camera on it.`,
+    priority: 'medium',
+    impact: 'none',
+    openedBy: 'system',
+    detectionSource: 'health_monitor',
+    rootCauseConfidence: 'high',
+  });
+  return { incident, created: true };
 }
 
 const VALID_WORKFLOW_STAGES = ['unassigned', 'assigned', 'in_progress', 'waiting_parts', 'waiting_vendor'];
@@ -388,13 +430,14 @@ export async function searchIncidents(params: {
     prisma.cameraIncident.findMany({
       where, orderBy,
       skip: (page - 1) * limit, take: limit,
-      include: { camera: { select: { name: true } } },
+      include: { camera: { select: { name: true, device: { select: { name: true } } } } },
     }),
   ]);
   // compute MTTR per incident (closedAt - openedAt); still-open incidents get a live duration instead.
   const mapped = data.map((i: any) => ({
     ...i,
     cameraName: i.camera?.name ?? '',
+    deviceName: i.deviceId ? i.camera?.device?.name ?? '' : null,
     mttrMinutes: i.closedAt ? Math.round((new Date(i.closedAt).getTime() - new Date(i.openedAt).getTime()) / 60000) : null,
     openDurationMinutes: i.closedAt ? null : Math.round((Date.now() - new Date(i.openedAt).getTime()) / 60000),
   }));

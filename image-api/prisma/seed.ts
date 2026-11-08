@@ -443,6 +443,7 @@ async function main() {
     { code: 'cable_replacement', nameTh: 'เปลี่ยนสาย', nameEn: 'Cable Replacement', nameCn: '更换电缆', nameMm: 'ကေဘယ်လဲလှယ်ခြင်း', nameJp: 'ケーブル交換', sortOrder: 6 },
     { code: 'camera_malfunction', nameTh: 'กล้องชำรุด', nameEn: 'Camera Malfunction', nameCn: '相机故障', nameMm: 'ကင်မရာ ချို့ယွင်းခြင်း', nameJp: 'カメラ故障', sortOrder: 7 },
     { code: 'rtsp_unreachable', nameTh: 'สตรีม RTSP เชื่อมต่อไม่ได้', nameEn: 'RTSP Stream Unreachable', nameCn: 'RTSP流无法访问', nameMm: 'RTSP stream ချိတ်ဆက်၍မရ', nameJp: 'RTSPストリーム接続不可', sortOrder: 8 },
+    { code: 'recorder_offline', nameTh: 'เครื่องบันทึกไม่ตอบ', nameEn: 'Recorder Not Responding', nameCn: '录像机无响应', nameMm: 'Recorder တုံ့ပြန်မှုမရှိ', nameJp: 'レコーダー応答なし', sortOrder: 8 },
     { code: 'disk_full', nameTh: 'ดิสก์เต็ม', nameEn: 'Disk Full', nameCn: '磁盘已满', nameMm: 'ဒစ်ခ် ပြည့်နေသည်', nameJp: 'ディスク容量不足', sortOrder: 9 },
     { code: 'authentication_failed', nameTh: 'ยืนยันตัวตนล้มเหลว', nameEn: 'Authentication Failed', nameCn: '认证失败', nameMm: 'အထောက်အထားစိစစ်ခြင်း မအောင်မြင်', nameJp: '認証失敗', sortOrder: 10 },
     { code: 'media_server_down', nameTh: 'Media Server หยุดทำงาน', nameEn: 'Media Server Down', nameCn: '媒体服务器停止', nameMm: 'Media Server ရပ်တန့်သွားသည်', nameJp: 'メディアサーバー停止', sortOrder: 11 },

@@ -9,6 +9,7 @@ import { formatDuration } from '../../lib/format.js';
 import { NO_PROBE_TARGET, probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { isKnownNoSignal, readChannelsWithoutSignal } from './device-channel-signal.js';
+import { checkRecorders, recorderIfDown, withRecorderLock, type Recorder } from './recorder-outage.js';
 import { isDelayOver, loadAlertLevels, offlineThresholdMs, outageElapsedMs, resolveAlertLevel, type AlertLevel } from './alert-levels.js';
 
 let cronTask: ScheduledTask | null = null;
@@ -67,6 +68,8 @@ function isFlappingNow(cameraId: string, windowMs = 15 * 60 * 1000, maxFlaps = 3
 interface OutageCamera {
   id: string;
   name: string;
+  status?: string | null;
+  channelNumber?: number | null;
   lastPolledAt?: Date | string | null;
   operationalSince?: Date | string | null;
   outageAlertedAt?: Date | string | null;
@@ -82,8 +85,10 @@ async function notifyOutage(
   level: AlertLevel,
   settings: { autoIncidentEnabled: boolean; reopenMinutes: number },
   notice: { alert: Parameters<typeof createAlert>[0]; incident: () => Promise<Parameters<typeof incidentService.createIncident>[0]> },
+  recorder?: Recorder,
 ): Promise<void> {
   if (isFlappingNow(cam.id)) return;
+  if (recorder) return withRecorderLock(recorder.id, () => notifyRecorderOutage(cam, recorder, level, settings));
   const prisma = getPrisma();
   const elapsed = outageElapsedMs(cam);
   const raised: { outageAlertedAt?: Date; outageIncidentAt?: Date } = {};
@@ -121,6 +126,102 @@ async function notifyOutage(
 
   if (raised.outageAlertedAt || raised.outageIncidentAt) {
     await prisma.camera.update({ where: { id: cam.id }, data: raised });
+  }
+}
+
+/** The same delays as a camera on its own, but raised once for the recorder, however many of its cameras are down. */
+async function notifyRecorderOutage(
+  cam: OutageCamera,
+  recorder: Recorder,
+  level: AlertLevel,
+  settings: { autoIncidentEnabled: boolean },
+): Promise<void> {
+  const prisma = getPrisma();
+  const elapsed = outageElapsedMs(cam);
+  const raised: { outageAlertedAt?: Date; outageIncidentAt?: Date } = {};
+
+  if (!cam.outageAlertedAt && isDelayOver(level.alertDelayMinutes, elapsed)) {
+    const open = await prisma.alert.findFirst({ where: openOutageAlert(recorder.id) });
+    if (!open) {
+      await createAlert({
+        alertType: 'camera_offline',
+        severity: 'critical',
+        source: recorder.id,
+        title: `Recorder offline: ${recorder.name}`,
+        message: `Recorder "${recorder.name}" (${recorder.ipAddress}) is not answering, so none of its ${recorder.cameraCount} cameras can be seen. This one alert stands for all of them.`,
+        details: { scope: 'recorder', deviceId: recorder.id, deviceName: recorder.name, cameraCount: recorder.cameraCount, lastPolledAt: cam.lastPolledAt ?? null },
+      });
+      logger.warn({ recorder: recorder.name, cameras: recorder.cameraCount }, 'Recorder offline: one alert for all its cameras');
+    }
+    raised.outageAlertedAt = new Date();
+  }
+
+  if (settings.autoIncidentEnabled && !cam.outageIncidentAt && isDelayOver(level.incidentDelayMinutes, elapsed)) {
+    // A camera already down on its own before the recorder went keeps its own incident.
+    if (!(await incidentService.getOpenIncidentForCamera(cam.id))) {
+      const { incident, created } = await incidentService.addCameraToRecorderIncident(recorder, cam);
+      if (created) logger.info({ recorder: recorder.name, incident: incident.incidentNumber }, 'Auto-created one incident for a recorder that is down');
+    }
+    raised.outageIncidentAt = new Date();
+  }
+
+  if (raised.outageAlertedAt || raised.outageIncidentAt) {
+    await prisma.camera.update({ where: { id: cam.id }, data: { ...raised, outageViaDevice: true } });
+  }
+}
+
+/**
+ * A recorder that answers again ends what was raised for it. Its cameras still down after that are a fault of
+ * their own now, so they go back to being raised one by one.
+ */
+async function closeRecorderOutages(answering: Set<string>, autoResolveEnabled: boolean): Promise<void> {
+  if (answering.size === 0) return;
+  const prisma = getPrisma();
+  const ids = [...answering];
+  const [alerts, incidents, stillDown] = await Promise.all([
+    prisma.alert.findMany({ where: { alertType: 'camera_offline', source: { in: ids }, resolvedAt: null, severity: { not: 'info' } } }),
+    autoResolveEnabled
+      ? prisma.cameraIncident.findMany({ where: { deviceId: { in: ids }, status: 'open', detectionSource: { in: AUTO_DETECTED_INCIDENT_SOURCES } } })
+      : Promise.resolve([]),
+    prisma.camera.findMany({ where: { deviceId: { in: ids }, outageViaDevice: true, operationalStatus: 'offline' }, select: { id: true, deviceId: true } }),
+  ]);
+
+  for (const alert of alerts) {
+    const downtimeMs = computeDowntimeMs(alert, null);
+    const details = (alert.details as Record<string, unknown> | null) ?? {};
+    const name = String(details.deviceName ?? alert.source);
+    const left = stillDown.filter((c) => c.deviceId === alert.source).length;
+    await prisma.alert.update({
+      where: { id: alert.id },
+      data: { resolvedAt: new Date(), resolvedBy: 'system', details: { ...details, resolvedReason: 'Recorder answering again', downtimeMs, downtimeFormatted: formatDuration(downtimeMs) } },
+    });
+    await createAlert({
+      alertType: 'camera_offline',
+      severity: 'info',
+      source: alert.source ?? undefined,
+      title: `Recorder online: ${name}`,
+      message: `Recorder "${name}" is answering again. Downtime: ${formatDuration(downtimeMs)}.${left > 0 ? ` ${left} camera(s) on it are still down and are reported on their own from now.` : ''}`,
+      details: { scope: 'recorder', deviceId: alert.source, deviceName: name, event: 'back_online', stillDown: left },
+      skipDedup: true,
+      closeOnCreate: true,
+    });
+    logger.info({ recorder: name, downtime: formatDuration(downtimeMs), stillDown: left }, 'Recorder answering again');
+  }
+
+  for (const incident of incidents) {
+    const openMs = Date.now() - new Date(incident.lastReopenedAt ?? incident.openedAt).getTime();
+    await incidentService.resolveIncident(incident.id, {
+      resolution: `Recorder answered again after ${formatDuration(openMs)}.`,
+      closedBy: 'system',
+      autoResolved: true,
+    });
+  }
+
+  if (stillDown.length > 0) {
+    await prisma.camera.updateMany({
+      where: { id: { in: stillDown.map((c) => c.id) } },
+      data: { outageViaDevice: false, outageAlertedAt: null, outageIncidentAt: null },
+    });
   }
 }
 
@@ -187,7 +288,8 @@ export async function checkCameraHealth(): Promise<void> {
       alertLevel: true,
       outageAlertedAt: true,
       outageIncidentAt: true,
-      device: { select: { alertLevel: true, id: true, brand: true, ipAddress: true, httpPort: true, rtspPort: true, username: true, passwordEncrypted: true } },
+      outageViaDevice: true,
+      device: { select: { alertLevel: true, id: true, name: true, brand: true, ipAddress: true, httpPort: true, rtspPort: true, username: true, passwordEncrypted: true } },
       lastPolledAt: true,
       operationalStatus: true,
       operationalSince: true,
@@ -202,6 +304,11 @@ export async function checkCameraHealth(): Promise<void> {
   // A recorder answers on the network even when a channel has no picture, so ask it about the channel itself.
   const noSignal = await readChannelsWithoutSignal(cameras.map((c) => c.device));
 
+  // A recorder that does not answer at all takes every camera on it down: that is raised once, for the recorder.
+  const recorders = await checkRecorders(cameras, readyPaths);
+  // The first camera found stands for the recorder on its incident, so make that the lowest channel.
+  cameras.sort((a, b) => (a.channelNumber ?? Number.MAX_SAFE_INTEGER) - (b.channelNumber ?? Number.MAX_SAFE_INTEGER));
+
   for (const cam of cameras) {
     // Maintenance mode suppression: if camera is in maintenance, skip offline alert and incident
     if (cam.status === 'maintenance') {
@@ -209,6 +316,7 @@ export async function checkCameraHealth(): Promise<void> {
     }
 
     const level = resolveAlertLevel(cam.alertLevel, cam.device?.alertLevel, alertLevels);
+    const recorder = cam.device?.id ? recorders.down.get(cam.device.id) : undefined;
 
     // Actively probe the camera's network/RTSP/SMB target
     const streamReady = !!cam.streamPath && readyPaths.has(cam.streamPath.replace(/^\/+/, ''));
@@ -229,7 +337,7 @@ export async function checkCameraHealth(): Promise<void> {
     const isOffline = hasNoSignal || cam.status === 'error' || cam.status === 'inactive' || (!isProbeSuccess && (alreadyDown || timeSinceLastPoll > offlineThresholdMs(thresholdMs, level)));
     const rawNext = isOffline ? 'offline' : 'online';
     // What the recorder says comes first: the network being fine says nothing about a camera behind it.
-    const offlineReason = !isOffline ? null : channelProblem ?? (cam.status === 'error' || cam.status === 'inactive' ? 'status_set' : 'unreachable');
+    const offlineReason = !isOffline ? null : channelProblem ?? (cam.status === 'error' || cam.status === 'inactive' ? 'status_set' : recorder ? 'recorder_offline' : 'unreachable');
     if ((cam.operationalReason ?? null) !== offlineReason) {
       await prisma.camera.update({ where: { id: cam.id }, data: { operationalReason: offlineReason } });
     }
@@ -306,7 +414,7 @@ export async function checkCameraHealth(): Promise<void> {
         },
       });
 
-      await notifyOutage({ ...cam, operationalSince: offlineSince, ...handled }, level, outageSettings, outageNotice);
+      await notifyOutage({ ...cam, operationalSince: offlineSince, ...handled }, level, outageSettings, outageNotice, recorder);
       continue;
     }
 
@@ -332,7 +440,7 @@ export async function checkCameraHealth(): Promise<void> {
         continue;
       }
 
-      await prisma.camera.update({ where: { id: cam.id }, data: { operationalStatus: 'online', operationalSince: new Date() } });
+      await prisma.camera.update({ where: { id: cam.id }, data: { operationalStatus: 'online', operationalSince: new Date(), ...(cam.outageViaDevice ? { outageViaDevice: false } : {}) } });
       logger.info({ camera: cam.name, cameraId: cam.id }, 'Camera confirmed back online');
 
       await prisma.cameraEvent.create({
@@ -363,8 +471,9 @@ export async function checkCameraHealth(): Promise<void> {
         logger.info({ camera: cam.name, downtime: formatDuration(downtimeMs) }, 'Camera offline alert resolved');
       }
 
-      // Nobody was told about a drop shorter than its delay, so there is nothing to call off.
-      if (openAlert || cam.outageAlertedAt) {
+      // Nobody was told about a drop shorter than its delay, so there is nothing to call off. Nor about one
+      // camera when it went down with its recorder: the recorder's own "online" says that.
+      if (openAlert || (cam.outageAlertedAt && !cam.outageViaDevice)) {
         await createAlert({
           alertType: 'camera_offline',
           severity: 'info',
@@ -379,7 +488,8 @@ export async function checkCameraHealth(): Promise<void> {
 
       if (autoResolveEnabled) {
         const openIncident = await incidentService.getOpenIncidentForCamera(cam.id);
-        if (openIncident && AUTO_DETECTED_INCIDENT_SOURCES.includes(openIncident.detectionSource || '')) {
+        // A recorder's incident closes when the recorder answers, not when its first camera does.
+        if (openIncident && !openIncident.deviceId && AUTO_DETECTED_INCIDENT_SOURCES.includes(openIncident.detectionSource || '')) {
           const openDurationMs = downtimeMs || (Date.now() - new Date(openIncident.openedAt).getTime());
           await incidentService.resolveIncident(openIncident.id, {
             resolution: `Camera reconnected automatically after ${formatDuration(openDurationMs)} offline.`,
@@ -394,7 +504,7 @@ export async function checkCameraHealth(): Promise<void> {
 
     // Still offline: raise what has come due since the last check.
     if (prev === 'offline' && rawNext === 'offline') {
-      await notifyOutage(cam, level, outageSettings, outageNotice);
+      await notifyOutage(cam, level, outageSettings, outageNotice, recorder);
     }
 
     // Still offline: escalate the auto-created incident's priority as downtime grows.
@@ -403,6 +513,7 @@ export async function checkCameraHealth(): Promise<void> {
       if (openIncident && AUTO_DETECTED_INCIDENT_SOURCES.includes(openIncident.detectionSource || '')) {
         const offlineMs = Date.now() - new Date(openIncident.lastReopenedAt ?? openIncident.openedAt).getTime();
         const nextPriority = computeEscalatedPriority(offlineMs, escalateHighMin, escalateCriticalMin);
+        const subject = openIncident.deviceId ? `Recorder "${cam.device?.name ?? ''}"` : `Camera "${cam.name}"`;
         if (nextPriority !== openIncident.priority) {
           await prisma.cameraIncident.update({ where: { id: openIncident.id }, data: { priority: nextPriority } });
           logger.info({ camera: cam.name, incident: openIncident.incidentNumber, priority: nextPriority }, 'Escalated auto-incident priority');
@@ -413,7 +524,7 @@ export async function checkCameraHealth(): Promise<void> {
               severity: 'warning',
               source: openIncident.id,
               title: `Incident still unassigned: ${openIncident.incidentNumber}`,
-              message: `Camera "${cam.name}" has been offline for over ${escalateHighMin} minute(s) and incident ${openIncident.incidentNumber} has not been assigned to anyone yet.`,
+              message: `${subject} has been offline for over ${escalateHighMin} minute(s) and incident ${openIncident.incidentNumber} has not been assigned to anyone yet.`,
               details: { cameraId: cam.id, cameraName: cam.name, incidentId: openIncident.id, incidentNumber: openIncident.incidentNumber },
             });
           }
@@ -424,7 +535,7 @@ export async function checkCameraHealth(): Promise<void> {
               severity: 'critical',
               source: openIncident.id,
               title: `Incident escalated to Critical: ${openIncident.incidentNumber}`,
-              message: `Camera "${cam.name}" has been offline for over ${escalateCriticalMin} minute(s). Incident ${openIncident.incidentNumber} needs attention.`,
+              message: `${subject} has been offline for over ${escalateCriticalMin} minute(s). Incident ${openIncident.incidentNumber} needs attention.`,
               details: { cameraId: cam.id, cameraName: cam.name, incidentId: openIncident.id, incidentNumber: openIncident.incidentNumber },
             });
           }
@@ -437,6 +548,8 @@ export async function checkCameraHealth(): Promise<void> {
       }
     }
   }
+
+  await closeRecorderOutages(recorders.answering, autoResolveEnabled);
 }
 
 export function startCameraHealthMonitor(): void {
@@ -510,7 +623,7 @@ export async function handleStreamStatusEvent(
     // Fallback scan: check synthetic path camera_${camera.id.replace(/-/g, '').substring(0, 12)}
     const allCams = await prisma.camera.findMany({
       where: { enabled: true },
-      select: { id: true, name: true, deviceId: true, channelNumber: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true, recordingMode: true },
+      select: { id: true, name: true, deviceId: true, channelNumber: true, streamPath: true, status: true, operationalStatus: true, operationalSince: true, rtspUrl: true, recordingMode: true, alertLevel: true, outageAlertedAt: true, outageIncidentAt: true, outageViaDevice: true, lastPolledAt: true },
     });
     for (const c of allCams) {
       const synthetic = `camera_${c.id.replace(/-/g, '').substring(0, 12)}`;
@@ -593,6 +706,8 @@ export async function handleStreamStatusEvent(
     const deviceId = (camera as any).deviceId as string | null | undefined;
     const device = deviceId ? await prisma.device.findUnique({ where: { id: deviceId }, select: { alertLevel: true } }) : null;
     const level = resolveAlertLevel((camera as any).alertLevel, device?.alertLevel, await loadAlertLevels());
+    // Every channel of a recorder that dies reports at once. Ask the recorder before raising anything for one camera.
+    const recorder = deviceId ? await recorderIfDown(deviceId) : undefined;
     await notifyOutage(
       { ...(camera as any), operationalSince: offlineSince, ...handled },
       level,
@@ -620,6 +735,7 @@ export async function handleStreamStatusEvent(
           rootCauseConfidence: 'high',
         }),
       },
+      recorder,
     );
 
     return {
@@ -673,7 +789,7 @@ export async function handleStreamStatusEvent(
 
       await prisma.camera.update({
         where: { id: camera.id },
-        data: { operationalStatus: 'online', operationalSince: new Date(), lastPolledAt: new Date() },
+        data: { operationalStatus: 'online', operationalSince: new Date(), lastPolledAt: new Date(), ...((camera as any).outageViaDevice ? { outageViaDevice: false } : {}) },
       });
 
       await prisma.cameraEvent.create({
@@ -709,7 +825,7 @@ export async function handleStreamStatusEvent(
       }
 
       // Nobody was told about a drop shorter than its delay, so there is nothing to call off.
-      if (openAlert || (camera as any).outageAlertedAt) {
+      if (openAlert || ((camera as any).outageAlertedAt && !(camera as any).outageViaDevice)) {
         await createAlert({
           alertType: 'camera_offline',
           severity: 'info',
@@ -724,7 +840,7 @@ export async function handleStreamStatusEvent(
 
       if (autoResolveEnabled) {
         const openIncident = await incidentService.getOpenIncidentForCamera(camera.id);
-        if (openIncident && ['health_monitor', 'realtime_webhook'].includes(openIncident.detectionSource || '')) {
+        if (openIncident && !openIncident.deviceId && ['health_monitor', 'realtime_webhook'].includes(openIncident.detectionSource || '')) {
           const openDurationMs = downtimeMs || (Date.now() - new Date(openIncident.openedAt).getTime());
           await incidentService.resolveIncident(openIncident.id, {
             resolution: `Camera reconnected via real-time webhook after ${formatDuration(openDurationMs)}.`,

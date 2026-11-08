@@ -58,6 +58,7 @@
       "cameraModel": "Camera model",
       "cameraInfoHint": "For searching and reports only. A camera behind a DVR/NVR connects according to the recorder's brand",
       "offlineReason": {
+        "recorder_offline": "Recorder not responding",
         "no_signal": "No video signal",
         "recorder_lost_camera": "Recorder cannot reach camera",
         "unreachable": "Network unreachable",
@@ -3275,6 +3276,10 @@
       "leaveEmptyForNoExpiration": "Leave empty for no expiration"
     },
     "incidentCenter": {
+      "recorderCameras": "{{name}} (whole recorder, {{n}} cameras)",
+      "recorderDown": "Recorder {{name}} is not answering, {{n}} cameras affected",
+      "recorderDownHint": "One incident instead of one per camera. It closes when the recorder answers again; a camera still down after that gets an incident of its own.",
+      "recorder": "Recorder",
       "cameraSwitchedToMaintenanceModeAlerts": "Camera switched to Maintenance Mode (Alerts suppressed)",
       "cameraRestoredToActiveMode": "Camera restored to Active Mode",
       "failedToUpdateCameraStatus": "Failed to update camera status",

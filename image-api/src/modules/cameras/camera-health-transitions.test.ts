@@ -30,6 +30,7 @@ vi.mock('./camera-incident.service.js', () => ({
 vi.mock('./camera-probe.service.js', () => ({
   NO_PROBE_TARGET: 'No probe target configured',
   probeCameraHealth: (...args: unknown[]) => mockProbe(...args),
+  probeTcpEndpoint: vi.fn(),
 }));
 vi.mock('../media/mediamtx.service.js', () => ({ MediaMtxService: { getLivePaths: vi.fn().mockResolvedValue([]) } }));
 vi.mock('./device-channel-signal.js', () => ({

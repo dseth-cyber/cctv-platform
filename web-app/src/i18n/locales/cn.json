@@ -58,6 +58,7 @@
       "cameraModel": "摄像机型号",
       "cameraInfoHint": "仅用于搜索和报表。通过 DVR/NVR 接入的摄像机按录像机品牌连接",
       "offlineReason": {
+        "recorder_offline": "Recorder not responding",
         "no_signal": "无视频信号",
         "recorder_lost_camera": "录像机无法连接摄像机",
         "unreachable": "网络无法连接",
@@ -3272,6 +3273,10 @@
       "leaveEmptyForNoExpiration": "留空表示永不过期"
     },
     "incidentCenter": {
+      "recorderCameras": "{{name}} (whole recorder, {{n}} cameras)",
+      "recorderDown": "Recorder {{name}} is not answering, {{n}} cameras affected",
+      "recorderDownHint": "One incident instead of one per camera. It closes when the recorder answers again; a camera still down after that gets an incident of its own.",
+      "recorder": "Recorder",
       "cameraSwitchedToMaintenanceModeAlerts": "摄像机已切换为维护模式（告警已抑制）",
       "cameraRestoredToActiveMode": "摄像机已恢复为活动模式",
       "failedToUpdateCameraStatus": "更新摄像机状态失败",

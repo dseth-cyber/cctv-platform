@@ -58,6 +58,7 @@
       "cameraModel": "カメラの型番",
       "cameraInfoHint": "検索とレポート用です。DVR/NVR 経由のカメラは録画機のブランドに従って接続します",
       "offlineReason": {
+        "recorder_offline": "Recorder not responding",
         "no_signal": "映像信号なし",
         "recorder_lost_camera": "録画機がカメラに接続できません",
         "unreachable": "ネットワークに接続できません",
@@ -3272,6 +3273,10 @@
       "leaveEmptyForNoExpiration": "有効期限なしの場合は空欄"
     },
     "incidentCenter": {
+      "recorderCameras": "{{name}} (whole recorder, {{n}} cameras)",
+      "recorderDown": "Recorder {{name}} is not answering, {{n}} cameras affected",
+      "recorderDownHint": "One incident instead of one per camera. It closes when the recorder answers again; a camera still down after that gets an incident of its own.",
+      "recorder": "Recorder",
       "cameraSwitchedToMaintenanceModeAlerts": "カメラをメンテナンスモードにしました（アラート抑止）",
       "cameraRestoredToActiveMode": "カメラを稼働モードに戻しました",
       "failedToUpdateCameraStatus": "カメラのステータス更新に失敗しました",

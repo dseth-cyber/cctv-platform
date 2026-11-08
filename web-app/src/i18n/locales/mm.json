@@ -58,6 +58,7 @@
       "cameraModel": "ကင်မရာမော်ဒယ်",
       "cameraInfoHint": "ရှာဖွေရန်နှင့် အစီရင်ခံစာအတွက်သာ။ DVR/NVR မှတစ်ဆင့်ချိတ်သော ကင်မရာသည် မှတ်တမ်းစက်၏တံဆိပ်အတိုင်း ချိတ်ဆက်သည်",
       "offlineReason": {
+        "recorder_offline": "Recorder not responding",
         "no_signal": "ဗီဒီယိုအချက်ပြမရှိ",
         "recorder_lost_camera": "မှတ်တမ်းစက်က ကင်မရာကို မဆက်သွယ်နိုင်",
         "unreachable": "ကွန်ရက်ဆက်သွယ်၍မရ",
@@ -3267,6 +3268,10 @@
       "leaveEmptyForNoExpiration": "သက်တမ်းမကုန်စေလိုပါက ကွက်လပ်ထားပါ"
     },
     "incidentCenter": {
+      "recorderCameras": "{{name}} (whole recorder, {{n}} cameras)",
+      "recorderDown": "Recorder {{name}} is not answering, {{n}} cameras affected",
+      "recorderDownHint": "One incident instead of one per camera. It closes when the recorder answers again; a camera still down after that gets an incident of its own.",
+      "recorder": "Recorder",
       "cameraSwitchedToMaintenanceModeAlerts": "ကင်မရာကို ပြုပြင်ထိန်းသိမ်းမုဒ်သို့ ပြောင်းပြီး (သတိပေးချက် ဆိုင်းထား)",
       "cameraRestoredToActiveMode": "ကင်မရာကို Active မုဒ်သို့ ပြန်ထားပြီး",
       "failedToUpdateCameraStatus": "ကင်မရာ အခြေအနေ အပ်ဒိတ် မအောင်မြင်ပါ",

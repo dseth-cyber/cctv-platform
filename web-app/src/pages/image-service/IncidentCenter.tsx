@@ -267,7 +267,7 @@ export default function IncidentCenter() {
 
   const exportData = useMemo(() => incidents.map((i: any) => ({
     incidentNumber: i.incidentNumber,
-    cameraName: i.cameraName,
+    cameraName: i.deviceId ? t('ui.incidentCenter.recorderCameras', { name: i.deviceName || i.cameraName, n: (i.affectedCameras ?? []).length }) : i.cameraName,
     reason: labelFor(reasons, i.reason),
     rootCause: i.rootCause ? labelFor(rootCauses, i.rootCause) : '-',
     priority: translatePriority(i.priority, t),
@@ -450,7 +450,13 @@ export default function IncidentCenter() {
                         <tr key={i.id} className={`${themeConfig.tableRow} cursor-pointer`} onClick={() => setDetailId(i.id)}>
                           <td className={`px-3 py-2 text-xs font-medium ${themeConfig.text.secondary}`}>{(page - 1) * limit + idx + 1}</td>
                           <td className={`px-3 py-2 text-xs font-mono font-medium ${themeConfig.text.primary}`}>{i.incidentNumber}</td>
-                          <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{i.cameraName}</td>
+                          <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>
+                            {i.deviceId ? (
+                              <span data-recorder-incident title={(i.affectedCameras ?? []).map((c: any) => c.name).join(', ')}>
+                                {t('ui.incidentCenter.recorderCameras', { name: i.deviceName || i.cameraName, n: (i.affectedCameras ?? []).length })}
+                              </span>
+                            ) : i.cameraName}
+                          </td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{labelFor(reasons, i.reason)}</td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{i.rootCause ? labelFor(rootCauses, i.rootCause) : '—'}</td>
                           <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium capitalize ${PRIORITY_COLORS[i.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(i.priority, t)}</span></td>
@@ -1184,9 +1190,27 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
             </div>
           )}
 
+          {incident.deviceId && (
+            <div data-recorder-cameras className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10">
+              <p className={`text-sm font-medium ${themeConfig.text.primary}`}>
+                {t('ui.incidentCenter.recorderDown', { name: incident.camera?.device?.name ?? '', n: (incident.affectedCameras ?? []).length })}
+              </p>
+              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('ui.incidentCenter.recorderDownHint')}</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[...(incident.affectedCameras ?? [])]
+                  .sort((a: any, b: any) => (a.channel ?? 9999) - (b.channel ?? 9999))
+                  .map((c: any) => (
+                    <span key={c.id} className={`px-2 py-0.5 rounded text-[11px] bg-white/5 ${themeConfig.text.secondary}`}>
+                      {c.channel != null ? `Ch ${c.channel} · ` : ''}{c.name}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label={ic('filterCamera')} value={incident.camera?.name} />
+            <Field label={incident.deviceId ? t('ui.incidentCenter.recorder') : ic('filterCamera')} value={incident.deviceId ? incident.camera?.device?.name : incident.camera?.name} />
             <Field label={ic('filterReason')} value={labelReason(incident.reason)} />
             <Field
               label={ic('filterRootCause')}

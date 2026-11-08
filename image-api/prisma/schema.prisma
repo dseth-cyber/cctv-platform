@@ -441,6 +441,8 @@ model Camera {
   // What this outage has already raised, so a later check does not raise it again.
   outageAlertedAt        DateTime?               @map("outage_alerted_at")
   outageIncidentAt       DateTime?               @map("outage_incident_at")
+  // This outage was raised as part of its whole recorder going down, not on its own.
+  outageViaDevice        Boolean                 @default(false) @map("outage_via_device")
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid
@@ -761,6 +763,10 @@ model CameraIncident {
   // The camera dropped again soon after this closed itself, so the same incident carried on.
   reopenCount         Int       @default(0) @map("reopen_count")
   lastReopenedAt      DateTime? @map("last_reopened_at")
+  // Set when one incident stands for a whole recorder going down. The camera above is the first one found.
+  deviceId            String?   @map("device_id") @db.Uuid
+  // [{ id, name, channel }] for every camera of that recorder this incident covers.
+  affectedCameras     Json      @default("[]") @map("affected_cameras")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
@@ -769,6 +775,7 @@ model CameraIncident {
   recordingClips RecordingClip[]
   workOrder      WorkOrder?
 
+  @@index([deviceId, status])
   @@map("camera_incidents")
 }
 
