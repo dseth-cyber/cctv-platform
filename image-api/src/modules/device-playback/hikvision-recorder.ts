@@ -25,9 +25,20 @@ export interface WallRange {
 export type RecorderFailure = 'login' | 'unreachable';
 
 export class RecorderError extends Error {
-  constructor(readonly kind: RecorderFailure) {
+  /** unlockSeconds: on a refused login, how long the recorder says its account stays locked; null when not locked. */
+  constructor(readonly kind: RecorderFailure, readonly unlockSeconds: number | null = null) {
     super(kind);
   }
+}
+
+/**
+ * Seconds until a locked account opens again, read from a refused login. Hikvision answers a refused
+ * /ISAPI/Security/userCheck with <lockStatus>lock</lockStatus><unlockTime>1405</unlockTime>. null: not locked.
+ */
+export function parseLoginLock(body: string): number | null {
+  if (!/<lockStatus>\s*lock\s*<\/lockStatus>/i.test(body)) return null;
+  const seconds = Number(body.match(/<unlockTime>\s*(\d+)\s*<\/unlockTime>/)?.[1]);
+  return Number.isFinite(seconds) ? seconds : 0;
 }
 
 const TIMEOUT_MS = 8_000;
@@ -89,8 +100,8 @@ export function clipRanges(items: WallRange[], from: string, to: string): WallRa
     .filter((r) => r.end > r.start);
 }
 
-function checked<T extends { status: number }>(res: T): T {
-  if (res.status === 401) throw new RecorderError('login');
+function checked<T extends { status: number; body?: Buffer }>(res: T): T {
+  if (res.status === 401) throw new RecorderError('login', parseLoginLock(res.body?.toString() ?? ''));
   return res;
 }
 
@@ -124,6 +135,14 @@ export function parseDeviceInfo(xml: string): RecorderInfo | null {
   const macAddress = tag(xml, 'macAddress') ?? null;
   if (!model && !macAddress) return null;
   return { model, serialNumber: tag(xml, 'serialNumber') ?? null, macAddress, firmwareVersion: tag(xml, 'firmwareVersion') ?? null, deviceType: guessDeviceType(model) };
+}
+
+/**
+ * The first thing asked of a recorder: whether the login is taken. A refusal here says whether the account is
+ * locked and for how long, which other paths do not, and costs no extra attempt.
+ */
+export async function checkLogin(login: RecorderLogin): Promise<void> {
+  await get(login, '/ISAPI/Security/userCheck');
 }
 
 export async function readDeviceInfo(login: RecorderLogin): Promise<RecorderInfo | null> {

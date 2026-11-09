@@ -86,7 +86,7 @@ export default function DeviceManagement() {
     error: string | null;
   }>({ loading: false, result: null, error: null });
   // What the device said about itself when asked, against what the form held.
-  const [infoReading, setInfoReading] = useState<{ status: string; filled: string[]; differs: Array<{ field: InfoField; saved: string; reported: string }> } | null>(null);
+  const [infoReading, setInfoReading] = useState<{ status: string; filled: string[]; differs: Array<{ field: InfoField; saved: string; reported: string }>; unlockMinutes?: number } | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -250,7 +250,7 @@ export default function DeviceManagement() {
           setFormData((prev) => ({ ...prev, ...fill }));
           setInfoReading({ status: 'ok', filled: Object.keys(fill), differs });
         } else if (info) {
-          setInfoReading({ status: info.status, filled: [], differs: [] });
+          setInfoReading({ status: info.status, filled: [], differs: [], unlockMinutes: info.unlockMinutes });
         }
       }
     } catch (err: any) {
@@ -1017,7 +1017,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
           {infoReading && (
             <div data-device-info-reading={infoReading.status} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5">
               {infoReading.status !== 'ok' ? (
-                <p className="flex items-center gap-1.5 text-amber-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{t(`ui.deviceManagement.info_${infoReading.status}`)}</p>
+                <p className="flex items-center gap-1.5 text-amber-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{t(`ui.deviceManagement.info_${infoReading.status}`, { min: infoReading.unlockMinutes })}</p>
               ) : (
                 <>
                   <p className="text-emerald-300">

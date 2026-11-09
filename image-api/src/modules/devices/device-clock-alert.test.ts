@@ -19,6 +19,7 @@ vi.mock('../system-config/system-config.service.js', () => ({
 }));
 vi.mock('../device-playback/hikvision-recorder.js', () => ({
   addSeconds: vi.fn(),
+  checkLogin: vi.fn().mockResolvedValue(undefined),
   earliestRecording: vi.fn(),
   readClock: vi.fn(),
   readContinuousChannels: vi.fn().mockResolvedValue(null),
@@ -131,5 +132,23 @@ describe('clockRoundNotice', () => {
     expect(notice.message).toContain('- R19: ahead of the server by 1 min 30 s');
     expect(notice.message).not.toContain('- R20:');
     expect(notice.message).toContain('...and 5 more');
+  });
+});
+
+describe('a recorder that locked its account', () => {
+  it('shows until when, and a check by hand during the lock sends nothing', async () => {
+    vi.clearAllMocks();
+    const { checkLogin, RecorderError } = await import('../device-playback/hikvision-recorder.js');
+    const locked = Object.assign(new (RecorderError as any)('login'), { kind: 'login', unlockSeconds: 600 });
+    vi.mocked(checkLogin).mockRejectedValueOnce(locked);
+    mockPrisma.device.findUnique.mockResolvedValue({ ...DEVICE, id: 'dev-lock' });
+    const first = await checkDeviceHealthNow('dev-lock');
+    expect(first?.loginFailed).toBe(true);
+    const until = new Date(first?.loginLockedUntil ?? 0).getTime() - Date.now();
+    expect(until).toBeGreaterThan(590_000);
+    expect(until).toBeLessThanOrEqual(600_000);
+    mockPrisma.device.findUnique.mockResolvedValue({ ...DEVICE, id: 'dev-lock', healthInfo: first });
+    await checkDeviceHealthNow('dev-lock');
+    expect(checkLogin).toHaveBeenCalledTimes(1);
   });
 });

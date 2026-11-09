@@ -17,6 +17,7 @@ export interface DeviceHealthInfo {
   disks: DeviceDisk[];
   clockDriftSeconds: number | null;
   clockMode?: string | null;
+  loginLockedUntil?: string | null;
   oldestRecording: string | null;
   retentionDays: number | null;
   notRecording: Array<{ channel: number; name: string }>;

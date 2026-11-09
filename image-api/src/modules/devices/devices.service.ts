@@ -1,6 +1,6 @@
 import { sortByName } from '../../lib/natural-sort.js';
 import type { Prisma } from '@prisma/client';
-import { readDeviceInfo, RecorderError } from '../device-playback/hikvision-recorder.js';
+import { checkLogin, readDeviceInfo, RecorderError } from '../device-playback/hikvision-recorder.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { SECRET_MASK, sealRtspUrl, redactRtspUrl } from '../../lib/rtsp-credentials.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
@@ -576,10 +576,18 @@ export async function readDeviceInfoForForm(input: { deviceId?: string; ipAddres
   }
   if (!password) return { status: 'no_login' as const };
   try {
-    const info = await readDeviceInfo({ host: input.ipAddress, httpPort: input.httpPort ?? 80, rtspPort: 554, username, password });
+    const login = { host: input.ipAddress, httpPort: input.httpPort ?? 80, rtspPort: 554, username, password };
+    await checkLogin(login);
+    const info = await readDeviceInfo(login);
     return info ? { status: 'ok' as const, brand: 'Hikvision', ...info } : { status: 'not_supported' as const };
   } catch (err) {
-    return { status: err instanceof RecorderError && err.kind === 'login' ? ('login_failed' as const) : ('not_supported' as const) };
+    if (err instanceof RecorderError && err.kind === 'login') {
+      // A locked account refuses even the right password; say so, and for how long, so nobody keeps trying.
+      return err.unlockSeconds === null
+        ? { status: 'login_failed' as const }
+        : { status: 'login_locked' as const, unlockMinutes: Math.max(1, Math.ceil(err.unlockSeconds / 60)) };
+    }
+    return { status: 'not_supported' as const };
   }
 }
 

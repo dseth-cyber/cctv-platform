@@ -1,6 +1,7 @@
 import { digestGet } from '../../lib/digest-fetch.js';
 import { decrypt } from '../../lib/encryption.js';
 import { logger } from '../../lib/logger.js';
+import { parseLoginLock } from '../device-playback/hikvision-recorder.js';
 
 /** no_signal: an analog input with no picture. recorder_lost_camera: an NVR cannot reach its IP camera. */
 export type ChannelProblem = 'no_signal' | 'recorder_lost_camera';
@@ -66,7 +67,8 @@ async function readDevice(device: SignalDevice): Promise<Map<number, ChannelProb
   ] as const) {
     const res = await digestGet(`${base}${path}`, device.username ?? '', password, { timeoutMs: TIMEOUT_MS, maxBytes: MAX_BYTES });
     if (res.status === 401) {
-      loginBlockedUntil.set(key, Date.now() + LOGIN_BLOCK_MS);
+      const unlockSeconds = parseLoginLock(res.body.toString());
+      loginBlockedUntil.set(key, Date.now() + (unlockSeconds === null ? LOGIN_BLOCK_MS : Math.max(unlockSeconds * 1000 + 60_000, 60_000)));
       logger.warn({ deviceId: device.id }, 'Recorder refused the login: channel signal check paused');
       return null;
     }

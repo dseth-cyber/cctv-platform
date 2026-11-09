@@ -8,6 +8,7 @@ import { getCameraDowntimeReport } from '../cameras/camera-analytics.service.js'
 import { loadAlertLevels, resolveAlertLevel } from '../cameras/alert-levels.js';
 import {
   addSeconds,
+  checkLogin,
   earliestRecording,
   readClock,
   readContinuousChannels,
@@ -95,6 +96,8 @@ export interface DeviceHealth {
   reportedModel: string | null;
   disks: RecorderDisk[];
   clockDriftSeconds: number | null;
+  /** When the recorder's account opens again, after it locked itself over wrong logins. */
+  loginLockedUntil?: string | null;
   /** Where the recorder takes its time from: "NTP" or "manual". */
   clockMode?: string | null;
   oldestRecording: string | null;
@@ -136,8 +139,20 @@ const SELECT_DEVICE = {
   },
 };
 
-// A wrong login is not repeated: a recorder locks its account after a few. It is tried again once the password changes.
-const loginFailedFor = new Map<string, string>();
+/**
+ * A refused login is not repeated: a recorder locks its account after a few. It is tried again once the password
+ * changes, or once, by itself, just after a lock the recorder reported runs out (retryAt).
+ */
+const loginFailedFor = new Map<string, { password: string; retryAt: number | null }>();
+const retryTimers = new Map<string, NodeJS.Timeout>();
+/** After the lock ends, wait this much longer before trying, in case the recorder's count is a little slow. */
+const AFTER_UNLOCK_MS = 60_000;
+
+/** Whether to leave this recorder alone for now. Pure, for the tests. */
+export function loginOnHold(failed: { password: string; retryAt: number | null } | undefined, password: string, now: number): boolean {
+  if (!failed || failed.password !== password) return false;
+  return failed.retryAt === null || now < failed.retryAt;
+}
 
 async function channelsNotRecording(device: HealthDevice, login: RecorderLogin, deviceNow: string) {
   const [levels, continuous] = await Promise.all([loadAlertLevels(), readContinuousChannels(login)]);
@@ -158,6 +173,7 @@ async function channelsNotRecording(device: HealthDevice, login: RecorderLogin, 
 }
 
 async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimitSeconds: number): Promise<{ health: DeviceHealth; facts: { macAddress: string | null; firmwareVersion: string | null; serialNumber: string | null } }> {
+  await checkLogin(login);
   const info = await readDeviceInfo(login);
   const disks = await readDisks(login);
   const clock = await readClock(login);
@@ -214,9 +230,8 @@ async function syncAlert(
 async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise<DeviceHealth | null> {
   if (!isRecorderBrand(device.brand) || !device.passwordEncrypted) return null;
   const prisma = getPrisma();
-  const failedFor = loginFailedFor.get(device.id);
   const previous = (device.healthInfo ?? null) as DeviceHealth | null;
-  if (failedFor === device.passwordEncrypted) return previous;
+  if (loginOnHold(loginFailedFor.get(device.id), device.passwordEncrypted, Date.now())) return previous;
   const login: RecorderLogin = {
     host: device.ipAddress,
     httpPort: device.httpPort ?? 80,
@@ -236,13 +251,17 @@ async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise
     loginFailedFor.delete(device.id);
   } catch (err) {
     const loginFailed = err instanceof RecorderError && err.kind === 'login';
+    const unlockSeconds = loginFailed ? (err as RecorderError).unlockSeconds : null;
     if (loginFailed) {
-      loginFailedFor.set(device.id, device.passwordEncrypted);
+      const retryAt = unlockSeconds === null ? null : Date.now() + unlockSeconds * 1000 + AFTER_UNLOCK_MS;
+      loginFailedFor.set(device.id, { password: device.passwordEncrypted, retryAt });
+      if (retryAt !== null) retryAfterUnlock(device.id, retryAt);
     } else if (!(err instanceof RecorderError)) {
       logger.warn({ deviceId: device.id, reason: err instanceof Error ? err.message : 'failed' }, 'Device health check failed');
     }
     // What was last known stays on show, marked as out of date. A recorder not answering is the camera health check's job.
-    health = { ...(previous ?? { reportedModel: null, disks: [], clockDriftSeconds: null, oldestRecording: null, retentionDays: null, notRecording: [], channelsChecked: 0, problems: [] }), checkedAt: previous?.checkedAt ?? new Date().toISOString(), reachable: false, loginFailed };
+    health = { ...(previous ?? { reportedModel: null, disks: [], clockDriftSeconds: null, oldestRecording: null, retentionDays: null, notRecording: [], channelsChecked: 0, problems: [] }), checkedAt: previous?.checkedAt ?? new Date().toISOString(), reachable: false, loginFailed,
+      loginLockedUntil: unlockSeconds === null ? null : new Date(Date.now() + unlockSeconds * 1000).toISOString() };
     await prisma.device.update({ where: { id: device.id }, data: { healthInfo: health as object } });
     return health;
   }
@@ -263,11 +282,27 @@ async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise
   return health;
 }
 
+/** Once the lock the recorder reported is over, try that recorder once more without waiting for the round. */
+function retryAfterUnlock(deviceId: string, at: number) {
+  clearTimeout(retryTimers.get(deviceId));
+  const timer = setTimeout(() => {
+    retryTimers.delete(deviceId);
+    void (async () => {
+      const device = await getPrisma().device.findUnique({ where: { id: deviceId }, select: SELECT_DEVICE });
+      if (device) await checkDevice(device as HealthDevice);
+    })().catch((err) => logger.warn({ deviceId, reason: err instanceof Error ? err.message : 'failed' }, 'Device health retry failed'));
+  }, Math.max(0, at - Date.now()));
+  timer.unref();
+  retryTimers.set(deviceId, timer);
+}
+
 export async function checkDeviceHealthNow(deviceId: string) {
   const device = await getPrisma().device.findUnique({ where: { id: deviceId }, select: SELECT_DEVICE });
   if (!device) return null;
-  // Asking by hand means the password may have been fixed on the recorder, so try it once more.
-  loginFailedFor.delete(deviceId);
+  // Asking by hand means the password may have been fixed on the recorder, so try it once more,
+  // but not while the recorder has said its account is locked: every try then is wasted.
+  const failed = loginFailedFor.get(deviceId);
+  if (!(failed?.retryAt && Date.now() < failed.retryAt)) loginFailedFor.delete(deviceId);
   return checkDevice(device as HealthDevice);
 }
 

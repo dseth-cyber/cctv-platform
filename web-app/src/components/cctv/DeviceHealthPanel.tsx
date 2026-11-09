@@ -71,6 +71,8 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
   };
 
   const drift = health ? clockDriftParts(health.clockDriftSeconds) : null;
+  // The recorder locked its account over wrong logins; until then even the right password is refused.
+  const lockedUntil = health?.loginLockedUntil && new Date(health.loginLockedUntil).getTime() > Date.now() ? new Date(health.loginLockedUntil) : null;
   const driftText = !drift ? '—' : drift.direction === 'even'
     ? t('ui.deviceHealth.clockEven')
     : t(drift.direction === 'ahead' ? 'ui.deviceHealth.clockAhead' : 'ui.deviceHealth.clockBehind', { min: drift.minutes, sec: drift.seconds });
@@ -98,7 +100,12 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
       ) : (
         <>
           {health.loginFailed && (
-            <p className="flex items-center gap-1.5 text-rose-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{t('ui.deviceHealth.loginFailed')}</p>
+            <p data-login-state={lockedUntil ? 'locked' : 'failed'} className="flex items-center gap-1.5 text-rose-300">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              {lockedUntil
+                ? t('ui.deviceHealth.loginLocked', { time: lockedUntil.toLocaleTimeString(i18n.language === 'th' ? 'th-TH' : undefined, { hour: '2-digit', minute: '2-digit' }) })
+                : t('ui.deviceHealth.loginFailed')}
+            </p>
           )}
           {!health.reachable && !health.loginFailed && (
             <p className="flex items-center gap-1.5 text-amber-300"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{t('ui.deviceHealth.unreachable')}</p>
