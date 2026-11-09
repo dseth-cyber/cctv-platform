@@ -247,6 +247,8 @@ export default function CameraAnalytics() {
   const navigate = useNavigate()
   const [liveOpen, setLiveOpen] = useState(false)
   const selectedCameraName = selectedCamera?.name || ''
+  // A camera down right now has not failed "never": MTBF/MTTR are blank because it has not come back yet.
+  const downNow = selectedCamera?.operationalStatus === 'offline'
 
   // Pie chart data for uptime/downtime/maintenance
   const pieData = useMemo(() => {
@@ -639,7 +641,7 @@ export default function CameraAnalytics() {
                 {mtbf !== null ? `${mtbf.toFixed(1)}h` : '--'}
               </div>
               <p className={`text-xs mt-2 ${themeConfig.text.secondary}`}>
-                {mtbf !== null ? t('imageService.analytics.mtbfDesc') : t('imageService.analytics.noFailures')}
+                {mtbf !== null ? t('imageService.analytics.mtbfDesc') : downNow || (analytics?.offlineCount ?? 0) > 0 ? t('imageService.analytics.mtbfNotYet') : t('imageService.analytics.noFailures')}
               </p>
               <p className="text-[10px] text-gray-400 mt-1.5 italic">
                 {t('imageService.analytics.mtbfTip', 'ระยะเวลาทำงานเฉลี่ยก่อนเสีย (ยิ่งสูงยิ่งดี)')}
@@ -661,7 +663,7 @@ export default function CameraAnalytics() {
                 {mttr !== null ? `${mttr.toFixed(1)}m` : '--'}
               </div>
               <p className={`text-xs mt-2 ${themeConfig.text.secondary}`}>
-                {mttr !== null ? t('imageService.analytics.mttrDesc') : t('imageService.analytics.noRepairs')}
+                {mttr !== null ? t('imageService.analytics.mttrDesc') : downNow ? t('imageService.analytics.mttrStillDown') : t('imageService.analytics.noRepairs')}
               </p>
               <p className="text-[10px] text-gray-400 mt-1.5 italic">
                 {t('imageService.analytics.mttrTip', 'ระยะเวลาเฉลี่ยซ่อมบำรุง/กู้คืน (ยิ่งต่ำยิ่งดี)')}

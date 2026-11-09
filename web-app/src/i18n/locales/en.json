@@ -2086,7 +2086,7 @@
       "downtimeByReason": "Downtime by Reason",
       "seconds": "seconds",
       "noFailures": "No failures",
-      "noRepairs": "No repairs",
+      "noRepairs": "No repairs", "mtbfNotYet": "Not yet: the camera has not come back online in this period", "mttrStillDown": "Still down (not repaired yet)",
       "currentStatus": "Current status (realtime)",
       "lastImage": "Last defect",
       "lastPolled": "Last polled",

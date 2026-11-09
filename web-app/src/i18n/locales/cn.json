@@ -1854,7 +1854,9 @@
       "sourceBuffer": "摄像头端可回溯",
       "seconds": "秒",
       "noFailures": "无故障",
-      "noRepairs": "无维修"
+      "noRepairs": "无维修",
+      "mtbfNotYet": "Not yet: the camera has not come back online in this period",
+      "mttrStillDown": "Still down (not repaired yet)"
     },
     "incidentCenter": {
       "closeIncidentSubmitted": "Sent. Waiting to be checked.",

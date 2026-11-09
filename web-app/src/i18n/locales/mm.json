@@ -1849,7 +1849,9 @@
       "sourceBuffer": "ကင်မရာဘက် ပြန်ကြည့်နိုင်သည့်ကာလ",
       "seconds": "စက္ကန့်",
       "noFailures": "ချို့ယွင်းမှု မရှိ",
-      "noRepairs": "ပြုပြင်မှု မရှိ"
+      "noRepairs": "ပြုပြင်မှု မရှိ",
+      "mtbfNotYet": "Not yet: the camera has not come back online in this period",
+      "mttrStillDown": "Still down (not repaired yet)"
     },
     "incidentCenter": {
       "closeIncidentSubmitted": "Sent. Waiting to be checked.",
