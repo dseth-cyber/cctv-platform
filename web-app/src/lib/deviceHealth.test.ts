@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockDriftParts, compareDeviceInfo, formatCapacity, summarizeDeviceHealth } from './deviceHealth';
+import { clockDriftParts, compareDeviceInfo, formatCapacity, needsNtp, summarizeDeviceHealth } from './deviceHealth';
 
 const health = (over = {}) => ({ checkedAt: '', reachable: true, loginFailed: false, reportedModel: null, disks: [], clockDriftSeconds: 0, oldestRecording: null, retentionDays: null, notRecording: [], channelsChecked: 0, problems: [], ...over });
 
@@ -58,5 +58,20 @@ describe('compareDeviceInfo', () => {
 
   it('ignores what the device did not say', () => {
     expect(compareDeviceInfo({ model: 'X' }, {}).differs).toEqual([]);
+  });
+});
+
+describe('needsNtp', () => {
+  const on = (clockMode: string | null, problems: string[] = [], reachable = true) => health({ clockMode, problems, reachable }) as any;
+  it('offers a Hikvision recorder on hand-set time, or on NTP but still off', () => {
+    expect(needsNtp('Hikvision', on('manual'))).toBe(true);
+    expect(needsNtp('HiLook', on('NTP', ['clock_drift']))).toBe(true);
+  });
+  it('leaves alone one already right, one not answering, one not read yet, and other brands', () => {
+    expect(needsNtp('Hikvision', on('NTP'))).toBe(false);
+    expect(needsNtp('Hikvision', on('manual', [], false))).toBe(false);
+    expect(needsNtp('Hikvision', on(null))).toBe(false);
+    expect(needsNtp('Hikvision', null)).toBe(false);
+    expect(needsNtp('Dahua', on('manual'))).toBe(false);
   });
 });

@@ -33,6 +33,15 @@ export function summarizeDeviceHealth(health: DeviceHealthInfo | null | undefine
   return health.problems.length > 0 ? 'problem' : 'ok';
 }
 
+/**
+ * A recorder worth pointing at the NTP server: one we can set (Hikvision), that answered its last check, and
+ * keeps time by hand or is still off on NTP (its NTP server not reachable, say).
+ */
+export function needsNtp(brand: string | null | undefined, health: DeviceHealthInfo | null | undefined): boolean {
+  if (!/hik|hilook/i.test(brand ?? '') || !health?.reachable || !health.clockMode) return false;
+  return health.clockMode.toUpperCase() !== 'NTP' || (health.problems ?? []).includes('clock_drift');
+}
+
 export function clockDriftParts(driftSeconds: number | null | undefined) {
   if (driftSeconds === null || driftSeconds === undefined) return null;
   const size = Math.abs(driftSeconds);

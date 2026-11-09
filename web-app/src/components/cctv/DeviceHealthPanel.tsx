@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, HardDrive, Loader2, RefreshCw } fro
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
-import { clockDriftParts, formatCapacity, summarizeDeviceHealth, type DeviceHealthInfo } from '@/lib/deviceHealth';
+import { clockDriftParts, formatCapacity, needsNtp, summarizeDeviceHealth, type DeviceHealthInfo } from '@/lib/deviceHealth';
 
 /** A small sign on a device's row: all well, or how many things need a look. */
 export function DeviceHealthChip({ device }: { device: any }) {
@@ -129,7 +129,7 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
                   {t(health.clockMode.toUpperCase() === 'NTP' ? 'ui.deviceHealth.clockModeNtp' : 'ui.deviceHealth.clockModeManual')}
                 </div>
               )}
-              {canCheck && health.reachable && health.clockMode && (health.clockMode.toUpperCase() !== 'NTP' || health.problems.includes('clock_drift')) && (
+              {canCheck && needsNtp(device.brand, health) && (
                 <button type="button" data-device-ntp onClick={takeServerTime} disabled={settingClock} className="mt-1 inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 disabled:opacity-50">
                   {settingClock ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
                   {t('ui.deviceHealth.ntpButton')}

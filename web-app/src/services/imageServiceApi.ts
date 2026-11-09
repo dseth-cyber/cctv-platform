@@ -118,6 +118,10 @@ export function createImageServiceApi(api: any) {
 
     readDeviceInfo: (data: { deviceId?: string; ipAddress: string; httpPort?: number; username?: string; password?: string }) =>
       api.post(`${BASE}/devices/read-info`, data, { silent403: true } as any).then((r: any) => r.data),
+    startDeviceClockNtpBatch: (deviceIds: string[]) =>
+      api.post(`${BASE}/devices/clock/ntp/batch`, { deviceIds }).then((r: any) => r.data),
+    getDeviceClockNtpBatch: (jobId: string) =>
+      api.get(`${BASE}/devices/clock/ntp/batch/${jobId}`).then((r: any) => r.data),
     setDeviceClockNtp: (id: string) =>
       api.post(`${BASE}/devices/${id}/clock/ntp`).then((r: any) => r.data),
     checkDeviceHealth: (id: string) =>

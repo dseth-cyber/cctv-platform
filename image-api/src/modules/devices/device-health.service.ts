@@ -3,7 +3,7 @@ import { sortByName } from '../../lib/natural-sort.js';
 import { decrypt } from '../../lib/encryption.js';
 import { logger } from '../../lib/logger.js';
 import { getPrisma } from '../../lib/prisma.js';
-import { createAlert } from '../alerts/alerts.service.js';
+import { createAlert, dispatchAlertNotifications } from '../alerts/alerts.service.js';
 import { getCameraDowntimeReport } from '../cameras/camera-analytics.service.js';
 import { loadAlertLevels, resolveAlertLevel } from '../cameras/alert-levels.js';
 import {
@@ -48,6 +48,32 @@ export function clockIsOff(driftSeconds: number | null | undefined, limitSeconds
 export function describeDrift(driftSeconds: number): string {
   const size = Math.abs(driftSeconds);
   return `${driftSeconds > 0 ? 'ahead of' : 'behind'} the server by ${Math.floor(size / 60)} min ${size % 60} s`;
+}
+
+/** A clock warning raised during a round, told about once the round is over. */
+export interface ClockNotice {
+  source: string;
+  name: string;
+  title: string;
+  message: string;
+  driftSeconds: number;
+}
+
+const MAX_NAMES_IN_NOTICE = 20;
+
+/**
+ * One notice for the clock warnings a round raised. Adding many recorders at once would otherwise send
+ * one Telegram message each. The alerts themselves stay one per recorder, each closing on its own.
+ */
+export function clockRoundNotice(raised: ClockNotice[]): { title: string; message: string; source?: string } | null {
+  if (raised.length === 0) return null;
+  if (raised.length === 1) return { title: raised[0].title, message: raised[0].message, source: raised[0].source };
+  const lines = raised.slice(0, MAX_NAMES_IN_NOTICE).map((r) => `- ${r.name}: ${describeDrift(r.driftSeconds)}`);
+  if (raised.length > MAX_NAMES_IN_NOTICE) lines.push(`- ...and ${raised.length - MAX_NAMES_IN_NOTICE} more`);
+  return {
+    title: `Clock off: ${raised.length} recorders`,
+    message: `${raised.length} recorders have a clock off from the server. Footage and clips carry the recorder's time; set NTP on them (Devices page, "Take time from the server").\n${lines.join('\n')}`,
+  };
 }
 
 /** What is wrong with these disks. "idle" is a disk asleep and "ok" a disk at work: both are healthy. */
@@ -170,17 +196,22 @@ async function syncAlert(
   message: string,
   details: Record<string, unknown>,
   severity: 'critical' | 'warning' = 'critical',
-) {
+  skipNotify = false,
+): Promise<'raised' | 'resolved' | null> {
   const prisma = getPrisma();
   const open = await prisma.alert.findFirst({ where: { alertType, source: device.id, resolvedAt: null, deletedAt: null } });
   if (active && !open) {
-    await createAlert({ alertType, severity, source: device.id, title, message, details: { deviceId: device.id, deviceName: device.name, ...details }, skipDedup: true });
+    await createAlert({ alertType, severity, source: device.id, title, message, details: { deviceId: device.id, deviceName: device.name, ...details }, skipDedup: true, skipNotify });
+    return 'raised';
   } else if (!active && open) {
     await prisma.alert.update({ where: { id: open.id }, data: { resolvedAt: new Date(), resolvedBy: 'system' } });
+    return 'resolved';
   }
+  return null;
 }
 
-async function checkDevice(device: HealthDevice): Promise<DeviceHealth | null> {
+/** round: given during the scheduled round, which then sends one notice for all its clock warnings. */
+async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise<DeviceHealth | null> {
   if (!isRecorderBrand(device.brand) || !device.passwordEncrypted) return null;
   const prisma = getPrisma();
   const failedFor = loginFailedFor.get(device.id);
@@ -224,7 +255,10 @@ async function checkDevice(device: HealthDevice): Promise<DeviceHealth | null> {
   // Not critical: the cameras still record, only at the wrong time. No reading leaves the alert as it was.
   const clockOff = clockIsOff(health.clockDriftSeconds, clockLimitSeconds);
   if (clockOff !== null) {
-    await syncAlert(device, 'clock_drift', clockOff, `Clock off: ${device.name}`, `${device.name}: clock is ${describeDrift(health.clockDriftSeconds ?? 0)} (limit ${clockLimitSeconds} s). Footage and clips carry the recorder's time; set NTP on the recorder.`, { driftSeconds: health.clockDriftSeconds, limitSeconds: clockLimitSeconds }, 'warning');
+    const title = `Clock off: ${device.name}`;
+    const message = `${device.name}: clock is ${describeDrift(health.clockDriftSeconds ?? 0)} (limit ${clockLimitSeconds} s). Footage and clips carry the recorder's time; set NTP on the recorder.`;
+    const change = await syncAlert(device, 'clock_drift', clockOff, title, message, { driftSeconds: health.clockDriftSeconds, limitSeconds: clockLimitSeconds }, 'warning', !!round);
+    if (change === 'raised' && round) round.push({ source: device.id, name: device.name, title, message, driftSeconds: health.clockDriftSeconds ?? 0 });
   }
   return health;
 }
@@ -241,14 +275,17 @@ let timer: NodeJS.Timeout | null = null;
 let lastRunAt = 0;
 let running = false;
 
-async function checkAllDevices() {
+export async function checkAllDevices() {
   if (running) return;
   running = true;
   try {
     const devices = await getPrisma().device.findMany({ where: { enabled: true }, select: SELECT_DEVICE });
+    const raised: ClockNotice[] = [];
     for (const device of devices) {
-      await checkDevice(device as HealthDevice).catch((err) => logger.warn({ deviceId: device.id, reason: err instanceof Error ? err.message : 'failed' }, 'Device health check failed'));
+      await checkDevice(device as HealthDevice, raised).catch((err) => logger.warn({ deviceId: device.id, reason: err instanceof Error ? err.message : 'failed' }, 'Device health check failed'));
     }
+    const notice = clockRoundNotice(raised);
+    if (notice) await dispatchAlertNotifications({ alertType: 'clock_drift', severity: 'warning', ...notice });
   } finally {
     running = false;
   }

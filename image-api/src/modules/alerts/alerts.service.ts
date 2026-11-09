@@ -70,7 +70,8 @@ export async function dispatchAlertNotifications(input: {
   }
 }
 
-export async function createAlert(input: CreateAlertInput & { skipDedup?: boolean; bypassCooldown?: boolean; closeOnCreate?: boolean }) {
+/** skipNotify: the caller sends one notice for several alerts itself (see the device health round). */
+export async function createAlert(input: CreateAlertInput & { skipDedup?: boolean; bypassCooldown?: boolean; closeOnCreate?: boolean; skipNotify?: boolean }) {
   const prisma = getPrisma();
 
   if (input.source && !input.skipDedup) {
@@ -102,14 +103,16 @@ export async function createAlert(input: CreateAlertInput & { skipDedup?: boolea
     },
   });
 
-  await dispatchAlertNotifications({
-    alertType: input.alertType,
-    severity: input.severity,
-    title: input.title,
-    message: input.message,
-    source: input.source,
-    bypassCooldown: input.bypassCooldown,
-  });
+  if (!input.skipNotify) {
+    await dispatchAlertNotifications({
+      alertType: input.alertType,
+      severity: input.severity,
+      title: input.title,
+      message: input.message,
+      source: input.source,
+      bypassCooldown: input.bypassCooldown,
+    });
+  }
 
   return alert;
 }

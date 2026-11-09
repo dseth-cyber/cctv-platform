@@ -2,7 +2,10 @@ import { allowedCameraIds, cameraWhere, guardAllCameras, guardDeviceVisible } fr
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { buildDeviceReport, checkDeviceHealthNow } from './device-health.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
-import { pointRecorderAtNtp, RecorderNtpError } from './recorder-ntp.js';
+import { z } from 'zod';
+import { getBulkJob } from '../../lib/bulk-job.js';
+import { RecorderNtpError } from './recorder-ntp.js';
+import { NtpBatchBusyError, pointAndRecord, recheckSoon, startNtpBatch } from './recorder-ntp-bulk.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { listMasterdataOptions } from '../masterdata/masterdata.service.js';
 import {
@@ -55,27 +58,38 @@ async function checkHealthHandler(request: FastifyRequest, reply: FastifyReply) 
 async function clockNtpHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const user = (request as any).user;
-  const audit = (description: string, metadata: Record<string, unknown>) => createAuditLog({
-    userId: user?.id, action: 'update', entity: 'device', entityId: id, description, metadata, ipAddress: request.ip,
-  }).catch(() => {});
   try {
-    const result = await pointRecorderAtNtp(id);
+    const result = await pointAndRecord(id, { id: user?.id, username: user?.username, ip: request.ip });
     if (!result) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Device not found' });
-    await audit(`Recorder clock set to take time from ${result.server} by ${user?.username ?? 'unknown'}`, {
-      before: result.before, after: result.after, server: result.server, minutes: result.minutes, serverCheck: result.serverCheck,
-    });
-    // The recorder syncs within a minute or so; look again then, so the page and the clock warning do not wait for the hourly round.
-    setTimeout(() => void checkDeviceHealthNow(id).catch(() => null), 120_000).unref();
+    recheckSoon([id]);
     return reply.status(200).send(result);
   } catch (err) {
     if (!(err instanceof RecorderNtpError)) throw err;
-    // A refusal on the recorder may have left half a change; it goes on record too.
-    if (err.code === 'RECORDER_REFUSED' || err.code === 'RECORDER_UNREACHABLE') {
-      await audit(`Recorder clock change failed (${err.code}) by ${user?.username ?? 'unknown'}`, err.details);
-    }
     const status = err.code === 'RECORDER_UNREACHABLE' || err.code === 'RECORDER_REFUSED' ? 502 : err.code === 'NOT_SUPPORTED' ? 400 : 409;
     return reply.status(status).send({ statusCode: status, error: err.code, message: err.code, details: { code: err.code, ...err.details } });
   }
+}
+
+const ntpBatchSchema = z.object({ deviceIds: z.array(z.string().uuid()).min(1).max(500) });
+
+/** Many recorders at once, one after another in the background; the page follows the job. */
+async function clockNtpBatchHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { deviceIds } = ntpBatchSchema.parse(request.body);
+  const user = (request as any).user;
+  try {
+    const jobId = await startNtpBatch([...new Set(deviceIds)], { id: user?.id, username: user?.username, ip: request.ip });
+    return reply.status(202).send({ jobId });
+  } catch (err) {
+    if (!(err instanceof NtpBatchBusyError)) throw err;
+    return reply.status(409).send({ statusCode: 409, error: 'NTP_BATCH_BUSY', message: 'NTP_BATCH_BUSY', details: { code: 'NTP_BATCH_BUSY', jobId: err.jobId } });
+  }
+}
+
+async function clockNtpBatchStatusHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { jobId } = request.params as { jobId: string };
+  const job = await getBulkJob(jobId);
+  if (!job || job.kind !== 'device-ntp') return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Job not found' });
+  return reply.status(200).send(job);
 }
 
 async function deviceReportHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -187,6 +201,16 @@ export async function deviceRoutes(app: FastifyInstance) {
     '/:id/clock/ntp',
     { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     clockNtpHandler,
+  );
+  app.post(
+    '/clock/ntp/batch',
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
+    clockNtpBatchHandler,
+  );
+  app.get(
+    '/clock/ntp/batch/:jobId',
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
+    clockNtpBatchStatusHandler,
   );
   app.post(
     '/bulk-import',

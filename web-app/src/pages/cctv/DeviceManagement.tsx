@@ -1,4 +1,5 @@
 import { DeviceHealthChip, DeviceHealthPanel } from '@/components/cctv/DeviceHealthPanel';
+import { NtpBatchModal } from '@/components/cctv/NtpBatchModal';
 import { compareDeviceInfo, type InfoField } from '@/lib/deviceHealth';
 import { cleanShortCode } from '@/lib/clipName';
 import React, { useEffect, useState } from 'react';
@@ -36,6 +37,7 @@ import {
   Loader2,
   Copy,
   ChevronLeft,
+  Clock,
 } from 'lucide-react';
 import { ChannelChecklist } from '@/components/cctv/ChannelChecklist';
 import { DeviceChannelsPanel } from '@/components/cctv/DeviceChannelsPanel';
@@ -52,6 +54,7 @@ export default function DeviceManagement() {
   const { themeConfig } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const [ntpBatchOpen, setNtpBatchOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   // Arriving from a place, e.g. /cctv/devices?site=…&zone=…
@@ -541,6 +544,17 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             <Download className="w-4 h-4 text-cyan-400" />
             {t('ui.deviceManagement.exportCsv')}
           </Button>
+          {canUpdateDevices && (
+            <Button
+              variant="secondary"
+              data-ntp-batch-open
+              onClick={() => setNtpBatchOpen(true)}
+              className="flex items-center gap-1.5 border border-slate-700 hover:border-cyan-500"
+            >
+              <Clock className="w-4 h-4 text-cyan-400" />
+              {t('ui.deviceHealth.batch.open')}
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => refetch()} className="flex items-center gap-1.5">
             <RefreshCw className="w-4 h-4" />
             {t('ui.deviceManagement.refresh')}
@@ -1369,6 +1383,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
           )}
         </div>
       </Modal>
+
+      <NtpBatchModal isOpen={ntpBatchOpen} onClose={() => setNtpBatchOpen(false)} devices={allDevices as any[]} />
     </div>
   );
 }
