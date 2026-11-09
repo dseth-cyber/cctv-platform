@@ -129,7 +129,7 @@ interface HealthDevice {
   passwordEncrypted: string | null;
   alertLevel: string | null;
   healthInfo?: unknown;
-  cameras: Array<{ id: string; name: string; channelNumber: number | null; status: string; operationalStatus: string | null; alertLevel: string | null; spec?: unknown }>;
+  cameras: Array<{ id: string; name: string; channelNumber: number | null; status: string; operationalStatus: string | null; alertLevel: string | null; spec?: unknown; cameraBrand?: string | null; cameraModel?: string | null }>;
 }
 
 const SELECT_DEVICE = {
@@ -145,7 +145,7 @@ const SELECT_DEVICE = {
   healthInfo: true,
   cameras: {
     where: { deletedAt: null, enabled: true },
-    select: { id: true, name: true, channelNumber: true, status: true, operationalStatus: true, alertLevel: true, spec: true },
+    select: { id: true, name: true, channelNumber: true, status: true, operationalStatus: true, alertLevel: true, spec: true, cameraBrand: true, cameraModel: true },
     orderBy: { channelNumber: 'asc' as const },
   },
 };
@@ -230,13 +230,45 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
 }
 
 /** Each camera keeps what its recorder last said about its channel; written only when it changed. */
+/**
+ * The brand an IP camera's model code names, only where the code is unmistakable; null when not sure.
+ * Codes are the masterdata camera_brand codes.
+ */
+export function brandFromModel(model: string | null | undefined): 'Dahua' | 'Hikvision' | null {
+  const m = (model ?? '').trim().toUpperCase();
+  if (/^DH-/.test(m) || /^IPC-(HFW|HDW|HDBW|EB|PFW|PDW|SD)\d/.test(m)) return 'Dahua';
+  if (/^I?DS-2[A-Z]/.test(m)) return 'Hikvision';
+  return null;
+}
+
+/**
+ * What to write on a camera from its recorder's report: the spec when it changed, and, for an IP camera whose
+ * brand or model was never entered, what the NVR says. Nothing a person entered is ever replaced.
+ */
+export function cameraSpecUpdate(camera: { spec?: unknown; cameraBrand?: string | null; cameraModel?: string | null }, spec: CameraSpec) {
+  const data: { spec?: object; cameraBrand?: string; cameraModel?: string } = {};
+  if (JSON.stringify(spec) !== JSON.stringify(camera.spec ?? null)) data.spec = spec as object;
+  const model = spec.ipCamera?.model?.trim();
+  if (model) {
+    if (!camera.cameraModel?.trim()) data.cameraModel = model.slice(0, 64);
+    const brand = brandFromModel(model);
+    if (brand && !camera.cameraBrand?.trim()) data.cameraBrand = brand;
+  }
+  return data;
+}
+
 async function saveCameraSpecs(device: HealthDevice, specs: Map<number, CameraSpec>) {
   const prisma = getPrisma();
   for (const camera of device.cameras) {
     if (camera.channelNumber === null) continue;
     const spec = specs.get(camera.channelNumber);
-    if (!spec || JSON.stringify(spec) === JSON.stringify(camera.spec ?? null)) continue;
-    await prisma.camera.update({ where: { id: camera.id }, data: { spec: spec as object } });
+    if (!spec) continue;
+    const data = cameraSpecUpdate(camera, spec);
+    if (Object.keys(data).length === 0) continue;
+    await prisma.camera.update({ where: { id: camera.id }, data });
+    if (data.cameraBrand || data.cameraModel) {
+      logger.info({ cameraId: camera.id, cameraBrand: data.cameraBrand, cameraModel: data.cameraModel }, 'Camera brand/model filled in from what the NVR reports');
+    }
   }
 }
 

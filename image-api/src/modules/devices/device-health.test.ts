@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseInputProxies, parseProxyPasswordStatus, parseSmart, parseSmartCodecChannels, parseStreamingChannels, parseVideoInputs } from '../device-playback/hikvision-recorder.js';
-import { clockIsOff, describeDrift, diskProblems } from './device-health.service.js';
+import { brandFromModel, cameraSpecUpdate, clockIsOff, describeDrift, diskProblems } from './device-health.service.js';
 
 const disk = (over: Record<string, unknown> = {}) => ({ id: '1', type: 'SATA', state: 'ok', capacityMB: 1000, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 10, ...over });
 
@@ -136,5 +136,39 @@ describe('camera spec parsers (shaped like what MD and NVR EOE answered)', () =>
     expect(parseInputProxies(xml).get(1)).toEqual({ model: 'DH-IPC-HFW1230C-A', serialNumber: 'BK013E1PAG287A2', firmwareVersion: '2.860.0000000.37.R', ipAddress: '192.168.10.31', protocol: 'ONVIF' });
     const status = '<InputProxyChannelStatusList><InputProxyChannelStatus><id>1</id><online>true</online><SecurityStatus><PasswordStatus>strong</PasswordStatus></SecurityStatus></InputProxyChannelStatus><InputProxyChannelStatus><id>2</id><SecurityStatus><PasswordStatus>weak</PasswordStatus></SecurityStatus></InputProxyChannelStatus></InputProxyChannelStatusList>';
     expect([...parseProxyPasswordStatus(status)]).toEqual([[1, 'strong'], [2, 'weak']]);
+  });
+});
+
+describe('brandFromModel', () => {
+  it('names a brand only from an unmistakable model code', () => {
+    expect(brandFromModel('DH-IPC-HFW1230C-A')).toBe('Dahua');
+    expect(brandFromModel('IPC-HDW2431T-AS')).toBe('Dahua');
+    expect(brandFromModel('DS-2CD2143G2-I')).toBe('Hikvision');
+    expect(brandFromModel('iDS-2CD7A46G0')).toBe('Hikvision');
+    expect(brandFromModel('IPC-B140H')).toBeNull();
+    expect(brandFromModel('XYZ-100')).toBeNull();
+    expect(brandFromModel(null)).toBeNull();
+  });
+});
+
+describe('cameraSpecUpdate', () => {
+  const ipSpec = { ipCamera: { model: 'DH-IPC-HFW1230C-A', serialNumber: 'S1', firmwareVersion: 'F', ipAddress: '192.168.10.31', protocol: 'ONVIF' } };
+
+  it('fills an empty brand and model from what the NVR reports', () => {
+    expect(cameraSpecUpdate({ spec: null, cameraBrand: null, cameraModel: '' }, ipSpec)).toEqual({ spec: ipSpec, cameraModel: 'DH-IPC-HFW1230C-A', cameraBrand: 'Dahua' });
+  });
+
+  it('never replaces what a person entered', () => {
+    expect(cameraSpecUpdate({ spec: ipSpec, cameraBrand: 'Hikvision', cameraModel: 'Old model' }, ipSpec)).toEqual({});
+  });
+
+  it('fills the model but leaves the brand empty when the code is not clear', () => {
+    const spec = { ipCamera: { ...ipSpec.ipCamera, model: 'XYZ-100' } };
+    expect(cameraSpecUpdate({ spec, cameraBrand: null, cameraModel: null }, spec)).toEqual({ cameraModel: 'XYZ-100' });
+  });
+
+  it('writes nothing for an analog camera whose spec did not change', () => {
+    const spec = { signal: 'PAL' };
+    expect(cameraSpecUpdate({ spec: { signal: 'PAL' }, cameraBrand: null, cameraModel: null }, spec)).toEqual({});
   });
 });
