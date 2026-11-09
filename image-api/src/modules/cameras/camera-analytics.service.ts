@@ -154,6 +154,13 @@ async function getConfigValue(key: string, defaultValue: number): Promise<number
   return defaultValue;
 }
 
+/** How a camera with no event in the period spent it: as it is now. Not checked yet counts as up, as before. */
+export function statusWithoutEvents(camera: { status?: string | null; operationalStatus?: string | null } | null): 'active' | 'offline' | 'maintenance' {
+  if (camera?.status === 'maintenance') return 'maintenance';
+  if (camera?.operationalStatus === 'offline') return 'offline';
+  return 'active';
+}
+
 export async function getCameraDowntimeReport(cameraId: string, period: string) {
   const prisma = getPrisma();
   const days = parseInt(period) || 7;
@@ -163,7 +170,7 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
   // today must not count the days before it existed as downtime.
   const camera = await prisma.camera.findUnique({
     where: { id: cameraId },
-    select: { createdAt: true, slaTargetPercent: true },
+    select: { createdAt: true, slaTargetPercent: true, status: true, operationalStatus: true },
   });
   const since = camera && camera.createdAt > periodStart ? camera.createdAt : periodStart;
 
@@ -195,11 +202,14 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
   let lastOnlineTime: Date | null = null;
   let lastOfflineTime: Date | null = null;
 
-  // Determine initial status from the first event's previousStatus
+  // Determine initial status from the first event's previousStatus. With no event in the period nothing changed,
+  // so the camera has been as it is now throughout: one offline since it was added must not count as 100%.
   let currentStatus =
     events.length > 0 && (events[0].metadata as any)?.previousStatus
       ? (events[0].metadata as any).previousStatus
-      : 'active';
+      : events.length === 0
+        ? statusWithoutEvents(camera)
+        : 'active';
   let segStart = since;
 
   for (const event of events) {
@@ -383,8 +393,9 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
 
 export async function getCameraComparisonReport(period: string, scope?: Prisma.CameraWhereInput) {
   const prisma = getPrisma();
+  // Channels set as not in use are left out: they have no camera to be available or not.
   const cameras = await prisma.camera.findMany({
-    where: { deletedAt: null, ...(scope ? { AND: [scope] } : {}) },
+    where: { deletedAt: null, enabled: true, ...(scope ? { AND: [scope] } : {}) },
     select: { id: true, name: true },
   });
 

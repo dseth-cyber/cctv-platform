@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { AlertTriangle, Cpu } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -82,4 +83,34 @@ export function cameraResolutionText(spec: CameraSpec | null | undefined, noSign
   const main = resolutionName(spec.main?.width, spec.main?.height);
   if (!main) return signal?.text ?? '—';
   return signal?.sd ? `${main} · ${signal.text}` : main;
+}
+
+/**
+ * Small tags beside a camera name where only a hint belongs (availability pages): its resolution, and "no signal"
+ * when the recorder sees no picture, which explains a camera that is never available. Optional link to the full spec.
+ */
+export function CameraSpecBadges({ spec, cameraId, showLink = false }: { spec: CameraSpec | null | undefined; cameraId?: string; showLink?: boolean }) {
+  const { t } = useTranslation();
+  const signal = signalName(spec?.signal);
+  const resolution = spec && !signal?.none ? cameraResolutionText(spec, '') : '';
+  if (!spec && !showLink) return null;
+  return (
+    <span data-spec-badges className="inline-flex items-center gap-1 align-middle">
+      {signal?.none && (
+        <span data-spec-badge="no-signal" className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-950 text-rose-300 border border-rose-800/60" title={t('ui.cameraSpec.note.no_signal')}>
+          {t('ui.cameraSpec.noSignal')}
+        </span>
+      )}
+      {resolution && resolution !== '—' && (
+        <span data-spec-badge="resolution" className={`px-1.5 py-0.5 rounded text-[10px] border ${signal?.sd ? 'bg-amber-950 text-amber-300 border-amber-800/60' : 'bg-slate-800 text-slate-300 border-slate-700'}`}>
+          {resolution}
+        </span>
+      )}
+      {showLink && cameraId && (
+        <Link to={`/cctv/cameras/${cameraId}`} data-spec-link onClick={(e) => e.stopPropagation()} className="text-[11px] text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline">
+          {t('ui.cameraSpec.viewSpec')}
+        </Link>
+      )}
+    </span>
+  );
 }

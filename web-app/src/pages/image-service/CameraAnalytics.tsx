@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { Responsive, WidthProvider } from 'react-grid-layout'
 import { imageServiceApi } from '@/services/imageServiceApi'
+import { CameraSpecBadges } from '@/components/cctv/CameraSpecCard'
 import { TableSkeleton, ExportButton, SearchableSelect, CountUpValue } from '@/components/ui'
 import {
   Activity, Shield, Clock, Heart, Camera, TrendingDown, Image,
@@ -355,6 +356,7 @@ export default function CameraAnalytics() {
             <span className={`text-xs ${themeConfig.text.secondary}`}>
               {cameras.findIndex((c: any) => c.id === effectiveCameraId) + 1}/{cameras.length}
             </span>
+            {selectedCamera && <CameraSpecBadges spec={selectedCamera.spec} cameraId={selectedCamera.id} showLink />}
           </div>
 
           {/* Period tabs */}
@@ -927,7 +929,8 @@ export default function CameraAnalytics() {
                             onClick={() => setSelectedCameraId(cam.cameraId)}
                           >
                             <td className={`px-3 py-2 text-xs font-medium ${themeConfig.text.primary}`}>
-                              {cam.cameraName}
+                              <span className="mr-1.5">{cam.cameraName}</span>
+                              <CameraSpecBadges spec={cameras.find((c: any) => c.id === cam.cameraId)?.spec} />
                             </td>
                             <td className={`px-3 py-2 text-xs ${cam.availability >= 99 ? 'text-green-400' : cam.availability >= 95 ? 'text-yellow-400' : 'text-red-400'}`}>
                               {cam.availability}%
