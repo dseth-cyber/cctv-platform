@@ -287,6 +287,8 @@ function retryAfterUnlock(deviceId: string, at: number) {
   clearTimeout(retryTimers.get(deviceId));
   const timer = setTimeout(() => {
     retryTimers.delete(deviceId);
+    // A timer can fire a few milliseconds early; the hold must not then turn this one try away, or nothing tries again.
+    loginFailedFor.delete(deviceId);
     void (async () => {
       const device = await getPrisma().device.findUnique({ where: { id: deviceId }, select: SELECT_DEVICE });
       if (device) await checkDevice(device as HealthDevice);

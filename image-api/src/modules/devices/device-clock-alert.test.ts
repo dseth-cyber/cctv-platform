@@ -152,3 +152,24 @@ describe('a recorder that locked its account', () => {
     expect(checkLogin).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('trying again after a lock', () => {
+  it('tries once when the lock is over, even if the timer fires a little early', async () => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    try {
+      const { checkLogin, RecorderError } = await import('../device-playback/hikvision-recorder.js');
+      const locked = Object.assign(new (RecorderError as any)('login'), { kind: 'login', unlockSeconds: 1 });
+      vi.mocked(checkLogin).mockRejectedValueOnce(locked);
+      mockPrisma.device.findUnique.mockResolvedValue({ ...DEVICE, id: 'dev-early' });
+      await checkDeviceHealthNow('dev-early');
+      expect(checkLogin).toHaveBeenCalledTimes(1);
+      // Fire the retry 5 ms before its time, as a real timer sometimes does.
+      vi.setSystemTime(Date.now() - 5);
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(checkLogin).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
