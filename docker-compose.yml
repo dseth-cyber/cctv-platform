@@ -77,6 +77,21 @@ services:
     networks:
       - cctv-network
 
+  # ── Time for the recorders (NTP) ────────────────────────────────
+  # DVR/NVRs pointed here keep their clocks right. Bound to localhost unless NTP_BIND names the
+  # camera LAN address (never the production LAN). Open UDP 123 from the camera LAN on the host firewall.
+  ntp-server:
+    build: ./ntp
+    container_name: cctv-ntp
+    restart: unless-stopped
+    ports:
+      - "${NTP_BIND:-127.0.0.1}:123:123/udp"
+    environment:
+      NTP_UPSTREAM: ${NTP_UPSTREAM:-th.pool.ntp.org,pool.ntp.org}
+      NTP_ALLOW: ${NTP_ALLOW:-all}
+    networks:
+      - cctv-network
+
   # ── Media Plane (MediaMTX — RTSP/WebRTC/HLS) ────────────────────
 
   mediamtx:

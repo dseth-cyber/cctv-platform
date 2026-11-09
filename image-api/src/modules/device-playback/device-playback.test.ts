@@ -17,7 +17,7 @@ describe('recorder times', () => {
     // As returned by the real DS-7208HQHI-K1: 3 min 20 s ahead.
     const xml = '<Time><timeMode>manual</timeMode><localTime>2026-11-06T10:00:03+07:00</localTime><timeZone>CST-7:00:00</timeZone></Time>';
     const clock = parseClock(xml, new Date('2026-11-06T02:56:43Z').getTime());
-    expect(clock).toEqual({ deviceTime: '2026-11-06T10:00:03', driftSeconds: 200 });
+    expect(clock).toEqual({ deviceTime: '2026-11-06T10:00:03', driftSeconds: 200, mode: 'manual' });
     expect(parseClock('<Time></Time>', 0)).toBeNull();
   });
 

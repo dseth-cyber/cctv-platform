@@ -33,7 +33,7 @@ async function readLimited(res: Response, maxBytes: number): Promise<Buffer> {
  * The challenge round does not count as a failed login; a 401 returned here does.
  */
 async function digestRequest(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PUT',
   url: string,
   username: string,
   password: string,
@@ -75,6 +75,11 @@ async function digestRequest(
 
 export function digestGet(url: string, username: string, password: string, opts: { timeoutMs: number; maxBytes: number }): Promise<DigestResponse> {
   return digestRequest('GET', url, username, password, opts);
+}
+
+/** Changes a setting on a device. Only the recorder clock uses it, with the owner's permission. */
+export function digestPut(url: string, username: string, password: string, body: string, opts: { timeoutMs: number; maxBytes: number }): Promise<DigestResponse> {
+  return digestRequest('PUT', url, username, password, opts, body);
 }
 
 /** For device queries sent as a POST body, such as searching a recorder's files. */

@@ -2,6 +2,7 @@ import { allowedCameraIds, cameraWhere, guardAllCameras, guardDeviceVisible } fr
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { buildDeviceReport, checkDeviceHealthNow } from './device-health.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
+import { pointRecorderAtNtp, RecorderNtpError } from './recorder-ntp.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { listMasterdataOptions } from '../masterdata/masterdata.service.js';
 import {
@@ -48,6 +49,33 @@ async function checkHealthHandler(request: FastifyRequest, reply: FastifyReply) 
   const { id } = request.params as { id: string };
   const health = await checkDeviceHealthNow(id);
   return reply.status(200).send({ health });
+}
+
+/** Changes the recorder's clock source, so every press is in the audit log with what it was before. */
+async function clockNtpHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  const audit = (description: string, metadata: Record<string, unknown>) => createAuditLog({
+    userId: user?.id, action: 'update', entity: 'device', entityId: id, description, metadata, ipAddress: request.ip,
+  }).catch(() => {});
+  try {
+    const result = await pointRecorderAtNtp(id);
+    if (!result) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Device not found' });
+    await audit(`Recorder clock set to take time from ${result.server} by ${user?.username ?? 'unknown'}`, {
+      before: result.before, after: result.after, server: result.server, minutes: result.minutes, serverCheck: result.serverCheck,
+    });
+    // The recorder syncs within a minute or so; look again then, so the page and the clock warning do not wait for the hourly round.
+    setTimeout(() => void checkDeviceHealthNow(id).catch(() => null), 120_000).unref();
+    return reply.status(200).send(result);
+  } catch (err) {
+    if (!(err instanceof RecorderNtpError)) throw err;
+    // A refusal on the recorder may have left half a change; it goes on record too.
+    if (err.code === 'RECORDER_REFUSED' || err.code === 'RECORDER_UNREACHABLE') {
+      await audit(`Recorder clock change failed (${err.code}) by ${user?.username ?? 'unknown'}`, err.details);
+    }
+    const status = err.code === 'RECORDER_UNREACHABLE' || err.code === 'RECORDER_REFUSED' ? 502 : err.code === 'NOT_SUPPORTED' ? 400 : 409;
+    return reply.status(status).send({ statusCode: status, error: err.code, message: err.code, details: { code: err.code, ...err.details } });
+  }
 }
 
 async function deviceReportHandler(request: FastifyRequest, reply: FastifyReply) {
@@ -154,6 +182,11 @@ export async function deviceRoutes(app: FastifyInstance) {
     '/:id/health/check',
     { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
     checkHealthHandler,
+  );
+  app.post(
+    '/:id/clock/ntp',
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
+    clockNtpHandler,
   );
   app.post(
     '/bulk-import',

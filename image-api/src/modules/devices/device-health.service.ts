@@ -69,6 +69,8 @@ export interface DeviceHealth {
   reportedModel: string | null;
   disks: RecorderDisk[];
   clockDriftSeconds: number | null;
+  /** Where the recorder takes its time from: "NTP" or "manual". */
+  clockMode?: string | null;
   oldestRecording: string | null;
   retentionDays: number | null;
   notRecording: Array<{ channel: number; name: string }>;
@@ -149,6 +151,7 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
       reportedModel: info?.model ?? null,
       disks,
       clockDriftSeconds: clock?.driftSeconds ?? null,
+      clockMode: clock?.mode ?? null,
       oldestRecording: oldest,
       retentionDays: oldest && now ? Math.floor(secondsBetween(oldest, now) / 86400) : null,
       notRecording: stopped,

@@ -30,7 +30,7 @@ vi.mock('../device-playback/hikvision-recorder.js', () => ({
 }));
 
 const DEVICE = { id: 'dev-1', name: 'NVR Office', brand: 'Hikvision', ipAddress: '10.0.0.5', httpPort: 80, rtspPort: 554, username: 'u', passwordEncrypted: 'enc', alertLevel: null, healthInfo: null, cameras: [] };
-const clockAt = (driftSeconds: number | null) => vi.mocked(readClock).mockResolvedValue(driftSeconds === null ? null : { deviceTime: '2026-11-09T10:00:00', driftSeconds });
+const clockAt = (driftSeconds: number | null) => vi.mocked(readClock).mockResolvedValue(driftSeconds === null ? null : { deviceTime: '2026-11-09T10:00:00', driftSeconds, mode: 'manual' });
 const clockAlerts = () => vi.mocked(createAlert).mock.calls.map(([a]) => a).filter((a) => a.alertType === 'clock_drift');
 
 describe('an alert for a recorder clock that is off', () => {

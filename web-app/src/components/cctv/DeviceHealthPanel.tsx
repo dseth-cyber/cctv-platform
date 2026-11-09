@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, HardDrive, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, HardDrive, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -36,6 +36,7 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
   const toast = useToast();
   const queryClient = useQueryClient();
   const [checking, setChecking] = useState(false);
+  const [settingClock, setSettingClock] = useState(false);
   const health = device.healthInfo as DeviceHealthInfo | null;
 
   const checkNow = async () => {
@@ -47,6 +48,25 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
       if (!err?._handled) toast.error(t('ui.deviceHealth.checkFailed'));
     } finally {
       setChecking(false);
+    }
+  };
+
+  // Changes a setting on the recorder (its clock source only), so it asks first and says what will happen.
+  const takeServerTime = async () => {
+    const off = health?.clockDriftSeconds ?? 0;
+    const way = t(off > 0 ? 'ui.deviceHealth.ntpBack' : 'ui.deviceHealth.ntpForward');
+    if (!window.confirm(t('ui.deviceHealth.ntpConfirm', { name: device.name, min: Math.floor(Math.abs(off) / 60), sec: Math.abs(off) % 60, way }))) return;
+    setSettingClock(true);
+    try {
+      const res = await imageServiceApi.setDeviceClockNtp(device.id);
+      toast.success(t('ui.deviceHealth.ntpDone', { server: res.server }));
+      await imageServiceApi.checkDeviceHealth(device.id).catch(() => null);
+      await queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
+    } catch (err: any) {
+      const code = err?.response?.data?.details?.code;
+      if (!err?._handled) toast.error(t(`ui.deviceHealth.ntpError.${code}`, t('ui.deviceHealth.ntpError.failed')));
+    } finally {
+      setSettingClock(false);
     }
   };
 
@@ -104,6 +124,17 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
             <div className="rounded bg-slate-950/60 px-2.5 py-2">
               <div className="text-slate-500">{t('ui.deviceHealth.clock')}</div>
               <div className={`font-semibold ${drift && drift.direction !== 'even' ? 'text-amber-300' : 'text-slate-200'}`}>{driftText}</div>
+              {health.clockMode && (
+                <div data-clock-mode={health.clockMode} className="text-slate-500 mt-0.5">
+                  {t(health.clockMode.toUpperCase() === 'NTP' ? 'ui.deviceHealth.clockModeNtp' : 'ui.deviceHealth.clockModeManual')}
+                </div>
+              )}
+              {canCheck && health.reachable && health.clockMode && (health.clockMode.toUpperCase() !== 'NTP' || health.problems.includes('clock_drift')) && (
+                <button type="button" data-device-ntp onClick={takeServerTime} disabled={settingClock} className="mt-1 inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 disabled:opacity-50">
+                  {settingClock ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                  {t('ui.deviceHealth.ntpButton')}
+                </button>
+              )}
             </div>
             <div className="rounded bg-slate-950/60 px-2.5 py-2">
               <div className="text-slate-500">{t('ui.deviceHealth.recording')}</div>

@@ -3,7 +3,8 @@ import { digestGet, digestPost } from '../../lib/digest-fetch.js';
 
 /**
  * What a Hikvision DVR/NVR offers for its own recordings. Everything here only reads: nothing changes a
- * setting on the device. Measured on a real DS-7208HQHI-K1.
+ * setting on the device (the one exception, the clock source, lives in devices/recorder-ntp.ts).
+ * Measured on a real DS-7208HQHI-K1.
  *
  * Times are "wall clock" strings (YYYY-MM-DDTHH:mm:ss) read off the recorder's own clock, the same time that
  * is burned into its picture. The recorder writes them with a trailing Z, but that Z does not mean UTC.
@@ -48,13 +49,15 @@ export interface RecorderClock {
   deviceTime: string;
   /** Positive: the recorder is ahead of this server. */
   driftSeconds: number;
+  /** Where the recorder takes its time from: "NTP", "manual", ... */
+  mode: string | null;
 }
 
 export function parseClock(xml: string, nowMs: number): RecorderClock | null {
   const local = tag(xml, 'localTime');
   const at = local ? new Date(local).getTime() : NaN;
   if (!local || Number.isNaN(at)) return null;
-  return { deviceTime: local.slice(0, 19), driftSeconds: Math.round((at - nowMs) / 1000) };
+  return { deviceTime: local.slice(0, 19), driftSeconds: Math.round((at - nowMs) / 1000), mode: tag(xml, 'timeMode') ?? null };
 }
 
 export function parseSearch(xml: string): { items: WallRange[]; more: boolean } {

@@ -21,6 +21,8 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   camera_auto_resolve_enabled: { value: 'true', description: 'Automatically resolve an auto-created Incident when the camera comes back online', valueType: 'boolean', category: 'automation' },
   camera_auto_workorder_enabled: { value: 'false', description: 'Automatically create a Work Order when an auto-created Incident escalates to Critical', valueType: 'boolean', category: 'automation' },
   device_health_check_minutes: { value: '60', description: 'How often to read disks, clock and recording state from each DVR/NVR (minutes)', valueType: 'number', category: 'automation', min: 15, max: 1440 },
+  device_ntp_server: { value: '', description: 'The NTP server address recorders are pointed at when someone presses "take time from the server" (the LAN address of this server, e.g. 192.168.30.77). Empty turns the button off.', valueType: 'string', category: 'automation' },
+  device_ntp_sync_minutes: { value: '60', description: 'How often a recorder pointed at the NTP server asks it for the time (minutes)', valueType: 'number', category: 'automation', min: 1, max: 10080 },
   device_clock_drift_alert_seconds: { value: '60', description: 'Warn when a DVR/NVR clock is off from the server by more than this many seconds (0 turns this off). Read on the device health round.', valueType: 'number', category: 'alert', min: 0, max: 3600 },
   camera_incident_reopen_minutes: { value: '30', description: 'If a camera drops again within this many minutes of its incident closing itself, that incident carries on instead of a new one opening (0 turns this off)', valueType: 'number', category: 'automation', min: 0, max: 1440 },
   camera_incident_escalate_high_minutes: { value: '15', description: 'Minutes offline before an open auto-created Incident escalates to High priority', valueType: 'number', category: 'automation', min: 1, max: 10080 },
@@ -150,7 +152,7 @@ export async function getConfigsForClient(): Promise<Record<string, any>> {
 
 export interface ConfigProblem {
   key: string;
-  reason: 'unknown' | 'not_number' | 'out_of_range' | 'not_boolean' | 'bad_json' | 'bad_url' | 'too_long' | 'order';
+  reason: 'unknown' | 'not_number' | 'out_of_range' | 'not_boolean' | 'bad_json' | 'bad_url' | 'bad_host' | 'too_long' | 'order';
   min?: number;
   max?: number;
   /** For reason 'order': the setting this one has to stay below (or equal to). */
@@ -188,6 +190,8 @@ export function findConfigProblems(inputs: Record<string, string>, current: Reco
       problems.push({ key, reason: 'too_long' });
     } else if (URL_CONFIG_KEYS.includes(key) && value !== '' && !/^https?:\/\/\S+$/i.test(value)) {
       problems.push({ key, reason: 'bad_url' });
+    } else if (key === 'device_ntp_server' && value !== '' && !/^[A-Za-z0-9.-]{1,253}$/.test(value)) {
+      problems.push({ key, reason: 'bad_host' });
     }
   }
   // Settings that only make sense in order, checked against what would be stored after this save.
