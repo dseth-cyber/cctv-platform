@@ -6,17 +6,22 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function calculateHealthScore(
+/**
+ * hadUptime / downAtEnd: a camera that never ran in the period has no time between failures to score, and one
+ * still down has not been repaired. Neither earns the full marks a camera that simply never failed gets.
+ */
+export function calculateHealthScore(
   availability: number,
   mtbfHours: number | null,
   mttrMinutes: number | null,
   offlineCount: number,
+  { hadUptime = true, downAtEnd = false }: { hadUptime?: boolean; downAtEnd?: boolean } = {},
 ): number {
   // Availability: 40% weight (100% = 40pts, 90% = 36pts, etc)
   const availScore = Math.min(100, availability) * 0.4;
 
   // MTBF: 20% weight (>30d=20, >7d=15, >1d=10, <1d=5)
-  let mtbfScore = 20;
+  let mtbfScore = hadUptime ? 20 : 0;
   if (mtbfHours !== null) {
     if (mtbfHours >= 720) mtbfScore = 20;
     else if (mtbfHours >= 168) mtbfScore = 15;
@@ -25,8 +30,8 @@ function calculateHealthScore(
   }
 
   // MTTR: 20% weight (<5min=20, <15min=15, <60min=10, >60min=5)
-  let mttrScore = 20;
-  if (mttrMinutes !== null) {
+  let mttrScore = downAtEnd ? 0 : 20;
+  if (mttrMinutes !== null && !downAtEnd) {
     if (mttrMinutes <= 5) mttrScore = 20;
     else if (mttrMinutes <= 15) mttrScore = 15;
     else if (mttrMinutes <= 60) mttrScore = 10;
@@ -211,6 +216,8 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
         ? statusWithoutEvents(camera)
         : 'active';
   let segStart = since;
+  // Already down when the period starts: that outage counts as one.
+  if (currentStatus !== 'active' && currentStatus !== 'maintenance') offlineCount++;
 
   for (const event of events) {
     const segDuration = event.createdAt.getTime() - segStart.getTime();
@@ -339,6 +346,7 @@ export async function getCameraDowntimeReport(cameraId: string, period: string) 
     mtbf,
     mttr,
     offlineCount,
+    { hadUptime: uptimeMs > 0, downAtEnd: currentStatus !== 'active' && currentStatus !== 'maintenance' },
   );
 
   // 7. SLA target — per-camera override (Availability Contract) takes priority over the global default.
