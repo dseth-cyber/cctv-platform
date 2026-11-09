@@ -152,6 +152,77 @@ function translateRecordingAlertTh(title: string, message: string): { title: str
   }
 }
 
+// Recorder (DVR/NVR) alerts: device-health.service.ts (recording stopped, HDD, clock) and camera-health-monitor.ts
+// (a whole recorder not answering). Titles name the recorder; messages are matched on their fixed shapes.
+const HDD_PROBLEM_TH: Record<string, string> = {
+  no_disk: 'ไม่พบ HDD',
+  disk_fault: 'HDD ผิดปกติ',
+  disk_smart: 'SMART เตือน',
+  disk_hot: 'HDD ร้อน (60°C ขึ้นไป)',
+};
+
+function translateDriftTh(text: string): string {
+  return text.replace(/(ahead of|behind) the server by (\d+) min (\d+) s/g, (_, way, min, sec) => {
+    const m = Number(min);
+    // Past an hour, hours read better than "297 นาที".
+    const size = m >= 60 ? `${Math.floor(m / 60)} ชั่วโมง ${m % 60} นาที` : `${m} นาที ${sec} วินาที`;
+    return `${way === 'ahead of' ? 'เร็วกว่า' : 'ช้ากว่า'} Server ${size}`;
+  });
+}
+
+function translateRecorderAlertTh(title: string, message: string): { title: string; message: string } | null {
+  let t: RegExpMatchArray | null;
+  let m: RegExpMatchArray | null;
+
+  if ((t = title.match(/^Recording stopped:\s*(.+)$/i))) {
+    m = message.match(/^(.+): no recording in the last (\d+) minutes on channel (.+)$/i);
+    return { title: `หยุดบันทึก: ${t[1]}`, message: m ? `${m[1]}: ไม่มีการบันทึกใน ${m[2]} นาทีล่าสุด ช่อง ${m[3]}` : message };
+  }
+
+  if ((t = title.match(/^HDD problem:\s*(.+)$/i))) {
+    m = message.match(/^(.+): ([a-z_, ]+)$/i);
+    const problems = m ? m[2].split(',').map((x) => x.trim()).filter(Boolean).map((x) => HDD_PROBLEM_TH[x] ?? x).join(', ') : '';
+    return { title: `HDD มีปัญหา: ${t[1]}`, message: m ? `${m[1]}: ${problems}` : message };
+  }
+
+  if ((t = title.match(/^Clock off:\s*(\d+) recorders$/i))) {
+    const lines = message.split('\n');
+    const head = `เครื่องบันทึก ${t[1]} เครื่องเวลาไม่ตรงกับ Server ภาพและคลิปจะใช้เวลาของเครื่อง ควรตั้ง NTP (หน้าอุปกรณ์ ปุ่ม "ตั้ง NTP หลายเครื่อง")`;
+    const rest = lines.slice(1).map((line) => {
+      const more = line.match(/^- \.\.\.and (\d+) more$/);
+      return more ? `- ...และอีก ${more[1]} เครื่อง` : translateDriftTh(line);
+    });
+    return { title: `เวลาเครื่องบันทึกไม่ตรง ${t[1]} เครื่อง`, message: [head, ...rest].join('\n') };
+  }
+
+  if ((t = title.match(/^Clock off:\s*(.+)$/i))) {
+    m = message.match(/^(.+): clock is ((?:ahead of|behind) the server by \d+ min \d+ s) \(limit (\d+) s\)\./i);
+    return {
+      title: `เวลาเครื่องไม่ตรง: ${t[1]}`,
+      message: m ? `${m[1]}: เวลาเครื่อง${translateDriftTh(m[2])} (เกณฑ์ ${m[3]} วินาที) ภาพและคลิปจะใช้เวลาของเครื่อง ควรตั้ง NTP ที่เครื่องบันทึก` : message,
+    };
+  }
+
+  if ((t = title.match(/^Recorder offline:\s*(.+)$/i))) {
+    m = message.match(/^Recorder "(.+?)" \((.+?)\) is not answering, so none of its (\d+) cameras can be seen\./i);
+    return {
+      title: `เครื่องบันทึกไม่ตอบ: ${t[1]}`,
+      message: m ? `เครื่องบันทึก "${m[1]}" (${m[2]}) ไม่ตอบ ดูภาพกล้องทั้ง ${m[3]} ตัวของเครื่องนี้ไม่ได้ แจ้งเตือนนี้แทนทุกกล้องในเครื่อง` : message,
+    };
+  }
+
+  if ((t = title.match(/^Recorder online:\s*(.+)$/i))) {
+    m = message.match(/^Recorder "(.+?)" is answering again\. Downtime: (.+?)\.(?: (\d+) camera\(s\) on it are still down and are reported on their own from now\.)?$/i);
+    return {
+      title: `เครื่องบันทึกกลับมาแล้ว: ${t[1]}`,
+      message: m
+        ? `เครื่องบันทึก "${m[1]}" กลับมาตอบแล้ว ระยะเวลาที่ดาวน์: ${translateDuration(m[2])}${m[3] ? ` ยังมีกล้อง ${m[3]} ตัวในเครื่องนี้ที่ยังดับ จะแจ้งแยกรายกล้องต่อจากนี้` : ''}`
+        : message,
+    };
+  }
+  return null;
+}
+
 const STORAGE_LEVEL_TH: Record<string, string> = { warning: 'ใกล้เต็ม', critical: 'วิกฤต', emergency: 'ฉุกเฉิน' };
 
 /**
@@ -164,6 +235,9 @@ const STORAGE_LEVEL_TH: Record<string, string> = { warning: 'ใกล้เต�
  * upstream template change) falls back to the raw text rather than dropping information.
  */
 export async function translateCameraAlertToThai(title: string, message: string): Promise<{ title: string; message: string }> {
+  const recorder = translateRecorderAlertTh(title, message);
+  if (recorder) return recorder;
+
   const authAnomaly = title.match(/^Suspicious login activity:\s*(.+)$/i);
   if (authAnomaly) {
     const m = message.match(/^(\d+) failed login attempts for user "(.+?)"(?: from IP (\S+))? within (\d+) minute\(s\) — account locked for (\d+) minute\(s\)\.?$/i);
