@@ -408,6 +408,20 @@ export default function LiveGrid() {
     });
   };
 
+  // A camera picked in the panel goes into the selected slot, and the panel stays open on the next empty slot, so a
+  // wall fills by clicking camera after camera. With every slot taken it moves on in turn; one slot just closes.
+  const pickIntoSlot = (cam: any) => {
+    const slot = activeSlot;
+    void assignCameraToSlot(cam, slot);
+    if (slotCount <= 1) {
+      setDrawerOpen(false);
+      return;
+    }
+    const after = Array.from({ length: slotCount - 1 }, (_, k) => (slot + 1 + k) % slotCount);
+    const empty = after.find((i) => !cells.find((c) => c.slotIndex === i)?.cameraId);
+    setActiveSlot(empty ?? (slot + 1) % slotCount);
+  };
+
   const clearSlot = (slotIdx: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setCells((prev) =>
@@ -1118,7 +1132,8 @@ export default function LiveGrid() {
 
             {/* Hierarchical Tree List */}
             <div className="flex-1 overflow-auto p-2 space-y-2">
-              {/* Dev Test Streams */}
+              {/* Dev Test Streams: test patterns for the Dev box, shown only in a build with VITE_SHOW_DEV_STREAMS=true */}
+              {import.meta.env.VITE_SHOW_DEV_STREAMS === 'true' && (
               <div className="p-2 rounded-lg border border-cyan-900/60 bg-cyan-950/20 space-y-1.5">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
                   <span>{t('ui.liveGrid.devSyntheticStreams')}</span>
@@ -1157,6 +1172,7 @@ export default function LiveGrid() {
                   <Plus className="w-3.5 h-3.5 text-cyan-400" />
                 </div>
               </div>
+              )}
 
               {/* Connected DVR Devices & Camera Groups */}
               {devices.length > 0 && (
@@ -1202,10 +1218,7 @@ export default function LiveGrid() {
                               onDragStart={(e) => startDrag(e, DRAG_CAMERA, cam.id)}
                               onDragEnd={() => setDragOverSlot(null)}
                               title={t('ui.liveGrid.dragToSlot')}
-                              onClick={() => {
-                                assignCameraToSlot(cam, activeSlot);
-                                setDrawerOpen(false);
-                              }}
+                              onClick={() => pickIntoSlot(cam)}
                               className="group/cam p-1.5 rounded border border-slate-900 bg-slate-900/60 hover:bg-slate-800 hover:border-cyan-800/60 cursor-grab active:cursor-grabbing transition flex items-center justify-between text-xs"
                             >
                               <div className="flex items-center gap-1.5 truncate">
@@ -1244,10 +1257,7 @@ export default function LiveGrid() {
                     onDragStart={(e) => startDrag(e, DRAG_CAMERA, cam.id)}
                     onDragEnd={() => setDragOverSlot(null)}
                     title={t('ui.liveGrid.dragToSlot')}
-                    onClick={() => {
-                      assignCameraToSlot(cam, activeSlot);
-                      setDrawerOpen(false);
-                    }}
+                    onClick={() => pickIntoSlot(cam)}
                     className="p-2 rounded-lg border border-slate-800/80 bg-slate-950/40 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between"
                   >
                     <div className="min-w-0 flex-1 pr-2">
