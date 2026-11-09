@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { LiveOnlySizing } from '@/components/cctv/LiveOnlySizing';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -69,6 +70,8 @@ export const MediaNodeManagement: React.FC = () => {
   const [codec, setCodec] = useState<'h264' | 'h265'>('h264');
   const [raidType, setRaidType] = useState<'raid0' | 'raid5' | 'raid6' | 'raid10'>('raid5');
   const [headroomPercent, setHeadroomPercent] = useState<number>(20);
+  // How the footage is kept: on the DVR/NVRs (the system as it runs) or recorded by the server.
+  const [sizingMode, setSizingMode] = useState<'dvr' | 'server'>('dvr');
 
   // Modals state
   const [isNodeModalOpen, setIsNodeModalOpen] = useState(false);
@@ -255,6 +258,8 @@ export const MediaNodeManagement: React.FC = () => {
   const totalChannels = nodes.reduce((sum, n) => sum + (n.currentLoadChannels || n.assignedCamerasCount), 0);
   const totalCapacity = nodes.reduce((sum, n) => sum + n.capacityChannels, 0);
   const totalIngressMbps = nodes.reduce((sum, n) => sum + (n.networkIngressMbps || 0), 0);
+  // Only nodes still reporting have a reading; with none, there is no figure to show (not 0).
+  const anyNodeReporting = nodes.some((n: any) => n.metricsCurrent);
 
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-y-auto">
@@ -347,10 +352,10 @@ export const MediaNodeManagement: React.FC = () => {
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">{t('ui.mediaNodeManagement.ingressBandwidth')}</span>
               <span className="text-2xl font-bold font-mono text-amber-400 mt-1 block">
-                {totalIngressMbps.toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps')}
+                {anyNodeReporting ? totalIngressMbps.toFixed(1) : '—'}{' '}{t('ui.mediaNodeManagement.mbps')}
               </span>
               <span className="text-[11px] text-slate-400">
-                ~{(totalIngressMbps / 8).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbSDiskWrite')}
+                ~{anyNodeReporting ? (totalIngressMbps / 8).toFixed(1) : '—'}{' '}{t('ui.mediaNodeManagement.mbSDiskWrite')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -450,19 +455,19 @@ export const MediaNodeManagement: React.FC = () => {
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
                       <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.cpuLoad')}</span>
                       <span className="font-mono font-bold text-slate-200">
-                        {node.cpuPercent ? `${node.cpuPercent.toFixed(1)}%` : '12.5%'}
+                        {node.cpuPercent != null ? `${node.cpuPercent.toFixed(1)}%` : '—'}
                       </span>
                     </div>
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
                       <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.ramLoad')}</span>
                       <span className="font-mono font-bold text-slate-200">
-                        {node.ramPercent ? `${node.ramPercent.toFixed(1)}%` : '24.0%'}
+                        {node.ramPercent != null ? `${node.ramPercent.toFixed(1)}%` : '—'}
                       </span>
                     </div>
                     <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
                       <span className="text-[10px] text-slate-400 block">{t('ui.mediaNodeManagement.diskSpace')}</span>
                       <span className="font-mono font-bold text-slate-200">
-                        {node.diskPercent ? `${node.diskPercent.toFixed(1)}%` : '41.2%'}
+                        {node.diskPercent != null ? `${node.diskPercent.toFixed(1)}%` : '—'}
                       </span>
                     </div>
                   </div>
@@ -471,7 +476,7 @@ export const MediaNodeManagement: React.FC = () => {
                   <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-slate-950/50 border border-slate-800/80">
                     <span className="text-slate-400">{t('ui.mediaNodeManagement.ingressEgress')}</span>
                     <span className="font-mono text-cyan-400 font-semibold">
-                      ↓ {(node.networkIngressMbps || 4.8).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps2')}{' '}{(node.networkEgressMbps || 1.2).toFixed(1)}{' '}{t('ui.mediaNodeManagement.mbps')}
+                      ↓ {(node.networkIngressMbps != null ? node.networkIngressMbps.toFixed(1) : '—')}{' '}{t('ui.mediaNodeManagement.mbps2')}{' '}{(node.networkEgressMbps != null ? node.networkEgressMbps.toFixed(1) : '—')}{' '}{t('ui.mediaNodeManagement.mbps')}
                     </span>
                   </div>
 
@@ -529,6 +534,22 @@ export const MediaNodeManagement: React.FC = () => {
                 </p>
               </div>
 
+              {/* Where the footage is kept decides what the server must carry */}
+              <div data-sizing-mode={sizingMode} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-slate-400 font-semibold mr-1">{t('ui.liveSizing.mode')}</span>
+                {(['dvr', 'server'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    data-sizing-mode-option={m}
+                    onClick={() => setSizingMode(m)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all ${sizingMode === m ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                  >
+                    {t(m === 'dvr' ? 'ui.liveSizing.modeDvr' : 'ui.liveSizing.modeServer')}
+                  </button>
+                ))}
+              </div>
+
               {/* Tier Quick Select */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-slate-400 font-semibold mr-1">{t('ui.mediaNodeManagement.suggestedScale')}</span>
@@ -567,6 +588,7 @@ export const MediaNodeManagement: React.FC = () => {
                   </div>
                 </div>
 
+                {sizingMode === 'server' && (<>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400 font-semibold">{t('ui.mediaNodeManagement.storageArchitecture')}</span>
                   <select
@@ -585,8 +607,13 @@ export const MediaNodeManagement: React.FC = () => {
                   <span className="text-slate-400 font-semibold">{t('ui.mediaNodeManagement.freeSpaceHeadroom')}</span>
                   <span className="font-mono font-bold text-amber-400">{t('ui.mediaNodeManagement.n20Buffer')}</span>
                 </div>
+                </>)}
               </div>
 
+              {sizingMode === 'dvr' ? (
+                <LiveOnlySizing cameras={channelsCount} onCamerasChange={setChannelsCount} mainKbps={mainBitrateKbps} subKbps={codec === 'h265' ? 384 : 512} />
+              ) : (<>
+              <p data-sizing-server-caveat className="text-xs text-amber-300/90 bg-amber-950/30 border border-amber-800/40 rounded-xl px-3 py-2">{t('ui.liveSizing.serverCaveat')}</p>
               {/* Slider Inputs Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5 pt-2">
                 <div className="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
@@ -736,6 +763,7 @@ export const MediaNodeManagement: React.FC = () => {
                   </div>
                 </div>
               )}
+              </>)}
             </div>
           </div>
         )}

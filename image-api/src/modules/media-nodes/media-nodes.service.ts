@@ -81,15 +81,26 @@ export class MediaNodesService {
       const effectiveStatus = isHeartbeatStale && node.status === 'online' ? 'degraded' : node.status;
       const utilizationPercent = Math.min(
         100,
-        Math.round(((node.currentLoadChannels || node._count.cameras) / Math.max(1, node.capacityChannels)) * 100),
+        Math.round((((lastHb > 0 && !isHeartbeatStale ? node.currentLoadChannels : 0) || node._count.cameras) / Math.max(1, node.capacityChannels)) * 100),
       );
 
+      // Readings count only while the node keeps reporting. Without a fresh heartbeat there is nothing current to
+      // show, and an old (or never-measured) value must not pass for one.
+      const fresh = lastHb > 0 && !isHeartbeatStale;
       return {
         ...node,
+        // The load a node reports is stale too; the count of cameras assigned to it stands in (see utilizationPercent).
+        currentLoadChannels: fresh ? node.currentLoadChannels : 0,
+        cpuPercent: fresh ? node.cpuPercent : null,
+        ramPercent: fresh ? node.ramPercent : null,
+        diskPercent: fresh ? node.diskPercent : null,
+        networkIngressMbps: fresh ? node.networkIngressMbps : null,
+        networkEgressMbps: fresh ? node.networkEgressMbps : null,
         status: effectiveStatus,
         assignedCamerasCount: node._count.cameras,
         utilizationPercent,
         isHeartbeatStale,
+        metricsCurrent: fresh,
       };
     });
   }
@@ -424,13 +435,14 @@ export class MediaNodesService {
         region: 'local-dev',
         status: 'online',
         capacityChannels: 128,
-        currentLoadChannels: 2,
-        cpuPercent: 12.5,
-        ramPercent: 24.0,
-        diskPercent: 41.2,
-        networkIngressMbps: 4.8,
-        networkEgressMbps: 1.2,
-        lastHeartbeatAt: new Date(),
+        // Nothing measured yet: the node fills these in when it reports a heartbeat.
+        currentLoadChannels: 0,
+        cpuPercent: null,
+        ramPercent: null,
+        diskPercent: null,
+        networkIngressMbps: null,
+        networkEgressMbps: null,
+        lastHeartbeatAt: null,
         iceServers: JSON.stringify([
           { urls: 'stun:stun.l.google.com:19302' },
         ]),
