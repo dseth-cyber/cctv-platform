@@ -990,7 +990,7 @@ export default function LiveGrid() {
                         onDragEnd={() => setDragOverSlot(null)}
                         onDoubleClick={(e) => e.stopPropagation()}
                         title={t('ui.liveGrid.dragToMove')}
-                        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition flex items-center gap-1 text-[10px]"
+                        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 px-2.5 py-1 rounded-md bg-cyan-600 hover:bg-cyan-500 border border-cyan-300/60 text-white font-semibold shadow-lg shadow-cyan-950/50 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition flex items-center gap-1 text-[11px]"
                       >
                         <GripVertical className="w-3.5 h-3.5" />
                         {t('ui.liveGrid.dragShort')}
@@ -1197,13 +1197,19 @@ export default function LiveGrid() {
                           {devCams.map((cam: any) => (
                             <div
                               key={cam.id}
+                              draggable
+                              data-drawer-camera={cam.id}
+                              onDragStart={(e) => startDrag(e, DRAG_CAMERA, cam.id)}
+                              onDragEnd={() => setDragOverSlot(null)}
+                              title={t('ui.liveGrid.dragToSlot')}
                               onClick={() => {
                                 assignCameraToSlot(cam, activeSlot);
                                 setDrawerOpen(false);
                               }}
-                              className="p-1.5 rounded border border-slate-900 bg-slate-900/60 hover:bg-slate-800 cursor-pointer transition flex items-center justify-between text-xs"
+                              className="group/cam p-1.5 rounded border border-slate-900 bg-slate-900/60 hover:bg-slate-800 hover:border-cyan-800/60 cursor-grab active:cursor-grabbing transition flex items-center justify-between text-xs"
                             >
                               <div className="flex items-center gap-1.5 truncate">
+                                <GripVertical className="w-3 h-3 shrink-0 text-slate-600 group-hover/cam:text-cyan-400" />
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                     cam.operationalStatus === 'online'
