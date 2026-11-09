@@ -88,6 +88,8 @@ export function createImageServiceApi(api: any) {
     emptyCameraTrash: (password: string) =>
       api.post(`${BASE}/cameras/trash/empty`, { password }).then((r: any) => r.data),
 
+    importCameraInfo: (items: Array<{ id: string; cameraType?: string; cameraBrand?: string; cameraModel?: string }>, dryRun: boolean) =>
+      api.post(`${BASE}/cameras/info-import`, { items, dryRun }).then((r: any) => r.data),
     getCameraStream: (id: string, params?: { profile?: 'main' | 'sub' }) =>
       api.get(`${BASE}/cameras/${id}/stream`, { params }).then((r: any) => r.data),
 

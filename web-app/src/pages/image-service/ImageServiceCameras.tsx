@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { CameraInfoImportModal } from '@/components/cctv/CameraInfoImportModal';
 import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
 import { specNotes } from '@/lib/cameraSpec';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +23,7 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
 import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Edit, Trash2, Eye, Camera, Activity, Wifi, WifiOff, AlertTriangle, Wrench,
-  RefreshCw, CheckCircle, Play, Undo2, Copy , X } from 'lucide-react';
+  RefreshCw, CheckCircle, Play, Undo2, Copy , X, Upload } from 'lucide-react';
 import { Modal, Button, SearchableSelect, TableSkeleton, ColumnSelector, ExportButton, DateTimePicker } from '@/components/ui';
 import { getLocalizedValue } from '@/utils/textUtils';
 import { useRequiredFields } from '@/hooks/useRequiredFields';
@@ -226,6 +227,7 @@ export default function ImageServiceCameras() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkCloneModal, setBulkCloneModal] = useState({ open: false });
   const [bulkCloning, setBulkCloning] = useState(false);
+  const [infoImportOpen, setInfoImportOpen] = useState(false);
 
   const { data: cameras = [], isLoading } = useQuery({
     queryKey: ['cameras-list', search, statusFilter],
@@ -1181,6 +1183,16 @@ export default function ImageServiceCameras() {
                 </button>
               )}
             </>
+          )}
+          {canUpdate && (
+            <button
+              type="button"
+              data-info-import-open
+              onClick={() => setInfoImportOpen(true)}
+              className="px-3 py-2 rounded-md text-xs flex items-center gap-1.5 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+            >
+              <Upload size={13} /> {t('ui.cameraInfoImport.open')}
+            </button>
           )}
           <ExportButton
             filename="camera-list"
@@ -2461,6 +2473,7 @@ export default function ImageServiceCameras() {
           }}
         />
       )}
+      <CameraInfoImportModal isOpen={infoImportOpen} onClose={() => setInfoImportOpen(false)} cameras={cameras as any[]} typeOptions={cameraTypeOptions} brandOptions={cameraBrandOptions} />
     </div>
   );
 }

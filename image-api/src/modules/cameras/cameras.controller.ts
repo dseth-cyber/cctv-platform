@@ -1,7 +1,8 @@
-import { allowedCameraIds, cameraWhere, guardAllCameras, guardCameraIdsBody, guardCameraParam, guardIncidentAttachment, guardIncidentParam } from '../access/camera-scope.js';
+import { allowedCameraIds, assertCameraAccess, cameraWhere, guardAllCameras, guardCameraIdsBody, guardCameraParam, guardIncidentAttachment, guardIncidentParam } from '../access/camera-scope.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { cameraDeletionImpact } from './camera-deletion.js';
+import { importCameraInfo } from './camera-info-import.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { bulkUpdateCameraSchema, deletionImpactSchema, createCameraSchema, updateCameraSchema, cameraQuerySchema, detectStreamSchema } from './cameras.schema.js';
 import { detectCameraStream } from './stream-detect.service.js';
@@ -130,6 +131,37 @@ async function createHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 /** The same change on many cameras. One that cannot take it is reported and the others still change. */
+const cameraInfoImportSchema = z.object({
+  dryRun: z.boolean().default(true),
+  items: z.array(z.object({
+    id: z.string().uuid(),
+    cameraType: z.string().max(128).nullish(),
+    cameraBrand: z.string().max(128).nullish(),
+    cameraModel: z.string().max(256).nullish(),
+  })).min(1).max(2000),
+});
+
+/** Type/brand/model of many cameras from a filled-in sheet: a dry run shows what would change, then it is applied. */
+async function cameraInfoImportHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { dryRun, items } = cameraInfoImportSchema.parse(request.body);
+  // Only cameras this person may see can be in the sheet.
+  for (const item of items) await assertCameraAccess(request, item.id);
+  const result = await importCameraInfo(items, dryRun);
+  if (!dryRun && result.applied > 0) {
+    const user = (request as any).user;
+    createAuditLog({
+      userId: user?.id,
+      action: 'camera_info_import',
+      entity: 'camera',
+      entityId: 'many',
+      description: `Camera type/brand/model updated from a sheet for ${result.applied} camera(s) by ${user?.username ?? 'unknown'}`,
+      metadata: { changes: result.results.filter((r) => r.status === 'update').map((r) => ({ id: r.id, name: r.name, changes: r.changes })) },
+      ipAddress: request.ip,
+    }).catch(() => {});
+  }
+  return reply.status(200).send(result);
+}
+
 async function bulkUpdateHandler(request: FastifyRequest, reply: FastifyReply) {
   const { ids, changes } = bulkUpdateCameraSchema.parse(request.body);
   const user = (request as any).user;
@@ -1070,6 +1102,11 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
     '/deletion-impact',
     { preHandler: [app.authenticate, requirePermission('cameras:delete'), guardCameraIdsBody()] },
     deletionImpactHandler,
+  );
+  app.post(
+    '/info-import',
+    { preHandler: [app.authenticate, requirePermission('cameras:update')] },
+    cameraInfoImportHandler,
   );
   app.patch(
     '/bulk',
