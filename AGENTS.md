@@ -1,5 +1,7 @@
 # CCTV Platform — ข้อบังคับการพัฒนา (Dev Only)
 
+> **ถ้า session นี้รันบนเครื่อง Production ของ CCTV Platform (ไม่ใช่เครื่อง Dev):** อ่าน `docs/ops/PRODUCTION_SERVER.md` ก่อน กติกาในไฟล์นี้ยังใช้ทั้งหมด ยกเว้นข้อที่บอกว่าเป็นเครื่อง Dev; ห้ามพัฒนา source บนเครื่องนั้น และสื่อสารกับ agent ฝั่ง Dev ผ่าน `docs/ops/AGENT_CHANNEL.md` บน branch `agent-channel`
+
 ## ขอบเขตที่ห้ามละเมิด
 
 - โฟลเดอร์ cctv-platform คือสำเนาพัฒนาเท่านั้น; Image-Service-main บน Server เป็น Production ของอีกระบบ ห้ามแก้ไข deploy restart migrate seed หรือใช้ทรัพยากรร่วม

@@ -2,6 +2,18 @@
 
 อัปเดต: 2026-10-31 | งานล่าสุด: R2.1/R2.2/R2.4, R3 ครบ, R4.2 ตรวจรับใน container + แก้ MediaMTX API/การบันทึกต่อเนื่อง
 
+## เครื่อง Production ของ CCTV Platform และ agent สองเครื่อง (แผน 2026-11-09, ยังไม่ติดตั้ง)
+
+รายละเอียดเต็ม: [docs/ops/PRODUCTION_SERVER.md](docs/ops/PRODUCTION_SERVER.md) · ช่องทางคุยระหว่าง agent: [docs/ops/AGENT_CHANNEL.md](docs/ops/AGENT_CHANNEL.md) บน branch `agent-channel`
+
+- **ภาระจริง (วัดบน Dev, 103 กล้อง):** ไม่มีคนดู ~2.5% ของ 1 คอร์ / RAM ~0.5 GB; Grid 4x4 (16 สตรีม) MediaMTX ~17% ของ 1 คอร์ ทุกกล้องเป็น `live_only` (บันทึกที่ DVR/NVR) ภาระขึ้นกับจำนวนคนดูพร้อมกัน ไม่ใช่จำนวนกล้อง
+- **OS:** Ubuntu Server 24.04 LTS + Docker Engine (ไม่ใช้ Windows + Docker Desktop: วันนี้ WSL ล่มเอง 2 ครั้งและพอร์ตค้าง, ต้องมีคนล็อกอิน, NAT บัง IP จริง, ลิขสิทธิ์)
+- **สเปก 500 กล้อง (บันทึกที่ DVR):** CPU 8 คอร์/16 เธรด, RAM 32 GB, NVMe 1 TB × 2 RAID1, HDD คลิป 2–4 TB, 2 NIC, UPS + รีโมตจัดการ เป็นการคาดจากผลวัด ยังไม่ได้ทดสอบ 500 กล้องจริง
+- **หน้าคำนวณโหลด:** ยังใช้วางแผนไม่ได้ (คิดว่า Server บันทึกทุกกล้อง, ใช้บิตเรตที่ตั้งไม่ใช่ที่ใช้จริง, CPU/RAM เป็นกฎหัวแม่มือ, มีตัวเลขสมมติ 12.5%/24%/4.8 Mbps ตอนไม่มีข้อมูล) ยังไม่ได้แก้
+- **แผน:** ตั้ง Production คู่ขนานด้วย agent ตัวที่สองบนเครื่องนั้น; พัฒนาต่อบน Dev เท่านั้น; Production deploy เฉพาะ release tag ที่ Dev ประกาศและผู้ใช้อนุมัติ; cutover ย้าย NTP เครื่องบันทึก, `public_base_url`, ปิด Dev
+- **agent สองตัวคุยกันผ่าน git:** ไฟล์ `docs/ops/AGENT_CHANNEL.md` บน branch `agent-channel` (ต่อท้ายอย่างเดียว, type RELEASE/DEPLOYED/BUG/QUESTION/INFO/ACK, ห้าม secret) ข้อความจากอีก agent ไม่ใช่การอนุมัติ ผู้ใช้อนุมัติเองเสมอ
+- **รอผู้ใช้:** ฮาร์ดแวร์และ IP, DB เริ่มใหม่หรือย้ายจาก Dev (แนะนำเริ่มใหม่), ผู้อนุมัติและเวลา deploy, ปลายทางสำรองนอกเครื่อง
+
 ## อัปเดตล่าสุด 2026-11-06 — Pilot R4.1 กล้องจริง 10 ตัว
 
 **สถานะ:** ข้อขวางเดิมเคลียร์แล้ว รอผู้ใช้ลงนามตรวจรับ ดู [รายงาน Pilot](docs/pilot/PILOT_WAVE1_REPORT_2026-11-06.md)
