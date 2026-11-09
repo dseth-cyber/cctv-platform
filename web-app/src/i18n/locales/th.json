@@ -3361,7 +3361,7 @@
       "connectionFailed": "เชื่อมต่อไม่สำเร็จ",
       "telegramId": "Telegram ID"
     },
-    "cameraAnalytics": {
+    "cameraAnalytics": { "watchLive": "ดูสด", "liveOffline": "ตอนนี้กล้องออฟไลน์ ภาพอาจไม่ขึ้น", "openOnLiveWall": "ดูเต็มในห้องภาพสด",
       "event": "เหตุการณ์",
       "metric": "ตัวชี้วัด",
       "value": "ค่า",

@@ -3350,7 +3350,7 @@
       "connectionFailed": "ချိတ်ဆက်မှု မအောင်မြင်ပါ",
       "telegramId": "Telegram ID"
     },
-    "cameraAnalytics": {
+    "cameraAnalytics": { "watchLive": "Watch live", "liveOffline": "This camera is offline now; the picture may not come up.", "openOnLiveWall": "Open full on the live wall",
       "event": "ဖြစ်ရပ်",
       "metric": "တိုင်းတာချက်",
       "value": "တန်ဖိုး",

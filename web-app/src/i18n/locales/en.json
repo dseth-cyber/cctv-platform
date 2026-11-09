@@ -3358,7 +3358,7 @@
       "connectionFailed": "Connection failed",
       "telegramId": "Telegram ID"
     },
-    "cameraAnalytics": {
+    "cameraAnalytics": { "watchLive": "Watch live", "liveOffline": "This camera is offline now; the picture may not come up.", "openOnLiveWall": "Open full on the live wall",
       "event": "Event",
       "metric": "Metric",
       "value": "Value",

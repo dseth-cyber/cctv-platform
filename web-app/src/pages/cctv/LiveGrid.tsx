@@ -255,6 +255,22 @@ export default function LiveGrid() {
       setFocus(null);
     }
   };
+  // A link to one camera (?focus=<id>, e.g. from the availability page) opens it full screen, as a double-click does.
+  // Read once on arrival: the site/zone link handling above clears the address.
+  const focusFromLink = useRef(urlParams.get('focus'));
+  useEffect(() => {
+    const id = focusFromLink.current;
+    if (!id || cameras.length === 0) return;
+    focusFromLink.current = null;
+    const cam = cameras.find((c: any) => c.id === id);
+    if (cam) void openFocus(cam);
+    if (urlParams.get('focus')) {
+      const next = new URLSearchParams(urlParams);
+      next.delete('focus');
+      setUrlParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameras]);
   useEffect(() => {
     if (!focus) return;
     const onKey = (e: KeyboardEvent) => {
