@@ -253,6 +253,44 @@ export async function searchRecordings(login: RecorderLogin, channel: number, fr
   return { ranges: mergeRanges(found), complete: false };
 }
 
+/**
+ * Main-stream channels with Smart Codec (H.265+) on, from the whole channel list in one request. It spaces whole
+ * frames 20-30 s apart, so live HD and playback start that late. Sub streams (x02) are left out.
+ */
+export function parseSmartCodecChannels(xml: string): number[] {
+  const out: number[] = [];
+  for (const m of xml.matchAll(/<StreamingChannel[ >][\s\S]*?<\/StreamingChannel>/g)) {
+    const id = Number(m[0].match(/<id>(\d+)<\/id>/)?.[1]);
+    if (!Number.isInteger(id) || id % 100 !== 1) continue;
+    const smart = m[0].match(/<SmartCodec>([\s\S]*?)<\/SmartCodec>/)?.[1] ?? '';
+    if (/<enabled>\s*true\s*<\/enabled>/i.test(smart)) out.push(Math.floor(id / 100));
+  }
+  return out.sort((a, b) => a - b);
+}
+
+export async function readSmartCodecChannels(login: RecorderLogin): Promise<number[] | null> {
+  const res = await get(login, '/ISAPI/Streaming/channels');
+  return res.status === 200 ? parseSmartCodecChannels(res.body.toString()) : null;
+}
+
+/**
+ * Whether a channel also records its sub stream (track x02) in this period: a second, smaller copy of the same
+ * picture on the same disk. A recorder that has no such track answers 400: it does not.
+ */
+export async function recordsSubStream(login: RecorderLogin, channel: number, from: string, to: string): Promise<boolean> {
+  const body = '<?xml version="1.0" encoding="UTF-8"?><CMSearchDescription>'
+    + `<searchID>${crypto.randomUUID()}</searchID><trackIDList><trackID>${channel}02</trackID></trackIDList>`
+    + `<timeSpanList><timeSpan><startTime>${from}Z</startTime><endTime>${to}Z</endTime></timeSpan></timeSpanList>`
+    + '<maxResults>1</maxResults><searchResultPostion>0</searchResultPostion>'
+    + '<metadataList><metadataDescriptor>//recordType.meta.std-cgi.com</metadataDescriptor></metadataList></CMSearchDescription>';
+  try {
+    const res = checked(await digestPost(`http://${login.host}:${login.httpPort}/ISAPI/ContentMgmt/search`, login.username, login.password, body, { timeoutMs: TIMEOUT_MS, maxBytes: MAX_BYTES }));
+    return res.status === 200 && parseSearch(res.body.toString()).items.length > 0;
+  } catch (err) {
+    throw err instanceof RecorderError ? err : new RecorderError('unreachable');
+  }
+}
+
 /** The start of the oldest recording of a channel in this period. Only the first page is asked for: it comes oldest first. */
 export async function earliestRecording(login: RecorderLogin, channel: number, from: string, to: string): Promise<string | null> {
   const body = '<?xml version="1.0" encoding="UTF-8"?><CMSearchDescription>'

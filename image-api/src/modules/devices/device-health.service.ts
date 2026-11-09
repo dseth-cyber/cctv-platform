@@ -14,7 +14,9 @@ import {
   readContinuousChannels,
   readDeviceInfo,
   readDisks,
+  readSmartCodecChannels,
   RecorderError,
+  recordsSubStream,
   searchRecordings,
   secondsBetween,
   type RecorderDisk,
@@ -30,6 +32,9 @@ const PAUSE_BETWEEN_CHANNELS_MS = 300;
 const RECORDING_WINDOW_SECONDS = 30 * 60;
 const HOT_DISK_CELSIUS = 60;
 const RETENTION_LOOKBACK_SECONDS = 400 * 86400;
+/** How many channels, and how far back, to look for a recorded sub stream. */
+const SUB_RECORDING_CHANNELS = 2;
+const SUB_RECORDING_WINDOW_SECONDS = 2 * 3600;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const isRecorderBrand = (brand: string | null | undefined) => /hik|hilook/i.test(brand ?? '');
@@ -100,6 +105,11 @@ export interface DeviceHealth {
   loginLockedUntil?: string | null;
   /** Where the recorder takes its time from: "NTP" or "manual". */
   clockMode?: string | null;
+  /** Main-stream channels with Smart Codec (H.265+) on: live HD and playback start 20-30 s late. null: not read. */
+  smartCodecChannels?: number[] | null;
+  /** Of the channels looked at, those also recording their sub stream: a second copy on the same disk. */
+  subRecordingChannels?: number[] | null;
+  subRecordingChecked?: number[];
   oldestRecording: string | null;
   retentionDays: number | null;
   notRecording: Array<{ channel: number; name: string }>;
@@ -181,6 +191,16 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
   const now = clock?.deviceTime ?? null;
   const oldest = now && firstChannel ? await earliestRecording(login, firstChannel, addSeconds(now, -RETENTION_LOOKBACK_SECONDS), now) : null;
   const { stopped, checked } = now ? await channelsNotRecording(device, login, now) : { stopped: [], checked: 0 };
+  const smartCodecChannels = await readSmartCodecChannels(login).catch((err) => { if (err instanceof RecorderError && err.kind === 'login') throw err; return null; });
+  // Two channels that are up are enough to tell how the recorder is set: it is one setting for the whole recorder.
+  const subChecked = device.cameras.filter((c) => c.channelNumber !== null && c.operationalStatus === 'online').slice(0, SUB_RECORDING_CHANNELS).map((c) => c.channelNumber as number);
+  const subRecordingChannels: number[] = [];
+  if (now) {
+    for (const ch of subChecked) {
+      if (await recordsSubStream(login, ch, addSeconds(now, -SUB_RECORDING_WINDOW_SECONDS), now)) subRecordingChannels.push(ch);
+      await sleep(PAUSE_BETWEEN_CHANNELS_MS);
+    }
+  }
   const problems = diskProblems(disks);
   if (stopped.length > 0) problems.push('not_recording');
   if (clockIsOff(clock?.driftSeconds, clockLimitSeconds)) problems.push('clock_drift');
@@ -194,6 +214,9 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
       disks,
       clockDriftSeconds: clock?.driftSeconds ?? null,
       clockMode: clock?.mode ?? null,
+      smartCodecChannels,
+      subRecordingChannels: now ? subRecordingChannels : null,
+      subRecordingChecked: now ? subChecked : [],
       oldestRecording: oldest,
       retentionDays: oldest && now ? Math.floor(secondsBetween(oldest, now) / 86400) : null,
       notRecording: stopped,
@@ -400,6 +423,9 @@ export async function buildDeviceReport(days: number, scope?: Prisma.CameraWhere
       disks: health?.disks ?? [],
       diskProblems: health ? diskProblems(health.disks) : [],
       clockDriftSeconds: health?.clockDriftSeconds ?? null,
+      smartCodecChannels: health?.smartCodecChannels ?? null,
+      subRecordingChannels: health?.subRecordingChannels ?? null,
+      noRecordingsAtAll: !!health?.reachable && health.oldestRecording === null && (health.notRecording ?? []).length > 0,
       retentionDays: health?.retentionDays ?? null,
       notRecording: health?.notRecording ?? [],
     };

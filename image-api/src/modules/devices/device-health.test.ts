@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseSmart } from '../device-playback/hikvision-recorder.js';
+import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseSmart, parseSmartCodecChannels } from '../device-playback/hikvision-recorder.js';
 import { clockIsOff, describeDrift, diskProblems } from './device-health.service.js';
 
 const disk = (over: Record<string, unknown> = {}) => ({ id: '1', type: 'SATA', state: 'ok', capacityMB: 1000, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 10, ...over });
@@ -100,5 +100,18 @@ describe('clockIsOff', () => {
   it('words the difference for the alert', () => {
     expect(describeDrift(461)).toBe('ahead of the server by 7 min 41 s');
     expect(describeDrift(-200)).toBe('behind the server by 3 min 20 s');
+  });
+});
+
+describe('parseSmartCodecChannels', () => {
+  const channel = (id: number, smart: string | null) => `<StreamingChannel><id>${id}</id><Video><videoCodecType>H.265</videoCodecType>${smart === null ? '' : `<SmartCodec>${smart}</SmartCodec>`}</Video><Audio><enabled>true</enabled></Audio></StreamingChannel>`;
+
+  it('lists main-stream channels with Smart Codec on, leaving out sub streams', () => {
+    const xml = `<StreamingChannelList>${channel(101, '<enabled>true</enabled>')}${channel(102, '<enabled>true</enabled>')}${channel(201, '<enabled>false</enabled>')}${channel(301, '<enabled>true</enabled>')}</StreamingChannelList>`;
+    expect(parseSmartCodecChannels(xml)).toEqual([1, 3]);
+  });
+
+  it('does not take an enabled from elsewhere in the channel for Smart Codec', () => {
+    expect(parseSmartCodecChannels(`<StreamingChannelList>${channel(101, null)}${channel(201, '')}</StreamingChannelList>`)).toEqual([]);
   });
 });

@@ -18,6 +18,9 @@ export interface DeviceHealthInfo {
   clockDriftSeconds: number | null;
   clockMode?: string | null;
   loginLockedUntil?: string | null;
+  smartCodecChannels?: number[] | null;
+  subRecordingChannels?: number[] | null;
+  subRecordingChecked?: number[];
   oldestRecording: string | null;
   retentionDays: number | null;
   notRecording: Array<{ channel: number; name: string }>;
@@ -41,6 +44,11 @@ export function summarizeDeviceHealth(health: DeviceHealthInfo | null | undefine
 export function needsNtp(brand: string | null | undefined, health: DeviceHealthInfo | null | undefined): boolean {
   if (!/hik|hilook/i.test(brand ?? '') || !health?.reachable || !health.clockMode) return false;
   return health.clockMode.toUpperCase() !== 'NTP' || (health.problems ?? []).includes('clock_drift');
+}
+
+/** Nothing recorded at all: every channel looked at is idle and no file was ever found. */
+export function holdsNoRecordings(health: DeviceHealthInfo | null | undefined): boolean {
+  return !!health?.reachable && health.oldestRecording === null && (health.notRecording ?? []).length > 0;
 }
 
 export function clockDriftParts(driftSeconds: number | null | undefined) {

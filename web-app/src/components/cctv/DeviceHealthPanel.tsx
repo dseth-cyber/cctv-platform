@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, HardDrive, Loader2, RefreshCw } fro
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
-import { clockDriftParts, formatCapacity, needsNtp, summarizeDeviceHealth, type DeviceHealthInfo } from '@/lib/deviceHealth';
+import { clockDriftParts, formatCapacity, holdsNoRecordings, needsNtp, summarizeDeviceHealth, type DeviceHealthInfo } from '@/lib/deviceHealth';
 
 /** A small sign on a device's row: all well, or how many things need a look. */
 export function DeviceHealthChip({ device }: { device: any }) {
@@ -114,6 +114,24 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
             <p data-not-recording className="flex items-start gap-1.5 text-rose-300">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               {t('ui.deviceHealth.notRecording', { channels: health.notRecording.map((c) => c.channel).join(', ') })}
+            </p>
+          )}
+          {holdsNoRecordings(health) && (
+            <p data-no-recordings className="flex items-start gap-1.5 text-rose-300 font-semibold">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              {t('ui.deviceHealth.noRecordingsAtAll')}
+            </p>
+          )}
+          {(health.subRecordingChannels?.length ?? 0) > 0 && (
+            <p data-sub-recording className="flex items-start gap-1.5 text-amber-300">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              {t('ui.deviceHealth.subRecording', { channels: health.subRecordingChannels!.join(', ') })}
+            </p>
+          )}
+          {(health.smartCodecChannels?.length ?? 0) > 0 && (
+            <p data-smart-codec className="flex items-start gap-1.5 text-amber-300">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              {t('ui.deviceHealth.smartCodec', { channels: health.smartCodecChannels!.length >= (device.totalChannels ?? Infinity) ? t('ui.deviceHealth.allChannels') : t('ui.deviceHealth.channelList', { list: health.smartCodecChannels!.join(', ') }) })}
             </p>
           )}
 

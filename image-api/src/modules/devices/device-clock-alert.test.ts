@@ -24,6 +24,8 @@ vi.mock('../device-playback/hikvision-recorder.js', () => ({
   readClock: vi.fn(),
   readContinuousChannels: vi.fn().mockResolvedValue(null),
   readDeviceInfo: vi.fn().mockResolvedValue(null),
+  readSmartCodecChannels: vi.fn().mockResolvedValue([]),
+  recordsSubStream: vi.fn().mockResolvedValue(false),
   readDisks: vi.fn().mockResolvedValue([{ id: '1', type: 'SATA', state: 'ok', capacityMB: 1, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 1 }]),
   RecorderError: class RecorderError extends Error {},
   searchRecordings: vi.fn(),
@@ -171,5 +173,23 @@ describe('trying again after a lock', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('how a recorder is set up', () => {
+  it('notes Smart Codec channels and a recorded sub stream, looking at two channels that are up', async () => {
+    vi.clearAllMocks();
+    const rec = await import('../device-playback/hikvision-recorder.js');
+    vi.mocked(rec.readSmartCodecChannels).mockResolvedValueOnce([1, 2]);
+    vi.mocked(rec.recordsSubStream).mockImplementation(async (_l: any, ch: number) => ch === 1);
+    vi.mocked(rec.readContinuousChannels).mockResolvedValue(new Set());
+    clockAt(1);
+    const cam = (n: number, status = 'online') => ({ id: `c${n}`, name: `Ch ${n}`, channelNumber: n, status: 'active', operationalStatus: status, alertLevel: null });
+    mockPrisma.device.findUnique.mockResolvedValue({ ...DEVICE, id: 'dev-setup', cameras: [cam(1), cam(2, 'offline'), cam(3), cam(4)] });
+    const health = await checkDeviceHealthNow('dev-setup');
+    expect(health?.smartCodecChannels).toEqual([1, 2]);
+    expect(health?.subRecordingChecked).toEqual([1, 3]);
+    expect(health?.subRecordingChannels).toEqual([1]);
+    expect(rec.recordsSubStream).toHaveBeenCalledTimes(2);
   });
 });

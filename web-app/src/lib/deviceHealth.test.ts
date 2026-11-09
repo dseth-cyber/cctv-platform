@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockDriftParts, compareDeviceInfo, formatCapacity, needsNtp, summarizeDeviceHealth } from './deviceHealth';
+import { clockDriftParts, compareDeviceInfo, formatCapacity, holdsNoRecordings, needsNtp, summarizeDeviceHealth } from './deviceHealth';
 
 const health = (over = {}) => ({ checkedAt: '', reachable: true, loginFailed: false, reportedModel: null, disks: [], clockDriftSeconds: 0, oldestRecording: null, retentionDays: null, notRecording: [], channelsChecked: 0, problems: [], ...over });
 
@@ -73,5 +73,16 @@ describe('needsNtp', () => {
     expect(needsNtp('Hikvision', on(null))).toBe(false);
     expect(needsNtp('Hikvision', null)).toBe(false);
     expect(needsNtp('Dahua', on('manual'))).toBe(false);
+  });
+});
+
+describe('holdsNoRecordings', () => {
+  it('is a recorder that answers, has channels not recording and no oldest file', () => {
+    expect(holdsNoRecordings(health({ oldestRecording: null, notRecording: [{ channel: 1, name: 'a' }] }) as any)).toBe(true);
+  });
+  it('is not one with an oldest file, one with every channel recording, or one not answering', () => {
+    expect(holdsNoRecordings(health({ oldestRecording: '2026-10-01T00:00:00', notRecording: [{ channel: 1, name: 'a' }] }) as any)).toBe(false);
+    expect(holdsNoRecordings(health({ oldestRecording: null, notRecording: [] }) as any)).toBe(false);
+    expect(holdsNoRecordings(health({ reachable: false, oldestRecording: null, notRecording: [{ channel: 1, name: 'a' }] }) as any)).toBe(false);
   });
 });
