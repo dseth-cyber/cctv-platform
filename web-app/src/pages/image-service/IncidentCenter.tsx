@@ -18,7 +18,7 @@ import {
   ChevronUp, ChevronDown, ChevronsUpDown,
   Play, Radio, BellOff, ShieldCheck, CheckCircle2, XCircle, RefreshCw, Film,
 } from 'lucide-react'
-import { WhepPlayer } from '@/components/cctv/WhepPlayer'
+import { CameraLivePlayer } from '@/components/cctv/LiveHdPlayer'
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: 'bg-red-500/20 text-red-400',
@@ -1181,12 +1181,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
           {/* Inline Live Stream Viewer */}
           {showLiveStream && incident?.cameraId && (
             <div className="rounded-xl overflow-hidden bg-black border border-white/20 aspect-video shadow-2xl relative">
-              <WhepPlayer
-                streamUrl={`/mediamtx/webrtc/${incident.camera?.streamPath || incident.cameraId}/whep`}
-                cameraName={incident.camera?.name || t('ui.incidentCenter.camera')}
-                streamProfile="main"
-                autoPlay={true}
-              />
+              <CameraLivePlayer cameraId={incident.cameraId} cameraName={incident.camera?.name || t('ui.incidentCenter.camera')} className="w-full h-full" />
             </div>
           )}
 

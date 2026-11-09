@@ -7,7 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Button, Modal } from '@/components/ui';
-import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { CameraLivePlayer } from '@/components/cctv/LiveHdPlayer';
 import { useSitesWithZones } from '@/components/cctv/LocationFields';
 import { SpareChannelsModal } from '@/components/cctv/SpareChannelsModal';
 import { InventoryCharts } from '@/components/cctv/InventoryCharts';
@@ -765,12 +765,7 @@ export default function CctvDashboard() {
         >
           <div className="space-y-4">
             <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl">
-              <WhepPlayer
-                streamUrl={`/mediamtx/webrtc/${(previewCamera as any).streamPath || previewCamera.id}/whep`}
-                cameraName={previewCamera.name}
-                streamProfile="main"
-                autoPlay={true}
-              />
+              <CameraLivePlayer cameraId={previewCamera.id} cameraName={previewCamera.name} className="w-full h-full" />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>{t('ui.cctvDashboard.whepWebRTCConnectionActive')}</span>

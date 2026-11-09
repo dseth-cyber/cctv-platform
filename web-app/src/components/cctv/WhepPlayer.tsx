@@ -23,7 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 
 import { useTranslation } from 'react-i18next';
-interface WhepPlayerProps {
+export interface WhepPlayerProps {
   streamUrl: string; // e.g. /mediamtx/webrtc/streamPath/whep or full URL
   cameraName?: string;
   autoPlay?: boolean;
@@ -38,6 +38,8 @@ interface WhepPlayerProps {
   onFatalError?: () => void;
   /** Video has really started moving on screen. */
   onPlaying?: () => void;
+  /** The first picture of this stream has been drawn (not just the connection made). */
+  onFirstFrame?: () => void;
   /** For a stream opened at a point in a recording: reconnecting by itself would start it over. */
   noReconnect?: boolean;
   /** The page shows one watermark over everything, so this tile should not add its own. */
@@ -65,6 +67,7 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   onToggleProfile,
   onFatalError,
   onPlaying,
+  onFirstFrame,
   noReconnect = false,
   noWatermark = false,
   onToggleFullscreen,
@@ -83,6 +86,21 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   const reconnectTimeoutRef = useRef<any>(null);
 
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
+  // Told once per player: the first frame drawn, where the browser can say so, else when playback starts.
+  const firstFrameToldRef = useRef(false);
+  const onFirstFrameRef = useRef(onFirstFrame);
+  onFirstFrameRef.current = onFirstFrame;
+  const tellFirstFrame = useCallback(() => {
+    if (firstFrameToldRef.current) return;
+    firstFrameToldRef.current = true;
+    onFirstFrameRef.current?.();
+  }, []);
+  useEffect(() => {
+    const video = videoRef.current as (HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number; cancelVideoFrameCallback?: (id: number) => void }) | null;
+    if (!video?.requestVideoFrameCallback) return;
+    const id = video.requestVideoFrameCallback(() => tellFirstFrame());
+    return () => video.cancelVideoFrameCallback?.(id);
+  }, [tellFirstFrame]);
   const [errorMessage, setErrorMessage] = useState<string>('');
   useEffect(() => {
     if (status === 'error') onFatalError?.();
@@ -396,7 +414,10 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           autoPlay
           playsInline
           muted={isMuted}
-          onPlaying={() => onPlaying?.()}
+          onPlaying={() => {
+            onPlaying?.();
+            if (!(videoRef.current as any)?.requestVideoFrameCallback) tellFirstFrame();
+          }}
           style={{
             transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
             transformOrigin: 'center center',

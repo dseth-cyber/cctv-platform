@@ -6,7 +6,7 @@ import { useCameraFavorites } from '@/hooks/useCameraFavorites';
 import { CameraQuickActions } from '@/components/cctv/CameraQuickActions';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { LiveHdPlayer } from '@/components/cctv/LiveHdPlayer';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
 import { LiveOverview } from '@/components/cctv/LiveOverview';
 import { applyCameraSelection, applyLocationFilter, camerasForEmptySlots, favoritesFirst, NO_LOCATION } from '@/lib/cameraFilter';
@@ -821,7 +821,8 @@ export default function LiveGrid() {
             }}
           >
             {cameras.find((c: any) => c.id === focus.cameraId)?.operationalStatus === 'offline' && <CameraOfflineBanner />}
-            <WhepPlayer
+            <LiveHdPlayer
+              cameraId={focus.cameraId}
               key={focus.streamUrl}
               streamUrl={focus.streamUrl}
               cameraName={focus.name}
@@ -885,7 +886,8 @@ export default function LiveGrid() {
                 >
                   {cell.streamUrl && !focus ? (
                     <div className="w-full h-full relative">
-                      <WhepPlayer
+                      <LiveHdPlayer
+                        cameraId={cell.cameraId as string}
                         streamUrl={cell.streamUrl}
                         cameraName={cell.cameraName || t('ui.liveGrid.slot', { v0: cell.slotIndex + 1 })}
                         streamProfile={cell.streamProfile}

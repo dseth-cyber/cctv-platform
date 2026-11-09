@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { WhepPlayer } from '@/components/cctv/WhepPlayer';
+import { LiveHdPlayer } from '@/components/cctv/LiveHdPlayer';
 import {
   MapPin,
   Building2,
@@ -48,6 +48,7 @@ export default function CctvMap() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCamera, setSelectedCamera] = useState<CameraPin | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [streamHasSub, setStreamHasSub] = useState(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'floorplan' | 'list'>('floorplan');
 
@@ -102,6 +103,7 @@ export default function CctvMap() {
     setSelectedCamera(cam);
     try {
       const data = await imageServiceApi.getCameraStream(cam.id);
+      setStreamHasSub(Boolean(data.hasSubStream) && data.profile !== 'sub');
       setStreamUrl(data.webrtcWhepUrl || `/mediamtx/webrtc/${cam.streamPath}/whep`);
     } catch {
       setStreamUrl(`/mediamtx/webrtc/${cam.streamPath || `cam_${cam.id.substring(0, 8)}`}/whep`);
@@ -339,9 +341,11 @@ export default function CctvMap() {
               {/* Live Video Player */}
               <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-video">
                 {streamUrl ? (
-                  <WhepPlayer
+                  <LiveHdPlayer
+                    cameraId={selectedCamera.id}
                     streamUrl={streamUrl}
                     cameraName={selectedCamera.name}
+                    hasSubStream={streamHasSub}
                     className="w-full h-full"
                   />
                 ) : (
