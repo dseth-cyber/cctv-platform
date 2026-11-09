@@ -275,6 +275,11 @@ export default function LiveGrid() {
     if (!focus) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setFocus(null);
+      // Left/right step the full view through the cameras, as the patrol buttons do.
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        stepFocusRef.current(e.key === 'ArrowRight' ? 1 : -1);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -406,6 +411,20 @@ export default function LiveGrid() {
       .flatMap((site) => (site.zones ?? []).map((zone: any) => ({ value: zone.id, label: locationFilter.sites.length === 1 ? zone.name : `${zone.name} (${site.code || site.name})` }))),
   ];
 
+  // With one camera full screen, the patrol and its next/previous step through the cameras in that view, one at a
+  // time, instead of paging the wall hidden behind it.
+  const focusPosition = focus ? filteredCameras.findIndex((c: any) => c.id === focus.cameraId) : -1;
+  const stepFocus = (dir: 1 | -1) => {
+    const list = filteredCameras.length > 0 ? filteredCameras : cameras;
+    if (!focus || list.length === 0) return;
+    const at = list.findIndex((c: any) => c.id === focus.cameraId);
+    const next = list[at < 0 ? 0 : (at + dir + list.length) % list.length];
+    if (next && next.id !== focus.cameraId) void openFocus(next);
+  };
+  const stepFocusRef = useRef(stepFocus);
+  stepFocusRef.current = stepFocus;
+  const focusing = !!focus;
+
   // Calculate tour pages for hundreds of cameras
   const totalTourPages = Math.max(1, Math.ceil(filteredCameras.length / slotCount));
 
@@ -459,10 +478,15 @@ export default function LiveGrid() {
 
   // Tour Mode countdown & auto-advance timer
   useEffect(() => {
-    if (isOverview || !isTourActive || filteredCameras.length <= slotCount) return;
+    if (!isTourActive) return;
+    if (!focusing && (isOverview || filteredCameras.length <= slotCount)) return;
 
     const interval = setInterval(() => {
       setTourCountdown((prev) => {
+        if (prev <= 1 && focusing) {
+          stepFocusRef.current(1);
+          return tourIntervalSeconds;
+        }
         if (prev <= 1) {
           // Advance to next page
           setTourPageIndex((currentPage) => {
@@ -477,10 +501,15 @@ export default function LiveGrid() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isOverview, isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage]);
+  }, [isOverview, isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage, focusing]);
 
   // Handle manual next/prev tour page
   const handleNextTourPage = () => {
+    if (focus) {
+      setTourCountdown(tourIntervalSeconds);
+      stepFocus(1);
+      return;
+    }
     const nextPage = (tourPageIndex + 1) % totalTourPages;
     setTourPageIndex(nextPage);
     setTourCountdown(tourIntervalSeconds);
@@ -488,6 +517,11 @@ export default function LiveGrid() {
   };
 
   const handlePrevTourPage = () => {
+    if (focus) {
+      setTourCountdown(tourIntervalSeconds);
+      stepFocus(-1);
+      return;
+    }
     const prevPage = (tourPageIndex - 1 + totalTourPages) % totalTourPages;
     setTourPageIndex(prevPage);
     setTourCountdown(tourIntervalSeconds);
@@ -673,7 +707,7 @@ export default function LiveGrid() {
         </div>
 
         {/* Center: Auto-Tour / Patrol Controls (For Hundreds of Cameras) */}
-        {!isOverview && filteredCameras.length > slotCount && (
+        {((!isOverview && filteredCameras.length > slotCount) || (focusing && filteredCameras.length > 1)) && (
           <div className="hidden md:flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800">
             <button
               onClick={() => {
@@ -701,7 +735,7 @@ export default function LiveGrid() {
             </button>
 
             <span className="text-[11px] font-mono text-cyan-400 px-1">
-              {tourPageIndex + 1}/{totalTourPages}
+              {focusing ? `${focusPosition + 1}/${filteredCameras.length}` : `${tourPageIndex + 1}/${totalTourPages}`}
             </span>
 
             <button
