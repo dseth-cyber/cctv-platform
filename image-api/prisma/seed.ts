@@ -300,6 +300,27 @@ async function main() {
   });
   console.log(`  Alert rule: ${ingestBufferRule.name}`);
 
+  // Recorder health (device health round): recording stopped and HDD problems go to Telegram. Added 2026-11-09;
+  // created only where no rule of the type exists, so a database that already has one is left as it is.
+  for (const rule of [
+    {
+      name: 'Recording Stopped Alert',
+      alertType: 'recording_stopped' as const,
+      description: 'Triggered when a DVR/NVR channel set to record all the time has no recording in the last 30 minutes, or the recorder holds no recording at all (device health round, device_health_check_minutes). Closes by itself when recording resumes.',
+    },
+    {
+      name: 'Recorder HDD Problem Alert',
+      alertType: 'hdd_problem' as const,
+      description: 'Triggered when a DVR/NVR reports no disk, a disk fault, a SMART warning or a disk at 60 C or more (device health round). Closes by itself when the disks are well again.',
+    },
+  ]) {
+    const has = await prisma.alertRule.findFirst({ where: { alertType: rule.alertType } });
+    if (!has) {
+      await prisma.alertRule.create({ data: { ...rule, enabled: true, condition: { metric: 'device_health_round' }, cooldownMinutes: 60, notificationChannels: ['telegram'] } });
+    }
+    console.log(`  Alert rule: ${rule.name}${has ? ' (exists)' : ''}`);
+  }
+
   const storageProvider = await prisma.storageProvider.upsert({
     where: { id: '00000000-0000-0000-0000-000000000020' },
     update: {},
