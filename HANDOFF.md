@@ -4,6 +4,8 @@
 
 ## เครื่อง Production ของ CCTV Platform และ agent สองเครื่อง (แผน 2026-11-09, ยังไม่ติดตั้ง)
 
+**สถานะ 2026-11-09: ผู้ใช้ให้พักฝั่ง Production ไว้ก่อน ทำงานต่อบนเครื่อง Dev** (branch `agent-channel` และข้อความ #001 ยังอยู่ รอเปิด agent ฝั่ง Production เมื่อพร้อม)
+
 รายละเอียดเต็ม: [docs/ops/PRODUCTION_SERVER.md](docs/ops/PRODUCTION_SERVER.md) · ช่องทางคุยระหว่าง agent: [docs/ops/AGENT_CHANNEL.md](docs/ops/AGENT_CHANNEL.md) บน branch `agent-channel`
 
 - **ภาระจริง (วัดบน Dev, 103 กล้อง):** ไม่มีคนดู ~2.5% ของ 1 คอร์ / RAM ~0.5 GB; Grid 4x4 (16 สตรีม) MediaMTX ~17% ของ 1 คอร์ ทุกกล้องเป็น `live_only` (บันทึกที่ DVR/NVR) ภาระขึ้นกับจำนวนคนดูพร้อมกัน ไม่ใช่จำนวนกล้อง
