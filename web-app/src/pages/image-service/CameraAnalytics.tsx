@@ -7,12 +7,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { Responsive, WidthProvider } from 'react-grid-layout'
 import { imageServiceApi } from '@/services/imageServiceApi'
+import { Link } from 'react-router-dom'
 import { CameraSpecBadges } from '@/components/cctv/CameraSpecCard'
 import { TableSkeleton, ExportButton, SearchableSelect, CountUpValue } from '@/components/ui'
 import {
   Activity, Shield, Clock, Heart, Camera, TrendingDown, Image,
   AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronLeft, ChevronRight,
-  GripVertical, Settings, RotateCcw, Check, Star,
+  GripVertical, Settings, RotateCcw, Check, Star, Cpu,
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -356,7 +357,6 @@ export default function CameraAnalytics() {
             <span className={`text-xs ${themeConfig.text.secondary}`}>
               {cameras.findIndex((c: any) => c.id === effectiveCameraId) + 1}/{cameras.length}
             </span>
-            {selectedCamera && <CameraSpecBadges spec={selectedCamera.spec} cameraId={selectedCamera.id} showLink />}
           </div>
 
           {/* Period tabs */}
@@ -482,6 +482,23 @@ export default function CameraAnalytics() {
                 <p className={`text-sm font-semibold ${themeConfig.text.primary}`}>
                   {lastPoll ? t('imageService.analytics.ago', '{{t}} ที่แล้ว', { t: lastPoll.text }) : '—'}
                 </p>
+              </div>
+              <div className="h-8 w-px bg-current opacity-10" />
+              <div data-analytics-spec>
+                <p className={`text-[10px] uppercase tracking-wider ${themeConfig.text.secondary}`}>{t('ui.cameraSpec.resolution')}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {selectedCamera.spec
+                    ? <CameraSpecBadges spec={selectedCamera.spec} />
+                    : <span className={`text-sm font-semibold ${themeConfig.text.primary}`}>—</span>}
+                  <Link
+                    to={`/cctv/cameras/${selectedCamera.id}`}
+                    data-spec-link
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 hover:text-cyan-200 text-xs font-medium transition-colors"
+                  >
+                    <Cpu size={13} />
+                    {t('ui.cameraSpec.viewSpec')}
+                  </Link>
+                </div>
               </div>
               {op === 'offline' && (
                 <div className="flex items-center gap-1.5 text-red-400 text-xs font-medium">
