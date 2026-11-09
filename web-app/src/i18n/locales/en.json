@@ -1067,7 +1067,7 @@
       "detailCorrectiveAction": "Corrective Action: {{value}}",
       "detailPreventiveAction": "Preventive Action: {{value}}",
       "detailResolutionNotes": "Notes: {{value}}",
-      "detailLink": "View details/attachments: {{url}}",
+      "detailLink": "View details/attachments: {{url}}", "detailLive": "Watch live: {{url}}",
       "unitHour": "h",
       "unitMinute": "m",
       "unitSecond": "s",

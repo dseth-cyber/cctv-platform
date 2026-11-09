@@ -812,7 +812,7 @@
       "detailCorrectiveAction": "ပြုပြင်ဆောင်ရွက်ချက်: {{value}}",
       "detailPreventiveAction": "ကြိုတင်ကာကွယ်မှု: {{value}}",
       "detailResolutionNotes": "မှတ်ချက်: {{value}}",
-      "detailLink": "အသေးစိတ်/ပူးတွဲများကို ကြည့်ရန်: {{url}}",
+      "detailLink": "အသေးစိတ်/ပူးတွဲများကို ကြည့်ရန်: {{url}}", "detailLive": "Watch live: {{url}}",
       "unitHour": "နာရီ",
       "unitMinute": "မိနစ်",
       "unitSecond": "စက္ကန့်",

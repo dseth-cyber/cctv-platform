@@ -812,7 +812,7 @@
       "detailCorrectiveAction": "纠正措施: {{value}}",
       "detailPreventiveAction": "预防措施: {{value}}",
       "detailResolutionNotes": "备注: {{value}}",
-      "detailLink": "查看详情/附件: {{url}}",
+      "detailLink": "查看详情/附件: {{url}}", "detailLive": "Watch live: {{url}}",
       "unitHour": "小时",
       "unitMinute": "分钟",
       "unitSecond": "秒",

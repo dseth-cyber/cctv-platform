@@ -73,6 +73,10 @@ async function translateDetailLine(part: string): Promise<string> {
 }
 
 async function translateMessage(message: string): Promise<string> {
+  // A trailing "Live: <url>" line (camera alerts) is translated on its own; the rest is matched as before.
+  const live = message.match(/\n\s*Live:\s*(\S+)\s*$/);
+  if (live) return `${await translateMessage(message.slice(0, live.index).trimEnd())}\nดูภาพสด: ${live[1]}`;
+
   const statusChange = message.match(/^Camera "(.+?)" status changed to (\w+) by ([^.]+)\.?\s*([\s\S]*)$/);
   if (statusChange) {
     const [, cameraName, newStatus, changedBy, restRaw] = statusChange;
@@ -97,12 +101,16 @@ async function translateMessage(message: string): Promise<string> {
   // camera-health-monitor.ts's own auto-detected offline/online alerts — a completely
   // different message shape from the manual status-change one above (no incident/reason
   // context, since these fire from the poll-based watchdog, not the resolve/incident form).
-  const autoOffline = message.match(/^Camera "(.+?)" is offline\. Status: (\w+)\. Last poll: (.+)$/i);
+  const autoOffline = message.match(/^Camera "(.+?)" is offline\.( The recorder reports no video signal on this channel\.| The recorder cannot reach this camera\.)? Status: (\w+)\. Last poll: (.+)$/i);
   if (autoOffline) {
-    const [, name, status, lastPoll] = autoOffline;
+    const [, name, recorderSays, status, lastPoll] = autoOffline;
     const statusTh = STATUS_TH[status.toLowerCase()] ?? status;
-    return `กล้อง "${name}" ออฟไลน์ สถานะ: ${statusTh} เช็คล่าสุด: ${formatThaiDateTime(lastPoll)}`;
+    const why = !recorderSays ? '' : /no video/i.test(recorderSays) ? ' (เครื่องบันทึกแจ้งว่าช่องนี้ไม่มีสัญญาณภาพ)' : ' (เครื่องบันทึกติดต่อกล้องตัวนี้ไม่ได้)';
+    return `กล้อง "${name}" ออฟไลน์${why} สถานะ: ${statusTh} เช็คล่าสุด: ${formatThaiDateTime(lastPoll)}`;
   }
+
+  const streamLost = message.match(/^Camera "(.+?)" stream disconnected\. Stream: (.+?)\.?$/i);
+  if (streamLost) return `กล้อง "${streamLost[1]}" สตรีมขาด สตรีม: ${streamLost[2]}`;
 
   const streamDropped = message.match(/^Camera "(.+?)" stream disconnected instantly \(< 3s detection\)\. Stream: (.+?)\.?$/i);
   if (streamDropped) return `กล้อง "${streamDropped[1]}" สตรีมขาดทันที (ตรวจพบภายใน 3 วินาที) สตรีม: ${streamDropped[2]}`;

@@ -6,6 +6,7 @@ import { createAlert } from '../alerts/alerts.service.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
 import * as incidentService from './camera-incident.service.js';
 import { formatDuration } from '../../lib/format.js';
+import { liveLinkLine } from './live-link.js';
 import { NO_PROBE_TARGET, probeCameraHealth } from './camera-probe.service.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
 import { isKnownNoSignal, readChannelsWithoutSignal } from './device-channel-signal.js';
@@ -348,7 +349,7 @@ export async function checkCameraHealth(): Promise<void> {
           severity: 'critical' as const,
           source: cam.id,
           title: `Camera offline: ${cam.name}`,
-          message: `Camera "${cam.name}" is offline.${channelProblem === 'no_signal' ? ' The recorder reports no video signal on this channel.' : channelProblem ? ' The recorder cannot reach this camera.' : ''} Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}`,
+          message: `Camera "${cam.name}" is offline.${channelProblem === 'no_signal' ? ' The recorder reports no video signal on this channel.' : channelProblem ? ' The recorder cannot reach this camera.' : ''} Status: ${cam.status}. Last poll: ${cam.lastPolledAt ? new Date(cam.lastPolledAt).toISOString() : 'never'}${await liveLinkLine(cam.id)}`,
           details: { cameraId: cam.id, cameraName: cam.name, status: cam.status, lastPolledAt: cam.lastPolledAt },
       },
       incident: async () => {
@@ -479,7 +480,7 @@ export async function checkCameraHealth(): Promise<void> {
           severity: 'info',
           source: cam.id,
           title: `Camera online: ${cam.name}`,
-          message: `Camera "${cam.name}" is back online${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
+          message: `Camera "${cam.name}" is back online${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}${await liveLinkLine(cam.id)}`,
           details: { cameraId: cam.id, cameraName: cam.name, event: 'back_online' },
           skipDedup: true,
           closeOnCreate: true,
@@ -718,7 +719,7 @@ export async function handleStreamStatusEvent(
         severity: 'critical',
         source: camera.id,
         title: `Camera offline: ${camera.name}`,
-        message: `Camera "${camera.name}" stream disconnected. Stream: ${cleanPath}.`,
+        message: `Camera "${camera.name}" stream disconnected. Stream: ${cleanPath}.${await liveLinkLine(camera.id)}`,
         details: { cameraId: camera.id, cameraName: camera.name, streamPath: cleanPath, detectionSource: 'realtime_webhook', lastPolledAt: new Date() },
         },
         incident: async () => ({
@@ -831,7 +832,7 @@ export async function handleStreamStatusEvent(
           severity: 'info',
           source: camera.id,
           title: `Camera online: ${camera.name}`,
-          message: `Camera "${camera.name}" is back online via real-time webhook${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}`,
+          message: `Camera "${camera.name}" is back online via real-time webhook${openAlert ? '. Downtime: ' + formatDuration(downtimeMs) : ''}${await liveLinkLine(camera.id)}`,
           details: { cameraId: camera.id, cameraName: camera.name, event: 'back_online', detectionSource: 'realtime_webhook' },
           skipDedup: true,
           closeOnCreate: true,

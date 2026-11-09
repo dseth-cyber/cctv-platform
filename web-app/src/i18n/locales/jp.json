@@ -812,7 +812,7 @@
       "detailCorrectiveAction": "是正処置: {{value}}",
       "detailPreventiveAction": "予防処置: {{value}}",
       "detailResolutionNotes": "備考: {{value}}",
-      "detailLink": "詳細・添付を見る: {{url}}",
+      "detailLink": "詳細・添付を見る: {{url}}", "detailLive": "Watch live: {{url}}",
       "unitHour": "時間",
       "unitMinute": "分",
       "unitSecond": "秒",

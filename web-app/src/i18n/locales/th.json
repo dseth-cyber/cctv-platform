@@ -1067,7 +1067,7 @@
       "detailCorrectiveAction": "การแก้ไข: {{value}}",
       "detailPreventiveAction": "การแก้ไขเชิงป้องกัน: {{value}}",
       "detailResolutionNotes": "บันทึกเพิ่มเติม: {{value}}",
-      "detailLink": "ดูรายละเอียด/รูปแนบ: {{url}}",
+      "detailLink": "ดูรายละเอียด/รูปแนบ: {{url}}", "detailLive": "ดูภาพสด: {{url}}",
       "unitHour": "ชั่วโมง",
       "unitMinute": "นาที",
       "unitSecond": "วินาที",

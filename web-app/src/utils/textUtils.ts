@@ -162,6 +162,9 @@ function translateCameraDetailLine(part: string, t: (k: string, opts?: any) => s
 // label prefix — it's just the raw backend message — so we only need to run the
 // technical-detail classifier over it.
 export function translateAlertMessage(message: string, t: (k: string, opts?: any) => string, labels?: IncidentLabelMaps, lang = 'th'): string {
+  // A trailing "Live: <url>" line (camera alerts) is translated on its own; the rest is matched as before.
+  const live = message.match(/\n\s*Live:\s*(\S+)\s*$/)
+  if (live) return `${translateAlertMessage(message.slice(0, live.index).trimEnd(), t, labels, lang)}\n${t('imageService.alerts.detailLive', { url: live[1] })}`
   if (!message) return ''
 
   const cameraStatus = message.match(/^Camera "(.+?)" status changed to (\w+) by ([^.]+)\.?\s*([\s\S]*)$/)
@@ -206,7 +209,7 @@ export function translateAlertMessage(message: string, t: (k: string, opts?: any
   // fires from the poll-based watchdog rather than the resolve/incident form). The raw
   // ISO "Last poll" timestamp is reformatted in the viewer's language/locale rather than
   // shown as-is (was reported as "looking weird" untranslated).
-  const autoOffline = message.match(/^Camera "(.+?)" is offline\. Status: (\w+)\. Last poll: (.+)$/i)
+  const autoOffline = message.match(/^Camera "(.+?)" is offline\.(?: The recorder (?:reports no video signal on this channel|cannot reach this camera)\.)? Status: (\w+)\. Last poll: (.+)$/i)
   if (autoOffline) {
     const [, name, status, lastPoll] = autoOffline
     const statusKey = `imageService.cameras.${status.toLowerCase()}`
