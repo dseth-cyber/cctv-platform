@@ -3003,7 +3003,7 @@
       "hq01P": "HQ-01, P1",
       "zn": "ZN-01"
     },
-    "liveGrid": {
+    "liveGrid": { "dragToMove": "Drag onto another slot to swap", "dragShort": "Drag", "dragToSlot": "Click to put in the selected slot, or drag onto any slot",
       "editCamera": "ဤကင်မရာကို ပြင်ရန်",
       "manageDevice": "ဤကင်မရာ၏ စက်ကို စီမံရန်",
       "openPlayback": "ဤကင်မရာ၏ မှတ်တမ်းကို ကြည့်ရန်",

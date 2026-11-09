@@ -3008,7 +3008,7 @@
       "hq01P": "HQ-01, P1",
       "zn": "ZN-01"
     },
-    "liveGrid": {
+    "liveGrid": { "dragToMove": "Drag onto another slot to swap", "dragShort": "Drag", "dragToSlot": "Click to put in the selected slot, or drag onto any slot",
       "editCamera": "编辑此摄像机",
       "manageDevice": "管理此摄像机的设备",
       "openPlayback": "查看此摄像机的录像",

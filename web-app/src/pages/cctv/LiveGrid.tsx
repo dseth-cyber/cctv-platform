@@ -34,6 +34,7 @@ import {
   Play,
   Pause,
   SkipForward,
+  GripVertical,
   SkipBack,
   Clock,
   ChevronRight,
@@ -369,6 +370,42 @@ export default function LiveGrid() {
     const failedCamera = cell.cameraId;
     await assignCameraToSlot(cam, slotIdx, 'sub');
     setCells((prev) => prev.map((c) => (c.slotIndex === slotIdx ? { ...c, mainFailedFor: failedCamera } : c)));
+  };
+
+  // Drag and drop on the wall: a camera from the list into a slot (fills or replaces it), or one slot onto another
+  // (the two swap). Slots are dragged by their grip, so double-click and zoom/pan inside the picture stay as they were.
+  const DRAG_CAMERA = 'application/x-cctv-camera';
+  const DRAG_SLOT = 'application/x-cctv-slot';
+  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
+  const startDrag = (e: React.DragEvent, type: string, value: string) => {
+    e.dataTransfer.setData(type, value);
+    e.dataTransfer.effectAllowed = type === DRAG_SLOT ? 'move' : 'copy';
+    // A patrol running on would page the wall under the drop.
+    if (isTourActive) setIsTourActive(false);
+  };
+  const acceptsDrop = (e: React.DragEvent) => e.dataTransfer.types.includes(DRAG_CAMERA) || e.dataTransfer.types.includes(DRAG_SLOT);
+  const dropOnSlot = (e: React.DragEvent, slotIdx: number) => {
+    setDragOverSlot(null);
+    const cameraId = e.dataTransfer.getData(DRAG_CAMERA);
+    const fromSlot = e.dataTransfer.getData(DRAG_SLOT);
+    if (!cameraId && fromSlot === '') return;
+    e.preventDefault();
+    setActiveSlot(slotIdx);
+    if (cameraId) {
+      const cam = cameras.find((c: any) => c.id === cameraId);
+      if (cam) void assignCameraToSlot(cam, slotIdx);
+      return;
+    }
+    const from = Number(fromSlot);
+    if (!Number.isInteger(from) || from === slotIdx) return;
+    const moving = ['cameraId', 'cameraName', 'streamUrl', 'streamProfile', 'hasSubStream', 'mainFailedFor'] as const;
+    setCells((prev) => {
+      const a = prev.find((c) => c.slotIndex === from);
+      const b = prev.find((c) => c.slotIndex === slotIdx);
+      if (!a || !b) return prev;
+      const pick = (c: any) => Object.fromEntries(moving.map((k) => [k, c[k]]));
+      return prev.map((c) => (c.slotIndex === from ? { ...c, ...pick(b) } : c.slotIndex === slotIdx ? { ...c, ...pick(a) } : c));
+    });
   };
 
   const clearSlot = (slotIdx: number, e: React.MouseEvent) => {
@@ -926,7 +963,17 @@ export default function LiveGrid() {
                     if (cam) openFocus(cam);
                   }}
                   data-grid-slot={cell.slotIndex}
-                  className={`relative rounded-lg overflow-hidden bg-slate-900 border-2 transition cursor-pointer group ${
+                  onDragOver={(e) => {
+                    if (!acceptsDrop(e)) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = e.dataTransfer.types.includes(DRAG_SLOT) ? 'move' : 'copy';
+                    if (dragOverSlot !== cell.slotIndex) setDragOverSlot(cell.slotIndex);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) setDragOverSlot((s) => (s === cell.slotIndex ? null : s));
+                  }}
+                  onDrop={(e) => dropOnSlot(e, cell.slotIndex)}
+                  className={`relative rounded-lg overflow-hidden bg-slate-900 border-2 transition cursor-pointer group ${dragOverSlot === cell.slotIndex ? 'ring-4 ring-cyan-400/80 ' : ''}${
                     !cell.cameraId
                       ? 'border-slate-800/80 hover:border-slate-700'
                       : cell.streamUrl && cameras.find((c: any) => c.id === cell.cameraId)?.operationalStatus !== 'offline'
@@ -936,6 +983,18 @@ export default function LiveGrid() {
                 >
                   {cell.streamUrl && !focus ? (
                     <div className="w-full h-full relative">
+                      <div
+                        draggable
+                        data-slot-grip={cell.slotIndex}
+                        onDragStart={(e) => startDrag(e, DRAG_SLOT, String(cell.slotIndex))}
+                        onDragEnd={() => setDragOverSlot(null)}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        title={t('ui.liveGrid.dragToMove')}
+                        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-700 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition flex items-center gap-1 text-[10px]"
+                      >
+                        <GripVertical className="w-3.5 h-3.5" />
+                        {t('ui.liveGrid.dragShort')}
+                      </div>
                       <LiveHdPlayer
                         cameraId={cell.cameraId as string}
                         streamUrl={cell.streamUrl}
@@ -1174,6 +1233,11 @@ export default function LiveGrid() {
                 {drawerCameras.map((cam: any) => (
                   <div
                     key={cam.id}
+                    draggable
+                    data-drawer-camera={cam.id}
+                    onDragStart={(e) => startDrag(e, DRAG_CAMERA, cam.id)}
+                    onDragEnd={() => setDragOverSlot(null)}
+                    title={t('ui.liveGrid.dragToSlot')}
                     onClick={() => {
                       assignCameraToSlot(cam, activeSlot);
                       setDrawerOpen(false);
