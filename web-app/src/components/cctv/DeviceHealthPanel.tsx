@@ -63,8 +63,8 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
       await imageServiceApi.checkDeviceHealth(device.id).catch(() => null);
       await queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
     } catch (err: any) {
-      const code = err?.response?.data?.details?.code;
-      if (!err?._handled) toast.error(t(`ui.deviceHealth.ntpError.${code}`, t('ui.deviceHealth.ntpError.failed')));
+      const details = err?.response?.data?.details ?? {};
+      if (!err?._handled) toast.error(t(`ui.deviceHealth.ntpError.${details.code}`, { defaultValue: t('ui.deviceHealth.ntpError.failed'), status: details.status ?? '-' }));
     } finally {
       setSettingClock(false);
     }
@@ -113,7 +113,7 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
           {health.problems.includes('clock_drift') && (
             <p data-clock-off className="flex items-start gap-1.5 text-amber-300">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              {t('ui.deviceHealth.clockOff')}
+              {t(health.clockMode?.toUpperCase() === 'NTP' ? 'ui.deviceHealth.clockOffOnNtp' : 'ui.deviceHealth.clockOff')}
             </p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

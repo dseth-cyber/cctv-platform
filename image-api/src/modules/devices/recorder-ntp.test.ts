@@ -127,6 +127,14 @@ describe('pointRecorderAtNtp', () => {
     expect(digestPut).not.toHaveBeenCalled();
   });
 
+  it('carries on when the recorder answers 503 but did make the change', async () => {
+    let server = '';
+    vi.mocked(digestGet).mockImplementation(async (url: string) => ok(url.endsWith('ntpServers/1') ? NTP.replace('<hostName></hostName>', `<ipAddress>${server}</ipAddress>`) : TIME));
+    vi.mocked(digestPut).mockImplementationOnce(async () => { server = '192.168.30.77'; return { status: 503, contentType: '', body: Buffer.from('<ResponseStatus><statusCode>3</statusCode><statusString>Device Error</statusString></ResponseStatus>') }; });
+    await pointRecorderAtNtp('d1');
+    expect(digestPut).toHaveBeenCalledTimes(2);
+  });
+
   it('stops before the mode when the recorder refuses the server', async () => {
     vi.mocked(digestPut).mockResolvedValueOnce(ok('<ResponseStatus><statusCode>4</statusCode></ResponseStatus>'));
     expect(await refused()).toBe('RECORDER_REFUSED');

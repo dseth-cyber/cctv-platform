@@ -100,6 +100,11 @@ export function readTimeSettings(timeXml: string, ntpXml: string) {
   };
 }
 
+/** The recorder's own words for a refusal, kept for the audit log. */
+export function recorderAnswer(body: string) {
+  return { statusCode: tag(body, 'statusCode'), statusString: tag(body, 'statusString'), subStatusCode: tag(body, 'subStatusCode') };
+}
+
 /** A recorder answers a change with a ResponseStatus: 1 is done, 7 is done once it restarts. */
 export function recorderAccepted(status: number, body: string): boolean {
   if (status !== 200) return false;
@@ -140,15 +145,18 @@ export async function pointRecorderAtNtp(deviceId: string) {
   };
 
   const before = await read();
+  // What the recorder holds afterwards decides, not its answer: an NVR has answered 503 to a change it made.
+  const step = async (name: string, path: string, body: string, took: (now: Awaited<ReturnType<typeof read>>) => boolean) => {
+    const res = await call(() => digestPut(`${base}${path}`, username, password, body, opts));
+    const text = res.body.toString();
+    if (recorderAccepted(res.status, text)) return;
+    const now = await read();
+    if (took(now)) return;
+    throw new RecorderNtpError('RECORDER_REFUSED', { step: name, status: res.status, answer: recorderAnswer(text), before, now });
+  };
   // The server first, then the mode: should the second step fail, the recorder still keeps its own time.
-  const putServer = await call(() => digestPut(`${base}/ISAPI/System/time/ntpServers/1`, username, password, ntpServerXml(server, minutes), opts));
-  if (!recorderAccepted(putServer.status, putServer.body.toString())) {
-    throw new RecorderNtpError('RECORDER_REFUSED', { step: 'ntp_server', status: putServer.status, before });
-  }
-  const putMode = await call(() => digestPut(`${base}/ISAPI/System/time`, username, password, ntpTimeXml(), opts));
-  if (!recorderAccepted(putMode.status, putMode.body.toString())) {
-    throw new RecorderNtpError('RECORDER_REFUSED', { step: 'time_mode', status: putMode.status, before });
-  }
+  await step('ntp_server', '/ISAPI/System/time/ntpServers/1', ntpServerXml(server, minutes), (now) => now.ntpServer === server);
+  await step('time_mode', '/ISAPI/System/time', ntpTimeXml(), (now) => now.mode?.toUpperCase() === 'NTP');
   const after = await read();
   return { device: { id: device.id, name: device.name }, server, minutes, serverCheck: answer, before, after };
 }

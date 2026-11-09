@@ -19,4 +19,7 @@ mkdir -p /etc/chrony /var/lib/chrony
   echo "cmdport 0"
 } > "$conf"
 cat "$conf"
+# A restart keeps the container filesystem: an old pid file naming pid 1 would make chronyd think it is
+# already running and quit, over and over.
+rm -f /var/run/chrony/chronyd.pid /run/chrony/chronyd.pid
 exec chronyd -d -x -f "$conf"
