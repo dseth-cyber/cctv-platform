@@ -9,6 +9,7 @@ import { formatDateTime } from '@/utils/dateUtils';
 import { ArrowLeft, Camera, Wifi, WifiOff, AlertTriangle, Wrench,
   RefreshCw, Edit, Trash2, HardDrive, Clock } from 'lucide-react';
 import { Button, TableSkeleton } from '@/components/ui';
+import { CameraSpecCard } from '@/components/cctv/CameraSpecCard';
 
 const CAMERA_STATUS_STYLES: Record<string, { bg: string; icon: any }> = {
   active: { bg: 'bg-green-500/20 text-green-400', icon: Wifi },
@@ -99,6 +100,7 @@ export default function ImageServiceCameraDetail() {
           <dd className={`${themeConfig.text.primary} font-mono text-xs break-all`}>{camera.rtspUrlSub || '—'}</dd>
         </dl>
       </div>
+      <CameraSpecCard spec={camera.spec} readAt={camera.device?.healthCheckedAt} />
 
     </div>
   );

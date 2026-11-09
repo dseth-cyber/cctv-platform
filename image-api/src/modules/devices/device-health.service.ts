@@ -14,11 +14,12 @@ import {
   readContinuousChannels,
   readDeviceInfo,
   readDisks,
-  readSmartCodecChannels,
+  readCameraSpecs,
   RecorderError,
   recordsSubStream,
   searchRecordings,
   secondsBetween,
+  type CameraSpec,
   type RecorderDisk,
   type RecorderLogin,
 } from '../device-playback/hikvision-recorder.js';
@@ -128,7 +129,7 @@ interface HealthDevice {
   passwordEncrypted: string | null;
   alertLevel: string | null;
   healthInfo?: unknown;
-  cameras: Array<{ id: string; name: string; channelNumber: number | null; status: string; operationalStatus: string | null; alertLevel: string | null }>;
+  cameras: Array<{ id: string; name: string; channelNumber: number | null; status: string; operationalStatus: string | null; alertLevel: string | null; spec?: unknown }>;
 }
 
 const SELECT_DEVICE = {
@@ -144,7 +145,7 @@ const SELECT_DEVICE = {
   healthInfo: true,
   cameras: {
     where: { deletedAt: null, enabled: true },
-    select: { id: true, name: true, channelNumber: true, status: true, operationalStatus: true, alertLevel: true },
+    select: { id: true, name: true, channelNumber: true, status: true, operationalStatus: true, alertLevel: true, spec: true },
     orderBy: { channelNumber: 'asc' as const },
   },
 };
@@ -182,7 +183,7 @@ async function channelsNotRecording(device: HealthDevice, login: RecorderLogin, 
   return { stopped, checked };
 }
 
-async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimitSeconds: number): Promise<{ health: DeviceHealth; facts: { macAddress: string | null; firmwareVersion: string | null; serialNumber: string | null } }> {
+async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimitSeconds: number): Promise<{ health: DeviceHealth; facts: { macAddress: string | null; firmwareVersion: string | null; serialNumber: string | null }; specs: Map<number, CameraSpec> | null }> {
   await checkLogin(login);
   const info = await readDeviceInfo(login);
   const disks = await readDisks(login);
@@ -191,7 +192,8 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
   const now = clock?.deviceTime ?? null;
   const oldest = now && firstChannel ? await earliestRecording(login, firstChannel, addSeconds(now, -RETENTION_LOOKBACK_SECONDS), now) : null;
   const { stopped, checked } = now ? await channelsNotRecording(device, login, now) : { stopped: [], checked: 0 };
-  const smartCodecChannels = await readSmartCodecChannels(login).catch((err) => { if (err instanceof RecorderError && err.kind === 'login') throw err; return null; });
+  const read = await readCameraSpecs(login).catch((err) => { if (err instanceof RecorderError && err.kind === 'login') throw err; return null; });
+  const smartCodecChannels = read ? read.smartCodecChannels : null;
   // Two channels that are up are enough to tell how the recorder is set: it is one setting for the whole recorder.
   const subChecked = device.cameras.filter((c) => c.channelNumber !== null && c.operationalStatus === 'online').slice(0, SUB_RECORDING_CHANNELS).map((c) => c.channelNumber as number);
   const subRecordingChannels: number[] = [];
@@ -205,6 +207,7 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
   if (stopped.length > 0) problems.push('not_recording');
   if (clockIsOff(clock?.driftSeconds, clockLimitSeconds)) problems.push('clock_drift');
   return {
+    specs: read?.specs ?? null,
     facts: { macAddress: info?.macAddress ?? null, firmwareVersion: info?.firmwareVersion ?? null, serialNumber: info?.serialNumber ?? null },
     health: {
       checkedAt: new Date().toISOString(),
@@ -224,6 +227,17 @@ async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimit
       problems,
     },
   };
+}
+
+/** Each camera keeps what its recorder last said about its channel; written only when it changed. */
+async function saveCameraSpecs(device: HealthDevice, specs: Map<number, CameraSpec>) {
+  const prisma = getPrisma();
+  for (const camera of device.cameras) {
+    if (camera.channelNumber === null) continue;
+    const spec = specs.get(camera.channelNumber);
+    if (!spec || JSON.stringify(spec) === JSON.stringify(camera.spec ?? null)) continue;
+    await prisma.camera.update({ where: { id: camera.id }, data: { spec: spec as object } });
+  }
 }
 
 /** One alert while the problem lasts, closed by itself when it clears. */
@@ -267,9 +281,11 @@ async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise
   const clockLimitSeconds = Number(configs.device_clock_drift_alert_seconds?.value ?? 60);
   let health: DeviceHealth;
   let facts: Record<string, string> = {};
+  let specs: Map<number, CameraSpec> | null = null;
   try {
     const read = await readHealth(device, login, clockLimitSeconds);
     health = read.health;
+    specs = read.specs;
     facts = Object.fromEntries(Object.entries(read.facts).filter(([, v]) => v)) as Record<string, string>;
     loginFailedFor.delete(device.id);
   } catch (err) {
@@ -290,6 +306,7 @@ async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise
   }
 
   await prisma.device.update({ where: { id: device.id }, data: { healthInfo: health as object, healthCheckedAt: new Date(), ...facts } });
+  if (specs) await saveCameraSpecs(device, specs);
   const diskList = diskProblems(health.disks);
   await syncAlert(device, 'hdd_problem', diskList.length > 0, `HDD problem: ${device.name}`, `${device.name}: ${diskList.join(', ')}`, { problems: diskList, disks: health.disks });
   const channels = health.notRecording.map((c) => c.channel);

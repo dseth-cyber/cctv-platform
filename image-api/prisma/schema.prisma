@@ -444,6 +444,9 @@ model Camera {
   outageIncidentAt       DateTime?               @map("outage_incident_at")
   // This outage was raised as part of its whole recorder going down, not on its own.
   outageViaDevice        Boolean                 @default(false) @map("outage_via_device")
+  /// What the recorder reports about this channel: main/sub stream settings, the signal coming in (analog), and an
+  /// IP camera's model, serial and firmware. Read on the device health round; never written to the recorder.
+  spec                   Json?                   @map("spec")
   recordingMode          String                  @default("live_only") @map("recording_mode") @db.VarChar(16)
   siteId                 String?                 @map("site_id") @db.Uuid
   zoneId                 String?                 @map("zone_id") @db.Uuid

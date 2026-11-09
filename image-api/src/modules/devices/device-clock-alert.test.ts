@@ -5,6 +5,7 @@ import { checkAllDevices, checkDeviceHealthNow, clockRoundNotice } from './devic
 
 const mockPrisma = {
   device: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+  camera: { update: vi.fn() },
   alert: { findFirst: vi.fn(), update: vi.fn() },
 };
 const limit = { value: 60 };
@@ -24,7 +25,7 @@ vi.mock('../device-playback/hikvision-recorder.js', () => ({
   readClock: vi.fn(),
   readContinuousChannels: vi.fn().mockResolvedValue(null),
   readDeviceInfo: vi.fn().mockResolvedValue(null),
-  readSmartCodecChannels: vi.fn().mockResolvedValue([]),
+  readCameraSpecs: vi.fn().mockResolvedValue({ specs: new Map(), smartCodecChannels: [] }),
   recordsSubStream: vi.fn().mockResolvedValue(false),
   readDisks: vi.fn().mockResolvedValue([{ id: '1', type: 'SATA', state: 'ok', capacityMB: 1, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 1 }]),
   RecorderError: class RecorderError extends Error {},
@@ -180,7 +181,8 @@ describe('how a recorder is set up', () => {
   it('notes Smart Codec channels and a recorded sub stream, looking at two channels that are up', async () => {
     vi.clearAllMocks();
     const rec = await import('../device-playback/hikvision-recorder.js');
-    vi.mocked(rec.readSmartCodecChannels).mockResolvedValueOnce([1, 2]);
+    const main = { codec: 'H.265', width: 1920, height: 1080, fps: 15, bitrateKbps: 1536, rateControl: 'VBR', smartCodec: false };
+    vi.mocked(rec.readCameraSpecs).mockResolvedValueOnce({ specs: new Map([[1, { main, signal: '1920*1080(1080P)P25' }], [3, { main }]]), smartCodecChannels: [1, 2] });
     vi.mocked(rec.recordsSubStream).mockImplementation(async (_l: any, ch: number) => ch === 1);
     vi.mocked(rec.readContinuousChannels).mockResolvedValue(new Set());
     clockAt(1);
@@ -191,5 +193,22 @@ describe('how a recorder is set up', () => {
     expect(health?.subRecordingChecked).toEqual([1, 3]);
     expect(health?.subRecordingChannels).toEqual([1]);
     expect(rec.recordsSubStream).toHaveBeenCalledTimes(2);
+    // Each camera keeps what its recorder said about its channel; one with no reading is left alone.
+    const saved = mockPrisma.camera.update.mock.calls.map(([a]: any) => [a.where.id, a.data.spec]);
+    expect(saved).toEqual([['c1', { main, signal: '1920*1080(1080P)P25' }], ['c3', { main }]]);
+  });
+});
+
+describe('camera spec is written only when it changed', () => {
+  it('leaves a camera whose spec is the same alone', async () => {
+    vi.clearAllMocks();
+    const rec = await import('../device-playback/hikvision-recorder.js');
+    const spec = { signal: 'PAL' };
+    vi.mocked(rec.readCameraSpecs).mockResolvedValueOnce({ specs: new Map([[1, spec], [2, { signal: '1080P' }]]), smartCodecChannels: [] });
+    clockAt(1);
+    const cam = (n: number, s: unknown) => ({ id: `c${n}`, name: `Ch ${n}`, channelNumber: n, status: 'active', operationalStatus: 'online', alertLevel: null, spec: s });
+    mockPrisma.device.findUnique.mockResolvedValue({ ...DEVICE, id: 'dev-spec', cameras: [cam(1, { signal: 'PAL' }), cam(2, null)] });
+    await checkDeviceHealthNow('dev-spec');
+    expect(mockPrisma.camera.update.mock.calls.map(([a]: any) => a.where.id)).toEqual(['c2']);
   });
 });

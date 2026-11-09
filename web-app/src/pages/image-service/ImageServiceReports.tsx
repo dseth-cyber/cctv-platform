@@ -2,6 +2,8 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { masterdataLabel } from '@/hooks/useMasterdataOptions';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
+import { signalName, type CameraSpec } from '@/lib/cameraSpec';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -26,6 +28,12 @@ const DEFAULT_COLUMNS = [
   { id: 'cameraType', labelKey: 'imageService.cameras.cameraType', defaultLabel: 'ประเภทกล้อง', visible: true },
   { id: 'cameraBrand', labelKey: 'imageService.cameras.cameraBrand', defaultLabel: 'ยี่ห้อกล้อง', visible: true },
   { id: 'cameraModel', labelKey: 'imageService.cameras.cameraModel', defaultLabel: 'รุ่นกล้อง', visible: true },
+  { id: 'specResolution', labelKey: 'ui.cameraSpec.resolution', defaultLabel: 'ความละเอียด', visible: true },
+  { id: 'specCodec', labelKey: 'ui.cameraSpec.codec', defaultLabel: 'Codec', visible: true },
+  { id: 'specSignal', labelKey: 'ui.cameraSpec.signal', defaultLabel: 'สัญญาณจากกล้อง', visible: false },
+  { id: 'specIpModel', labelKey: 'ui.cameraSpec.ipModel', defaultLabel: 'รุ่นกล้อง IP', visible: true },
+  { id: 'specIpSerial', labelKey: 'ui.cameraSpec.ipSerial', defaultLabel: 'Serial', visible: false },
+  { id: 'specIpFirmware', labelKey: 'ui.cameraSpec.ipFirmware', defaultLabel: 'เฟิร์มแวร์', visible: false },
   { id: 'deviceName', labelKey: 'imageService.cameras.columnDevice', defaultLabel: 'อุปกรณ์', visible: true },
   { id: 'siteName', labelKey: 'ui.location.site', defaultLabel: 'สถานที่', visible: true },
   { id: 'zoneName', labelKey: 'ui.location.zone', defaultLabel: 'โซน', visible: true },
@@ -220,6 +228,20 @@ function CameraReport() {
 
   // Format cell value based on column ID
   const formatValue = (cam: any, colId: string) => {
+    // What the recorder reported (cameras.spec), read on the device health round.
+    if (colId.startsWith('spec')) {
+      const spec = cam.spec as CameraSpec | null | undefined;
+      const main = spec?.main;
+      const value = {
+        specResolution: cameraResolutionText(spec, t('ui.cameraSpec.noSignal')),
+        specCodec: main?.codec ? `${main.codec}${main.smartCodec ? ' (H.265+)' : ''}` : '—',
+        specSignal: signalName(spec?.signal)?.text ?? '—',
+        specIpModel: spec?.ipCamera?.model ?? '—',
+        specIpSerial: spec?.ipCamera?.serialNumber ?? '—',
+        specIpFirmware: spec?.ipCamera?.firmwareVersion ?? '—',
+      }[colId];
+      if (value !== undefined) return value;
+    }
     const val = cam[colId];
     if (val === null || val === undefined) return '—';
 

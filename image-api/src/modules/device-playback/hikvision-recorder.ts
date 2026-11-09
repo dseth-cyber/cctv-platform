@@ -253,6 +253,129 @@ export async function searchRecordings(login: RecorderLogin, channel: number, fr
   return { ranges: mergeRanges(found), complete: false };
 }
 
+export interface StreamSpec {
+  codec: string | null;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  /** The ceiling for a variable bit rate, the rate itself for a constant one. */
+  bitrateKbps: number | null;
+  rateControl: string | null;
+  smartCodec: boolean;
+}
+
+export interface IpCameraSpec {
+  model: string | null;
+  serialNumber: string | null;
+  firmwareVersion: string | null;
+  ipAddress: string | null;
+  protocol: string | null;
+  passwordStatus?: string | null;
+}
+
+export interface CameraSpec {
+  main?: StreamSpec;
+  sub?: StreamSpec;
+  /** What an analog camera sends in, as the recorder names it: "1920*1080(1080P)P25", "PAL". */
+  signal?: string | null;
+  ipCamera?: IpCameraSpec;
+}
+
+const num = (v: string | null | undefined) => (v === undefined || v === null || v.trim() === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+const blocks = (xml: string, name: string) => [...xml.matchAll(new RegExp(`<${name}[ >][\\s\\S]*?</${name}>`, 'g'))].map((m) => m[0]);
+
+/** Each channel's main (x01) and sub (x02) stream settings, from the whole channel list. */
+export function parseStreamingChannels(xml: string): Map<number, { main?: StreamSpec; sub?: StreamSpec }> {
+  const out = new Map<number, { main?: StreamSpec; sub?: StreamSpec }>();
+  for (const block of blocks(xml, 'StreamingChannel')) {
+    const id = Number(block.match(/<id>(\d+)<\/id>/)?.[1]);
+    const video = block.match(/<Video>([\s\S]*?)<\/Video>/)?.[1];
+    if (!Number.isInteger(id) || !video) continue;
+    const kind = id % 100 === 1 ? 'main' : id % 100 === 2 ? 'sub' : null;
+    if (!kind) continue;
+    const rateControl = tag(video, 'videoQualityControlType') ?? null;
+    const smart = video.match(/<SmartCodec>([\s\S]*?)<\/SmartCodec>/)?.[1] ?? '';
+    const fps = num(tag(video, 'maxFrameRate'));
+    const spec: StreamSpec = {
+      codec: tag(video, 'videoCodecType') ?? null,
+      width: num(tag(video, 'videoResolutionWidth')),
+      height: num(tag(video, 'videoResolutionHeight')),
+      fps: fps === null ? null : fps / 100,
+      bitrateKbps: num(/cbr/i.test(rateControl ?? '') ? tag(video, 'constantBitRate') : tag(video, 'vbrUpperCap')),
+      rateControl,
+      smartCodec: /<enabled>\s*true\s*<\/enabled>/i.test(smart),
+    };
+    const channel = Math.floor(id / 100);
+    out.set(channel, { ...out.get(channel), [kind]: spec });
+  }
+  return out;
+}
+
+/** The signal each analog input receives (DVR). */
+export function parseVideoInputs(xml: string): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const block of blocks(xml, 'VideoInputChannel')) {
+    const id = Number(block.match(/<id>(\d+)<\/id>/)?.[1]);
+    const signal = tag(block, 'resDesc') || tag(block, 'videoFormat');
+    if (Number.isInteger(id) && signal) out.set(id, signal);
+  }
+  return out;
+}
+
+/** The IP camera behind each channel of an NVR (or a hybrid DVR's IP channels). */
+export function parseInputProxies(xml: string): Map<number, IpCameraSpec> {
+  const out = new Map<number, IpCameraSpec>();
+  for (const block of blocks(xml, 'InputProxyChannel')) {
+    const id = Number(block.match(/<id>(\d+)<\/id>/)?.[1]);
+    if (!Number.isInteger(id)) continue;
+    out.set(id, {
+      model: tag(block, 'model') || null,
+      serialNumber: tag(block, 'serialNumber') || null,
+      firmwareVersion: tag(block, 'firmwareVersion') || null,
+      ipAddress: tag(block, 'ipAddress') || tag(block, 'hostName') || null,
+      protocol: tag(block, 'proxyProtocol') || null,
+    });
+  }
+  return out;
+}
+
+/** How strong each IP camera's password is, as the NVR judges it ("strong", "weak", "risk"). */
+export function parseProxyPasswordStatus(xml: string): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const block of blocks(xml, 'InputProxyChannelStatus')) {
+    const id = Number(block.match(/<id>(\d+)<\/id>/)?.[1]);
+    const status = tag(block, 'PasswordStatus');
+    if (Number.isInteger(id) && status) out.set(id, status);
+  }
+  return out;
+}
+
+/**
+ * Everything the recorder tells about its channels, in four list requests (none per channel). A list the recorder
+ * does not have (a DVR has no IP proxies, an NVR no analog inputs) is simply empty.
+ */
+export async function readCameraSpecs(login: RecorderLogin): Promise<{ specs: Map<number, CameraSpec>; smartCodecChannels: number[] } | null> {
+  const list = async (path: string) => {
+    const res = await get(login, path);
+    return res.status === 200 ? res.body.toString() : '';
+  };
+  const streamsXml = await list('/ISAPI/Streaming/channels');
+  if (!streamsXml) return null;
+  const streams = parseStreamingChannels(streamsXml);
+  const inputs = parseVideoInputs(await list('/ISAPI/System/Video/inputs/channels'));
+  const proxies = parseInputProxies(await list('/ISAPI/ContentMgmt/InputProxy/channels'));
+  const passwords = proxies.size > 0 ? parseProxyPasswordStatus(await list('/ISAPI/ContentMgmt/InputProxy/channels/status')) : new Map<number, string>();
+  const specs = new Map<number, CameraSpec>();
+  for (const channel of new Set([...streams.keys(), ...inputs.keys(), ...proxies.keys()])) {
+    const spec: CameraSpec = { ...streams.get(channel) };
+    if (inputs.has(channel)) spec.signal = inputs.get(channel);
+    const proxy = proxies.get(channel);
+    if (proxy) spec.ipCamera = { ...proxy, passwordStatus: passwords.get(channel) ?? null };
+    specs.set(channel, spec);
+  }
+  return { specs, smartCodecChannels: parseSmartCodecChannels(streamsXml) };
+}
+
 /**
  * Main-stream channels with Smart Codec (H.265+) on, from the whole channel list in one request. It spaces whole
  * frames 20-30 s apart, so live HD and playback start that late. Sub streams (x02) are left out.

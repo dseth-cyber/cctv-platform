@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
+import { specNotes } from '@/lib/cameraSpec';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -1029,6 +1031,7 @@ export default function ImageServiceCameras() {
     cameraType: cameraTypeLabel(camera.cameraType),
     cameraBrand: cameraBrandLabel(camera.cameraBrand),
     cameraModel: camera.cameraModel ?? '',
+    resolution: cameraResolutionText(camera.spec, t('ui.cameraSpec.noSignal')),
     alertLevel: alertLevelLabel(camera.alertLevel) ?? inheritedAlertLevelLabel(camera.device),
     description: camera.description ?? '',
     device: camera.device?.name ?? '',
@@ -1044,6 +1047,7 @@ export default function ImageServiceCameras() {
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
     { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
+    { key: 'resolution', label: t('ui.cameraSpec.resolution') },
     { key: 'alertLevel', label: t('imageService.cameras.alertLevel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
@@ -1064,6 +1068,7 @@ export default function ImageServiceCameras() {
     { key: 'cameraType', label: t('imageService.cameras.cameraType') },
     { key: 'cameraBrand', label: t('imageService.cameras.cameraBrand') },
     { key: 'cameraModel', label: t('imageService.cameras.cameraModel') },
+    { key: 'resolution', label: t('ui.cameraSpec.resolution') },
     { key: 'alertLevel', label: t('imageService.cameras.alertLevel') },
     { key: 'description', label: t('imageService.cameras.description') },
     { key: 'device', label: t('imageService.cameras.columnDevice') },
@@ -1232,6 +1237,7 @@ export default function ImageServiceCameras() {
                 {showColumn('cameraType') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraType')}</th>}
                 {showColumn('cameraBrand') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraBrand')}</th>}
                 {showColumn('cameraModel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</th>}
+                {showColumn('resolution') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('ui.cameraSpec.resolution')}</th>}
                 {showColumn('alertLevel') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.alertLevel')}</th>}
                 {showColumn('description') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.description')}</th>}
                 {showColumn('device') && <th className={`px-4 py-3 text-left text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.cameras.columnDevice')}</th>}
@@ -1318,6 +1324,7 @@ export default function ImageServiceCameras() {
                     {showColumn('cameraType') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraTypeLabel(camera.cameraType)}</td>}
                     {showColumn('cameraBrand') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraBrandLabel(camera.cameraBrand)}</td>}
                     {showColumn('cameraModel') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.cameraModel || '—'}</td>}
+                    {showColumn('resolution') && <td data-camera-resolution className={`px-4 py-3 text-sm whitespace-nowrap ${specNotes(camera.spec).length > 0 ? 'text-amber-300' : themeConfig.text.secondary}`} title={specNotes(camera.spec).map((n) => t(`ui.cameraSpec.note.${n}`)).join('\n')}>{cameraResolutionText(camera.spec, t('ui.cameraSpec.noSignal'))}</td>}
                     {showColumn('alertLevel') && <td data-camera-level-cell className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{alertLevelLabel(camera.alertLevel) ?? <span className="opacity-70">{inheritedAlertLevelLabel(camera.device)}</span>}</td>}
                     {showColumn('description') && <td className={`px-4 py-3 text-sm max-w-xs truncate ${themeConfig.text.secondary}`} title={camera.description ?? ''}>{camera.description || '—'}</td>}
                     {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}

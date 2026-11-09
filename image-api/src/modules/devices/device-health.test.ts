@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseSmart, parseSmartCodecChannels } from '../device-playback/hikvision-recorder.js';
+import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseInputProxies, parseProxyPasswordStatus, parseSmart, parseSmartCodecChannels, parseStreamingChannels, parseVideoInputs } from '../device-playback/hikvision-recorder.js';
 import { clockIsOff, describeDrift, diskProblems } from './device-health.service.js';
 
 const disk = (over: Record<string, unknown> = {}) => ({ id: '1', type: 'SATA', state: 'ok', capacityMB: 1000, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 10, ...over });
@@ -113,5 +113,28 @@ describe('parseSmartCodecChannels', () => {
 
   it('does not take an enabled from elsewhere in the channel for Smart Codec', () => {
     expect(parseSmartCodecChannels(`<StreamingChannelList>${channel(101, null)}${channel(201, '')}</StreamingChannelList>`)).toEqual([]);
+  });
+});
+
+describe('camera spec parsers (shaped like what MD and NVR EOE answered)', () => {
+  it('reads main and sub stream settings per channel', () => {
+    const ch = (id: number, video: string) => `<StreamingChannel><id>${id}</id><Video>${video}</Video><Audio><enabled>true</enabled></Audio></StreamingChannel>`;
+    const xml = `<StreamingChannelList>${ch(101, '<videoCodecType>H.265</videoCodecType><videoResolutionWidth>1920</videoResolutionWidth><videoResolutionHeight>1080</videoResolutionHeight><videoQualityControlType>VBR</videoQualityControlType><vbrUpperCap>1536</vbrUpperCap><maxFrameRate>1500</maxFrameRate><SmartCodec><enabled>true</enabled></SmartCodec>')}${ch(102, '<videoCodecType>H.264</videoCodecType><videoResolutionWidth>960</videoResolutionWidth><videoResolutionHeight>576</videoResolutionHeight><videoQualityControlType>CBR</videoQualityControlType><constantBitRate>512</constantBitRate><maxFrameRate>1200</maxFrameRate>')}</StreamingChannelList>`;
+    expect(parseStreamingChannels(xml).get(1)).toEqual({
+      main: { codec: 'H.265', width: 1920, height: 1080, fps: 15, bitrateKbps: 1536, rateControl: 'VBR', smartCodec: true },
+      sub: { codec: 'H.264', width: 960, height: 576, fps: 12, bitrateKbps: 512, rateControl: 'CBR', smartCodec: false },
+    });
+  });
+
+  it('reads the signal of each analog input', () => {
+    const xml = '<VideoInputChannelList><VideoInputChannel><id>1</id><videoFormat>PAL</videoFormat><resDesc>1920*1080(1080P)P25</resDesc></VideoInputChannel><VideoInputChannel><id>14</id><videoFormat>PAL</videoFormat><enableWD1>true</enableWD1><resDesc>PAL</resDesc></VideoInputChannel></VideoInputChannelList>';
+    expect([...parseVideoInputs(xml)]).toEqual([[1, '1920*1080(1080P)P25'], [14, 'PAL']]);
+  });
+
+  it('reads the IP camera behind an NVR channel, and how strong its password is', () => {
+    const xml = '<InputProxyChannelList><InputProxyChannel><id>1</id><name>IPC</name><sourceInputPortDescriptor><proxyProtocol>ONVIF</proxyProtocol><addressingFormatType>ipaddress</addressingFormatType><ipAddress>192.168.10.31</ipAddress><managePortNo>80</managePortNo><userName>admin</userName><model>DH-IPC-HFW1230C-A</model><serialNumber>BK013E1PAG287A2</serialNumber><firmwareVersion>2.860.0000000.37.R</firmwareVersion></sourceInputPortDescriptor></InputProxyChannel></InputProxyChannelList>';
+    expect(parseInputProxies(xml).get(1)).toEqual({ model: 'DH-IPC-HFW1230C-A', serialNumber: 'BK013E1PAG287A2', firmwareVersion: '2.860.0000000.37.R', ipAddress: '192.168.10.31', protocol: 'ONVIF' });
+    const status = '<InputProxyChannelStatusList><InputProxyChannelStatus><id>1</id><online>true</online><SecurityStatus><PasswordStatus>strong</PasswordStatus></SecurityStatus></InputProxyChannelStatus><InputProxyChannelStatus><id>2</id><SecurityStatus><PasswordStatus>weak</PasswordStatus></SecurityStatus></InputProxyChannelStatus></InputProxyChannelStatusList>';
+    expect([...parseProxyPasswordStatus(status)]).toEqual([[1, 'strong'], [2, 'weak']]);
   });
 });
