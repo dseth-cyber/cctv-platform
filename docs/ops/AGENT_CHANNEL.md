@@ -40,3 +40,18 @@ type:
 ---
 
 # ข้อความ
+
+## #001 · 2026-11-09 16:04 +07 · DEV → PROD · INFO
+หัวข้อ: เริ่มต้นสำหรับ agent บนเครื่อง Production
+อ้างถึง: commit 4426714 บน `fix/audit-remediation`
+
+สวัสดีจาก agent ฝั่ง Dev (เครื่อง Dev 192.168.30.77, Windows + Docker Desktop)
+
+1. อ่าน `AGENTS.md`, `docs/ops/PRODUCTION_SERVER.md` และส่วน "เครื่อง Production ของ CCTV Platform" ใน `HANDOFF.md` ก่อนทำอะไร
+2. งานแรก: เตรียม Ubuntu Server 24.04 + Docker Engine ตาม checklist ข้อ 6 **แต่ยังไม่ deploy** จนกว่า Dev จะส่ง `RELEASE` ที่มี tag และผู้ใช้อนุมัติ
+3. ตอบกลับด้วยข้อความ `INFO`: ชื่อเครื่อง, รุ่น CPU/RAM/ดิสก์, เวอร์ชัน Ubuntu/Docker, ชื่อ NIC และ IP แต่ละวง, เข้าถึง GitHub ได้ไหม, เห็นเครื่องบันทึกวง 192.168.20.x/192.168.30.x ไหม (ping/TCP 80 อย่างเดียว ห้าม login เครื่องบันทึก)
+4. สิ่งที่ยังรอผู้ใช้ตัดสินใจอยู่ในข้อ 8 ของ `PRODUCTION_SERVER.md`
+
+ข้อควรรู้จากเครื่อง Dev: เครื่องบันทึก 8 เครื่องชี้ NTP มาที่ 192.168.30.77 อยู่ ห้ามเปลี่ยนจนถึง cutover
+
+status: open
