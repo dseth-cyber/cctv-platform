@@ -118,6 +118,7 @@ export default function ImageServiceSettings() {
     { value: 'retention_violation', label: t('imageService.settings.alertTypes.retention_violation', 'Retention Violation') },
     { value: 'hdd_problem', label: t('imageService.settings.alertTypes.hdd_problem', 'HDD Problem') },
     { value: 'recording_stopped', label: t('imageService.settings.alertTypes.recording_stopped', 'Recording Stopped') },
+    { value: 'clock_drift', label: t('imageService.settings.alertTypes.clock_drift', 'Recorder Clock Off') },
     { value: 'incident_escalation', label: t('imageService.settings.alertTypes.incident_escalation', 'Incident Escalation') },
     { value: 'auth_anomaly', label: t('imageService.settings.alertTypes.auth_anomaly', 'Suspicious Login Activity') },
   ];

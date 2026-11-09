@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { guessDeviceType, parseContinuousChannels, parseDeviceInfo, parseDisks, parseSmart } from '../device-playback/hikvision-recorder.js';
-import { diskProblems } from './device-health.service.js';
+import { clockIsOff, describeDrift, diskProblems } from './device-health.service.js';
 
 const disk = (over: Record<string, unknown> = {}) => ({ id: '1', type: 'SATA', state: 'ok', capacityMB: 1000, freeMB: 0, smart: 'ok', temperature: 40, powerOnDays: 10, ...over });
 
@@ -80,5 +80,25 @@ describe('diskProblems', () => {
     expect(diskProblems([disk({ state: 'error' })] as any)).toEqual(['disk_fault']);
     expect(diskProblems([disk({ smart: 'warning' })] as any)).toEqual(['disk_smart']);
     expect(diskProblems([disk({ temperature: 60 })] as any)).toEqual(['disk_hot']);
+  });
+});
+
+describe('clockIsOff', () => {
+  it('calls a clock off only past the limit, either way', () => {
+    expect(clockIsOff(461, 60)).toBe(true);
+    expect(clockIsOff(-61, 60)).toBe(true);
+    expect(clockIsOff(60, 60)).toBe(false);
+    expect(clockIsOff(-3, 60)).toBe(false);
+  });
+
+  it('says nothing without a reading or with the check off', () => {
+    expect(clockIsOff(null, 60)).toBeNull();
+    expect(clockIsOff(undefined, 60)).toBeNull();
+    expect(clockIsOff(461, 0)).toBeNull();
+  });
+
+  it('words the difference for the alert', () => {
+    expect(describeDrift(461)).toBe('ahead of the server by 7 min 41 s');
+    expect(describeDrift(-200)).toBe('behind the server by 3 min 20 s');
   });
 });

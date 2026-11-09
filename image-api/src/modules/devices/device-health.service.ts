@@ -33,7 +33,22 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const isRecorderBrand = (brand: string | null | undefined) => /hik|hilook/i.test(brand ?? '');
 
-export type HealthProblem = 'no_disk' | 'disk_fault' | 'disk_smart' | 'disk_hot' | 'not_recording';
+export type HealthProblem = 'no_disk' | 'disk_fault' | 'disk_smart' | 'disk_hot' | 'not_recording' | 'clock_drift';
+
+/**
+ * Whether the recorder's clock is out by more than the limit. Footage, playback and clips carry the recorder's time,
+ * so a wrong clock puts evidence at the wrong time. null means not known (no reading, or the check is off): leave as is.
+ */
+export function clockIsOff(driftSeconds: number | null | undefined, limitSeconds: number): boolean | null {
+  if (driftSeconds === null || driftSeconds === undefined || !(limitSeconds > 0)) return null;
+  return Math.abs(driftSeconds) > limitSeconds;
+}
+
+/** "ahead 7 min 41 s" — for the alert text. */
+export function describeDrift(driftSeconds: number): string {
+  const size = Math.abs(driftSeconds);
+  return `${driftSeconds > 0 ? 'ahead of' : 'behind'} the server by ${Math.floor(size / 60)} min ${size % 60} s`;
+}
 
 /** What is wrong with these disks. "idle" is a disk asleep and "ok" a disk at work: both are healthy. */
 export function diskProblems(disks: RecorderDisk[]): HealthProblem[] {
@@ -114,7 +129,7 @@ async function channelsNotRecording(device: HealthDevice, login: RecorderLogin, 
   return { stopped, checked };
 }
 
-async function readHealth(device: HealthDevice, login: RecorderLogin): Promise<{ health: DeviceHealth; facts: { macAddress: string | null; firmwareVersion: string | null; serialNumber: string | null } }> {
+async function readHealth(device: HealthDevice, login: RecorderLogin, clockLimitSeconds: number): Promise<{ health: DeviceHealth; facts: { macAddress: string | null; firmwareVersion: string | null; serialNumber: string | null } }> {
   const info = await readDeviceInfo(login);
   const disks = await readDisks(login);
   const clock = await readClock(login);
@@ -124,6 +139,7 @@ async function readHealth(device: HealthDevice, login: RecorderLogin): Promise<{
   const { stopped, checked } = now ? await channelsNotRecording(device, login, now) : { stopped: [], checked: 0 };
   const problems = diskProblems(disks);
   if (stopped.length > 0) problems.push('not_recording');
+  if (clockIsOff(clock?.driftSeconds, clockLimitSeconds)) problems.push('clock_drift');
   return {
     facts: { macAddress: info?.macAddress ?? null, firmwareVersion: info?.firmwareVersion ?? null, serialNumber: info?.serialNumber ?? null },
     health: {
@@ -143,11 +159,19 @@ async function readHealth(device: HealthDevice, login: RecorderLogin): Promise<{
 }
 
 /** One alert while the problem lasts, closed by itself when it clears. */
-async function syncAlert(device: HealthDevice, alertType: 'hdd_problem' | 'recording_stopped', active: boolean, title: string, message: string, details: Record<string, unknown>) {
+async function syncAlert(
+  device: HealthDevice,
+  alertType: 'hdd_problem' | 'recording_stopped' | 'clock_drift',
+  active: boolean,
+  title: string,
+  message: string,
+  details: Record<string, unknown>,
+  severity: 'critical' | 'warning' = 'critical',
+) {
   const prisma = getPrisma();
   const open = await prisma.alert.findFirst({ where: { alertType, source: device.id, resolvedAt: null, deletedAt: null } });
   if (active && !open) {
-    await createAlert({ alertType, severity: 'critical', source: device.id, title, message, details: { deviceId: device.id, deviceName: device.name, ...details }, skipDedup: true });
+    await createAlert({ alertType, severity, source: device.id, title, message, details: { deviceId: device.id, deviceName: device.name, ...details }, skipDedup: true });
   } else if (!active && open) {
     await prisma.alert.update({ where: { id: open.id }, data: { resolvedAt: new Date(), resolvedBy: 'system' } });
   }
@@ -167,10 +191,12 @@ async function checkDevice(device: HealthDevice): Promise<DeviceHealth | null> {
     password: decrypt(device.passwordEncrypted),
   };
 
+  const configs = await getAllConfigs();
+  const clockLimitSeconds = Number(configs.device_clock_drift_alert_seconds?.value ?? 60);
   let health: DeviceHealth;
   let facts: Record<string, string> = {};
   try {
-    const read = await readHealth(device, login);
+    const read = await readHealth(device, login, clockLimitSeconds);
     health = read.health;
     facts = Object.fromEntries(Object.entries(read.facts).filter(([, v]) => v)) as Record<string, string>;
     loginFailedFor.delete(device.id);
@@ -192,6 +218,11 @@ async function checkDevice(device: HealthDevice): Promise<DeviceHealth | null> {
   await syncAlert(device, 'hdd_problem', diskList.length > 0, `HDD problem: ${device.name}`, `${device.name}: ${diskList.join(', ')}`, { problems: diskList, disks: health.disks });
   const channels = health.notRecording.map((c) => c.channel);
   await syncAlert(device, 'recording_stopped', channels.length > 0, `Recording stopped: ${device.name}`, `${device.name}: no recording in the last 30 minutes on channel ${channels.join(', ')}`, { channels: health.notRecording });
+  // Not critical: the cameras still record, only at the wrong time. No reading leaves the alert as it was.
+  const clockOff = clockIsOff(health.clockDriftSeconds, clockLimitSeconds);
+  if (clockOff !== null) {
+    await syncAlert(device, 'clock_drift', clockOff, `Clock off: ${device.name}`, `${device.name}: clock is ${describeDrift(health.clockDriftSeconds ?? 0)} (limit ${clockLimitSeconds} s). Footage and clips carry the recorder's time; set NTP on the recorder.`, { driftSeconds: health.clockDriftSeconds, limitSeconds: clockLimitSeconds }, 'warning');
+  }
   return health;
 }
 

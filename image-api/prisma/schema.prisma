@@ -89,6 +89,7 @@ enum AlertType {
   storage_cleanup
   hdd_problem
   recording_stopped
+  clock_drift
   auth_anomaly
 
   @@map("alert_type")

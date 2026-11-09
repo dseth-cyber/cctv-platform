@@ -90,6 +90,12 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
             </p>
           )}
 
+          {health.problems.includes('clock_drift') && (
+            <p data-clock-off className="flex items-start gap-1.5 text-amber-300">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              {t('ui.deviceHealth.clockOff')}
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="rounded bg-slate-950/60 px-2.5 py-2">
               <div className="text-slate-500">{t('ui.deviceHealth.retention')}</div>
