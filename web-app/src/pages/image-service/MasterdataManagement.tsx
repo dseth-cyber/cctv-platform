@@ -8,6 +8,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
+
+/** Lists whose codes the system acts on (same as the API's FIXED_CODES): names and order only. */
+const FIXED_CODE_TABS = new Set(['camera_status']);
 import { Button, Modal } from '@/components/ui';
 
 type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count' | 'device_type' | 'camera_brand' | 'alert_level';
@@ -165,6 +168,9 @@ export default function MasterdataManagement() {
         ))}
       </div>
 
+      {FIXED_CODE_TABS.has(activeTab) && (
+        <p data-fixed-codes className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.fixedCodes')}</p>
+      )}
       {(activeTab === 'camera_type' || activeTab === 'device_brand' || activeTab === 'device_channel_count' || activeTab === 'alert_level') && (
         <p className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t(`imageService.masterdataManagement.hint_${activeTab}`)}</p>
       )}
@@ -172,7 +178,7 @@ export default function MasterdataManagement() {
       <div className={`${themeConfig.card} rounded-lg overflow-hidden`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <span className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t(TABS.find(t => t.key === activeTab)?.labelKey ?? 'imageService.masterdataManagement.tabCameraStatus')}</span>
-          <Button onClick={openNew} size="sm"><Plus size={14} className="mr-1" /> {t('imageService.masterdataManagement.add')}</Button>
+          {!FIXED_CODE_TABS.has(activeTab) && <Button onClick={openNew} size="sm"><Plus size={14} className="mr-1" /> {t('imageService.masterdataManagement.add')}</Button>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -221,9 +227,11 @@ export default function MasterdataManagement() {
                        <button onClick={() => openEdit(item)} className="p-1.5 rounded-md hover:bg-cyan-500/10 text-cyan-400 transition-colors">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => deleteMutation.mutate(item.id)} className="p-1.5 rounded-md hover:bg-red-500/10 text-red-400 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
+                      {!FIXED_CODE_TABS.has(activeTab) && (
+                        <button onClick={() => deleteMutation.mutate(item.id)} className="p-1.5 rounded-md hover:bg-red-500/10 text-red-400 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -241,7 +249,8 @@ export default function MasterdataManagement() {
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formCode')}</label>
             <input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, code: e.target.value }))}
-              className={inputClass} placeholder="unique_code" />
+              disabled={FIXED_CODE_TABS.has(activeTab)}
+              className={`${inputClass} disabled:opacity-60`} placeholder="unique_code" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             {LANG_FIELDS.map(field => (
@@ -304,6 +313,7 @@ export default function MasterdataManagement() {
             <div className="flex items-end pb-2 gap-4 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.isActive}
+                  disabled={FIXED_CODE_TABS.has(activeTab)}
                   onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   className="rounded border-gray-600 text-cyan-500 focus:ring-cyan-500/50" />
                 <span className={`text-sm ${themeConfig.text.primary}`}>{t('imageService.masterdataManagement.formActive')}</span>

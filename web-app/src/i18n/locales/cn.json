@@ -552,7 +552,8 @@
       "formActive": "启用",
       "formDefault": "默认值",
       "nameLabel": "名称 ({{lang}})",
-      "tabCameraStatus": "摄像头状态"
+      "tabCameraStatus": "摄像头状态",
+      "fixedCodes": "摄像机状态被健康检查、报告和 API 使用，因此只能修改显示名称和顺序，不能新增、删除、改代码或停用。"
     },
     "telegramBot": {
       "title": "Telegram 机器人设置",

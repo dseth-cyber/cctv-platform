@@ -6,6 +6,19 @@ import { builtInDeviceTemplates, setCustomDeviceTemplates, type DeviceVendorTemp
 export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand', 'alert_level'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
+/**
+ * Lists whose codes the system itself acts on: the camera API, health checks, metrics and reports know exactly
+ * these camera statuses. Their names and order may change; adding, removing, renaming the code or switching one off
+ * would offer a choice the system then refuses (or take one away it needs), so those are not allowed.
+ */
+export const FIXED_CODES: Partial<Record<string, readonly string[]>> = {
+  camera_status: ['active', 'inactive', 'error', 'maintenance'],
+};
+const fixedError = (type: string) => new ValidationError(
+  `The codes of '${type}' are used by the system itself: only their names and order can change`,
+  { code: 'MASTERDATA_FIXED_CODES' },
+);
+
 export async function listMasterdata(params: {
   type: MasterdataType;
   page?: number;
@@ -53,6 +66,7 @@ export interface CreateMasterdataInput {
 
 export async function createMasterdata(input: CreateMasterdataInput) {
   const prisma = getPrisma();
+  if (FIXED_CODES[input.type]) throw fixedError(input.type);
   if (input.type === 'device_brand') validateBrand(input.code, input.config);
   if (input.type === 'device_channel_count') validateChannelCount(input.code);
   if (input.type === 'alert_level') validateAlertLevel(input.config);
@@ -121,6 +135,9 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
     validateBrand(input.code ?? existing.code, input.config !== undefined ? input.config : (existing.config as Record<string, unknown> | null));
   }
   if (existing.type === 'device_channel_count' && input.code !== undefined) validateChannelCount(input.code);
+  if (FIXED_CODES[existing.type] && ((input.code !== undefined && input.code !== existing.code) || input.isActive === false)) {
+    throw fixedError(existing.type);
+  }
   if (existing.type === 'alert_level' && input.config !== undefined) validateAlertLevel(input.config);
 
   if (input.code !== undefined && input.code !== existing.code) {
@@ -168,6 +185,7 @@ export async function deleteMasterdata(id: string) {
   const prisma = getPrisma();
   const existing = await prisma.masterdata.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError('Masterdata', id);
+  if (FIXED_CODES[existing.type]) throw fixedError(existing.type);
   const uses = await countUses(existing.type, existing.code);
   if (uses > 0) {
     throw new ConflictError(`This value is used by ${uses} records. Switch it off instead, or change those records first`, { code: 'MASTERDATA_IN_USE', uses });

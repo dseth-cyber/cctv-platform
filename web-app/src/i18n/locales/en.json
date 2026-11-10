@@ -762,7 +762,7 @@
         "manual": "Manual"
       }
     },
-    "masterdataManagement": {
+    "masterdataManagement": { "fixedCodes": "Camera statuses are used by health checks, reports and the API, so only their names and order can change; they cannot be added, removed, recoded or switched off.",
       "tabAlertLevel": "Alert levels",
       "hint_alert_level": "How long a camera must be down before an alert and an incident. Choose a level on a device or a camera. Online and offline on screen stay true at every level.",
       "levelHelp": "Counted from when the camera last answered. 0 means as soon as it is detected, empty means never. The check runs every minute, so this can be up to about a minute late.",

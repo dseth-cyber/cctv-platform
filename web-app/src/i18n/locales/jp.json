@@ -552,7 +552,8 @@
       "formActive": "有効",
       "formDefault": "デフォルト値",
       "nameLabel": "名前 ({{lang}})",
-      "tabCameraStatus": "カメラステータス"
+      "tabCameraStatus": "カメラステータス",
+      "fixedCodes": "カメラの状態はヘルスチェック、レポート、API で使われるため、変更できるのは表示名と順序だけです。追加・削除・コード変更・無効化はできません。"
     },
     "telegramBot": {
       "title": "Telegram ボット設定",
