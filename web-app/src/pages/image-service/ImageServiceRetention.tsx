@@ -20,7 +20,8 @@ const emptyForm = () => ({
   isDefault: false,
 });
 
-export default function ImageServiceRetention() {
+/** `embedded`: shown as a tab of the master data page, without its own page heading. */
+export default function ImageServiceRetention({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
@@ -83,13 +84,15 @@ export default function ImageServiceRetention() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
+    <div className={embedded ? '' : 'p-6'}>
+      <div className={embedded ? 'mb-4' : 'mb-6'}>
+        {!embedded && (<>
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
           iSmart CCTV · {t('imageService.retention.title')}
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.retention.title')}</h1>
-        <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.retention.subtitle')}</p>
+        </>)}
+        <p className={`${embedded ? 'text-xs' : 'text-sm mt-1'} ${themeConfig.text.secondary}`}>{t('imageService.retention.subtitle')}</p>
       </div>
 
       <div className={`${themeConfig.card} rounded-lg p-4 mb-5 flex gap-3`}>

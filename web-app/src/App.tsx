@@ -15,7 +15,6 @@ import LoginPage from '@/pages/auth/LoginPage'
 import ImageServiceCameras from '@/pages/image-service/ImageServiceCameras'
 
 const ImageServiceCameraDetail = lazy(() => import('@/pages/image-service/ImageServiceCameraDetail'))
-const ImageServiceRetention = lazy(() => import('@/pages/image-service/ImageServiceRetention'))
 const ImageServiceRoadmap = lazy(() => import('@/pages/image-service/ImageServiceRoadmap'))
 const ImageServiceSettings = lazy(() => import('@/pages/image-service/ImageServiceSettings'))
 const AlertManagement = lazy(() => import('@/pages/image-service/AlertManagement'))
@@ -32,12 +31,10 @@ const StorageProvidersPage = lazy(() => import('@/pages/image-service/StoragePro
 const CameraAnalytics = lazy(() => import('@/pages/image-service/CameraAnalytics'))
 const IncidentCenter = lazy(() => import('@/pages/image-service/IncidentCenter'))
 const WorkOrders = lazy(() => import('@/pages/image-service/WorkOrders'))
-const CameraTemplates = lazy(() => import('@/pages/image-service/CameraTemplates'))
 const ImageServiceReports = lazy(() => import('@/pages/image-service/ImageServiceReports'))
 const DeviceManagement = lazy(() => import('@/pages/cctv/DeviceManagement'))
 const SiteManagement = lazy(() => import('@/pages/cctv/SiteManagement'))
 const LiveGrid = lazy(() => import('@/pages/cctv/LiveGrid'))
-const CameraGroups = lazy(() => import('@/pages/cctv/CameraGroups'))
 const CctvMap = lazy(() => import('@/pages/cctv/CctvMap'))
 const CctvDashboard = lazy(() => import('@/pages/cctv/CctvDashboard'))
 const CctvPlayback = lazy(() => import('@/pages/cctv/CctvPlayback'))
@@ -1103,9 +1100,8 @@ export default function App() {
             <Route path="/cctv/cameras" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceCameras /> : <UnauthorizedPage />
             } />
-            <Route path="/cctv/camera-groups" element={
-              hasPermission(user, 'cameras:read') ? <CameraGroups /> : <UnauthorizedPage />
-            } />
+            {/* Now a tab of master data; old links land on it. */}
+            <Route path="/cctv/camera-groups" element={<Navigate to="/cctv/masterdata?tab=camera-groups" replace />} />
             <Route path="/cctv/live-grid" element={
               hasPermission(user, 'cameras:read') && hasPermission(user, 'live:view') ? <LiveGrid /> : <UnauthorizedPage />
             } />
@@ -1142,9 +1138,8 @@ export default function App() {
             <Route path="/cctv/reports" element={
               hasPermission(user, 'cameras:read') ? <ImageServiceReports /> : <UnauthorizedPage />
             } />
-            <Route path="/cctv/camera-templates" element={
-              hasPermission(user, 'cameras:read') ? <CameraTemplates /> : <UnauthorizedPage />
-            } />
+            {/* Now a tab of master data; old links land on it. */}
+            <Route path="/cctv/camera-templates" element={<Navigate to="/cctv/masterdata?tab=camera-templates" replace />} />
             <Route path="/cctv/storage-providers" element={
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
             } />
@@ -1154,9 +1149,8 @@ export default function App() {
             <Route path="/cctv/backup" element={
               hasPermission(user, 'backup:read') ? <BackupDashboard /> : <UnauthorizedPage />
             } />
-            <Route path="/cctv/retention" element={
-              hasPermission(user, 'retention:read') ? <ImageServiceRetention /> : <UnauthorizedPage />
-            } />
+            {/* Now a tab of master data; old links land on it. */}
+            <Route path="/cctv/retention" element={<Navigate to="/cctv/masterdata?tab=retention" replace />} />
             <Route path="/cctv/roadmap" element={
               hasPermission(user, 'roadmap:read') ? <ImageServiceRoadmap /> : <UnauthorizedPage />
             } />

@@ -9,7 +9,8 @@ import { Button, Modal, TableSkeleton, SearchableSelect } from '@/components/ui'
 import { Plus, LayoutTemplate, Edit3, Trash2, CheckCircle, XCircle, Star } from 'lucide-react'
 
 
-export default function CameraTemplates() {
+/** `embedded`: shown as a tab of the master data page, without its own page heading. */
+export default function CameraTemplates({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation()
   const { themeConfig } = useTheme()
   const toast = useToast()
@@ -37,14 +38,16 @@ export default function CameraTemplates() {
   const handleDelete = () => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id) }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-start justify-between">
+    <div className={embedded ? '' : 'p-6'}>
+      <div className={`${embedded ? 'mb-4' : 'mb-6'} flex items-start justify-between`}>
         <div>
+          {!embedded && (<>
           <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
             iSmart CCTV · {t('imageService.cameraTemplates.title')}
           </p>
           <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.cameraTemplates.title')}</h1>
-          <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameraTemplates.subtitle')}</p>
+          </>)}
+          <p className={`${embedded ? 'text-xs' : 'text-sm mt-1'} ${themeConfig.text.secondary}`}>{t('imageService.cameraTemplates.subtitle')}</p>
         </div>
         <Button onClick={() => { setEditTarget(null); setShowForm(true) }}>
           <Plus size={16} className="mr-1" /> {t('imageService.cameraTemplates.newTemplate')}

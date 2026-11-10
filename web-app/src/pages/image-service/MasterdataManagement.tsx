@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission, MASTERDATA_LINKS } from '@/App';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,18 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
+
+// Set up as pages of their own before; now tabs here, loaded when opened.
+const CameraGroups = lazy(() => import('@/pages/cctv/CameraGroups'));
+const CameraTemplates = lazy(() => import('@/pages/image-service/CameraTemplates'));
+const ImageServiceRetention = lazy(() => import('@/pages/image-service/ImageServiceRetention'));
+const PAGE_TABS: Record<string, (props: { embedded?: boolean }) => JSX.Element> = {
+  '/cctv/camera-groups': (p) => <CameraGroups {...p} />,
+  '/cctv/camera-templates': (p) => <CameraTemplates {...p} />,
+  '/cctv/retention': (p) => <ImageServiceRetention {...p} />,
+};
+/** The tab key of each of those pages in ?tab=, e.g. camera-groups. */
+export const pageTabKey = (path: string) => path.replace('/cctv/', '');
 
 /** Lists whose codes the system acts on (same as the API's FIXED_CODES): names and order only. */
 const FIXED_CODE_TABS = new Set(['camera_status']);
@@ -43,10 +55,15 @@ export default function MasterdataManagement() {
   const { user } = useAuth();
   const canReadLists = hasPermission(user, 'masterdata:read');
   const links = MASTERDATA_LINKS.filter((l) => hasPermission(user, l.permission));
-  const [searchParams] = useSearchParams();
-  const initialTab = TABS.some((tb) => tb.key === searchParams.get('type'))
-    ? (searchParams.get('type') as TabType) : 'camera_type';
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // One bar of tabs: the lists (?type=) and the pages that used to open on their own (?tab=).
+  const listTabs = canReadLists ? TABS : [];
+  const wantedPage = links.find((l) => pageTabKey(l.path) === searchParams.get('tab'));
+  const wantedList = listTabs.find((tb) => tb.key === searchParams.get('type'));
+  const pageTab = wantedPage ? wantedPage.path : (!wantedList && listTabs.length === 0 ? links[0]?.path ?? null : null);
+  const activeTab: TabType = wantedList?.key ?? 'camera_type';
+  const setActiveTab = (key: TabType) => setSearchParams({ type: key }, { replace: true });
+  const openPageTab = (path: string) => setSearchParams({ tab: pageTabKey(path) }, { replace: true });
   const [modal, setModal] = useState<{ open: boolean; editing?: any }>({ open: false });
   const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '', alertDelay: '', incidentDelay: '' });
 
@@ -144,29 +161,32 @@ export default function MasterdataManagement() {
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.subtitle')}</p>
       </div>
 
-      {links.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          {links.map((link) => {
-            const Icon = link.icon;
-            return (
-              <Link key={link.path} to={link.path} className={`flex items-center gap-3 p-3 rounded-lg ${themeConfig.card} hover:ring-1 hover:ring-cyan-500/50 transition`}>
-                <Icon size={18} className="text-cyan-400 flex-shrink-0" />
-                <span className={`text-sm font-medium ${themeConfig.text.primary}`}>{t(`imageService.${link.labelKey}`)}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {canReadLists && (<>
-      <div className={`flex flex-wrap gap-1 mb-5 px-1 py-1 rounded-lg ${themeConfig.card}`}>
-        {TABS.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.key ? 'bg-cyan-500/15 text-cyan-300' : `${themeConfig.text.secondary} hover:text-white`}`}>
+      <div data-masterdata-tabs className={`flex flex-wrap gap-1 mb-5 px-1 py-1 rounded-lg ${themeConfig.card}`}>
+        {listTabs.map(tab => (
+          <button key={tab.key} data-md-tab={tab.key} onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${!pageTab && activeTab === tab.key ? 'bg-cyan-500/15 text-cyan-300' : `${themeConfig.text.secondary} hover:text-white`}`}>
             {t(tab.labelKey)}
           </button>
         ))}
+        {listTabs.length > 0 && links.length > 0 && <span className="w-px self-stretch my-1 mx-1 bg-white/10" />}
+        {links.map((link) => {
+          const Icon = link.icon;
+          return (
+            <button key={link.path} data-md-tab={pageTabKey(link.path)} onClick={() => openPageTab(link.path)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${pageTab === link.path ? 'bg-cyan-500/15 text-cyan-300' : `${themeConfig.text.secondary} hover:text-white`}`}>
+              <Icon size={15} /> {t(`imageService.${link.labelKey}`)}
+            </button>
+          );
+        })}
       </div>
+
+      {pageTab && PAGE_TABS[pageTab] && (
+        <Suspense fallback={<div className={`text-sm ${themeConfig.text.secondary}`}>{t('common.loading')}</div>}>
+          <div data-md-page={pageTabKey(pageTab)}>{PAGE_TABS[pageTab]({ embedded: true })}</div>
+        </Suspense>
+      )}
+
+      {canReadLists && !pageTab && (<>
 
       {FIXED_CODE_TABS.has(activeTab) && (
         <p data-fixed-codes className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t('imageService.masterdataManagement.fixedCodes')}</p>

@@ -13,7 +13,8 @@ import { useCctvCameras } from '@/hooks/useCctvCameras';
 
 const emptyForm = () => ({ name: '', description: '', snapshotRefreshSeconds: '', cameraIds: [] as string[] });
 
-export default function CameraGroups() {
+/** `embedded`: shown as a tab of the master data page, without its own page heading. */
+export default function CameraGroups({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const toast = useToast();
@@ -81,11 +82,11 @@ export default function CameraGroups() {
   const labelClass = `block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`;
 
   return (
-    <div className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+    <div className={embedded ? '' : 'p-6'}>
+      <div className={`flex flex-wrap items-start justify-between gap-3 ${embedded ? 'mb-4' : 'mb-6'}`}>
         <div>
-          <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('ui.cameraGroups.title')}</h1>
-          <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('ui.cameraGroups.subtitle')}</p>
+          {!embedded && <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('ui.cameraGroups.title')}</h1>}
+          <p className={`${embedded ? 'text-xs' : 'text-sm mt-1'} ${themeConfig.text.secondary}`}>{t('ui.cameraGroups.subtitle')}</p>
         </div>
         {canEdit && (
           <Button onClick={() => openEdit()}>
