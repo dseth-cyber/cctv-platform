@@ -1977,7 +1977,8 @@
         "docs": "Documentation",
         "shifts": "Shifts & Accountability",
         "executive": "Executive View",
-        "production-runs": "Production Runs"
+        "production-runs": "Production Runs",
+        "live": "Live and Playback"
       },
       "actions": {
         "overview_read": "View Dashboard",

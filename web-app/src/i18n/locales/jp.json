@@ -1719,7 +1719,8 @@
         "executive": "経営ビュー",
         "production-runs": "生産ラン",
         "settings": "設定",
-        "roadmap": "開発ロードマップ"
+        "roadmap": "開発ロードマップ",
+        "live": "ライブと再生"
       },
       "actions": {
         "overview_read": "ダッシュボードを表示",

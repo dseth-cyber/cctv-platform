@@ -1719,7 +1719,8 @@
         "executive": "管理层视图",
         "production-runs": "生产批次",
         "settings": "设置",
-        "roadmap": "系统开发路线图"
+        "roadmap": "系统开发路线图",
+        "live": "直播与回放"
       },
       "actions": {
         "overview_read": "查看仪表板",

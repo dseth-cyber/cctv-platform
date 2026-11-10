@@ -1164,7 +1164,7 @@ export default function UserManagement() {
       )}
 
       {/* User Create/Edit Modal */}
-      <Modal isOpen={userModal.open} onClose={() => setUserModal({ open: false })} size="2xl"
+      <Modal isOpen={userModal.open} onClose={() => setUserModal({ open: false })} size="5xl"
         title={userModal.item ? t('imageService.users.editUser') : t('imageService.users.newUser')}>
         <div className="space-y-4 p-1">
           <div>
@@ -1204,13 +1204,13 @@ export default function UserManagement() {
               </label>
             </div>
             
-            <div className="space-y-4 max-h-[300px] overflow-y-auto border border-white/10 rounded-lg p-3 bg-black/20">
+            <div className="space-y-4 max-h-[55vh] overflow-y-auto border border-white/10 rounded-lg p-3 bg-black/20">
               {PERMISSION_MODULES.map(mod => {
                 const modLabel = t(`imageService.permissions.modules.${mod.key}`, { defaultValue: mod.labelEn });
                 return (
                   <div key={mod.key} className="space-y-2 border-b border-white/5 pb-2 last:border-b-0 last:pb-0">
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-cyan-300">{modLabel}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 pl-2">
                       {mod.permissions.map(perm => {
                         const permLabel = t(`imageService.permissions.actions.${perm.key.replace(':', '_')}`, { defaultValue: perm.labelEn });
                         const isInherited = isPermissionInherited(userForm.role, perm.key);
@@ -1263,7 +1263,7 @@ export default function UserManagement() {
       </Modal>
 
       {/* Role Create/Edit Modal */}
-      <Modal isOpen={roleModal.open} onClose={() => setRoleModal({ open: false })} size="2xl"
+      <Modal isOpen={roleModal.open} onClose={() => setRoleModal({ open: false })} size="5xl"
         title={roleModal.item ? t('imageService.users.roles.editRole') || t('ui.userManagement.editRole') : t('imageService.users.roles.newRole') || t('ui.userManagement.newRole')}>
         <div className="space-y-4 p-1">
           <div>
@@ -1349,13 +1349,13 @@ export default function UserManagement() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[300px] overflow-y-auto border border-white/10 rounded-lg p-3 bg-black/20">
+              <div className="space-y-4 max-h-[55vh] overflow-y-auto border border-white/10 rounded-lg p-3 bg-black/20">
                 {PERMISSION_MODULES.map(mod => {
                   const modLabel = t(`imageService.permissions.modules.${mod.key}`, { defaultValue: mod.labelEn });
                   return (
                     <div key={mod.key} className="space-y-2 border-b border-white/5 pb-2 last:border-b-0 last:pb-0">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-cyan-300">{modLabel}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 pl-2">
                         {mod.permissions.map(perm => {
                           const permLabel = t(`imageService.permissions.actions.${perm.key.replace(':', '_')}`, { defaultValue: perm.labelEn });
                           const isChecked = roleForm.permissions.includes(perm.key);
