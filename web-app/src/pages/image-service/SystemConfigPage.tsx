@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
-import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, Info, Zap, Radio } from 'lucide-react';
+import { Save, RotateCcw, RefreshCw, Settings, Database, Server, Bell, Upload, Info, Zap, Radio, MonitorPlay } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Modal } from '@/components/ui';
 import { LiveSettingsAdvice } from '@/components/cctv/LiveSettingsAdvice';
@@ -19,6 +19,7 @@ const CATEGORIES: { key: string; icon: any; labelKey: string; color: string }[] 
   { key: 'alert', icon: Bell, labelKey: 'imageService.systemConfig.categoryAlert', color: 'text-red-400 bg-red-500/10' },
   { key: 'storage', icon: Server, labelKey: 'imageService.systemConfig.categoryStorageLimit', color: 'text-teal-400 bg-teal-500/10' },
   { key: 'live', icon: Radio, labelKey: 'imageService.systemConfig.categoryLive', color: 'text-emerald-400 bg-emerald-500/10' },
+  { key: 'live_hd', icon: MonitorPlay, labelKey: 'imageService.systemConfig.categoryLiveHd', color: 'text-sky-400 bg-sky-500/10' },
   { key: 'automation', icon: Zap, labelKey: 'imageService.systemConfig.categoryAutomation', color: 'text-cyan-400 bg-cyan-500/10' },
 ];
 
@@ -102,7 +103,7 @@ export default function SystemConfigPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="p-6 max-w-7xl">
       <div className="mb-6">
         <p className={`text-xs font-medium uppercase tracking-widest ${themeConfig.text.secondary}`}>
           iSmart CCTV · {t('imageService.systemConfig.title')}
@@ -117,6 +118,8 @@ export default function SystemConfigPage() {
         <div className={`${themeConfig.card} rounded-lg p-8 text-center text-sm ${themeConfig.text.secondary}`}>{t('common.loading')}</div>
       ) : (
         <>
+          {/* Cards side by side on a wide screen. */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-5 items-start">
           {/* General category — always rendered */}
           <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
             <div className="flex items-center gap-3 mb-4">
@@ -199,6 +202,13 @@ export default function SystemConfigPage() {
                   <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t(cat.labelKey)}</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  {cat.key === 'live_hd' && (
+                    <div data-auto-hd-summary className={`col-span-2 text-xs space-y-1 ${themeConfig.text.secondary}`}>
+                      <p>{t('imageService.systemConfig.liveHd.always')}</p>
+                      <p className="text-sky-300">{t('imageService.systemConfig.liveHd.most', { n: Math.min(Number(values.live_max_streams_per_user) || 16, [['live_auto_hd_4x4', 16], ['live_auto_hd_3x3', 9], ['live_auto_hd_2x2', 4]].find(([k]) => values[k as string] === 'true')?.[1] as number ?? 1) })}</p>
+                      <p>{t('imageService.systemConfig.liveHd.limits')}</p>
+                    </div>
+                  )}
                   {cat.key === 'live' && (
                     <LiveSettingsAdvice
                       refreshSeconds={values.live_snapshot_refresh_seconds ?? ''}
@@ -258,6 +268,8 @@ export default function SystemConfigPage() {
               </div>
             );
           })}
+
+          </div>
 
           <div className="flex items-center gap-3">
             <Button onClick={handleSave} disabled={saving}>

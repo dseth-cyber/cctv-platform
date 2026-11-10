@@ -45,9 +45,12 @@ async function getByIdHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.status(200).send(camerasService.toPublicCamera(camera, (request as any).user?.role));
 }
 
+/** Share of the total live limit past which automatic HD is served as the sub stream instead. */
+export const AUTO_HD_SHARE = 0.75;
+
 async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const { profile } = (request.query as { profile?: 'main' | 'sub' }) || {};
+  const { profile, auto } = (request.query as { profile?: 'main' | 'sub'; auto?: string }) || {};
   const camera = await camerasService.getCameraById(id);
   if (!camera) {
     return reply.status(404).send({ error: 'Camera not found' });
@@ -60,7 +63,10 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(429).send({ statusCode: 429, error: 'LiveLimit', message: 'Live stream limit reached', details: { code: 'LIVE_LIMIT', limit } });
   }
 
-  const isSub = profile === 'sub' && Boolean(camera.rtspUrlSub);
+  // HD asked for by a wall setting, not by a person: near the total limit it falls back to the sub stream, so
+  // an automatic upgrade never takes the last places from people who need them.
+  const degraded = profile === 'main' && auto === '1' && Boolean(camera.rtspUrlSub) && sessions !== null && sessions >= Math.ceil(limit * AUTO_HD_SHARE);
+  const isSub = (profile === 'sub' || degraded) && Boolean(camera.rtspUrlSub);
   const targetRtsp = openRtspUrl(isSub ? camera.rtspUrlSub : camera.rtspUrl);
   const basePath = camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
   const streamPath = isSub ? `${basePath}_sub` : basePath;
@@ -77,6 +83,7 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
     cameraId: camera.id,
     name: camera.name,
     profile: isSub ? 'sub' : 'main',
+    degraded,
     hasSubStream: Boolean(camera.rtspUrlSub),
     hasRtsp: Boolean(targetRtsp),
     ...urls,

@@ -100,7 +100,7 @@ export function createImageServiceApi(api: any) {
 
     importCameraInfo: (items: Array<{ id: string; cameraType?: string; cameraBrand?: string; cameraModel?: string }>, dryRun: boolean) =>
       api.post(`${BASE}/cameras/info-import`, { items, dryRun }).then((r: any) => r.data),
-    getCameraStream: (id: string, params?: { profile?: 'main' | 'sub' }) =>
+    getCameraStream: (id: string, params?: { profile?: 'main' | 'sub'; auto?: 1 }) =>
       api.get(`${BASE}/cameras/${id}/stream`, { params }).then((r: any) => r.data),
 
     // CCTV Devices (DVR / NVR / IP Cam)

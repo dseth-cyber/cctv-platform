@@ -650,7 +650,10 @@
         "playback_max_sessions_per_device": "ပြန်ကြည့်: စက်တစ်လုံးချင်း",
         "playback_max_sessions_total": "ပြန်ကြည့်: စနစ်တစ်ခုလုံး",
         "playback_max_transcodes": "H.265 တစ်ပြိုင်နက် ပြောင်းလဲမှု",
-        "playback_clip_max_minutes": "DVR/NVR ကလစ် အရှည်ဆုံး (မိနစ်)"
+        "playback_clip_max_minutes": "DVR/NVR ကလစ် အရှည်ဆုံး (မိနစ်)",
+        "live_auto_hd_2x2": "2x2 နံရံ HD ဖြင့် ဖွင့်ရန်",
+        "live_auto_hd_3x3": "3x3 နံရံ HD ဖြင့် ဖွင့်ရန်",
+        "live_auto_hd_4x4": "4x4 နံရံ HD ဖြင့် ဖွင့်ရန်"
       },
       "descriptions": {
         "alert_critical_threshold": "အရေးကြီးသတိပေးချက်အတွက် အသုံးပြုထားသောဒစ်စပေ့ရာခိုင်နှုန်း",
@@ -694,7 +697,10 @@
         "playback_max_sessions_per_device": "DVR/NVR သည် မှတ်တမ်းတင်နေသဖြင့် နည်းနည်းထားပါ။ ကလစ်ကူးခြင်းလည်း ပါဝင်သည်",
         "playback_max_sessions_total": "DVR/NVR အားလုံးပေါင်း ပြန်ကြည့်မှု အရေအတွက်",
         "playback_max_transcodes": "H.265 မဖွင့်နိုင်သော ဘရောက်ဇာများအတွက်။ တိုင်းတာချက်အရ တစ်ခုလျှင် core တစ်ဝက်ခန့်။ core ၂ ခုလျှင် ၁ ခုထက် မပိုပါ။ 0 = ပိတ်",
-        "playback_clip_max_minutes": "ကူးချိန်သည် ကလစ်အရှည်နှင့် တူပြီး ထိုအတောအတွင်း စက်၏နေရာတစ်ခု သုံးသည်"
+        "playback_clip_max_minutes": "ကူးချိန်သည် ကလစ်အရှည်နှင့် တူပြီး ထိုအတောအတွင်း စက်၏နေရာတစ်ခု သုံးသည်",
+        "live_auto_hd_2x2": "အကွက်တိုင်း SD အရင်ပြပြီး HD သို့ ပြောင်းသည် (လူတစ်ဦးလျှင် main stream 4 ခု)",
+        "live_auto_hd_3x3": "အကွက်တိုင်း HD (လူတစ်ဦးလျှင် 9 ခု): အကွက်သေးသဖြင့် ကြည်လင်မှု အနည်းငယ်သာ တိုးသော်လည်း ကွန်ရက်နှင့် ရီကော်ဒါ ပိုသုံးသည်",
+        "live_auto_hd_4x4": "အကွက်တိုင်း HD (လူတစ်ဦးလျှင် 16 ခု): အလေးဆုံး၊ ကွန်ရက်နှင့် ရီကော်ဒါ ခံနိုင်မှသာ"
       },
       "problems": {
         "summary": "မသိမ်းရသေးပါ — ပြင်ရန် {{count}} ခု ရှိသည်၊ အနီရောင်စာကို ကြည့်ပါ",
@@ -722,6 +728,12 @@
         "measured": "ဤစနစ်၏ တိုင်းတာချက်အရ ({{samples}} ပုံ: {{ms}} ms, {{kb}} KB)",
         "assumed": "တိုင်းတာချက်မလုံလောက်သေး၊ ခန့်မှန်းတန်ဖိုး ({{ms}} ms, {{kb}} KB)",
         "now": "ယခု: {{n}} လုံးကြည့်နေ၊ {{perMin}} ပုံ/မိနစ်၊ {{mb}} MB"
+      },
+      "categoryLiveHd": "အလိုအလျောက် တိုက်ရိုက် HD",
+      "liveHd": {
+        "always": "ကင်မရာတစ်လုံး (1x1 သို့မဟုတ် နှစ်ချက်နှိပ် အပြည့်) သည် အမြဲ HD ဖြစ်သည်။ SD အကွက်ကို SD တံဆိပ်ဖြင့် HD ပြောင်းနိုင်သည်။",
+        "most": "ဤသတ်မှတ်ချက်ဖြင့် လူတစ်ဦး main stream အများဆုံး {{n}} ခု တစ်ပြိုင်နက် ဆွဲယူမည်",
+        "limits": "လူတစ်ဦးချင်း ကန့်သတ်ချက်နှင့် စုစုပေါင်း ကန့်သတ်ချက် ဆက်သက်ရောက်သည်။ စုစုပေါင်း၏ 75% ကျော်လျှင် အလိုအလျောက် HD ကို SD ဖြင့် ပေးမည် (ကိုယ်တိုင် HD ရွေးလျှင် HD ရမည်)။"
       }
     },
     "about": {
@@ -3298,8 +3310,8 @@
       "tourCycleInterval": "လှည့်ကြည့် ကြားကာလ",
       "n1x1SingleCamera": "1x1 (ကင်မရာ ၁ လုံး)",
       "n2x24Cameras": "2x2 (ကင်မရာ ၄ လုံး)",
-      "n3x39CamerasAutoSubStream": "3x3 (ကင်မရာ ၉ လုံး - Sub-stream အလိုအလျောက်)",
-      "n4x416CamerasAutoSubStream": "4x4 (ကင်မရာ ၁၆ လုံး - Sub-stream အလိုအလျောက်)",
+      "n3x39CamerasAutoSubStream": "3x3 (ကင်မရာ ၉ လုံး)",
+      "n4x416CamerasAutoSubStream": "4x4 (ကင်မရာ ၁၆ လုံး)",
       "managePresets": "Preset များ စီမံရန်",
       "presets": "Preset များ",
       "selectCameras": "ကင်မရာ ရွေးရန်",
@@ -3433,7 +3445,9 @@
       "digitalZoomPanControlsBrowserSide": "Digital Zoom / Pan ထိန်းချုပ်မှု (Browser ဘက်)",
       "takeSnapshot": "Snapshot ရိုက်ရန်",
       "fullscreen": "မျက်နှာပြင်အပြည့်",
-      "subStreamH": "Sub stream (H.264)"
+      "subStreamH": "Sub stream (H.264)",
+      "toHdHint": "ရီကော်ဒါ ဝန်သက်သာရန် SD သုံးထားသည် — HD ကြည့်ရန် နှိပ်ပါ (သို့မဟုတ် နှစ်ချက်နှိပ်၍ အပြည့်ကြည့်ပါ)",
+      "toSdHint": "SD သို့ ပြန်ရန် နှိပ်ပါ"
     },
     "healthStatus": {
       "cctvNetworkLiveStreamHealthHigh": "CCTV ကွန်ရက်နှင့် တိုက်ရိုက် Stream ကျန်းမာရေး (အကြီးစား စောင့်ကြည့်မှု)",

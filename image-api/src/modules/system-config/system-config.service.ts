@@ -48,6 +48,10 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   // Live Room limits: going over any of them slows the page down, it never overloads the server.
   live_max_streams_per_user: { value: '16', description: 'Live video tiles one viewer can have open at once; the rest show still images', valueType: 'number', category: 'live', min: 1, max: 64 },
   live_max_streams_total: { value: '64', description: 'Live video streams across all viewers; past this, viewers see still images', valueType: 'number', category: 'live', min: 1, max: 1000 },
+  // A layout with these many tiles opens each tile in HD (sub stream first, then main). 1x1 and the full view always do.
+  live_auto_hd_2x2: { value: 'true', description: 'Open the 2x2 wall in HD by itself', valueType: 'boolean', category: 'live_hd' },
+  live_auto_hd_3x3: { value: 'false', description: 'Open the 3x3 wall in HD by itself', valueType: 'boolean', category: 'live_hd' },
+  live_auto_hd_4x4: { value: 'false', description: 'Open the 4x4 wall in HD by itself', valueType: 'boolean', category: 'live_hd' },
   live_snapshot_refresh_seconds: { value: '30', description: 'How often still images are refreshed while someone is looking at them', valueType: 'number', category: 'live', min: 10, max: 600 },
   live_snapshot_stale_seconds: { value: '120', description: 'A still image older than this is flagged as out of date', valueType: 'number', category: 'live', min: 30, max: 3600 },
   live_snapshot_device_concurrency: { value: '3', description: 'Still images fetched at once from one camera or DVR/NVR', valueType: 'number', category: 'live', min: 1, max: 16 },

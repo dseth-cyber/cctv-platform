@@ -227,12 +227,16 @@ export default function LiveGrid() {
     setSavedView(view);
     store(viewKey, view);
   };
+  // HD by itself per layout (System Config, admin); a single camera is always HD.
+  const { data: liveSettings } = useQuery<any>({ queryKey: ['snapshot-settings'], queryFn: () => imageServiceApi.getSnapshotSettings(), staleTime: 60_000 });
+  const autoHd: Record<string, boolean> = liveSettings?.autoHd ?? { '1x1': true, '2x2': true, '3x3': false, '4x4': false };
+  const autoProfile = (l: GridLayout): 'main' | 'sub' => (l === '1x1' || autoHd[l] ? 'main' : 'sub');
   // The first fill has happened (or was overtaken by a choice), so an empty slot is now the person's choice.
   const filledOnce = useRef(false);
   const fillLayout = (next: GridLayout) => {
     filledOnce.current = true;
     const count = getSlotCount(next);
-    const profile: 'main' | 'sub' = count >= 4 ? 'sub' : 'main';
+    const profile = autoProfile(next);
     const kept = cells.slice(0, count);
     const toFill = camerasForEmptySlots(filteredCameras, kept.map((c) => c.cameraId));
     let nextToFill = 0;
@@ -240,10 +244,10 @@ export default function LiveGrid() {
       if (cell.cameraId) {
         if (cell.streamProfile !== profile) {
           const cam = cameras.find((c: any) => c.id === cell.cameraId);
-          if (cam) assignCameraToSlot(cam, cell.slotIndex, profile);
+          if (cam) assignCameraToSlot(cam, cell.slotIndex, profile, true);
         }
       } else if (nextToFill < toFill.length) {
-        assignCameraToSlot(toFill[nextToFill++], cell.slotIndex, profile);
+        assignCameraToSlot(toFill[nextToFill++], cell.slotIndex, profile, true);
       }
     });
     // Slots this layout does not show stop streaming.
@@ -313,13 +317,14 @@ export default function LiveGrid() {
 
   // Assign camera to current slot with preferred profile
   const assignCameraToSlot = useCallback(
-    async (cam: any, slotIdx: number, preferredProfile?: 'main' | 'sub') => {
-      // Sub-stream policy: for grid walls (4+ cameras), default to sub-stream (H.264) to conserve bandwidth & client decoding CPU
-      const profileToUse = preferredProfile || (slotCount >= 4 ? 'sub' : 'main');
+    async (cam: any, slotIdx: number, preferredProfile?: 'main' | 'sub', automatic = !preferredProfile) => {
+      // The wall's own rule (System Config: HD by itself per layout) unless a person picked SD/HD for this tile.
+      const profileToUse = preferredProfile || autoProfile(layout);
 
       try {
         const streamData = await imageServiceApi.getCameraStream(cam.id, {
           profile: profileToUse,
+          ...(automatic && profileToUse === 'main' ? { auto: 1 as const } : {}),
         });
 
         const fallbackWhep = `/mediamtx/webrtc/${
@@ -362,7 +367,8 @@ export default function LiveGrid() {
         );
       }
     },
-    [slotCount]
+    // layout and the HD setting decide the profile, so a stale copy would open the wrong stream.
+    [slotCount, layout, liveSettings]
   );
 
   // Toggle profile between main and sub for a cell
@@ -620,6 +626,15 @@ export default function LiveGrid() {
     setDrawerOpen(false);
   };
 
+  const autoHdKey = autoHd[layout] ? 'hd' : 'sd';
+  const appliedAutoHd = useRef(autoHdKey);
+  useEffect(() => {
+    if (appliedAutoHd.current === autoHdKey) return;
+    appliedAutoHd.current = autoHdKey;
+    if (!isOverview && filledOnce.current) fillLayout(layout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoHdKey]);
+
   // Saved views (server): load replaces the wall with the view's cameras that this person may see.
   const handleLoadPreset = (view: LiveView) => {
     filledOnce.current = true;
@@ -816,7 +831,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '1x1' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title={t('ui.liveGrid.n1x1SingleCamera')}
+              title={`${t('ui.liveGrid.n1x1SingleCamera')} — HD`}
             >
               <Square className="w-4 h-4" />
             </button>
@@ -825,7 +840,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '2x2' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title={t('ui.liveGrid.n2x24Cameras')}
+              title={`${t('ui.liveGrid.n2x24Cameras')} — ${autoHd['2x2'] ? 'HD' : 'SD'}`}
             >
               <Grid2X2 className="w-4 h-4" />
             </button>
@@ -834,7 +849,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '3x3' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title={t('ui.liveGrid.n3x39CamerasAutoSubStream')}
+              title={`${t('ui.liveGrid.n3x39CamerasAutoSubStream')} — ${autoHd['3x3'] ? 'HD' : 'SD'}`}
             >
               <Grid3X3 className="w-4 h-4" />
             </button>
@@ -843,7 +858,7 @@ export default function LiveGrid() {
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '4x4' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title={t('ui.liveGrid.n4x416CamerasAutoSubStream')}
+              title={`${t('ui.liveGrid.n4x416CamerasAutoSubStream')} — ${autoHd['4x4'] ? 'HD' : 'SD'}`}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>

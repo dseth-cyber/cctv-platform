@@ -17,9 +17,9 @@ const TARGET_CACHE_MS = 30_000;
 const SETTINGS_CACHE_MS = 15_000;
 const RTSP_CONCURRENCY = 4;
 
-let settings: SchedulerSettings & { staleSeconds: number; maxStreamsPerUser: number } = {
+let settings: SchedulerSettings & { staleSeconds: number; maxStreamsPerUser: number; autoHd: Record<string, boolean> } = {
   refreshSeconds: 30, deviceConcurrency: 3, globalConcurrency: 16, rtspConcurrency: RTSP_CONCURRENCY,
-  cacheBytes: 128 * 1024 * 1024, staleSeconds: 120, maxStreamsPerUser: 16,
+  cacheBytes: 128 * 1024 * 1024, staleSeconds: 120, maxStreamsPerUser: 16, autoHd: { '1x1': true, '2x2': true, '3x3': false, '4x4': false },
 };
 let settingsLoadedAt = 0;
 
@@ -35,6 +35,13 @@ async function refreshSettings() {
     cacheBytes: Number(c.live_snapshot_cache_mb?.value ?? 128) * 1024 * 1024,
     staleSeconds: Number(c.live_snapshot_stale_seconds?.value ?? 120),
     maxStreamsPerUser: Number(c.live_max_streams_per_user?.value ?? 16),
+    autoHd: {
+      '1x1': true,
+      // getAllConfigs parses booleans; a missing row falls back to the default (2x2 on, 3x3/4x4 off).
+      '2x2': c.live_auto_hd_2x2?.value !== false,
+      '3x3': c.live_auto_hd_3x3?.value === true,
+      '4x4': c.live_auto_hd_4x4?.value === true,
+    },
   };
   return settings;
 }
@@ -131,8 +138,8 @@ async function imageHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 async function settingsHandler(_request: FastifyRequest, reply: FastifyReply) {
-  const { refreshSeconds, staleSeconds, maxStreamsPerUser } = await refreshSettings();
-  return reply.send({ refreshSeconds, staleSeconds, maxStreamsPerUser });
+  const { refreshSeconds, staleSeconds, maxStreamsPerUser, autoHd } = await refreshSettings();
+  return reply.send({ refreshSeconds, staleSeconds, maxStreamsPerUser, autoHd });
 }
 
 const adviceSchema = z.object({

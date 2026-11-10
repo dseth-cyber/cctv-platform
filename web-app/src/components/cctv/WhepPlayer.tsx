@@ -467,9 +467,9 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
               className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold uppercase border transition ${
                 streamProfile === 'main'
                   ? 'bg-slate-800 text-cyan-300 border-cyan-500/50 hover:bg-slate-700'
-                  : 'bg-amber-950/80 text-amber-300 border-amber-500/50 hover:bg-amber-900'
+                  : 'bg-amber-950/80 text-amber-300 border-amber-500/50 hover:bg-amber-900 hover:ring-2 hover:ring-amber-400/60 cursor-pointer'
               }`}
-              title={t('ui.whepPlayer.switchTo', { v0: streamProfile === 'main' ? 'Sub Stream (SD)' : 'Main Stream (HD)' })}
+              title={t(streamProfile === 'main' ? 'ui.whepPlayer.toSdHint' : 'ui.whepPlayer.toHdHint')}
             >
               {streamProfile === 'main' ? 'HD' : 'SD'}
             </button>

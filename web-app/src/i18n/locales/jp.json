@@ -650,7 +650,10 @@
         "playback_max_sessions_per_device": "再生：機器ごと",
         "playback_max_sessions_total": "再生：システム全体",
         "playback_max_transcodes": "H.265 同時変換数",
-        "playback_clip_max_minutes": "DVR/NVR クリップの最大長（分）"
+        "playback_clip_max_minutes": "DVR/NVR クリップの最大長（分）",
+        "live_auto_hd_2x2": "2x2 ウォールを自動でHD",
+        "live_auto_hd_3x3": "3x3 ウォールを自動でHD",
+        "live_auto_hd_4x4": "4x4 ウォールを自動でHD"
       },
       "descriptions": {
         "alert_critical_threshold": "致命的なアラートを発信するためのディスク使用率",
@@ -694,7 +697,10 @@
         "playback_max_sessions_per_device": "DVR/NVR は同時に録画もしているため少なめに。クリップのコピーも含みます",
         "playback_max_sessions_total": "すべての DVR/NVR を合わせた再生数",
         "playback_max_transcodes": "H.265 を再生できないブラウザ用。実測で 1 件あたり約 0.5 コア。設定に関わらず 2 コアにつき 1 件まで。0 で無効",
-        "playback_clip_max_minutes": "コピーにはクリップの長さと同じ時間がかかり、その間機器の枠を 1 つ使います"
+        "playback_clip_max_minutes": "コピーにはクリップの長さと同じ時間がかかり、その間機器の枠を 1 つ使います",
+        "live_auto_hd_2x2": "各タイルはSDの後にHDへ切り替え（1人あたりメイン4本）",
+        "live_auto_hd_3x3": "全タイルHD（1人あたりメイン9本）: 小さいタイルでは鮮明さの向上は少なく、ネットワークとレコーダーの負荷が増えます",
+        "live_auto_hd_4x4": "全タイルHD（1人あたりメイン16本）: 最も重い。ネットワークとレコーダーに余裕がある場合のみ"
       },
       "problems": {
         "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
@@ -722,6 +728,12 @@
         "measured": "このシステムの実測値に基づく（{{samples}} 枚: 平均 {{ms}} ms、{{kb}} KB）",
         "assumed": "実測が不足のため推定値（{{ms}} ms、{{kb}} KB）。一覧を使うと正確になります",
         "now": "現在: 表示中 {{n}} 台、{{perMin}} 枚/分、画像メモリ {{mb}} MB"
+      },
+      "categoryLiveHd": "ライブの自動HD",
+      "liveHd": {
+        "always": "カメラ1台（1x1 またはダブルクリックの全画面）は常にHD。SDのタイルもSDバッジでHDに切り替えられます。",
+        "most": "この設定では1人が同時に取得するメインストリームは最大 {{n}} 本",
+        "limits": "1人あたりのライブ枠と全体上限は引き続き適用。全体の75%を超えると自動HDはSDで提供（手動でHDを選んだ場合はHD）。"
       }
     },
     "about": {
@@ -3303,8 +3315,8 @@
       "tourCycleInterval": "巡回間隔",
       "n1x1SingleCamera": "1x1（1 台）",
       "n2x24Cameras": "2x2（4 台）",
-      "n3x39CamerasAutoSubStream": "3x3（9 台 - 自動サブストリーム）",
-      "n4x416CamerasAutoSubStream": "4x4（16 台 - 自動サブストリーム）",
+      "n3x39CamerasAutoSubStream": "3x3（9 台）",
+      "n4x416CamerasAutoSubStream": "4x4（16 台）",
       "managePresets": "プリセットを管理",
       "presets": "プリセット",
       "selectCameras": "カメラを選択",
@@ -3438,7 +3450,9 @@
       "digitalZoomPanControlsBrowserSide": "デジタルズーム / パン操作（ブラウザ側）",
       "takeSnapshot": "スナップショット",
       "fullscreen": "全画面",
-      "subStreamH": "サブストリーム (H.264)"
+      "subStreamH": "サブストリーム (H.264)",
+      "toHdHint": "レコーダーの負荷を抑えるためSDです — クリックでHD表示（ダブルクリックで全画面）",
+      "toSdHint": "クリックでSDに戻す"
     },
     "healthStatus": {
       "cctvNetworkLiveStreamHealthHigh": "CCTV ネットワークとライブストリームの健全性（大規模監視）",

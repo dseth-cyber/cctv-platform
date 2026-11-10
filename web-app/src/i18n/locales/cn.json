@@ -650,7 +650,10 @@
         "playback_max_sessions_per_device": "回放：每台设备",
         "playback_max_sessions_total": "回放：系统总数",
         "playback_max_transcodes": "同时转换 H.265",
-        "playback_clip_max_minutes": "DVR/NVR 片段最长（分钟）"
+        "playback_clip_max_minutes": "DVR/NVR 片段最长（分钟）",
+        "live_auto_hd_2x2": "2x2 墙自动高清",
+        "live_auto_hd_3x3": "3x3 墙自动高清",
+        "live_auto_hd_4x4": "4x4 墙自动高清"
       },
       "descriptions": {
         "alert_critical_threshold": "用于严重告警的磁盘空间使用百分比",
@@ -694,7 +697,10 @@
         "playback_max_sessions_per_device": "DVR/NVR 同时还在录像，不宜过多。复制片段也计入",
         "playback_max_sessions_total": "所有 DVR/NVR 的回放总数",
         "playback_max_transcodes": "用于无法播放 H.265 的浏览器。实测每路约半个核心；无论如何设置，每 2 个核心最多 1 路。0 表示关闭",
-        "playback_clip_max_minutes": "复制所需时间与片段时长相同，期间占用设备的一个名额"
+        "playback_clip_max_minutes": "复制所需时间与片段时长相同，期间占用设备的一个名额",
+        "live_auto_hd_2x2": "每格先显示标清再切换为高清（每人 4 路主码流）",
+        "live_auto_hd_3x3": "每格高清（每人 9 路主码流）：小格子清晰度提升有限，但更占网络和录像机",
+        "live_auto_hd_4x4": "每格高清（每人 16 路主码流）：负载最重，仅在网络和录像机能承受时使用"
       },
       "problems": {
         "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
@@ -722,6 +728,12 @@
         "measured": "基于本系统实测（{{samples}} 张：平均 {{ms}} ms，{{kb}} KB）",
         "assumed": "实测不足，使用估算值（{{ms}} ms，{{kb}} KB）。使用总览后会更准确",
         "now": "当前：{{n}} 台正在查看，{{perMin}} 张/分钟，图片内存 {{mb}} MB"
+      },
+      "categoryLiveHd": "自动高清直播",
+      "liveHd": {
+        "always": "单个摄像机（1x1 或双击全屏）始终为高清。标清格子仍可点击 SD 标志切换为高清。",
+        "most": "按此设置，每人最多同时拉取 {{n}} 路主码流",
+        "limits": "仍受每人直播配额和总上限限制；超过总上限的 75% 时，自动高清改为标清（手动选择高清仍为高清）。"
       }
     },
     "about": {
@@ -3303,8 +3315,8 @@
       "tourCycleInterval": "轮巡间隔",
       "n1x1SingleCamera": "1x1（单画面）",
       "n2x24Cameras": "2x2（4 画面）",
-      "n3x39CamerasAutoSubStream": "3x3（9 画面 - 自动子码流）",
-      "n4x416CamerasAutoSubStream": "4x4（16 画面 - 自动子码流）",
+      "n3x39CamerasAutoSubStream": "3x3（9 画面）",
+      "n4x416CamerasAutoSubStream": "4x4（16 画面）",
       "managePresets": "管理预设",
       "presets": "预设",
       "selectCameras": "选择摄像机",
@@ -3438,7 +3450,9 @@
       "digitalZoomPanControlsBrowserSide": "数字缩放 / 平移控制（浏览器端）",
       "takeSnapshot": "截图",
       "fullscreen": "全屏",
-      "subStreamH": "子码流 (H.264)"
+      "subStreamH": "子码流 (H.264)",
+      "toHdHint": "此格使用标清以减轻录像机负担 — 点击查看高清（或双击全屏）",
+      "toSdHint": "点击切回标清"
     },
     "healthStatus": {
       "cctvNetworkLiveStreamHealthHigh": "CCTV 网络与实时流健康（大规模监控）",
