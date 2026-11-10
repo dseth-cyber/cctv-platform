@@ -3369,7 +3369,8 @@
           "unreachable": "接続できません",
           "failed": "画像を取得できません"
         }
-      }
+      },
+      "pausedHidden": "このタブを見ていない間ライブを一時停止しています。戻ると自動で再開します"
     },
     "cctvMap": {
       "interactiveCctvMap": "インタラクティブ CCTV マップ",

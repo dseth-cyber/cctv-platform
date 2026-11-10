@@ -66,6 +66,8 @@ const FILTER_STORAGE_KEY = 'cctv_live_filter';
 const VIEW_STORAGE_KEY = 'cctv_live_view';
 const LAYOUT_STORAGE_KEY = 'cctv_live_layout';
 const LOCATION_STORAGE_KEY = 'cctv_live_location';
+/** A tab hidden this long stops its streams (a quick look elsewhere does not); they reopen when it is shown again. */
+export const HIDDEN_PAUSE_MS = 20_000;
 // Past this many cameras the page opens on the overview instead of a few tiles.
 const OVERVIEW_DEFAULT_ABOVE = 16;
 
@@ -100,6 +102,17 @@ function CameraOfflineBanner() {
   return (
     <div data-camera-offline className="absolute top-10 left-2 right-2 z-30 px-2 py-1 rounded bg-rose-950/90 border border-rose-700 text-[11px] font-semibold text-rose-100 pointer-events-none">
       {t('ui.liveGrid.cameraOfflineBanner')}
+    </div>
+  );
+}
+
+/** Stands in for a player while the tab has been hidden for a while; the stream reopens when the tab is shown. */
+function PausedHidden({ name }: { name?: string | null }) {
+  const { t } = useTranslation();
+  return (
+    <div data-paused-hidden className="w-full h-full flex flex-col items-center justify-center gap-1 bg-black px-3 text-center">
+      {name && <span className="text-xs font-semibold text-slate-300">{name}</span>}
+      <span className="text-[11px] text-slate-500">{t('ui.liveGrid.pausedHidden')}</span>
     </div>
   );
 }
@@ -154,6 +167,20 @@ export default function LiveGrid() {
     return saved === 'overview' || saved === 'grid' ? saved : null;
   });
   const [isWallFullscreen, setIsWallFullscreen] = useState(false);
+
+  // Nobody looking: after a while hidden, the wall drops its streams so recorders are not pulled for nothing.
+  const [pausedHidden, setPausedHidden] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onChange = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (document.hidden) timer = setTimeout(() => setPausedHidden(true), HIDDEN_PAUSE_MS);
+      else setPausedHidden(false);
+    };
+    document.addEventListener('visibilitychange', onChange);
+    return () => { document.removeEventListener('visibilitychange', onChange); if (timer) clearTimeout(timer); };
+  }, []);
 
   // Auto-Tour / Patrol Mode state for hundreds of cameras
   const [isTourActive, setIsTourActive] = useState<boolean>(false);
@@ -517,7 +544,7 @@ export default function LiveGrid() {
 
   // Tour Mode countdown & auto-advance timer
   useEffect(() => {
-    if (!isTourActive) return;
+    if (!isTourActive || pausedHidden) return;
     if (!focusing && (isOverview || filteredCameras.length <= slotCount)) return;
 
     const interval = setInterval(() => {
@@ -540,7 +567,7 @@ export default function LiveGrid() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isOverview, isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage, focusing]);
+  }, [isOverview, isTourActive, tourIntervalSeconds, totalTourPages, slotCount, filteredCameras.length, loadTourPage, focusing, pausedHidden]);
 
   // Handle manual next/prev tour page
   const handleNextTourPage = () => {
@@ -877,7 +904,7 @@ export default function LiveGrid() {
             }}
           >
             {cameras.find((c: any) => c.id === focus.cameraId)?.operationalStatus === 'offline' && <CameraOfflineBanner />}
-            <LiveHdPlayer
+            {pausedHidden ? <PausedHidden name={focus.name} /> : <LiveHdPlayer
               cameraId={focus.cameraId}
               key={focus.streamUrl}
               streamUrl={focus.streamUrl}
@@ -893,7 +920,7 @@ export default function LiveGrid() {
                 if (cam && focus.profile === 'main' && focus.hasSub) openFocus(cam, 'sub', true);
               }}
               className="w-full h-full"
-            />
+            />}
             <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300">
               <span className="pointer-events-none">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
               <CameraQuickActions cameraId={focus.cameraId} deviceId={cameras.find((c: any) => c.id === focus.cameraId)?.deviceId} isFavorite={favorites.has(focus.cameraId)} onToggleFavorite={toggleFavorite} />
@@ -964,7 +991,7 @@ export default function LiveGrid() {
                         <GripVertical className="w-3.5 h-3.5" />
                         {t('ui.liveGrid.dragShort')}
                       </div>
-                      <LiveHdPlayer
+                      {pausedHidden ? <PausedHidden name={cell.cameraName} /> : <LiveHdPlayer
                         cameraId={cell.cameraId as string}
                         streamUrl={cell.streamUrl}
                         cameraName={cell.cameraName || t('ui.liveGrid.slot', { v0: cell.slotIndex + 1 })}
@@ -975,7 +1002,7 @@ export default function LiveGrid() {
                         }
                         onFatalError={() => handleStreamFailed(cell.slotIndex)}
                         className="w-full h-full"
-                      />
+                      />}
                       {cameras.find((c: any) => c.id === cell.cameraId)?.operationalStatus === 'offline' && (
                         <CameraOfflineBanner />
                       )}

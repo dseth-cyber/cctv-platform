@@ -3011,7 +3011,7 @@
       "hq01P": "HQ-01, P1",
       "zn": "ZN-01"
     },
-    "liveGrid": { "dragToMove": "Drag onto another slot to swap", "dragShort": "Drag", "dragToSlot": "Click to put in the selected slot, or drag onto any slot",
+    "liveGrid": { "pausedHidden": "Live paused while this tab is not being viewed; it resumes when you come back", "dragToMove": "Drag onto another slot to swap", "dragShort": "Drag", "dragToSlot": "Click to put in the selected slot, or drag onto any slot",
       "editCamera": "Edit this camera",
       "manageDevice": "Manage this camera's device",
       "openPlayback": "Recordings of this camera",

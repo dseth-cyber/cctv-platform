@@ -121,6 +121,10 @@
   - ฟอร์มเป็นตัวเลือก 10/15/30/60/120/300/600 วินาที ถ้าค่าที่เก็บไม่อยู่ในรายการ (ตั้งผ่าน API) ฟอร์มยังแสดงค่านั้น บันทึกฟอร์มจึงไม่ล้างค่า (พบและแก้ระหว่างทดสอบ)
   - ทดสอบหน้าเว็บเฉพาะฟอร์มกลุ่ม ฟอร์มกล้อง/อุปกรณ์/แก้หลายกล้องผ่าน tsc และ API แต่ยังไม่ได้กดผ่านหน้าเว็บ
 
+- ห้องภาพสดหยุดสตรีมเมื่อไม่มีคนดู (R5.3, 2026-11-10): `LiveGrid.tsx` แท็บซ่อนเกิน `HIDDEN_PAUSE_MS` (20 วิ) ไม่ render ตัวเล่น (ปิด WebRTC) และพักลาดตระเวน กลับมาแล้วเปิดชุดเดิม หน้าภาพรวมมีของตัวเองอยู่แล้วใน `LiveOverview.tsx`
+- เครื่อง Dev หน่วยความจำ (2026-11-10): commit ของ Windows เคยเหลือ ~0.5 GB เพราะแคชไฟล์ใน WSL VM ของ Docker ~10.5 GB (มาจาก build ซ้ำ) ทำให้ Docker Desktop รีสตาร์ทเองและ Node ล่ม (out of memory) ผู้ใช้อนุญาตให้ล้างแคช: `docker run --rm --privileged alpine:3 sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"` แล้ว commit ว่างกลับมา ~6.7 GB (`.wslconfig` มี `autoMemoryReclaim=gradual` อยู่แล้ว)
+- หลัง Docker Desktop รีสตาร์ทเอง ภาพสดดับทุกจุด: MediaMTX log `deadline exceeded while waiting connection` (UDP ของ WebRTC ไม่ถึง container) แก้ด้วย `docker restart cctv-mediamtx` (เจอ 2026-11-10)
+
 **ควรรู้ก่อนทำงานต่อ**
 - งานที่ผู้ใช้ต้องทำที่ตัวเครื่องและเหตุผล: [DEVICE_CHECKLIST](docs/pilot/DEVICE_CHECKLIST.md) วัดซ้ำเมื่อผู้ใช้แจ้งว่าทำแล้ว
 - MD ส่ง keyframe ห่าง ~19 วินาที: ย้อนหลังอาจดำได้ถึง ~20 วินาที และเวลาบนหน้าอาจนำภาพ ให้ยึดเวลาบนภาพ คลิปจาก MD อาจขาดช่วงท้าย (ยังไม่ได้ทดสอบโดยตรง) แก้ที่ I-Frame Interval ของเครื่อง
