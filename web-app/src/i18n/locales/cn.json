@@ -2912,7 +2912,8 @@
       "import": "导入",
       "devices": "设备",
       "eGDs7216hqhiK": "例如 DS-7216HQHI-K1",
-      "vendorStreamUrlCh": "厂商流地址（通道 1）："
+      "vendorStreamUrlCh": "厂商流地址（通道 1）：",
+      "openDeviceWeb": "在新标签页打开设备网页（本电脑需与设备在同一局域网）"
     },
     "bulkEdit": {
       "alertLevelFollow": "跟随设备",

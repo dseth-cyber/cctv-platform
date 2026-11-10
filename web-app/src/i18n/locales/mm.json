@@ -2907,7 +2907,8 @@
       "import": "တင်သွင်းရန်",
       "devices": "စက်ပစ္စည်း",
       "eGDs7216hqhiK": "ဥပမာ DS-7216HQHI-K1",
-      "vendorStreamUrlCh": "ထုတ်လုပ်သူ Stream URL (Ch 1):"
+      "vendorStreamUrlCh": "ထုတ်လုပ်သူ Stream URL (Ch 1):",
+      "openDeviceWeb": "စက်၏ ဝဘ်စာမျက်နှာကို tab အသစ်တွင် ဖွင့်ရန် (ဤကွန်ပျူတာသည် စက်နှင့် LAN တစ်ခုတည်းတွင် ရှိရမည်)"
     },
     "bulkEdit": {
       "alertLevelFollow": "စက်အတိုင်း",

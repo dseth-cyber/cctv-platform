@@ -2912,7 +2912,8 @@
       "import": "インポート",
       "devices": "デバイス",
       "eGDs7216hqhiK": "例: DS-7216HQHI-K1",
-      "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:"
+      "vendorStreamUrlCh": "メーカー別ストリーム URL（ch 1）:",
+      "openDeviceWeb": "機器の Web ページを新しいタブで開く（このPCが機器と同じLANにある必要があります）"
     },
     "bulkEdit": {
       "alertLevelFollow": "機器に従う",

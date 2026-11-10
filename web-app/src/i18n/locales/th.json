@@ -2581,7 +2581,7 @@
       "allTypes": "ทุกประเภท",
       "noCctvDevicesFound": "ไม่พบอุปกรณ์ CCTV",
       "addYourFirstDvrNvrOr": "เพิ่ม DVR, NVR หรือกล้อง IP ตัวแรกเพื่อเริ่มสตรีมผ่าน MediaMTX",
-      "ip": "IP:",
+      "openDeviceWeb": "เปิดหน้าเว็บของเครื่องในแท็บใหม่ (เครื่องที่ใช้ต้องอยู่ในวง LAN เดียวกับอุปกรณ์)", "ip": "IP:",
       "http": "HTTP:",
       "onvif": "ONVIF:",
       "site": "สถานที่:",

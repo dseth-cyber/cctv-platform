@@ -727,7 +727,22 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-400">
-                          <span className="font-mono text-cyan-300">{t('ui.deviceManagement.ip')}{' '}{dev.ipAddress}:{dev.rtspPort}</span>
+                          {/* The recorder's own web page, opened from this browser (it must be on the recorder's LAN). */}
+                          <span className="font-mono text-cyan-300">
+                            {t('ui.deviceManagement.ip')}{' '}
+                            <a
+                              data-device-web={dev.id}
+                              href={`http://${dev.ipAddress}${dev.httpPort && dev.httpPort !== 80 ? `:${dev.httpPort}` : ''}/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title={t('ui.deviceManagement.openDeviceWeb')}
+                              className="inline-flex items-center gap-0.5 underline decoration-dotted underline-offset-2 hover:text-cyan-200 hover:decoration-solid"
+                            >
+                              {dev.ipAddress}<ExternalLink className="w-3 h-3" />
+                            </a>
+                            <span className="text-slate-500">:{dev.rtspPort}</span>
+                          </span>
                           <span>{t('ui.deviceManagement.http')}{' '}{dev.httpPort || 80}</span>
                           {dev.onvifPort && <span>{t('ui.deviceManagement.onvif')}{' '}{dev.onvifPort}</span>}
                           {dev.serialNumber && <span>S/N: {dev.serialNumber}</span>}
