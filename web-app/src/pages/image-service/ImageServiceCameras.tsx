@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CameraInfoImportModal } from '@/components/cctv/CameraInfoImportModal';
+import { CameraLiveModal, WatchLiveButton } from '@/components/cctv/CameraLiveModal';
 import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
 import { specNotes } from '@/lib/cameraSpec';
 import { useNavigate } from 'react-router-dom';
@@ -171,6 +172,7 @@ export default function ImageServiceCameras() {
 
   // Delete camera state
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; camera?: any }>({ open: false });
+  const [liveCamera, setLiveCamera] = useState<any | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
 
@@ -1326,11 +1328,10 @@ export default function ImageServiceCameras() {
                           className="hover:text-cyan-300 transition-colors text-left">
                           {camera.name}
                         </button>
-                        {camera.recordingMode === 'continuous' ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">● {t('imageService.cameras.recording.badgeRecord')}</span>
-                        ) : (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded border border-white/10 ${themeConfig.text.secondary}`}>{t('imageService.cameras.recording.badgeLive')}</span>
+                        {camera.recordingMode === 'continuous' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30" title={t('imageService.cameras.recording.onHint')}>● {t('imageService.cameras.recording.badgeRecord')}</span>
                         )}
+                        {camera.enabled !== false && <WatchLiveButton compact onClick={() => setLiveCamera(camera)} />}
                       </div>
                     </td>
                     {showColumn('cameraType') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{cameraTypeLabel(camera.cameraType)}</td>}
@@ -2474,6 +2475,7 @@ export default function ImageServiceCameras() {
         />
       )}
       <CameraInfoImportModal isOpen={infoImportOpen} onClose={() => setInfoImportOpen(false)} cameras={cameras as any[]} typeOptions={cameraTypeOptions} brandOptions={cameraBrandOptions} />
+      <CameraLiveModal camera={liveCamera} onClose={() => setLiveCamera(null)} />
     </div>
   );
 }

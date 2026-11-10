@@ -9,13 +9,13 @@ import { Responsive, WidthProvider } from 'react-grid-layout'
 import { imageServiceApi } from '@/services/imageServiceApi'
 import { Link, useNavigate } from 'react-router-dom'
 import { CameraSpecBadges } from '@/components/cctv/CameraSpecCard'
-import { CameraLivePlayer } from '@/components/cctv/LiveHdPlayer'
+import { CameraLiveModal } from '@/components/cctv/CameraLiveModal'
 import { Modal } from '@/components/ui'
 import { TableSkeleton, ExportButton, SearchableSelect, CountUpValue } from '@/components/ui'
 import {
   Activity, Shield, Clock, Heart, Camera, TrendingDown, Image,
   AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronLeft, ChevronRight,
-  GripVertical, Settings, RotateCcw, Check, Star, Cpu, Radio, Maximize2,
+  GripVertical, Settings, RotateCcw, Check, Star, Cpu, Radio,
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -522,34 +522,7 @@ export default function CameraAnalytics() {
                 </div>
               )}
             </div>
-            {/* Quick live look; closing it (or going on to the live wall) drops the stream, so it never runs twice. */}
-            <Modal isOpen={liveOpen} onClose={() => setLiveOpen(false)} title={selectedCamera.name} size="4xl">
-              <div data-live-modal className="space-y-3">
-                {op === 'offline' && (
-                  <p className="flex items-center gap-1.5 text-xs text-amber-300">
-                    <AlertTriangle size={14} />
-                    {t('ui.cameraAnalytics.liveOffline')}
-                  </p>
-                )}
-                <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
-                  {liveOpen && <CameraLivePlayer cameraId={selectedCamera.id} cameraName={selectedCamera.name} className="w-full h-full" />}
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setLiveOpen(false)} className={`px-3 py-1.5 rounded-lg border text-sm ${themeConfig.cardBorder} ${themeConfig.text.secondary} hover:bg-white/5`}>
-                    {t('common.close')}
-                  </button>
-                  <button
-                    type="button"
-                    data-live-wall
-                    onClick={() => { setLiveOpen(false); navigate(`/cctv/live-grid?focus=${selectedCamera.id}`) }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium"
-                  >
-                    <Maximize2 size={14} />
-                    {t('ui.cameraAnalytics.openOnLiveWall')}
-                  </button>
-                </div>
-              </div>
-            </Modal>
+            <CameraLiveModal camera={liveOpen ? selectedCamera : null} onClose={() => setLiveOpen(false)} />
           </div>
         );
       })()}
