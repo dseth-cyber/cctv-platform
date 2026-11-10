@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/App'
 import { useToast } from '@/contexts/ToastContext'
 import { Responsive, WidthProvider } from 'react-grid-layout'
 import { imageServiceApi } from '@/services/imageServiceApi'
@@ -505,6 +506,7 @@ export default function CameraAnalytics() {
                     <Cpu size={13} />
                     {t('ui.cameraSpec.viewSpec')}
                   </Link>
+                  {hasPermission(user, 'live:view') && (
                   <button
                     type="button"
                     data-live-open
@@ -514,6 +516,7 @@ export default function CameraAnalytics() {
                     <Radio size={13} />
                     {t('ui.cameraAnalytics.watchLive')}
                   </button>
+                  )}
                   <DeviceWebLink ip={cameraWebTarget(selectedCamera).ip} port={cameraWebTarget(selectedCamera).port} className="text-xs text-cyan-300" />
                 </div>
               </div>

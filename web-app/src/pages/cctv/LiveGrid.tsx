@@ -230,7 +230,12 @@ export default function LiveGrid() {
   // HD by itself per layout (System Config, admin); a single camera is always HD.
   const { data: liveSettings } = useQuery<any>({ queryKey: ['snapshot-settings'], queryFn: () => imageServiceApi.getSnapshotSettings(), staleTime: 60_000 });
   const autoHd: Record<string, boolean> = liveSettings?.autoHd ?? { '1x1': true, '2x2': true, '3x3': false, '4x4': false };
-  const autoProfile = (l: GridLayout): 'main' | 'sub' => (l === '1x1' || autoHd[l] ? 'main' : 'sub');
+  // Without the HD right the server hands out the sub stream anyway; asking for it keeps the badge honest.
+  const hdAllowed = liveSettings?.hdAllowed !== false;
+  const autoProfile = (l: GridLayout): 'main' | 'sub' => (hdAllowed && (l === '1x1' || autoHd[l]) ? 'main' : 'sub');
+  // A layout with more tiles than this person may have live is not offered.
+  const liveQuota: number = liveSettings?.maxStreamsPerUser ?? 16;
+  const layoutAllowed = (l: GridLayout) => getSlotCount(l) <= liveQuota;
   // The first fill has happened (or was overtaken by a choice), so an empty slot is now the person's choice.
   const filledOnce = useRef(false);
   const fillLayout = (next: GridLayout) => {
@@ -828,6 +833,7 @@ export default function LiveGrid() {
             </button>
             <button
               onClick={() => chooseLayout('1x1')}
+              disabled={!layoutAllowed('1x1')}
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '1x1' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -837,6 +843,7 @@ export default function LiveGrid() {
             </button>
             <button
               onClick={() => chooseLayout('2x2')}
+              disabled={!layoutAllowed('2x2')}
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '2x2' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -846,6 +853,7 @@ export default function LiveGrid() {
             </button>
             <button
               onClick={() => chooseLayout('3x3')}
+              disabled={!layoutAllowed('3x3')}
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '3x3' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -855,6 +863,7 @@ export default function LiveGrid() {
             </button>
             <button
               onClick={() => chooseLayout('4x4')}
+              disabled={!layoutAllowed('4x4')}
               className={`p-1.5 rounded transition ${
                 !isOverview && layout === '4x4' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -1012,8 +1021,8 @@ export default function LiveGrid() {
                         cameraName={cell.cameraName || t('ui.liveGrid.slot', { v0: cell.slotIndex + 1 })}
                         streamProfile={cell.streamProfile}
                         hasSubStream={cell.hasSubStream}
-                        onToggleProfile={(next) =>
-                          handleToggleCellProfile(cell.slotIndex, next)
+                        onToggleProfile={hdAllowed ? (next) =>
+                          handleToggleCellProfile(cell.slotIndex, next) : undefined
                         }
                         onFatalError={() => handleStreamFailed(cell.slotIndex)}
                         className="w-full h-full"

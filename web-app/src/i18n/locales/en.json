@@ -2050,7 +2050,11 @@
         "production-runs_read": "View Production Runs",
         "production-runs_create": "Create Production Run",
         "production-runs_update": "Update / End Production Run",
-        "production-runs_delete": "Delete Production Run"
+        "production-runs_delete": "Delete Production Run",
+        "live_view": "Watch Live",
+        "live_hd": "Watch Live in HD",
+        "playback_view": "Play Back Recordings",
+        "clips_export": "Cut and Download Clips"
       }
     },
     "analytics": {
@@ -3726,6 +3730,12 @@
       "nameTaken": "A group with this name already exists",
       "deleted": "Group deleted",
       "deleteHint": "Only the group is deleted; its cameras stay"
+    },
+    "liveQuota": {
+      "label": "Live tiles at once",
+      "placeholder": "Default",
+      "userHint": "Empty follows the role, or the system value if the role sets none (1-64). Layouts with more tiles are not offered.",
+      "roleHint": "For everyone with this role unless set per person. Empty follows the system value (1-64)."
     }
   }
 }

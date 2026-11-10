@@ -11,6 +11,7 @@ export const createRoleSchema = z.object({
   description: z.string().optional(),
   permissions: z.array(z.string()).default([]),
   cameraScope: cameraScopeSchema.optional(),
+  liveQuota: z.number().int().min(1).max(64).nullable().optional(),
   sortOrder: z.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -24,6 +25,7 @@ export const updateRoleSchema = z.object({
   description: z.string().optional(),
   permissions: z.array(z.string()).optional(),
   cameraScope: cameraScopeSchema.optional(),
+  liveQuota: z.number().int().min(1).max(64).nullable().optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });

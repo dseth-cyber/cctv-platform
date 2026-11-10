@@ -3,10 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Maximize2, Radio } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import { CameraLivePlayer } from '@/components/cctv/LiveHdPlayer';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/App';
 
 /** Button that opens {@link CameraLiveModal}; looks the same wherever a camera can be watched in place. */
 export function WatchLiveButton({ onClick, compact = false }: { onClick: () => void; compact?: boolean }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  if (!hasPermission(user, 'live:view')) return null;
   return (
     <button
       type="button"

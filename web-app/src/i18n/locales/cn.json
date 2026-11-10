@@ -1792,7 +1792,11 @@
         "production-runs_delete": "删除生产批次",
         "settings_read": "查看设置",
         "settings_update": "修改设置",
-        "roadmap_read": "查看路线图"
+        "roadmap_read": "查看路线图",
+        "live_view": "观看直播",
+        "live_hd": "观看高清直播",
+        "playback_view": "回放录像",
+        "clips_export": "剪辑/下载片段"
       }
     },
     "analytics": {
@@ -3723,6 +3727,12 @@
       "inherit_device": "跟随系统（{{n}} 秒）",
       "hint": "适用于此录像机的所有摄像机，除非摄像机或组自行设置。间隔再短也不会超过每台设备的上限；摄像机多时图片可能比设定晚到。",
       "groupHint": "属于多个组的摄像机取最短间隔；摄像机自身的设置优先于组。"
+    },
+    "liveQuota": {
+      "label": "同时直播画面数",
+      "placeholder": "默认",
+      "userHint": "留空则跟随角色，角色未设置时跟随系统值（1–64）。超过此数的布局不可选。",
+      "roleHint": "适用于此角色的所有人（个人设置优先）。留空则跟随系统值（1–64）。"
     }
   }
 }

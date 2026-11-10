@@ -9,6 +9,7 @@ export const createUserSchema = z.object({
   role: z.string().min(1).max(64).default('viewer'),
   customPermissions: z.array(z.string()).optional(),
   cameraScope: cameraScopeSchema.optional(),
+  liveQuota: z.number().int().min(1).max(64).nullable().optional(),
 });
 
 export const updateUserSchema = z.object({
@@ -18,6 +19,7 @@ export const updateUserSchema = z.object({
   enabled: z.boolean().optional(),
   customPermissions: z.array(z.string()).optional(),
   cameraScope: cameraScopeSchema.optional(),
+  liveQuota: z.number().int().min(1).max(64).nullable().optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

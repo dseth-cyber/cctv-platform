@@ -248,49 +248,49 @@ export async function downloadClipHandler(request: FastifyRequest, reply: Fastif
 export async function recordingsRoutes(app: FastifyInstance) {
   app.get(
     '/timeline',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()] },
     getTimelineHandler,
   );
   app.get(
     '/segments',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()] },
     getSegmentsHandler,
   );
   app.post(
     '/clips',
-    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardCameraBody()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardCameraBody()] },
     exportClipHandler,
   );
   app.get(
     '/clips',
-    { preHandler: [app.authenticate, requirePermission('cameras:read')] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view')] },
     getClipsHandler,
   );
   app.delete(
     '/clips/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:create'), guardClipParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
     cancelClipHandler,
   );
   app.get(
     '/clips/:id',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardClipParam()] },
     getClipByIdHandler,
   );
   app.get(
     '/coverage',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()] },
     getCoverageHandler,
   );
   app.post(
     '/clips/:id/download-link',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
     createDownloadLinkHandler,
   );
   // Authorized by the signed `dl` token issued above, not by a bearer header.
   app.get('/clips/file/:filename', downloadClipByLinkHandler);
   app.get(
     '/clips/download/:filename',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardClipFilename] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipFilename] },
     downloadClipHandler,
   );
 
@@ -311,7 +311,7 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.get(
     '/playback-stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraQuery()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()] },
     getPlaybackStreamHandler,
   );
 }

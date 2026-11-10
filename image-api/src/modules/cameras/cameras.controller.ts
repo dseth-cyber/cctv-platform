@@ -1,4 +1,5 @@
 import { allowedCameraIds, assertCameraAccess, cameraWhere, guardAllCameras, guardCameraIdsBody, guardCameraParam, guardIncidentAttachment, guardIncidentParam } from '../access/camera-scope.js';
+import { hasPermissionFor } from '../access/live-access.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { cameraDeletionImpact } from './camera-deletion.js';
@@ -66,7 +67,10 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
   // HD asked for by a wall setting, not by a person: near the total limit it falls back to the sub stream, so
   // an automatic upgrade never takes the last places from people who need them.
   const degraded = profile === 'main' && auto === '1' && Boolean(camera.rtspUrlSub) && sessions !== null && sessions >= Math.ceil(limit * AUTO_HD_SHARE);
-  const isSub = (profile === 'sub' || degraded) && Boolean(camera.rtspUrlSub);
+  // Without the HD right the main stream is not handed out where a sub stream exists (a camera with only one stream
+  // still shows it).
+  const noHdRight = profile !== 'sub' && Boolean(camera.rtspUrlSub) && !(await hasPermissionFor((request as any).user?.id, 'live:hd'));
+  const isSub = (profile === 'sub' || degraded || noHdRight) && Boolean(camera.rtspUrlSub);
   const targetRtsp = openRtspUrl(isSub ? camera.rtspUrlSub : camera.rtspUrl);
   const basePath = camera.streamPath || `camera_${camera.id.replace(/-/g, '').substring(0, 12)}`;
   const streamPath = isSub ? `${basePath}_sub` : basePath;
@@ -84,6 +88,7 @@ async function getStreamHandler(request: FastifyRequest, reply: FastifyReply) {
     name: camera.name,
     profile: isSub ? 'sub' : 'main',
     degraded,
+    hdAllowed: !noHdRight,
     hasSubStream: Boolean(camera.rtspUrlSub),
     hasRtsp: Boolean(targetRtsp),
     ...urls,
@@ -1096,7 +1101,7 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.get(
     '/:id/stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()] },
     getStreamHandler,
   );
   app.post(

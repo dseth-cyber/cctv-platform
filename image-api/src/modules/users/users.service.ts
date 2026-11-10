@@ -27,7 +27,7 @@ export async function listUsers(params: { page?: number; limit?: number; enabled
   const [data, total] = await Promise.all([
     prisma.user.findMany({
       where,
-      select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
+      select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, liveQuota: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
       orderBy: { createdAt: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -46,7 +46,7 @@ export async function getUserById(id: string, minRoleSortOrder?: number | null) 
   }
   return prisma.user.findFirst({
     where,
-    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
+    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, liveQuota: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
   });
 }
 
@@ -62,8 +62,9 @@ export async function createUser(input: CreateUserInput) {
       role: input.role,
       customPermissions: input.customPermissions ?? [],
       ...(input.cameraScope ? { cameraScope: input.cameraScope } : {}),
+      liveQuota: input.liveQuota ?? null,
     },
-    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
+    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, liveQuota: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
   });
 }
 
@@ -76,12 +77,13 @@ export async function updateUser(id: string, input: UpdateUserInput) {
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.customPermissions !== undefined) data.customPermissions = input.customPermissions;
   if (input.cameraScope !== undefined) data.cameraScope = input.cameraScope;
+  if (input.liveQuota !== undefined) data.liveQuota = input.liveQuota;
   if (input.password) data.password = await bcrypt.hash(input.password, 10);
 
   return prisma.user.update({
     where: { id },
     data,
-    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
+    select: { id: true, username: true, email: true, role: true, customPermissions: true, cameraScope: true, liveQuota: true, enabled: true, lastLogin: true, createdAt: true, updatedAt: true },
   });
 }
 

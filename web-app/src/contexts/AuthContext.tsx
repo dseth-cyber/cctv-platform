@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '@/lib/axios'
 
@@ -44,6 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { return JSON.parse(localStorage.getItem('user') ?? 'null') } catch { return null }
   })
   const [accessToken, setAccessToken] = useState<string | null>(() => localStorage.getItem('accessToken'))
+
+  // Rights change while someone is signed in (an admin edits a role or a person): read them again when the page
+  // opens and whenever the tab comes back, at most once a minute, instead of only at sign-in.
+  const lastRefresh = useRef(0)
+  const refreshMe = useCallback(async () => {
+    if (!localStorage.getItem('accessToken') || Date.now() - lastRefresh.current < 60_000) return
+    lastRefresh.current = Date.now()
+    try {
+      const { data } = await api.get('/image-service/api/v1/auth/me')
+      setUser(prev => {
+        const next = { ...(prev ?? {}), ...data }
+        localStorage.setItem('user', JSON.stringify(next))
+        return next as User
+      })
+    } catch { /* signed out or offline: keep what is there */ }
+  }, [])
+  useEffect(() => {
+    if (!accessToken) return
+    void refreshMe()
+    const onShow = () => { if (!document.hidden) void refreshMe() }
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [accessToken, refreshMe])
 
   const login = useCallback(async (username: string, password: string) => {
     const { data } = await api.post('/image-service/api/v1/auth/login', { username, password })

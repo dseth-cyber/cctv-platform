@@ -107,6 +107,8 @@ model CustomRole {
   permissions Json     @default("[]")
   // Which cameras people with this role may see.
   cameraScope Json? @map("camera_scope")
+  /// Live tiles one person with this role may have at once; null follows live_max_streams_per_user.
+  liveQuota   Int?     @map("live_quota")
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -129,6 +131,8 @@ model User {
   deletedBy         String?   @map("deleted_by") @db.VarChar(128)
   // Which cameras this person may see, on top of their role. Empty means none of their own.
   cameraScope       Json?     @map("camera_scope")
+  /// This person's own live tile limit; null follows the role, then the system value.
+  liveQuota         Int?      @map("live_quota")
   hiddenMenuItems   Json      @default("[]") @map("hidden_menu_items")
   // Per-user UI preferences (table column order/visibility, filter panel state,
   // etc.) keyed by page — follows the user across devices. Shape: { [pageId]: {...} }

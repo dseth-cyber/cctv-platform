@@ -247,7 +247,7 @@ export const CctvPlayback: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dockVisible, setDockVisible] = useState(true);
   const { user } = useAuth();
-  const canExportClips = hasPermission(user, 'cameras:create');
+  const canExportClips = hasPermission(user, 'clips:export');
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -1441,13 +1441,13 @@ export const CctvPlayback: React.FC = () => {
             </button>
 
             {/* Export Clip Button */}
-            <button
+            {canExportClips && <button
               onClick={() => handleOpenExportModal()}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all shadow-md shadow-cyan-500/20"
             >
               <Download size={15} />
               <span>{t('ui.cctvPlayback.exportClip')}</span>
-            </button>
+            </button>}
           </div>
         </div>
 

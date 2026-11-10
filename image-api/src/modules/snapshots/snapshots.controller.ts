@@ -1,4 +1,5 @@
 import { allowedCameraIds, guardCameraParam } from '../access/camera-scope.js';
+import { hasPermissionFor, liveQuotaFor } from '../access/live-access.js';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -137,9 +138,15 @@ async function imageHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.header('cache-control', 'private, no-store').header('x-captured-at', String(held.capturedAt)).type('image/jpeg').send(held.image);
 }
 
-async function settingsHandler(_request: FastifyRequest, reply: FastifyReply) {
+async function settingsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { refreshSeconds, staleSeconds, maxStreamsPerUser, autoHd } = await refreshSettings();
-  return reply.send({ refreshSeconds, staleSeconds, maxStreamsPerUser, autoHd });
+  const userId = (request as any).user?.id;
+  // This person's own limit (user, then role, then system) and what they may do with live video.
+  return reply.send({
+    refreshSeconds, staleSeconds, autoHd,
+    maxStreamsPerUser: await liveQuotaFor(userId, maxStreamsPerUser),
+    hdAllowed: await hasPermissionFor(userId, 'live:hd'),
+  });
 }
 
 const adviceSchema = z.object({
@@ -175,8 +182,8 @@ async function adviceHandler(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function snapshotRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/request', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, requestHandler);
-  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), guardCameraParam()] }, imageHandler);
+  app.post('/request', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view')] }, requestHandler);
+  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()] }, imageHandler);
   app.get('/settings', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, settingsHandler);
   app.get('/advice', { preHandler: [app.authenticate, requirePermission('system-config:read')] }, adviceHandler);
   refreshSettings().catch((err) => logger.warn({ err }, 'Could not load snapshot settings yet'));

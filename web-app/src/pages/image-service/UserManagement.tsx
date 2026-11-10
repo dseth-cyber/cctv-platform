@@ -134,6 +134,17 @@ const PERMISSION_MODULES = [
     ]
   },
   {
+    key: 'live',
+    labelTh: 'ภาพสดและย้อนหลัง',
+    labelEn: 'Live and Playback',
+    permissions: [
+      { key: 'live:view', labelTh: 'ดูภาพสด', labelEn: 'Watch Live' },
+      { key: 'live:hd', labelTh: 'ดูภาพสด HD (สตรีมหลัก)', labelEn: 'Watch Live in HD (main stream)' },
+      { key: 'playback:view', labelTh: 'ดูย้อนหลัง', labelEn: 'Play Back Recordings' },
+      { key: 'clips:export', labelTh: 'ตัดคลิป / ดาวน์โหลดหลักฐาน', labelEn: 'Cut and Download Clips' }
+    ]
+  },
+  {
     key: 'camera-template',
     labelTh: 'เทมเพลตกล้อง',
     labelEn: 'Camera Templates',
@@ -307,13 +318,29 @@ const PERMISSION_MODULES = [
   },
 ]
 
+/** '' (follow the role, then the system) or 1-64 live tiles. */
+const quotaToApi = (v: string): number | null => (v.trim() === '' ? null : Math.max(1, Math.min(64, Math.round(Number(v)) || 1)))
+
+function LiveQuotaField({ value, onChange, hint }: { value: string; onChange: (v: string) => void; hint: string }) {
+  const { t } = useTranslation()
+  return (
+    <div data-live-quota>
+      <label className="block text-sm font-medium mb-1.5 text-slate-200">{t('ui.liveQuota.label')}</label>
+      <input type="number" min={1} max={64} value={value} placeholder={t('ui.liveQuota.placeholder')} onChange={(e) => onChange(e.target.value)}
+        className="w-40 px-3 py-2 rounded-md bg-slate-950 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
+      <p className="text-xs mt-1 text-slate-500">{hint}</p>
+    </div>
+  )
+}
+
 function emptyUserForm() {
-  return { username: '', email: '', password: '', role: 'viewer', customPermissions: [] as string[], cameraScope: {} as CameraScopeValue }
+  return { username: '', email: '', password: '', role: 'viewer', customPermissions: [] as string[], cameraScope: {} as CameraScopeValue, liveQuota: '' }
 }
 
 function emptyRoleForm() {
   return {
     cameraScope: {} as CameraScopeValue,
+    liveQuota: '',
     code: '',
     nameTh: '',
     nameEn: '',
@@ -452,6 +479,7 @@ export default function UserManagement() {
       role: user.role,
       customPermissions: Array.isArray(user.customPermissions) ? user.customPermissions : [],
       cameraScope: user.cameraScope ?? {},
+      liveQuota: user.liveQuota ? String(user.liveQuota) : '',
     })
     setUserModal({ open: true, item: user })
   }
@@ -465,12 +493,13 @@ export default function UserManagement() {
           role: userForm.role,
           customPermissions: userForm.customPermissions,
           cameraScope: userForm.cameraScope,
+          liveQuota: quotaToApi(userForm.liveQuota),
         }
         if (userForm.password) payload.password = userForm.password
         await imageServiceApi.updateUser(userModal.item.id, payload)
         toast.success(t('imageService.users.updated'))
       } else {
-        await imageServiceApi.createUser(userForm)
+        await imageServiceApi.createUser({ ...userForm, liveQuota: quotaToApi(userForm.liveQuota) } as any)
         toast.success(t('imageService.users.created'))
       }
       setUserModal({ open: false })
@@ -541,6 +570,7 @@ export default function UserManagement() {
       description: role.description || '',
       permissions: Array.isArray(role.permissions) ? role.permissions : [],
       cameraScope: role.cameraScope ?? {},
+      liveQuota: role.liveQuota ? String(role.liveQuota) : '',
       sortOrder: role.sortOrder || 0,
       isActive: role.isActive ?? true,
     })
@@ -551,10 +581,10 @@ export default function UserManagement() {
     setSubmittingRole(true)
     try {
       if (roleModal.item) {
-        await imageServiceApi.updateRole(roleModal.item.id, roleForm)
+        await imageServiceApi.updateRole(roleModal.item.id, { ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota) })
         toast.success(t('common.saveSuccess') || t('ui.userManagement.roleUpdatedSuccessfully'))
       } else {
-        await imageServiceApi.createRole(roleForm)
+        await imageServiceApi.createRole({ ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota) })
         toast.success(t('common.saveSuccess') || t('ui.userManagement.roleCreatedSuccessfully'))
       }
       setRoleModal({ open: false })
@@ -1219,6 +1249,9 @@ export default function UserManagement() {
           {userForm.role !== 'admin' && (
             <CameraScopeFields value={userForm.cameraScope} onChange={(cameraScope) => setUserForm((f) => ({ ...f, cameraScope }))} hint={t('ui.cameraScope.userHint')} />
           )}
+          {userForm.role !== 'admin' && (
+            <LiveQuotaField value={userForm.liveQuota} onChange={(liveQuota) => setUserForm((f) => ({ ...f, liveQuota }))} hint={t('ui.liveQuota.userHint')} />
+          )}
 
           <div className="flex justify-end gap-2 pt-3">
             <Button variant="secondary" onClick={() => setUserModal({ open: false })}>{t('common.cancel')}</Button>
@@ -1349,6 +1382,9 @@ export default function UserManagement() {
 
           {roleForm.code !== 'admin' && (
             <CameraScopeFields value={roleForm.cameraScope} onChange={(cameraScope) => setRoleForm((f) => ({ ...f, cameraScope }))} hint={t('ui.cameraScope.roleHint')} />
+          )}
+          {roleForm.code !== 'admin' && (
+            <LiveQuotaField value={roleForm.liveQuota} onChange={(liveQuota) => setRoleForm((f) => ({ ...f, liveQuota }))} hint={t('ui.liveQuota.roleHint')} />
           )}
 
           <div className="flex justify-end gap-2 pt-3">

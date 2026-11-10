@@ -103,8 +103,8 @@ const MASTERDATA_PAGE_PERMISSIONS = ['masterdata:read', ...MASTERDATA_LINKS.map(
 const navItems = [
   { path: '/cctv/overview', labelKey: 'nav.overview', icon: LayoutDashboard, permission: 'overview:read' },
   { path: '/cctv/cameras', labelKey: 'nav.cameras', icon: Camera, permission: 'cameras:read' },
-  { path: '/cctv/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'cameras:read' },
-  { path: '/cctv/playback', labelKey: 'nav.playback', icon: Film, permission: 'cameras:read' },
+  { path: '/cctv/live-grid', labelKey: 'nav.liveGrid', icon: Radio, permission: 'live:view' },
+  { path: '/cctv/playback', labelKey: 'nav.playback', icon: Film, permission: 'playback:view' },
   { path: '/cctv/devices', labelKey: 'nav.devices', icon: Server, permission: 'cameras:read' },
   { path: '/cctv/sites', labelKey: 'nav.sites', icon: Building2, permission: 'cameras:read' },
   { path: '/cctv/map', labelKey: 'nav.map', icon: MapPin, permission: 'cameras:read' },
@@ -1107,10 +1107,10 @@ export default function App() {
               hasPermission(user, 'cameras:read') ? <CameraGroups /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/live-grid" element={
-              hasPermission(user, 'cameras:read') ? <LiveGrid /> : <UnauthorizedPage />
+              hasPermission(user, 'cameras:read') && hasPermission(user, 'live:view') ? <LiveGrid /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/playback" element={
-              hasPermission(user, 'cameras:read') ? <CctvPlayback /> : <UnauthorizedPage />
+              hasPermission(user, 'cameras:read') && hasPermission(user, 'playback:view') ? <CctvPlayback /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/devices" element={
               hasPermission(user, 'cameras:read') ? <DeviceManagement /> : <UnauthorizedPage />

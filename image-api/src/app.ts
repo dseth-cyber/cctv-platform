@@ -1,4 +1,5 @@
 import { ensureCameraScopeDefaults } from './modules/access/camera-scope.js';
+import { ensureLivePermissionSplit } from './modules/access/live-access.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { ForbiddenError } from './lib/errors.js';
@@ -213,6 +214,7 @@ export async function startApp() {
   startDevicePlayback();
   startDeviceHealthChecks();
   await ensureCameraScopeDefaults().catch((err) => logger.error({ err: err?.message }, 'Could not give existing users their cameras'));
+  await ensureLivePermissionSplit().catch((err) => logger.error({ err: err?.message }, 'Could not give existing roles the live rights'));
   void ensureWorkOrderRows().catch((err) => logger.warn({ err: err?.message }, 'Could not move old work orders across'));
   void ensureMasterdataDefaults().catch((err) => logger.warn({ err: err?.message }, 'Could not prepare master data lists'));
   startSystemCleanup();
