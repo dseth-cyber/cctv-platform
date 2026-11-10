@@ -410,6 +410,8 @@ model Device {
   firmwareVersion   String?    @map("firmware_version") @db.VarChar(64)
   // The latest reading from the recorder itself: disks, clock, how far back it records.
   healthInfo        Json?      @map("health_info")
+  /// Notes a person acknowledged (sub stream also recorded, H.265+ on purpose): { note: { by, at } }; see devices/health-notes-ack.ts.
+  healthNotesAck    Json?      @map("health_notes_ack")
   healthCheckedAt   DateTime?  @map("health_checked_at")
   ipAddress         String     @map("ip_address") @db.VarChar(45)
   rtspPort          Int        @default(554) @map("rtsp_port")

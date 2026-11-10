@@ -2372,7 +2372,8 @@
       "serial": "序列号",
       "firmware": "固件",
       "checkedAt": "最后从设备读取",
-      "note": "可用率和掉线次数按所选期间内使用中的通道计算。硬盘和录像数据仅从海康威视录像机读取。"
+      "note": "可用率和掉线次数按所选期间内使用中的通道计算。硬盘和录像数据仅从海康威视录像机读取。",
+      "acknowledged": "已确认"
     },
     "cameraSpec": {
       "title": "来自录像机的规格",
@@ -2497,7 +2498,7 @@
       "clockBehind": "慢 {{min}} 分 {{sec}} 秒",
       "clockOff": "录像机时钟与服务器的偏差超过设定上限，录像和片段的时间会错误。请在录像机上设置 NTP。",
       "noRecordingsAtAll": "此录像机上完全没有找到录像：出事时将无法回放。请在录像机上检查：各通道的录像状态、各通道的配额以及硬盘。",
-      "subRecording": "除主码流外还录制了子码流（见于通道 {{channels}}）：同一画面在同一硬盘上存了两份。本系统不使用子码流录像；如果没有人用手机 App 回放，关闭它可以释放空间。",
+      "subRecording": "除主码流外还录制了子码流（检查了通道 {{channels}}，此设置通常适用于所有通道）：同一画面在同一硬盘上存了两份。本系统不使用子码流录像；如果没有人用手机 App 回放，关闭它可以释放空间（部分型号无法关闭）。",
       "smartCodec": "通道 {{channels}} 的主码流开启了 H.265+（Smart Codec）：节省空间，但高清直播和回放会延迟约 20–30 秒才开始。",
       "allChannels": "所有通道",
       "channelList": "通道 {{list}}",
@@ -2548,7 +2549,14 @@
       "modelDiffers": "保存的型号（{{saved}}）与录像机报告的（{{reported}}）不同",
       "allWell": "HDD OK",
       "stale": "旧读数",
-      "problemCount": "{{n}} 个问题"
+      "problemCount": "{{n}} 个问题",
+      "ack": {
+        "sub_recording": "确认（无法关闭）",
+        "smart_codec": "确认（有意开启）",
+        "undo": "取消确认",
+        "by": "由 {{name}} 于 {{time}} 确认",
+        "failed": "无法保存确认"
+      }
     },
     "cctvDashboard": {
       "deviceCount": "DVR/NVR 设备",

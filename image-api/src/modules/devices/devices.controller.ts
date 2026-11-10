@@ -8,6 +8,8 @@ import { RecorderNtpError } from './recorder-ntp.js';
 import { NtpBatchBusyError, pointAndRecord, recheckSoon, startNtpBatch } from './recorder-ntp-bulk.js';
 import { syncCameraPaths } from '../media/path-sync.js';
 import { listMasterdataOptions } from '../masterdata/masterdata.service.js';
+import { getPrisma } from '../../lib/prisma.js';
+import { ACK_NOTES, setAck, type HealthNotesAck } from './health-notes-ack.js';
 import {
   createDeviceSchema,
   updateDeviceSchema,
@@ -149,6 +151,31 @@ async function setChannelsHandler(request: FastifyRequest, reply: FastifyReply) 
   return reply.status(200).send(res);
 }
 
+const ackParams = z.object({ id: z.guid(), note: z.enum(ACK_NOTES) });
+const ackBody = z.object({ acknowledged: z.boolean() });
+
+/** A person marks a recorder note as known (cannot or should not be changed), or takes that back. */
+async function healthNoteAckHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id, note } = ackParams.parse(request.params);
+  const { acknowledged } = ackBody.parse(request.body);
+  const user = (request as any).user;
+  const prisma = getPrisma();
+  const device = await prisma.device.findUnique({ where: { id }, select: { id: true, name: true, healthNotesAck: true } });
+  if (!device) return reply.status(404).send({ message: 'Device not found' });
+  const next = setAck(device.healthNotesAck as HealthNotesAck | null, note, acknowledged, user?.username ?? 'unknown');
+  await prisma.device.update({ where: { id }, data: { healthNotesAck: next as object } });
+  await createAuditLog({
+    userId: user?.id,
+    action: acknowledged ? 'device_health_note_ack' : 'device_health_note_unack',
+    entity: 'device',
+    entityId: id,
+    description: `${device.name}: note ${note} ${acknowledged ? 'acknowledged' : 'no longer acknowledged'} by ${user?.username ?? 'unknown'}`,
+    metadata: { note },
+    ipAddress: request.ip,
+  }).catch(() => {});
+  return reply.send({ healthNotesAck: next });
+}
+
 async function provisionChannelsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const res = await devicesService.provisionDeviceChannels(id);
@@ -156,6 +183,11 @@ async function provisionChannelsHandler(request: FastifyRequest, reply: FastifyR
 }
 
 export async function deviceRoutes(app: FastifyInstance) {
+  app.put(
+    '/:id/health/notes/:note',
+    { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },
+    healthNoteAckHandler,
+  );
   app.put(
     '/:id/channels',
     { preHandler: [app.authenticate, requirePermission('cameras:update'), guardAllCameras] },

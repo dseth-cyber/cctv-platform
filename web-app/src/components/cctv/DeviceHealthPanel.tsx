@@ -31,6 +31,46 @@ export function DeviceHealthChip({ device }: { device: any }) {
 }
 
 /** Disks, clock, how far back the recorder keeps, and which channels have stopped recording. */
+/**
+ * A recorder note someone can acknowledge when it cannot or should not be changed on the recorder: then it is shown
+ * greyed with who acknowledged it, instead of as a warning. The server drops the acknowledgement once the recorder no
+ * longer shows the condition.
+ */
+function AckableNote({ data, note, device, canAck, text }: { data: string; note: 'sub_recording' | 'smart_codec'; device: any; canAck: boolean; text: string }) {
+  const { t, i18n } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const ack = device.healthNotesAck?.[note] as { by: string; at: string } | undefined;
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      await imageServiceApi.setDeviceHealthNoteAck(device.id, note, !ack);
+      await queryClient.invalidateQueries({ queryKey: ['devices'] });
+      await queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
+    } catch (err: any) {
+      if (!err?._handled) toast.error(t('ui.deviceHealth.ack.failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div {...{ [data]: '' }} data-acknowledged={ack ? 'yes' : 'no'} className={`flex items-start gap-1.5 ${ack ? 'text-slate-500' : 'text-amber-300'}`}>
+      {ack ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" /> : <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />}
+      <p className="flex-1">
+        {text}
+        {ack && <span className="block text-[11px]">{t('ui.deviceHealth.ack.by', { name: ack.by, time: new Date(ack.at).toLocaleString(i18n.language === 'th' ? 'th-TH' : undefined) })}</span>}
+      </p>
+      {canAck && (
+        <button type="button" data-ack-toggle={note} disabled={busy} onClick={toggle}
+          className={`shrink-0 px-2 py-0.5 rounded border text-[11px] font-medium disabled:opacity-50 ${ack ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-amber-500/40 text-amber-200 hover:bg-amber-500/10'}`}>
+          {t(ack ? 'ui.deviceHealth.ack.undo' : `ui.deviceHealth.ack.${note}`)}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck: boolean }) {
   const { t, i18n } = useTranslation();
   const toast = useToast();
@@ -123,16 +163,12 @@ export function DeviceHealthPanel({ device, canCheck }: { device: any; canCheck:
             </p>
           )}
           {(health.subRecordingChannels?.length ?? 0) > 0 && (
-            <p data-sub-recording className="flex items-start gap-1.5 text-amber-300">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              {t('ui.deviceHealth.subRecording', { channels: health.subRecordingChannels!.join(', ') })}
-            </p>
+            <AckableNote data="data-sub-recording" note="sub_recording" device={device} canAck={canCheck}
+              text={t('ui.deviceHealth.subRecording', { channels: health.subRecordingChannels!.join(', ') })} />
           )}
           {(health.smartCodecChannels?.length ?? 0) > 0 && (
-            <p data-smart-codec className="flex items-start gap-1.5 text-amber-300">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              {t('ui.deviceHealth.smartCodec', { channels: health.smartCodecChannels!.length >= (device.totalChannels ?? Infinity) ? t('ui.deviceHealth.allChannels') : t('ui.deviceHealth.channelList', { list: health.smartCodecChannels!.join(', ') }) })}
-            </p>
+            <AckableNote data="data-smart-codec" note="smart_codec" device={device} canAck={canCheck}
+              text={t('ui.deviceHealth.smartCodec', { channels: health.smartCodecChannels!.length >= (device.totalChannels ?? Infinity) ? t('ui.deviceHealth.allChannels') : t('ui.deviceHealth.channelList', { list: health.smartCodecChannels!.join(', ') }) })} />
           )}
 
           {health.problems.includes('clock_drift') && (

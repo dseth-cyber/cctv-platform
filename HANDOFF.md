@@ -125,6 +125,11 @@
 - เครื่อง Dev หน่วยความจำ (2026-11-10): commit ของ Windows เคยเหลือ ~0.5 GB เพราะแคชไฟล์ใน WSL VM ของ Docker ~10.5 GB (มาจาก build ซ้ำ) ทำให้ Docker Desktop รีสตาร์ทเองและ Node ล่ม (out of memory) ผู้ใช้อนุญาตให้ล้างแคช: `docker run --rm --privileged alpine:3 sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"` แล้ว commit ว่างกลับมา ~6.7 GB (`.wslconfig` มี `autoMemoryReclaim=gradual` อยู่แล้ว)
 - หลัง Docker Desktop รีสตาร์ทเอง ภาพสดดับทุกจุด: MediaMTX log `deadline exceeded while waiting connection` (UDP ของ WebRTC ไม่ถึง container) แก้ด้วย `docker restart cctv-mediamtx` (เจอ 2026-11-10)
 
+- รับทราบหมายเหตุเครื่องบันทึก (2026-11-10): หมายเหตุ "บันทึกสตรีมรองคู่" และ "H.265+" กด "รับทราบ" รายเครื่องได้ในแผงสุขภาพ (`PUT /devices/:id/health/notes/:note`, `cameras:update` + `guardAllCameras`, Audit Log `device_health_note_ack/unack`) เก็บที่ `devices.health_notes_ack` (migration 2026-11-10 สำรอง `before_health_notes_ack_2026-11-10.dump`)
+  - รับทราบแล้วแสดงเป็นสีเทาพร้อมชื่อคนกด และรายงานอุปกรณ์เป็นสีเทา "(รับทราบ)"; รอบสุขภาพล้างการรับทราบเองเมื่อเครื่องไม่แสดงอาการนั้นแล้ว (`devices/health-notes-ack.ts`)
+  - ข้อความบันทึกคู่เปลี่ยนเป็น "ตรวจจากช่อง … การตั้งค่านี้มักใช้กับทุกช่อง" เพราะรอบสุขภาพตรวจแค่ 2 ช่องแรกที่ออนไลน์
+  - MD ปิดบันทึกสตรีมรองไม่ได้ (ตรวจแล้ว) ผู้ใช้กดรับทราบเองได้; HR ห้องบุคคล (iDS-7216HQHI-M1/S) ยังไม่ได้ตรวจว่าปิดได้ไหม
+
 **ควรรู้ก่อนทำงานต่อ**
 - งานที่ผู้ใช้ต้องทำที่ตัวเครื่องและเหตุผล: [DEVICE_CHECKLIST](docs/pilot/DEVICE_CHECKLIST.md) วัดซ้ำเมื่อผู้ใช้แจ้งว่าทำแล้ว
 - MD ส่ง keyframe ห่าง ~19 วินาที: ย้อนหลังอาจดำได้ถึง ~20 วินาที และเวลาบนหน้าอาจนำภาพ ให้ยึดเวลาบนภาพ คลิปจาก MD อาจขาดช่วงท้าย (ยังไม่ได้ทดสอบโดยตรง) แก้ที่ I-Frame Interval ของเครื่อง

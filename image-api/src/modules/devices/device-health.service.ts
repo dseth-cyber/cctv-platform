@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { pruneAck } from './health-notes-ack.js';
 import { sortByName } from '../../lib/natural-sort.js';
 import { decrypt } from '../../lib/encryption.js';
 import { logger } from '../../lib/logger.js';
@@ -143,6 +144,7 @@ const SELECT_DEVICE = {
   passwordEncrypted: true,
   alertLevel: true,
   healthInfo: true,
+  healthNotesAck: true,
   cameras: {
     where: { deletedAt: null, enabled: true },
     select: { id: true, name: true, channelNumber: true, status: true, operationalStatus: true, alertLevel: true, spec: true, cameraBrand: true, cameraModel: true },
@@ -337,7 +339,8 @@ async function checkDevice(device: HealthDevice, round?: ClockNotice[]): Promise
     return health;
   }
 
-  await prisma.device.update({ where: { id: device.id }, data: { healthInfo: health as object, healthCheckedAt: new Date(), ...facts } });
+  const ackLeft = pruneAck((device as any).healthNotesAck, health);
+  await prisma.device.update({ where: { id: device.id }, data: { healthInfo: health as object, healthCheckedAt: new Date(), ...facts, ...(ackLeft ? { healthNotesAck: ackLeft as object } : {}) } });
   if (specs) await saveCameraSpecs(device, specs);
   const diskList = diskProblems(health.disks);
   await syncAlert(device, 'hdd_problem', diskList.length > 0, `HDD problem: ${device.name}`, `${device.name}: ${diskList.join(', ')}`, { problems: diskList, disks: health.disks });
@@ -474,6 +477,7 @@ export async function buildDeviceReport(days: number, scope?: Prisma.CameraWhere
       clockDriftSeconds: health?.clockDriftSeconds ?? null,
       smartCodecChannels: health?.smartCodecChannels ?? null,
       subRecordingChannels: health?.subRecordingChannels ?? null,
+      healthNotesAck: (device as any).healthNotesAck ?? null,
       noRecordingsAtAll: !!health?.reachable && health.oldestRecording === null && (health.notRecording ?? []).length > 0,
       retentionDays: health?.retentionDays ?? null,
       notRecording: health?.notRecording ?? [],
