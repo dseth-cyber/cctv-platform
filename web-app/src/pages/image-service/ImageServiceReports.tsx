@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { masterdataLabel } from '@/hooks/useMasterdataOptions';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
 import { signalName, type CameraSpec } from '@/lib/cameraSpec';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -449,6 +450,8 @@ function CameraReport() {
                                 <Camera size={13} />
                                 {cam.name}
                               </div>
+                            ) : col.id === 'ipAddress' && cam.ipAddress ? (
+                              <DeviceWebLink ip={cam.ipAddress} port={cameraWebTarget(cam).port} />
                             ) : (
                               String(formatValue(cam, col.id))
                             )}

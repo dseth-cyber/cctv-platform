@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { DeviceWebLink } from '@/components/cctv/DeviceWebLink';
 import { ChevronDown, ChevronsUpDown, ChevronUp, FileSpreadsheet, Search } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
@@ -41,11 +42,11 @@ export function DeviceReportTab() {
     return row.reachable === false ? t('ui.deviceHealth.stale') : t('ui.deviceHealth.allWell');
   };
 
-  const columns: Array<{ key: string; label: string; text: (row: any) => string; sort?: (row: any) => string | number; tone?: (row: any) => string }> = [
+  const columns: Array<{ key: string; label: string; text: (row: any) => string; sort?: (row: any) => string | number; tone?: (row: any) => string; /** What the cell shows when it is more than its text (search and export still use `text`). */ node?: (row: any) => React.ReactNode }> = [
     { key: 'name', label: label('name'), text: (r) => r.name },
     { key: 'deviceType', label: label('type'), text: (r) => deviceTypes.find((o) => o.value === r.deviceType)?.label ?? r.deviceType ?? notKnown },
     { key: 'model', label: label('model'), text: (r) => r.model ?? notKnown },
-    { key: 'ipAddress', label: label('ip'), text: (r) => r.ipAddress },
+    { key: 'ipAddress', label: label('ip'), text: (r) => r.ipAddress, node: (r) => <DeviceWebLink ip={r.ipAddress} port={r.httpPort} /> },
     { key: 'siteName', label: label('site'), text: (r) => [r.siteName, r.zoneName].filter(Boolean).join(' / ') || notKnown },
     { key: 'channelsInUse', label: label('channels'), text: (r) => `${r.channelsInUse} / ${r.totalChannels}`, sort: (r) => r.channelsInUse },
     { key: 'online', label: label('online'), text: (r) => String(r.online), sort: (r) => r.online },
@@ -149,7 +150,7 @@ export function DeviceReportTab() {
                 {shown.map((row) => (
                   <tr key={row.id} data-report-row={row.id} className={`${themeConfig.tableRow} border-b border-white/5`}>
                     {columns.map((c) => (
-                      <td key={c.key} data-col={c.key} className={`px-3 py-2.5 whitespace-nowrap ${c.tone?.(row) || themeConfig.text.primary}`}>{c.text(row)}</td>
+                      <td key={c.key} data-col={c.key} className={`px-3 py-2.5 whitespace-nowrap ${c.tone?.(row) || themeConfig.text.primary}`}>{c.node ? c.node(row) : c.text(row)}</td>
                     ))}
                   </tr>
                 ))}

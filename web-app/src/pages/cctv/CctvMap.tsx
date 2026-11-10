@@ -23,6 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useTranslation } from 'react-i18next';
+import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { useCctvCameras } from '@/hooks/useCctvCameras';
 interface CameraPin {
   id: string;
@@ -390,9 +391,7 @@ export default function CctvMap() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">{t('ui.cctvMap.ipAddress')}</span>
-                  <span className="font-mono text-slate-300">
-                    {selectedCamera.ipAddress || '—'}
-                  </span>
+                  <DeviceWebLink ip={selectedCamera.ipAddress} port={cameraWebTarget(selectedCamera).port} className="text-slate-300" />
                 </div>
                 {selectedCamera.channelNumber && (
                   <div className="flex justify-between">

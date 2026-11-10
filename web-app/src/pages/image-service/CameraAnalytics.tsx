@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -513,6 +514,7 @@ export default function CameraAnalytics() {
                     <Radio size={13} />
                     {t('ui.cameraAnalytics.watchLive')}
                   </button>
+                  <DeviceWebLink ip={cameraWebTarget(selectedCamera).ip} port={cameraWebTarget(selectedCamera).port} className="text-xs text-cyan-300" />
                 </div>
               </div>
               {op === 'offline' && (

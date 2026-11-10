@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CameraInfoImportModal } from '@/components/cctv/CameraInfoImportModal';
+import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { RefreshSecondsSelect, refreshToApi, refreshToForm } from '@/components/cctv/RefreshSecondsSelect';
 import { CameraLiveModal, WatchLiveButton } from '@/components/cctv/CameraLiveModal';
 import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
@@ -1345,7 +1346,7 @@ export default function ImageServiceCameras() {
                     {showColumn('device') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.device?.name ?? '—'}</td>}
                     {showColumn('site') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.site?.name ?? '—'}</td>}
                     {showColumn('zone') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.zone?.name ?? '—'}</td>}
-                    {showColumn('ipAddress') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{camera.ipAddress}</td>}
+                    {showColumn('ipAddress') && <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}><DeviceWebLink ip={camera.ipAddress} port={cameraWebTarget(camera).port} /></td>}
                     {showColumn('retentionPolicy') && (
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {retentionLabel(camera.retentionPolicyId) || '—'}

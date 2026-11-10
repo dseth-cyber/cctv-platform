@@ -360,7 +360,7 @@ export async function getIncident(id: string) {
           rtspUrl: true,
           status: true,
           operationalStatus: true,
-          device: { select: { id: true, name: true, ipAddress: true, rtspPort: true } },
+          device: { select: { id: true, name: true, ipAddress: true, rtspPort: true, httpPort: true } },
         },
       },
       event: true,
@@ -430,7 +430,7 @@ export async function searchIncidents(params: {
     prisma.cameraIncident.findMany({
       where, orderBy,
       skip: (page - 1) * limit, take: limit,
-      include: { camera: { select: { name: true, device: { select: { name: true } } } } },
+      include: { camera: { select: { name: true, ipAddress: true, device: { select: { name: true, ipAddress: true, httpPort: true } } } } },
     }),
   ]);
   // compute MTTR per incident (closedAt - openedAt); still-open incidents get a live duration instead.
@@ -438,6 +438,9 @@ export async function searchIncidents(params: {
     ...i,
     cameraName: i.camera?.name ?? '',
     deviceName: i.deviceId ? i.camera?.device?.name ?? '' : null,
+    // Where to sign in: the recorder when there is one, else the camera itself.
+    ipAddress: i.camera?.device?.ipAddress ?? i.camera?.ipAddress ?? null,
+    httpPort: i.camera?.device?.httpPort ?? null,
     mttrMinutes: i.closedAt ? Math.round((new Date(i.closedAt).getTime() - new Date(i.openedAt).getTime()) / 60000) : null,
     openDurationMinutes: i.closedAt ? null : Math.round((Date.now() - new Date(i.openedAt).getTime()) / 60000),
   }));

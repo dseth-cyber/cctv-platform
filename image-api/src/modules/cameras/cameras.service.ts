@@ -26,7 +26,7 @@ export async function listCameras(scope: Prisma.CameraWhereInput | undefined, fi
     include: {
       retentionPolicy: { select: { id: true, name: true } },
       template: true,
-      device: { select: { id: true, name: true, shortCode: true, alertLevel: true, deviceType: true, brand: true, ipAddress: true, totalChannels: true, healthCheckedAt: true, site: { select: { id: true, name: true } }, zone: { select: { id: true, name: true } } } },
+      device: { select: { id: true, name: true, shortCode: true, alertLevel: true, deviceType: true, brand: true, ipAddress: true, httpPort: true, totalChannels: true, healthCheckedAt: true, site: { select: { id: true, name: true } }, zone: { select: { id: true, name: true } } } },
       site: { select: { id: true, name: true, code: true } },
       zone: { select: { id: true, name: true, code: true } },
       groupMemberships: { select: { group: { select: { id: true, name: true } } } },

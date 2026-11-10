@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { DeviceWebLink, cameraWebTarget } from '@/components/cctv/DeviceWebLink';
 import { useTheme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -268,6 +269,7 @@ export default function IncidentCenter() {
   const exportData = useMemo(() => incidents.map((i: any) => ({
     incidentNumber: i.incidentNumber,
     cameraName: i.deviceId ? t('ui.incidentCenter.recorderCameras', { name: i.deviceName || i.cameraName, n: (i.affectedCameras ?? []).length }) : i.cameraName,
+    ipAddress: i.ipAddress || '-',
     reason: labelFor(reasons, i.reason),
     rootCause: i.rootCause ? labelFor(rootCauses, i.rootCause) : '-',
     priority: translatePriority(i.priority, t),
@@ -413,6 +415,7 @@ export default function IncidentCenter() {
                         { key: null, label: '#', align: 'left' },
                         { key: 'incidentNumber', label: ic('colIncident'), align: 'left' },
                         { key: 'cameraName', label: ic('filterCamera'), align: 'left' },
+                        { key: null, label: t('imageService.cameras.ipAddress'), align: 'left' },
                         { key: 'reason', label: ic('filterReason'), align: 'left' },
                         { key: 'rootCause', label: ic('filterRootCause'), align: 'left' },
                         { key: 'priority', label: ic('filterPriority'), align: 'left' },
@@ -441,7 +444,7 @@ export default function IncidentCenter() {
                   <tbody className={themeConfig.tableDivide}>
                     {incidents.length === 0 ? (
                       <tr>
-                        <td colSpan={12} className={`px-3 py-12 text-center text-xs ${themeConfig.text.secondary}`}>
+                        <td colSpan={13} className={`px-3 py-12 text-center text-xs ${themeConfig.text.secondary}`}>
                           {ic('noIncidents')}
                         </td>
                       </tr>
@@ -457,6 +460,7 @@ export default function IncidentCenter() {
                               </span>
                             ) : i.cameraName}
                           </td>
+                          <td data-incident-ip className={`px-3 py-2 text-xs whitespace-nowrap ${themeConfig.text.secondary}`}><DeviceWebLink ip={i.ipAddress} port={i.httpPort} /></td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{labelFor(reasons, i.reason)}</td>
                           <td className={`px-3 py-2 text-xs ${themeConfig.text.secondary}`}>{i.rootCause ? labelFor(rootCauses, i.rootCause) : '—'}</td>
                           <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium capitalize ${PRIORITY_COLORS[i.priority] || 'bg-gray-500/20 text-gray-400'}`}>{translatePriority(i.priority, t)}</span></td>
@@ -1206,6 +1210,7 @@ function IncidentDetailModal({ incidentId, onClose, onSwitch, labelReason, label
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-4">
             <Field label={incident.deviceId ? t('ui.incidentCenter.recorder') : ic('filterCamera')} value={incident.deviceId ? incident.camera?.device?.name : incident.camera?.name} />
+            <Field label={t('imageService.cameras.ipAddress')} value={<DeviceWebLink ip={cameraWebTarget(incident.camera).ip} port={cameraWebTarget(incident.camera).port} />} />
             <Field label={ic('filterReason')} value={labelReason(incident.reason)} />
             <Field
               label={ic('filterRootCause')}
