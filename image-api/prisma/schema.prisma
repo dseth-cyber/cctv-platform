@@ -145,6 +145,7 @@ model User {
   roleRelation CustomRole? @relation(fields: [role], references: [code])
 
   cameraFavorites CameraFavorite[]
+  liveViews       LiveView[]
 
   @@map("users")
 }
@@ -274,6 +275,25 @@ model CameraGroupMember {
   @@id([groupId, cameraId])
   @@index([cameraId])
   @@map("camera_group_members")
+}
+
+/// A saved live wall: layout plus which camera sits in which slot. Private to its owner unless shared with the team.
+model LiveView {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(60)
+  layout    String   @db.VarChar(8)
+  /// [{ slotIndex, cameraId }]; cameras that are later deleted or out of a viewer's scope are left out when read.
+  slots     Json     @default("[]")
+  shared    Boolean  @default(false)
+  ownerId   String   @map("owner_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([shared])
+  @@map("live_views")
 }
 
 // A viewer's starred cameras: they get live video first in the Live Room.

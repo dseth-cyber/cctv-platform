@@ -9,6 +9,8 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { LiveHdPlayer } from '@/components/cctv/LiveHdPlayer';
 import { CameraFilterDropdown } from '@/components/cctv/CameraFilterDropdown';
 import { LiveOverview } from '@/components/cctv/LiveOverview';
+import { LiveViewsModal, useLiveViews, type LiveView } from '@/components/cctv/LiveViewsModal';
+import { hasPermission } from '@/App';
 import { applyCameraSelection, applyLocationFilter, camerasForEmptySlots, favoritesFirst, NO_LOCATION } from '@/lib/cameraFilter';
 import { SearchableSelect } from '@/components/ui';
 import {
@@ -27,8 +29,8 @@ import {
   Building2,
   Radio,
   Bookmark,
-  Trash2,
-  Save,
+  
+  
   Check,
   Layers,
   Play,
@@ -59,12 +61,6 @@ interface GridCell {
   hasSubStream: boolean;
 }
 
-interface SavedPreset {
-  id: string;
-  name: string;
-  layout: GridLayout;
-  slots: { slotIndex: number; cameraId: string; cameraName: string }[];
-}
 
 const FILTER_STORAGE_KEY = 'cctv_live_filter';
 const VIEW_STORAGE_KEY = 'cctv_live_view';
@@ -169,17 +165,9 @@ export default function LiveGrid() {
   const [expandedSites, setExpandedSites] = useState<Record<string, boolean>>({});
   const [expandedZones, setExpandedZones] = useState<Record<string, boolean>>({});
 
-  // Preset management state
   const [presetModalOpen, setPresetModalOpen] = useState(false);
-  const [presetNameInput, setPresetNameInput] = useState('');
-  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => {
-    try {
-      const stored = localStorage.getItem('cctv_live_presets');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { data: liveViews = [] } = useLiveViews();
+  const canShareViews = hasPermission(user, 'cameras:update');
 
   // Layout slots count
   const getSlotCount = (l: GridLayout): number => {
@@ -605,36 +593,12 @@ export default function LiveGrid() {
     setDrawerOpen(false);
   };
 
-  // Preset management
-  const handleSavePreset = () => {
-    if (!presetNameInput.trim()) return;
-
-    const currentSlots = cells
-      .slice(0, slotCount)
-      .filter((c) => c.cameraId)
-      .map((c) => ({
-        slotIndex: c.slotIndex,
-        cameraId: c.cameraId!,
-        cameraName: c.cameraName || `Camera ${c.slotIndex + 1}`,
-      }));
-
-    const newPreset: SavedPreset = {
-      id: `preset_${Date.now()}`,
-      name: presetNameInput.trim(),
-      layout,
-      slots: currentSlots,
-    };
-
-    const updated = [...savedPresets, newPreset];
-    setSavedPresets(updated);
-    localStorage.setItem('cctv_live_presets', JSON.stringify(updated));
-    setPresetNameInput('');
-    setPresetModalOpen(false);
-  };
-
-  const handleLoadPreset = (preset: SavedPreset) => {
+  // Saved views (server): load replaces the wall with the view's cameras that this person may see.
+  const handleLoadPreset = (view: LiveView) => {
     filledOnce.current = true;
-    setLayout(preset.layout);
+    // A view is a wall of slots; on the overview it would load out of sight.
+    chooseView('grid');
+    setLayout(view.layout);
 
     const newCells: GridCell[] = Array.from({ length: 16 }, (_, i) => ({
       slotIndex: i,
@@ -646,21 +610,12 @@ export default function LiveGrid() {
     }));
     setCells(newCells);
 
-    preset.slots.forEach((s) => {
+    view.slots.forEach((s) => {
       const cam = cameras.find((c: any) => c.id === s.cameraId);
       if (cam) {
         assignCameraToSlot(cam, s.slotIndex);
       }
     });
-
-    setPresetModalOpen(false);
-  };
-
-  const handleDeletePreset = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updated = savedPresets.filter((p) => p.id !== id);
-    setSavedPresets(updated);
-    localStorage.setItem('cctv_live_presets', JSON.stringify(updated));
   };
 
   // Fullscreen wall
@@ -877,9 +832,9 @@ export default function LiveGrid() {
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-400" />
             <span className="hidden md:inline">{t('ui.liveGrid.presets')}</span>
-            {savedPresets.length > 0 && (
+            {liveViews.length > 0 && (
               <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 text-[10px] flex items-center justify-center font-mono">
-                {savedPresets.length}
+                {liveViews.length}
               </span>
             )}
           </button>
@@ -1291,87 +1246,14 @@ export default function LiveGrid() {
         )}
       </div>
 
-      {/* Preset Management Modal */}
-      {presetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-slate-100">{t('ui.liveGrid.liveGridPresets')}</h3>
-              </div>
-              <button
-                onClick={() => setPresetModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Save Current as New Preset */}
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
-              <span className="text-xs font-semibold text-slate-300">
-                {t('ui.liveGrid.saveCurrentWall')}{layout}{' '}{t('ui.liveGrid.layout')}
-              </span>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder={t('ui.liveGrid.eGMainLobbyEntrance')}
-                  value={presetNameInput}
-                  onChange={(e) => setPresetNameInput(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-                <button
-                  onClick={handleSavePreset}
-                  disabled={!presetNameInput.trim()}
-                  className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg flex items-center gap-1 transition"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{t('common.save')}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Existing Presets List */}
-            <div className="space-y-2 max-h-60 overflow-auto">
-              <span className="text-xs font-semibold text-slate-400">{t('ui.liveGrid.savedPresets')}</span>
-              {savedPresets.length === 0 ? (
-                <p className="text-xs text-slate-600 text-center py-4">{t('ui.liveGrid.noSavedPresetsYet')}</p>
-              ) : (
-                savedPresets.map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => handleLoadPreset(p)}
-                    className="p-2.5 rounded-lg border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer transition flex items-center justify-between group"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-200">{p.name}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
-                          {p.layout}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-500">
-                        {p.slots.length}{' '}{t('ui.liveGrid.camerasConfigured')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleDeletePreset(p.id, e)}
-                        className="p-1 text-slate-500 hover:text-rose-400 transition"
-                        title={t('ui.liveGrid.deletePreset')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <LiveViewsModal
+        open={presetModalOpen}
+        onClose={() => setPresetModalOpen(false)}
+        layout={layout}
+        currentSlots={cells.slice(0, slotCount).filter((c) => c.cameraId).map((c) => ({ slotIndex: c.slotIndex, cameraId: c.cameraId! }))}
+        canShare={canShareViews}
+        onLoad={handleLoadPreset}
+      />
     </div>
   );
 }

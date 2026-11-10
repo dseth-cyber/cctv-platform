@@ -43,6 +43,14 @@ export function createImageServiceApi(api: any) {
       api.patch(`${BASE}/camera-groups/${id}`, data).then((r: any) => r.data),
     deleteCameraGroup: (id: string) =>
       api.delete(`${BASE}/camera-groups/${id}`),
+    getLiveViews: () =>
+      api.get(`${BASE}/live-views`).then((r: any) => r.data),
+    createLiveView: (data: Record<string, unknown>) =>
+      api.post(`${BASE}/live-views`, data).then((r: any) => r.data),
+    updateLiveView: (id: string, data: Record<string, unknown>) =>
+      api.patch(`${BASE}/live-views/${id}`, data).then((r: any) => r.data),
+    deleteLiveView: (id: string) =>
+      api.delete(`${BASE}/live-views/${id}`),
 
     createCamera: (data: Record<string, unknown>) =>
       api.post(`${BASE}/cameras`, data).then((r: any) => r.data),

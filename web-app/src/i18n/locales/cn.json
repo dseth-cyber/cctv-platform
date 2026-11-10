@@ -3665,6 +3665,30 @@
       "nameTaken": "已存在同名分组",
       "deleted": "分组已删除",
       "deleteHint": "仅删除分组，摄像机保留"
+    },
+    "liveViews": {
+      "title": "直播墙视图",
+      "saveCurrent": "保存当前直播墙（{{layout}}，{{n}} 台摄像机）",
+      "namePlaceholder": "例如 前门和停车场",
+      "shareWithTeam": "让团队所有人都能使用此视图",
+      "shareHint": "每个人只能看到自己有权查看的摄像机",
+      "mine": "我的",
+      "team": "团队",
+      "teamBadge": "团队",
+      "by": "由 {{name}}",
+      "cameras": "{{n}} 台摄像机",
+      "hidden": "未显示 {{n}} 台摄像机（无权查看或已删除）",
+      "empty": "暂无视图",
+      "share": "分享给团队",
+      "unshare": "取消分享（仅所有者）",
+      "delete": "删除视图",
+      "deleteConfirm": "删除视图“{{name}}”？",
+      "deleteSharedConfirm": "删除团队视图“{{name}}”？所有人都将无法再使用。",
+      "saved": "视图已保存",
+      "migrated": "已将此浏览器中的 {{n}} 个视图移到服务器",
+      "noRight": "无权限：分享或修改团队视图需要修改摄像机的权限",
+      "failed": "操作失败",
+      "emptyWall": "直播墙的格子里还没有摄像机：请切换到网格模式并放入摄像机后再保存"
     }
   }
 }

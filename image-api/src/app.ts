@@ -23,6 +23,7 @@ import { authRoutes } from './modules/auth/auth.controller.js';
 import { cameraRoutes } from './modules/cameras/cameras.controller.js';
 import { deviceRoutes } from './modules/devices/devices.controller.js';
 import { cameraGroupRoutes } from './modules/camera-groups/camera-groups.controller.js';
+import { liveViewRoutes } from './modules/live-views/live-views.controller.js';
 import { devicePlaybackRoutes } from './modules/device-playback/device-playback.controller.js';
 import { startDeviceHealthChecks, stopDeviceHealthChecks } from './modules/devices/device-health.service.js';
 import { ensureMasterdataDefaults } from './modules/masterdata/masterdata.service.js';
@@ -148,6 +149,7 @@ export async function buildApp() {
       await api.register(cameraRoutes, { prefix: '/api/v1/cameras' });
       await api.register(deviceRoutes, { prefix: '/api/v1/devices' });
       await api.register(cameraGroupRoutes, { prefix: '/api/v1/camera-groups' });
+      await api.register(liveViewRoutes, { prefix: '/api/v1/live-views' });
       await api.register(snapshotRoutes, { prefix: '/api/v1/snapshots' });
       await api.register(devicePlaybackRoutes, { prefix: '/api/v1/device-playback' });
       await api.register(siteRoutes, { prefix: '/api/v1/sites' });
