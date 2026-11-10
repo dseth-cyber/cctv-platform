@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CameraInfoImportModal } from '@/components/cctv/CameraInfoImportModal';
+import { RefreshSecondsSelect, refreshToApi, refreshToForm } from '@/components/cctv/RefreshSecondsSelect';
 import { CameraLiveModal, WatchLiveButton } from '@/components/cctv/CameraLiveModal';
 import { cameraResolutionText } from '@/components/cctv/CameraSpecCard';
 import { specNotes } from '@/lib/cameraSpec';
@@ -57,7 +58,7 @@ const emptyForm = () => ({
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
   enabled: true,
-  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '', alertLevel: '',
+  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '', alertLevel: '', snapshotRefreshSeconds: '',
   siteId: '', zoneId: '', locationFromDevice: true,
 });
 
@@ -320,7 +321,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
-      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '', alertLevel: item.alertLevel ?? '',
+      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '', alertLevel: item.alertLevel ?? '', snapshotRefreshSeconds: refreshToForm(item.snapshotRefreshSeconds),
       siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
       enabled: item.enabled !== false,
     };
@@ -438,6 +439,7 @@ export default function ImageServiceCameras() {
           cameraModel: form.cameraModel.trim() || null,
           shortCode: form.shortCode.trim() || null,
           alertLevel: form.alertLevel || null,
+          snapshotRefreshSeconds: refreshToApi(form.snapshotRefreshSeconds),
           ...(modal.item ? { enabled: form.enabled } : {}),
           ...(modal.item?.deviceId && form.locationFromDevice
             ? { locationFromDevice: true }
@@ -1578,6 +1580,11 @@ export default function ImageServiceCameras() {
                     ...alertLevelOptions.map((o) => ({ value: o.value, label: o.label })),
                   ]} />
               </div>
+            </div>
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.snapshotRefresh.label')}</label>
+              <RefreshSecondsSelect level="camera" dataAttr="data-camera-refresh" value={form.snapshotRefreshSeconds} onChange={(v) => setForm(p => ({ ...p, snapshotRefreshSeconds: v }))}
+                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.shortCode')}</label>

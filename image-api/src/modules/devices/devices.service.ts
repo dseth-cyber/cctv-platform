@@ -164,6 +164,7 @@ export async function createDevice(input: CreateDeviceInput) {
       firmwareVersion: input.firmwareVersion || null,
       shortCode: input.shortCode || null,
       alertLevel: input.alertLevel || null,
+      snapshotRefreshSeconds: input.snapshotRefreshSeconds ?? null,
       ipAddress: input.ipAddress,
       rtspPort: input.rtspPort,
       httpPort: input.httpPort,
@@ -292,6 +293,7 @@ export async function updateDevice(id: string, input: UpdateDeviceInput) {
   if (input.firmwareVersion !== undefined) data.firmwareVersion = input.firmwareVersion || null;
   if (input.shortCode !== undefined) data.shortCode = input.shortCode || null;
   if (input.alertLevel !== undefined) data.alertLevel = input.alertLevel || null;
+  if (input.snapshotRefreshSeconds !== undefined) data.snapshotRefreshSeconds = input.snapshotRefreshSeconds;
   if (input.ipAddress !== undefined) data.ipAddress = input.ipAddress;
   if (input.rtspPort !== undefined) data.rtspPort = input.rtspPort;
   if (input.httpPort !== undefined) data.httpPort = input.httpPort;

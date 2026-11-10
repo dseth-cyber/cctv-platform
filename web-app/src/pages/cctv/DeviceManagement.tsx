@@ -49,6 +49,7 @@ import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib
 import { cloneIpPlaceholder, isValidIPv4, uniqueCopyName } from '@/lib/deviceChannels';
 
 import { useTranslation } from 'react-i18next';
+import { RefreshSecondsSelect, refreshToApi, refreshToForm } from '@/components/cctv/RefreshSecondsSelect';
 export default function DeviceManagement() {
   const { t } = useTranslation()
   const { themeConfig } = useTheme();
@@ -98,6 +99,7 @@ export default function DeviceManagement() {
     serialNumber: '',
     shortCode: '',
     alertLevel: '',
+    snapshotRefreshSeconds: '',
     macAddress: '',
     firmwareVersion: '',
     ipAddress: '',
@@ -385,6 +387,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: '',
       shortCode: '',
       alertLevel: '',
+      snapshotRefreshSeconds: '',
       macAddress: '',
       firmwareVersion: '',
       ipAddress: '',
@@ -420,6 +423,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: '',
       shortCode: '',
       alertLevel: dev.alertLevel || '',
+      snapshotRefreshSeconds: refreshToForm(dev.snapshotRefreshSeconds),
       macAddress: '',
       firmwareVersion: '',
       ipAddress: cloneIpPlaceholder(dev.ipAddress),
@@ -451,6 +455,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
       serialNumber: dev.serialNumber || '',
       shortCode: dev.shortCode || '',
       alertLevel: dev.alertLevel || '',
+      snapshotRefreshSeconds: refreshToForm(dev.snapshotRefreshSeconds),
       macAddress: dev.macAddress || '',
       firmwareVersion: dev.firmwareVersion || '',
       ipAddress: dev.ipAddress || '',
@@ -474,12 +479,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
     e.preventDefault();
     if (!ipValid || passwordMissing) return;
     if (editingDevice) {
-      const payload: any = { ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null };
+      const payload: any = { ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null, snapshotRefreshSeconds: refreshToApi(formData.snapshotRefreshSeconds) };
       if (!payload.password) delete payload.password;
       delete payload.autoCreateCameras;
       updateMutation.mutate({ id: editingDevice.id, data: payload });
     } else {
-      createMutation.mutate({ ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null, ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
+      createMutation.mutate({ ...formData, ipAddress: formData.ipAddress.trim(), siteId: formData.siteId || null, zoneId: formData.zoneId || null, snapshotRefreshSeconds: refreshToApi(formData.snapshotRefreshSeconds), ...(formData.autoCreateCameras && enabledChannels ? { enabledChannels } : {}) } as any);
     }
   };
 
@@ -906,6 +911,12 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 {alertLevelOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.alertLevelHint')}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.snapshotRefresh.label')}</label>
+              <RefreshSecondsSelect level="device" dataAttr="data-device-refresh" value={formData.snapshotRefreshSeconds} onChange={(v) => setFormData({ ...formData, snapshotRefreshSeconds: v })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
+              <p className="mt-1 text-[11px] text-slate-500">{t('ui.snapshotRefresh.hint')}</p>
             </div>
           </div>
 

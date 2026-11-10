@@ -10,6 +10,7 @@ import { getAllConfigs } from '../system-config/system-config.service.js';
 import { computeSnapshotAdvice } from './snapshot-advice.js';
 import { SnapshotScheduler, type SchedulerSettings } from './snapshot-scheduler.js';
 import { fetchSnapshot, type SnapshotTarget } from './snapshot-sources.js';
+import { resolveRefreshSeconds } from './refresh-tiers.js';
 
 const MAX_IDS_PER_REQUEST = 500;
 const TARGET_CACHE_MS = 30_000;
@@ -66,8 +67,9 @@ async function loadTargets(ids: string[]): Promise<{ id: string; target: Snapsho
     const rows = await getPrisma().camera.findMany({
       where: { id: { in: stale }, deletedAt: null },
       select: {
-        id: true, ipAddress: true, channelNumber: true, metadata: true, rtspUrl: true, rtspUrlSub: true,
-        device: { select: { ipAddress: true, brand: true, httpPort: true } },
+        id: true, ipAddress: true, channelNumber: true, metadata: true, rtspUrl: true, rtspUrlSub: true, snapshotRefreshSeconds: true,
+        device: { select: { ipAddress: true, brand: true, httpPort: true, snapshotRefreshSeconds: true } },
+        groupMemberships: { select: { group: { select: { snapshotRefreshSeconds: true } } } },
       },
     });
     const byId = new Map(rows.map((r) => [r.id, r]));
@@ -95,7 +97,19 @@ function toTarget(row: any): SnapshotTarget | null {
     brand: row.device?.brand ?? connection?.brand ?? null,
     channel: row.channelNumber ?? connection?.channel ?? 1,
     rtspUrl,
+    refreshSeconds: ownRefresh(row),
   };
+}
+
+/** The camera's own refresh from its levels, or null when it follows the system value (read live by the scheduler). */
+function ownRefresh(row: any): number | null {
+  const r = resolveRefreshSeconds({
+    camera: row.snapshotRefreshSeconds,
+    groups: (row.groupMemberships ?? []).map((m: any) => m.group?.snapshotRefreshSeconds),
+    device: row.device?.snapshotRefreshSeconds,
+    system: 0,
+  });
+  return r.source === 'system' ? null : r.seconds;
 }
 
 const requestSchema = z.object({ ids: z.array(z.guid()).max(MAX_IDS_PER_REQUEST) });

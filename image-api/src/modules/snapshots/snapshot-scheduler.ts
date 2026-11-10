@@ -14,6 +14,8 @@ export interface CameraSnapshotStatus {
   state: SnapshotState;
   /** Epoch ms of the image held for this camera, which may be older than `state`. */
   capturedAt: number | null;
+  /** The period this camera is refreshed on (its own level, or the system value). */
+  refreshSeconds: number;
 }
 
 interface CameraEntry {
@@ -36,6 +38,9 @@ interface HostEntry {
   loginBlockedUntil: Map<string, number>;
   httpUnsupported: boolean;
 }
+
+/** The camera's own refresh (camera > group > DVR/NVR) or else the system value. */
+const periodSeconds = (entry: CameraEntry, settings: SchedulerSettings) => entry.target?.refreshSeconds ?? settings.refreshSeconds;
 
 /** A camera stops being fetched this long after the last page that wanted it. */
 export const DEMAND_TTL_MS = 30_000;
@@ -123,6 +128,7 @@ export class SnapshotScheduler {
     const now = this.now();
     const demanded = [...this.cameras.values()].filter((e) => now - e.lastDemandAt <= DEMAND_TTL_MS);
     const { refreshSeconds } = this.getSettings();
+    const periodOf = (e: CameraEntry) => e.target?.refreshSeconds ?? refreshSeconds;
     this.recentDone = this.recentDone.filter((t) => now - t <= 60_000);
     return {
       demanded: demanded.length,
@@ -130,7 +136,7 @@ export class SnapshotScheduler {
       waiting: demanded.filter((e) => e.target && !e.inFlight && e.nextDueAt <= now).length,
       oldestImageSeconds: demanded.reduce((max, e) => (e.capturedAt ? Math.max(max, (now - e.capturedAt) / 1000) : max), 0),
       // Twice the refresh period means images are arriving late, not that anything is failing.
-      behind: demanded.some((e) => e.capturedAt && now - e.capturedAt > refreshSeconds * 2000 && this.statusOf(e, now).state === 'ok'),
+      behind: demanded.some((e) => e.capturedAt && now - e.capturedAt > periodOf(e) * 2000 && this.statusOf(e, now).state === 'ok'),
       imagesPerMinute: this.recentDone.length,
       cacheBytes: this.cacheBytes,
       avgMs: this.avgMs,
@@ -160,7 +166,7 @@ export class SnapshotScheduler {
     else if ((this.hosts.get(entry.target.host)?.openUntil ?? 0) > now) state = 'unreachable';
     else if (entry.lastFailure) state = entry.lastFailure;
     else state = entry.capturedAt ? 'ok' : 'waiting';
-    return { state, capturedAt: entry.capturedAt };
+    return { state, capturedAt: entry.capturedAt, refreshSeconds: periodSeconds(entry, this.getSettings()) };
   }
 
   private async run(entry: CameraEntry, target: SnapshotTarget, host: HostEntry, settings: SchedulerSettings) {
@@ -196,7 +202,7 @@ export class SnapshotScheduler {
     entry.capturedAt = now;
     entry.failures = 0;
     entry.lastFailure = null;
-    entry.nextDueAt = now + settings.refreshSeconds * 1000;
+    entry.nextDueAt = now + periodSeconds(entry, settings) * 1000;
     host.consecutiveFailures = 0;
     host.openPeriodMs = HOST_OPEN_MIN_MS;
     const elapsed = now - startedAt;
@@ -211,7 +217,7 @@ export class SnapshotScheduler {
     const now = this.now();
     entry.lastFailure = kind;
     entry.failures++;
-    entry.nextDueAt = now + Math.min(MAX_CAMERA_BACKOFF_MS, settings.refreshSeconds * 1000 * 2 ** entry.failures);
+    entry.nextDueAt = now + Math.min(MAX_CAMERA_BACKOFF_MS, periodSeconds(entry, settings) * 1000 * 2 ** entry.failures);
     if (kind === 'auth_failed') {
       host.loginBlockedUntil.set(target.loginKey, now + LOGIN_BLOCK_MS);
       return;

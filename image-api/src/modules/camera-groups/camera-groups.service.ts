@@ -8,12 +8,14 @@ const MAX_GROUP_CAMERAS = 2000;
 export const createCameraGroupSchema = z.object({
   name: z.string().trim().min(1).max(64),
   description: z.string().trim().max(255).optional().nullable(),
+  snapshotRefreshSeconds: z.number().int().min(10).max(600).optional().nullable(),
   cameraIds: z.array(z.guid()).max(MAX_GROUP_CAMERAS).default([]),
 });
 
 export const updateCameraGroupSchema = z.object({
   name: z.string().trim().min(1).max(64).optional(),
   description: z.string().trim().max(255).optional().nullable(),
+  snapshotRefreshSeconds: z.number().int().min(10).max(600).optional().nullable(),
   cameraIds: z.array(z.guid()).max(MAX_GROUP_CAMERAS).optional(),
 });
 
@@ -49,6 +51,7 @@ export async function createCameraGroup(input: CreateCameraGroupInput) {
     data: {
       name: input.name,
       description: input.description ?? null,
+      snapshotRefreshSeconds: input.snapshotRefreshSeconds ?? null,
       members: { create: [...new Set(input.cameraIds)].map((cameraId) => ({ cameraId })) },
     },
   });
@@ -69,6 +72,7 @@ export async function updateCameraGroup(id: string, input: UpdateCameraGroupInpu
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.snapshotRefreshSeconds !== undefined ? { snapshotRefreshSeconds: input.snapshotRefreshSeconds } : {}),
       },
     });
   });

@@ -22,6 +22,24 @@ function harness(fetcher: (t: SnapshotTarget, o: { skipHttp?: boolean }) => Prom
 }
 
 describe('SnapshotScheduler', () => {
+  it('a camera with its own refresh is fetched on that period; the rest follow the system value', async () => {
+    const calls: Record<string, number> = { fast: 0, slow: 0 };
+    const { scheduler, advance } = harness(async (t) => { calls[t.cameraId]++; return { image: JPEG, usedRtsp: false }; }, { refreshSeconds: 30 });
+    const fast = target('fast', 'nvr-a');
+    fast.target.refreshSeconds = 10;
+    const slow = target('slow', 'nvr-b');
+    const look = () => scheduler.request([fast, slow]);
+    look();
+    await sleep(5);
+    for (let s = 0; s < 3; s++) { // 3 x 10 s, the page still open
+      advance(10_000);
+      look();
+      await sleep(5);
+    }
+    expect(calls.fast).toBe(4);
+    expect(calls.slow).toBe(2); // first fetch, then once at 30 s
+  });
+
   it('never exceeds the per-device or overall limit, however many cameras are on screen', async () => {
     const running = new Map<string, number>();
     let peakHost = 0;
@@ -153,7 +171,7 @@ describe('SnapshotScheduler', () => {
     scheduler.request([target('a')]);
     await sleep(5);
     const status = scheduler.request([target('a')]).a;
-    expect(status).toEqual({ state: 'unreachable', capturedAt: firstTime });
+    expect(status).toMatchObject({ state: 'unreachable', capturedAt: firstTime });
     expect(scheduler.image('a')!.capturedAt).toBe(firstTime);
   });
 

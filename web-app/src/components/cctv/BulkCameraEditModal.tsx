@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RefreshSecondsSelect, refreshToApi } from '@/components/cctv/RefreshSecondsSelect';
 import { Button, Modal, SearchableSelect } from '@/components/ui';
 import { LocationFields } from '@/components/cctv/LocationFields';
 import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
@@ -20,6 +21,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   const [cameraBrand, setCameraBrand] = useState(KEEP);
   const [cameraModel, setCameraModel] = useState('');
   const [alertLevel, setAlertLevel] = useState(KEEP);
+  const [refresh, setRefresh] = useState(KEEP);
   const [enabled, setEnabled] = useState(KEEP);
   const [placeMode, setPlaceMode] = useState<'keep' | 'device' | 'set'>('keep');
   const [place, setPlace] = useState({ siteId: '', zoneId: '' });
@@ -34,6 +36,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   if (cameraBrand !== KEEP) changes.cameraBrand = cameraBrand === CLEAR ? null : cameraBrand;
   if (cameraModel.trim()) changes.cameraModel = cameraModel.trim();
   if (alertLevel !== KEEP) changes.alertLevel = alertLevel === CLEAR ? null : alertLevel;
+  if (refresh !== KEEP) changes.snapshotRefreshSeconds = refreshToApi(refresh);
   if (enabled !== KEEP) changes.enabled = enabled === 'on';
   if (placeMode === 'device') changes.locationFromDevice = true;
   if (placeMode === 'set') Object.assign(changes, { locationFromDevice: false, siteId: place.siteId || null, zoneId: place.zoneId || null });
@@ -70,6 +73,11 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
           <div>
             <label className={label}>{t('imageService.cameras.cameraBrand')}</label>
             <SearchableSelect value={cameraBrand} onChange={setCameraBrand} options={[keepOption, clearOption, ...brands.map((o) => ({ value: o.value, label: o.label }))]} />
+          </div>
+          <div>
+            <label className={label}>{t('ui.snapshotRefresh.label')}</label>
+            <RefreshSecondsSelect level="camera" dataAttr="data-bulk-refresh" value={refresh} onChange={setRefresh} extraOptions={[keepOption]}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
           </div>
           <div data-bulk-alert-level>
             <label className={label}>{t('imageService.cameras.alertLevel')}</label>

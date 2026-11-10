@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { RefreshSecondsSelect, refreshToApi, refreshToForm } from '@/components/cctv/RefreshSecondsSelect';
 import { Edit, FolderTree, Plus, Trash2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -10,7 +11,7 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { Button, Modal, SearchableSelect, TableSkeleton } from '@/components/ui';
 import { useCctvCameras } from '@/hooks/useCctvCameras';
 
-const emptyForm = () => ({ name: '', description: '', cameraIds: [] as string[] });
+const emptyForm = () => ({ name: '', description: '', snapshotRefreshSeconds: '', cameraIds: [] as string[] });
 
 export default function CameraGroups() {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ export default function CameraGroups() {
   };
 
   const openEdit = (item?: any) => {
-    setForm(item ? { name: item.name, description: item.description ?? '', cameraIds: item.cameraIds } : emptyForm());
+    setForm(item ? { name: item.name, description: item.description ?? '', snapshotRefreshSeconds: refreshToForm(item.snapshotRefreshSeconds), cameraIds: item.cameraIds } : emptyForm());
     setModal({ open: true, item });
   };
 
@@ -49,7 +50,7 @@ export default function CameraGroups() {
     e.preventDefault();
     try {
       setSaving(true);
-      const payload = { name: form.name.trim(), description: form.description.trim() || null, cameraIds: form.cameraIds };
+      const payload = { name: form.name.trim(), description: form.description.trim() || null, snapshotRefreshSeconds: refreshToApi(form.snapshotRefreshSeconds), cameraIds: form.cameraIds };
       if (modal.item) await imageServiceApi.updateCameraGroup(modal.item.id, payload);
       else await imageServiceApi.createCameraGroup(payload);
       toast.success(t('common.saveSuccess'));
@@ -133,6 +134,12 @@ export default function CameraGroups() {
             <label className={labelClass}>{t('ui.cameraGroups.description')}</label>
             <input value={form.description} maxLength={255}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>{t('ui.snapshotRefresh.label')}</label>
+            <RefreshSecondsSelect level="group" dataAttr="data-group-refresh" value={form.snapshotRefreshSeconds}
+              onChange={(v) => setForm((p) => ({ ...p, snapshotRefreshSeconds: v }))} className={inputClass} />
+            <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('ui.snapshotRefresh.groupHint')}</p>
           </div>
           <div>
             <label className={labelClass}>{t('ui.cameraGroups.cameras')}</label>

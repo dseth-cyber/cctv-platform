@@ -329,6 +329,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       cameraModel: input.cameraModel || null,
       shortCode: input.shortCode || null,
       alertLevel: input.alertLevel || null,
+      snapshotRefreshSeconds: input.snapshotRefreshSeconds ?? null,
     },
     include: {
       retentionPolicy: true,
@@ -409,6 +410,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.cameraModel !== undefined) data.cameraModel = input.cameraModel || null;
   if (input.shortCode !== undefined) data.shortCode = input.shortCode || null;
   if (input.alertLevel !== undefined) data.alertLevel = input.alertLevel || null;
+  if (input.snapshotRefreshSeconds !== undefined) data.snapshotRefreshSeconds = input.snapshotRefreshSeconds;
   if (input.connection) {
     const ip = input.ipAddress !== undefined ? input.ipAddress : existing.ipAddress;
     const built = urlsFromConnection(input.connection, ip, existing.rtspUrl);

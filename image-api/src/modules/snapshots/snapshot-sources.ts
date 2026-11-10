@@ -21,6 +21,8 @@ export interface SnapshotTarget {
   brand: string | null;
   channel: number;
   rtspUrl: string | null;
+  /** Set when the camera, one of its groups or its DVR/NVR has its own refresh; null follows the system value. */
+  refreshSeconds?: number | null;
 }
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

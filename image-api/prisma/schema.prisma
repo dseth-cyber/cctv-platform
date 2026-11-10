@@ -257,6 +257,8 @@ model CameraGroup {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique @db.VarChar(64)
   description String?  @db.VarChar(255)
+  /// Still-image refresh for the live overview, in seconds; null takes the next level up (see snapshots/refresh-tiers.ts).
+  snapshotRefreshSeconds Int? @map("snapshot_refresh_seconds")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -396,6 +398,8 @@ model Device {
   shortCode         String?    @map("short_code") @db.VarChar(20)
   // Code from masterdata type alert_level. Empty means the default level.
   alertLevel        String?    @map("alert_level") @db.VarChar(64)
+  /// Still-image refresh for the live overview, in seconds; null takes the next level up (see snapshots/refresh-tiers.ts).
+  snapshotRefreshSeconds Int? @map("snapshot_refresh_seconds")
   description       String?    @db.Text
   // Code from masterdata type device_type.
   deviceType        String     @default("dvr") @map("device_type") @db.VarChar(32)
@@ -459,6 +463,8 @@ model Camera {
   shortCode              String?                 @map("short_code") @db.VarChar(20)
   // Code from masterdata type alert_level. Empty means it follows its device.
   alertLevel             String?                 @map("alert_level") @db.VarChar(64)
+  /// Still-image refresh for the live overview, in seconds; null takes the next level up (see snapshots/refresh-tiers.ts).
+  snapshotRefreshSeconds Int? @map("snapshot_refresh_seconds")
   // What this outage has already raised, so a later check does not raise it again.
   outageAlertedAt        DateTime?               @map("outage_alerted_at")
   outageIncidentAt       DateTime?               @map("outage_incident_at")
