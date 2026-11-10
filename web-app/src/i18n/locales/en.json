@@ -3736,6 +3736,22 @@
       "placeholder": "Default",
       "userHint": "Empty follows the role, or the system value if the role sets none (1-64). Layouts with more tiles are not offered.",
       "roleHint": "For everyone with this role unless set per person. Empty follows the system value (1-64)."
+    },
+    "sensitive": {
+      "label": "Sensitive camera (views are logged)",
+      "hint": "e.g. interview or HR rooms: every live, still, playback, clip cut or download of this camera goes to the audit log with who and when (one entry per person and camera per 10 minutes at most)",
+      "chip": "Sensitive",
+      "on": "Sensitive",
+      "off": "Not sensitive",
+      "action": "Sensitive camera viewed",
+      "desc": "{{user}} {{kind}}: {{name}}",
+      "kind": {
+        "live": "watched live",
+        "still": "viewed a still",
+        "playback": "played back",
+        "clip_export": "cut a clip",
+        "clip_download": "downloaded a clip"
+      }
     }
   }
 }

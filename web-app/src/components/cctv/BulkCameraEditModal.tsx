@@ -23,6 +23,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   const [alertLevel, setAlertLevel] = useState(KEEP);
   const [refresh, setRefresh] = useState(KEEP);
   const [enabled, setEnabled] = useState(KEEP);
+  const [sensitive, setSensitive] = useState(KEEP);
   const [placeMode, setPlaceMode] = useState<'keep' | 'device' | 'set'>('keep');
   const [place, setPlace] = useState({ siteId: '', zoneId: '' });
   const [failed, setFailed] = useState<Array<{ name: string; message: string }>>([]);
@@ -38,6 +39,7 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
   if (alertLevel !== KEEP) changes.alertLevel = alertLevel === CLEAR ? null : alertLevel;
   if (refresh !== KEEP) changes.snapshotRefreshSeconds = refreshToApi(refresh);
   if (enabled !== KEEP) changes.enabled = enabled === 'on';
+  if (sensitive !== KEEP) changes.sensitive = sensitive === 'on';
   if (placeMode === 'device') changes.locationFromDevice = true;
   if (placeMode === 'set') Object.assign(changes, { locationFromDevice: false, siteId: place.siteId || null, zoneId: place.zoneId || null });
   const nothingToDo = Object.keys(changes).length === 0;
@@ -96,6 +98,10 @@ export function BulkCameraEditModal({ ids, onClose, onDone }: { ids: string[]; o
           <div>
             <label className={label}>{t('imageService.cameras.enabledField')}</label>
             <SearchableSelect value={enabled} onChange={setEnabled} showSearch={false} options={[keepOption, { value: 'on', label: t('ui.bulkEdit.on') }, { value: 'off', label: t('ui.bulkEdit.off') }]} />
+          </div>
+          <div data-bulk-sensitive>
+            <label className={label}>🔒 {t('ui.sensitive.label')}</label>
+            <SearchableSelect value={sensitive} onChange={setSensitive} showSearch={false} options={[keepOption, { value: 'on', label: t('ui.sensitive.on') }, { value: 'off', label: t('ui.sensitive.off') }]} />
           </div>
         </div>
         <div className="space-y-2">

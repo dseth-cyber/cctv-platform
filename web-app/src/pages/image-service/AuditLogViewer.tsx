@@ -23,6 +23,7 @@ const ACTION_LABEL_KEY: Record<string, string> = {
   camera_update: 'imageService.auditLog.actionCameraUpdate',
   camera_delete: 'imageService.auditLog.actionCameraDelete',
   camera_status_change: 'imageService.auditLog.actionCameraStatusChange',
+  camera_sensitive_view: 'ui.sensitive.action',
   camera_restore: 'imageService.auditLog.actionCameraRestore',
   camera_permanent_delete: 'imageService.auditLog.actionCameraPermanentDelete',
   camera_trash_empty: 'imageService.auditLog.actionCameraTrashEmpty',
@@ -94,6 +95,12 @@ const GENERIC_VERB_KEY: Record<string, string> = {
 
 const localizeDescription = (description: string, action: string, t: any) => {
   if (!description) return '—';
+
+  // Who looked at a sensitive camera: "<user> <kind words>: <camera>"
+  if (action === 'camera_sensitive_view') {
+    const m = description.match(/^(\S+) (live|still|playback|clip export|clip download): (.+)$/);
+    if (m) return t('ui.sensitive.desc', { user: m[1], kind: t(`ui.sensitive.kind.${m[2].replace(' ', '_')}`), name: m[3] });
+  }
 
   // 1. camera status change
   // Format: Camera "Name" status changed: active → maintenance by admin

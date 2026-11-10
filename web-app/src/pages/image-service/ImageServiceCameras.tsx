@@ -59,7 +59,7 @@ const emptyForm = () => ({
   // live_only: the server pulls only while someone watches and keeps no files (DVR/NVRs record to their own HDD).
   recordingMode: 'live_only' as 'live_only' | 'continuous',
   enabled: true,
-  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '', alertLevel: '', snapshotRefreshSeconds: '',
+  cameraType: '', cameraBrand: '', cameraModel: '', shortCode: '', alertLevel: '', snapshotRefreshSeconds: '', sensitive: false,
   siteId: '', zoneId: '', locationFromDevice: true,
 });
 
@@ -322,7 +322,7 @@ export default function ImageServiceCameras() {
       brand: conn?.brand ?? 'auto', rtspPort: String(conn?.port ?? 554), channel: String(conn?.channel ?? 1),
       username: conn?.username ?? 'admin', password: '',
       recordingMode: (item.recordingMode === 'continuous' ? 'continuous' : 'live_only') as 'live_only' | 'continuous',
-      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '', alertLevel: item.alertLevel ?? '', snapshotRefreshSeconds: refreshToForm(item.snapshotRefreshSeconds),
+      cameraType: item.cameraType ?? '', cameraBrand: item.cameraBrand ?? '', cameraModel: item.cameraModel ?? '', shortCode: item.shortCode ?? '', alertLevel: item.alertLevel ?? '', snapshotRefreshSeconds: refreshToForm(item.snapshotRefreshSeconds), sensitive: !!item.sensitive,
       siteId: item.siteId ?? '', zoneId: item.zoneId ?? '', locationFromDevice: item.locationFromDevice !== false,
       enabled: item.enabled !== false,
     };
@@ -441,6 +441,7 @@ export default function ImageServiceCameras() {
           shortCode: form.shortCode.trim() || null,
           alertLevel: form.alertLevel || null,
           snapshotRefreshSeconds: refreshToApi(form.snapshotRefreshSeconds),
+          sensitive: form.sensitive,
           ...(modal.item ? { enabled: form.enabled } : {}),
           ...(modal.item?.deviceId && form.locationFromDevice
             ? { locationFromDevice: true }
@@ -1334,6 +1335,7 @@ export default function ImageServiceCameras() {
                         {camera.recordingMode === 'continuous' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30" title={t('imageService.cameras.recording.onHint')}>● {t('imageService.cameras.recording.badgeRecord')}</span>
                         )}
+                        {camera.sensitive && <span data-sensitive-chip title={t('ui.sensitive.hint')} className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/30">🔒 {t('ui.sensitive.chip')}</span>}
                         {camera.enabled !== false && <WatchLiveButton compact onClick={() => setLiveCamera(camera)} />}
                       </div>
                     </td>
@@ -1629,6 +1631,14 @@ export default function ImageServiceCameras() {
                 <span className={`block text-[11px] mt-0.5 ${themeConfig.text.secondary}`}>
                   {form.recordingMode === 'continuous' ? t('imageService.cameras.recording.onHint') : t('imageService.cameras.recording.offHint')}
                 </span>
+              </span>
+            </label>
+            <label data-camera-sensitive className="col-span-2 flex items-start gap-3 cursor-pointer select-none">
+              <input type="checkbox" checked={form.sensitive} onChange={e => setForm(p => ({ ...p, sensitive: e.target.checked }))}
+                className="w-4 h-4 mt-0.5 rounded accent-violet-500" />
+              <span>
+                <span className={`block text-sm font-medium ${themeConfig.text.primary}`}>🔒 {t('ui.sensitive.label')}</span>
+                <span className={`block text-[11px] mt-0.5 ${themeConfig.text.secondary}`}>{t('ui.sensitive.hint')}</span>
               </span>
             </label>
             <button type="button" className="col-span-2 flex items-center gap-1 text-left text-xs text-cyan-400 hover:underline"

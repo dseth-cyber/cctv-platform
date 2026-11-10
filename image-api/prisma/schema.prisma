@@ -469,6 +469,8 @@ model Camera {
   shortCode              String?                 @map("short_code") @db.VarChar(20)
   // Code from masterdata type alert_level. Empty means it follows its device.
   alertLevel             String?                 @map("alert_level") @db.VarChar(64)
+  /// Privacy (e.g. HR rooms): every live, still, playback and clip view of it goes to the audit log.
+  sensitive              Boolean                 @default(false)
   /// Still-image refresh for the live overview, in seconds; null takes the next level up (see snapshots/refresh-tiers.ts).
   snapshotRefreshSeconds Int? @map("snapshot_refresh_seconds")
   // What this outage has already raised, so a later check does not raise it again.

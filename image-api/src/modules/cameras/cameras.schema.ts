@@ -44,6 +44,7 @@ export const createCameraSchema = z.object({
   cameraBrand: z.string().max(64).optional().nullable(),
   cameraModel: z.string().max(64).optional().nullable(),
   alertLevel: z.string().max(64).optional().nullable(),
+  sensitive: z.boolean().optional(),
   snapshotRefreshSeconds: z.number().int().min(10).max(600).optional().nullable(),
   shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
 });
@@ -81,6 +82,7 @@ export const updateCameraSchema = z.object({
   cameraBrand: z.string().max(64).optional().nullable(),
   cameraModel: z.string().max(64).optional().nullable(),
   alertLevel: z.string().max(64).optional().nullable(),
+  sensitive: z.boolean().optional(),
   snapshotRefreshSeconds: z.number().int().min(10).max(600).optional().nullable(),
   shortCode: z.string().trim().max(20).regex(/^[\p{L}\p{N}\p{M}_-]*$/u).optional().nullable(),
 });
@@ -117,6 +119,7 @@ export const bulkUpdateCameraSchema = z.object({
     cameraBrand: z.string().max(64).optional().nullable(),
     cameraModel: z.string().max(64).optional().nullable(),
     alertLevel: z.string().max(64).optional().nullable(),
+    sensitive: z.boolean().optional(),
     snapshotRefreshSeconds: z.number().int().min(10).max(600).optional().nullable(),
     enabled: z.boolean().optional(),
     siteId: z.guid().optional().nullable(),

@@ -1,4 +1,5 @@
 import { allowedCameraIds, guardCameraParam } from '../access/camera-scope.js';
+import { viewLogHook } from '../access/sensitive-view.js';
 import { hasPermissionFor, liveQuotaFor } from '../access/live-access.js';
 import crypto from 'node:crypto';
 import { z } from 'zod';
@@ -183,7 +184,7 @@ async function adviceHandler(request: FastifyRequest, reply: FastifyReply) {
 
 export async function snapshotRoutes(app: FastifyInstance): Promise<void> {
   app.post('/request', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view')] }, requestHandler);
-  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()] }, imageHandler);
+  app.get('/image/:id', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()], onResponse: [viewLogHook('still', (r) => (r.params as any).id)] }, imageHandler);
   app.get('/settings', { preHandler: [app.authenticate, requirePermission('cameras:read')] }, settingsHandler);
   app.get('/advice', { preHandler: [app.authenticate, requirePermission('system-config:read')] }, adviceHandler);
   refreshSettings().catch((err) => logger.warn({ err }, 'Could not load snapshot settings yet'));

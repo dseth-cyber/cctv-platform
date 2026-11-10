@@ -1,4 +1,5 @@
 import { sortByName } from '../../lib/natural-sort.js';
+import { forgetSensitive } from '../access/sensitive-view.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { randomBytes } from 'node:crypto';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
@@ -330,6 +331,7 @@ export async function createCamera(input: CreateCameraInput & { createdBy?: stri
       shortCode: input.shortCode || null,
       alertLevel: input.alertLevel || null,
       snapshotRefreshSeconds: input.snapshotRefreshSeconds ?? null,
+      sensitive: input.sensitive ?? false,
     },
     include: {
       retentionPolicy: true,
@@ -411,6 +413,7 @@ export async function updateCamera(id: string, input: UpdateCameraInput) {
   if (input.shortCode !== undefined) data.shortCode = input.shortCode || null;
   if (input.alertLevel !== undefined) data.alertLevel = input.alertLevel || null;
   if (input.snapshotRefreshSeconds !== undefined) data.snapshotRefreshSeconds = input.snapshotRefreshSeconds;
+  if (input.sensitive !== undefined) { data.sensitive = input.sensitive; forgetSensitive(id); }
   if (input.connection) {
     const ip = input.ipAddress !== undefined ? input.ipAddress : existing.ipAddress;
     const built = urlsFromConnection(input.connection, ip, existing.rtspUrl);

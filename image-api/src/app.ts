@@ -75,6 +75,10 @@ export async function buildApp() {
   const app = Fastify({
     logger: false,
     bodyLimit: 10 * 1024 * 1024,
+    // Requests come through nginx, which appends the client to X-Forwarded-For. Trust exactly that one hop, so
+    // request.ip (audit log, per-address login limit) is the client and a header sent by the client is not believed.
+    // The API port itself is published on 127.0.0.1 only. On Docker Desktop nginx sees only the Docker gateway.
+    trustProxy: (_address: string, hop: number) => hop < Number(process.env.TRUST_PROXY_HOPS ?? 1),
   });
 
   app.setErrorHandler(errorHandler);

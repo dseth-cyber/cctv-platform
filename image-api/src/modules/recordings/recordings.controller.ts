@@ -1,4 +1,5 @@
 import { cameraWhere, guardAllCameras, guardCameraBody, guardCameraQuery, guardClipFilename, guardClipParam, guardSegmentParam } from '../access/camera-scope.js';
+import { cameraOfClip, viewLogHook } from '../access/sensitive-view.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'node:fs';
 import { RecordingsService } from './recordings.service.js';
@@ -258,7 +259,7 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.post(
     '/clips',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardCameraBody()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardCameraBody()], onResponse: [viewLogHook('clip_export', (r) => (r.body as any)?.cameraId, (r) => ({ start: (r.body as any)?.startTime, end: (r.body as any)?.endTime }))] },
     exportClipHandler,
   );
   app.get(
@@ -283,14 +284,14 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.post(
     '/clips/:id/download-link',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()], onResponse: [viewLogHook('clip_download', (r) => cameraOfClip({ id: (r.params as any).id }), (r) => ({ clip: (r.params as any).id }))] },
     createDownloadLinkHandler,
   );
   // Authorized by the signed `dl` token issued above, not by a bearer header.
   app.get('/clips/file/:filename', downloadClipByLinkHandler);
   app.get(
     '/clips/download/:filename',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipFilename] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipFilename], onResponse: [viewLogHook('clip_download', (r) => cameraOfClip({ filename: (r.params as any).filename }), (r) => ({ file: (r.params as any).filename }))] },
     downloadClipHandler,
   );
 
@@ -311,7 +312,7 @@ export async function recordingsRoutes(app: FastifyInstance) {
   );
   app.get(
     '/playback-stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraQuery()], onResponse: [viewLogHook('playback', (r) => (r.query as any).cameraId, (r) => ({ start: (r.query as any).start }))] },
     getPlaybackStreamHandler,
   );
 }

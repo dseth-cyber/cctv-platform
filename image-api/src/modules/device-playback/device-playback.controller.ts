@@ -1,4 +1,5 @@
 import { guardCameraBody, guardCameraQuery } from '../access/camera-scope.js';
+import { viewLogHook } from '../access/sensitive-view.js';
 import { z } from 'zod';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -54,7 +55,7 @@ export async function devicePlaybackRoutes(app: FastifyInstance) {
     return respond(reply, () => getDeviceTimeline(cameraId, date));
   });
 
-  app.post('/sessions', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraBody()] }, async (request, reply) => {
+  app.post('/sessions', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('playback:view'), guardCameraBody()], onResponse: [viewLogHook('playback', (r) => (r.body as any)?.cameraId, (r) => ({ start: (r.body as any)?.start, from: 'recorder' }))] }, async (request, reply) => {
     const input = sessionSchema.parse(request.body);
     return respond(reply, () => openPlaybackSession(userIdOf(request), input), 201);
   });
@@ -71,7 +72,7 @@ export async function devicePlaybackRoutes(app: FastifyInstance) {
   });
 
   // The same permission as exporting a clip from the server's own recordings.
-  app.post('/clips', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardCameraBody()] }, async (request, reply) => {
+  app.post('/clips', { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardCameraBody()], onResponse: [viewLogHook('clip_export', (r) => (r.body as any)?.cameraId, () => ({ from: 'recorder' }))] }, async (request, reply) => {
     const input = clipSchema.parse(request.body);
     const user = (request as any).user;
     return respond(reply, () => startDeviceClip(user?.username ?? 'operator', input), 202);

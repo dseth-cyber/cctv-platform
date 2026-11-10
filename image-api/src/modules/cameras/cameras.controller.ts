@@ -1,4 +1,5 @@
 import { allowedCameraIds, assertCameraAccess, cameraWhere, guardAllCameras, guardCameraIdsBody, guardCameraParam, guardIncidentAttachment, guardIncidentParam } from '../access/camera-scope.js';
+import { viewLogHook } from '../access/sensitive-view.js';
 import { hasPermissionFor } from '../access/live-access.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -1101,7 +1102,8 @@ export async function cameraRoutes(app: FastifyInstance): Promise<void> {
   );
   app.get(
     '/:id/stream',
-    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()] },
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('live:view'), guardCameraParam()],
+      onResponse: [viewLogHook('live', (r) => (r.params as any).id, (r) => ({ profile: (r.query as any)?.profile ?? 'main' }))] },
     getStreamHandler,
   );
   app.post(
