@@ -17,6 +17,7 @@ if (!existsSync(ATTACHMENT_DIR)) {
 }
 
 import { config } from './config/index.js';
+import { productionProblems } from './config/production-guard.js';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { authenticate } from './middleware/auth.js';
@@ -198,6 +199,12 @@ export async function buildApp() {
 }
 
 export async function startApp() {
+  // The production server refuses to start on Dev secrets or without its isolation check (DEPLOY_ENV=production).
+  const problems = productionProblems(process.env);
+  if (problems.length > 0) {
+    for (const p of problems) logger.error(`PRODUCTION START REFUSED: ${p}`);
+    throw new Error(`Production set-up is not safe to start (${problems.length} problem(s), see the log above)`);
+  }
   // Security: warn about default secrets in production
   if (config.nodeEnv === 'production') {
     if (config.jwt.secret === 'change-me') {

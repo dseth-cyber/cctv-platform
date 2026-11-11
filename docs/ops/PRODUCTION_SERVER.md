@@ -58,17 +58,19 @@
 
 ## 6. Checklist ติดตั้ง (agent Production)
 
+ขั้นตอนลงมือทำพร้อมคำสั่ง: [DEPLOY_PRODUCTION.md](DEPLOY_PRODUCTION.md) (compose override, preflight, นำเข้าการตั้งค่า, smoke test, ย้อนกลับ)
+
 ไม่มี secret ในเอกสารนี้ ค่าลับรับจากผู้ใช้โดยตรง ห้ามเขียนลง repo/log/channel
 
 - [ ] Ubuntu Server 24.04 LTS, อัปเดตความปลอดภัยอัตโนมัติ (`unattended-upgrades`), timezone Asia/Bangkok, `chrony` ของ host ซิงก์อยู่
 - [ ] IP คงที่: NIC LAN กล้อง และ NIC LAN สำนักงาน; บันทึกชื่อ NIC/IP ลง channel (ไม่ใช่ secret)
 - [ ] Docker Engine + compose plugin จาก repo ทางการของ Docker (ไม่ใช่ Docker Desktop)
 - [ ] `git clone` repo แล้ว checkout **release tag** ที่ Dev ระบุ (ไม่ใช้ branch ที่กำลังพัฒนา)
-- [ ] สร้าง `.env` บนเครื่อง (สิทธิ์ 600) จากชื่อตัวแปรใน `.env.example`; ค่าลับใหม่ทั้งหมด (ห้ามใช้ค่าจาก Dev): `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `MEDIA_WEBHOOK_SECRET`, `SERVICE_API_KEY`, `MINIO_*`, `SEAWEEDFS_*`, `TURN_SECRET`, `GF_RENDERER_TOKEN`
+- [ ] สร้าง `.env.production` บนเครื่อง (สิทธิ์ 600) จาก `.env.production.example`; ค่าลับใหม่ทั้งหมด (ห้ามใช้ค่าจาก Dev): `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `MEDIA_WEBHOOK_SECRET`, `SERVICE_API_KEY`, `MINIO_*`, `SEAWEEDFS_*`, `TURN_SECRET`, `GF_RENDERER_TOKEN`
 - [ ] ตัวแปรเครือข่าย: `WEB_LAN_ADDRESS`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST` = IP ฝั่งที่ผู้ใช้เปิดเว็บ; `NTP_BIND` = IP ฝั่ง LAN กล้อง; `NTP_ALLOW` = วง LAN กล้องทั้งหมด (เช่น `192.168.20.0/24,192.168.30.0/24`); `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL` = ที่อยู่เว็บจริง
-- [ ] `DEPLOY_ENV=production` ให้ image-api (หน้านำร่องและส่งมอบแสดงสภาพแวดล้อมจากค่านี้; ไม่ตั้ง = แสดงเป็น Dev) — `NODE_ENV` เป็น production ในทุก container จึงใช้แยกไม่ได้
+- [ ] `DEPLOY_ENV=production` ให้ image-api (ตั้งไว้แล้วใน `docker-compose.prod.yml`; image-api ไม่ยอมเริ่มถ้าค่าลับเป็นของ Dev) (หน้านำร่องและส่งมอบแสดงสภาพแวดล้อมจากค่านี้; ไม่ตั้ง = แสดงเป็น Dev) — `NODE_ENV` เป็น production ในทุก container จึงใช้แยกไม่ได้
 - [ ] ห้ามผูกพอร์ตใดกับวง 192.168.60.x (Image Service Production เดิม)
-- [ ] Postgres/Redis ไม่เปิดพอร์ตออก host (บน Dev ใช้ override `ports: !reset []`)
+- [ ] Postgres/Redis/MinIO ไม่เปิดพอร์ตออก host (`ports: !reset []` ใน `docker-compose.prod.yml`)
 - [ ] Firewall (IT ทำ): เข้าเว็บ 80/443 จาก LAN สำนักงาน, UDP 8189 (WebRTC) จาก LAN ผู้ดู, UDP 123 จาก LAN กล้อง, SSH เฉพาะเครื่องดูแล
 - [ ] ฐานข้อมูลใหม่: `RUN_SEED=true` **ครั้งแรกครั้งเดียว** บน DB ว่าง แล้วกลับเป็น false (seed เขียนทับสิทธิ์ role ในตัวและชื่อ masterdata ถ้ารันซ้ำ)
 - [ ] เปลี่ยนรหัสบัญชีเริ่มต้นทั้งหมดทันที (admin/operator/viewer)
@@ -90,6 +92,6 @@
 ## 8. เรื่องที่รอผู้ใช้ตัดสินใจ
 
 - ฮาร์ดแวร์และ IP ของ Server
-- ฐานข้อมูล: เริ่มใหม่บน Production (แนะนำ: Dev DB มีข้อมูลทดสอบ) หรือย้ายจาก Dev
+- ~~ฐานข้อมูล~~ ตัดสินแล้ว 2026-11-11: เริ่มใหม่ แล้วนำเข้าเฉพาะการตั้งค่าจาก Dev (`config-transfer.ts`)
 - ใครอนุมัติการ deploy แต่ละรอบ และช่วงเวลาที่ deploy ได้ (นอกเวลาทำงาน)
 - ปลายทางสำรองข้อมูลนอกเครื่อง

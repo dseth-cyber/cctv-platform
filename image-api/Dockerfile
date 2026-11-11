@@ -23,8 +23,13 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --ignore-scripts \
     && npm cache clean --force
 
-# Install CLI tools needed for migration and seeding
-RUN npm install -g prisma tsx
+# CLI tools for migration and seeding, at the versions in package-lock.json. Unpinned, npm once installed a
+# Prisma 8 release candidate next to the 6.x client, and it fetched its schema engine from the internet at
+# migrate time, so a server without internet could not migrate. Prisma 6 downloads the engine here, at build.
+RUN PRISMA_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/prisma'].version") \
+    && TSX_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/tsx'].version") \
+    && npm install -g "prisma@${PRISMA_VERSION}" "tsx@${TSX_VERSION}" \
+    && npm cache clean --force
 
 # Install smbclient for SMB connection testing and browsing
 # Install postgresql-client for pg_dump backup

@@ -33,6 +33,9 @@ camera-*.json
 .env
 **/.env
 !.env.example
+# Production settings live only on the production server
+.env.production
+.env.*.local
 
 # Audit and simulation directory
 .audit-sim/

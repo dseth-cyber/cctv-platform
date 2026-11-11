@@ -1,0 +1,106 @@
+# Production override. Use it only on the production CCTV server, never on the Dev machine:
+#
+#   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Run scripts/prod-preflight.sh first (docs/ops/DEPLOY_PRODUCTION.md). What this file changes from Dev:
+#  - DEPLOY_ENV=production is fixed here, so image-api refuses to start on Dev/default secrets;
+#  - our own images carry the release version (CCTV_VERSION), so the previous release stays on disk for rollback;
+#  - third-party images are pinned to the exact build tested on Dev (no :latest);
+#  - every container's log is rotated (20 MB x 5), so logs cannot fill the disk;
+#  - SeaweedFS and the Prometheus/Grafana/Loki stack are not started (Dev does not run them either);
+#    start them only on purpose: --profile seaweedfs / --profile observability;
+#  - Postgres, Redis and MinIO publish no port on the host;
+#  - recordings go to RECORDINGS_HOST_DIR (the big recording disk), not the repo folder.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:15-alpine@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81
+    # No host port: only containers on cctv-network reach it.
+    ports: !reset []
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine@sha256:ee64a64eaab618d88051c3ade8f6352d11531fcf79d9a4818b9b183d8c1d18ba
+    # No host port: only containers on cctv-network reach it.
+    ports: !reset []
+    logging: *logging
+
+  minio:
+    # RELEASE.2025-09-07T16-13-09Z
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    # No host port: only containers on cctv-network reach it.
+    ports: !reset []
+    logging: *logging
+
+  minio-init:
+    image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    logging: *logging
+
+  ntp-server:
+    logging: *logging
+
+  mediamtx:
+    # v1.21.3 (latest-ffmpeg as tested on Dev)
+    image: bluenviron/mediamtx@sha256:208e9f1740a09a5ee63b6308e77ce0d54fce0456462f640e6bd9acfc62ebb5a2
+    volumes:
+      - ${RECORDINGS_HOST_DIR:?set RECORDINGS_HOST_DIR to the recording disk}:/recordings
+    logging: *logging
+
+  image-api-migrate:
+    image: cctv-api:${CCTV_VERSION:?set CCTV_VERSION to the release being deployed}
+    logging: *logging
+
+  image-api:
+    image: cctv-api:${CCTV_VERSION:?set CCTV_VERSION to the release being deployed}
+    volumes:
+      - ${RECORDINGS_HOST_DIR:?set RECORDINGS_HOST_DIR to the recording disk}:/recordings
+    environment:
+      DEPLOY_ENV: production
+    logging: *logging
+
+  web-app:
+    image: cctv-web-app:${CCTV_VERSION:?set CCTV_VERSION to the release being deployed}
+    logging: *logging
+
+  seaweedfs-master:
+    profiles: ["seaweedfs"]
+    logging: *logging
+  seaweedfs-volume:
+    profiles: ["seaweedfs"]
+    logging: *logging
+  seaweedfs-filer:
+    profiles: ["seaweedfs"]
+    logging: *logging
+  seaweedfs-init:
+    profiles: ["seaweedfs"]
+    logging: *logging
+
+  prometheus:
+    profiles: ["observability"]
+    logging: *logging
+  grafana:
+    profiles: ["observability"]
+    logging: *logging
+  grafana-renderer:
+    profiles: ["observability"]
+    logging: *logging
+  loki:
+    profiles: ["observability"]
+    logging: *logging
+
+  cloudflared:
+    logging: *logging
+
+networks:
+  cctv-network:
+    # A fixed subnet, so Docker never picks a 192.168.x block that swallows the camera LANs (on Dev an automatic
+    # 192.168.16.0/20 network cut every container off 192.168.20.x/30.x). Must not overlap any LAN this server uses.
+    ipam:
+      config:
+        - subnet: ${CCTV_DOCKER_SUBNET:-10.250.0.0/24}
