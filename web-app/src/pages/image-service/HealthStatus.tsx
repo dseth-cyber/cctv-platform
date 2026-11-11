@@ -85,8 +85,10 @@ export default function HealthStatus() {
   const openAlerts = alertsArr.length
 
   // CCTV Health Pillars Separation
-  const onlineDevices = devicesArr.filter((d: any) => d.status === 'online').length
-  const offlineDevices = devicesArr.filter((d: any) => d.status === 'offline').length
+  // Recorders the system reached on its last reading round (devices.healthInfo.reachable); `status` is only the
+  // record's own on/off state and never says 'online'.
+  const onlineDevices = devicesArr.filter((d: any) => d.healthInfo?.reachable === true).length
+  const offlineDevices = devicesArr.filter((d: any) => d.healthInfo?.reachable === false).length
   const streamingCameras = camerasArr.filter((c: any) => c.operationalStatus === 'online').length
   const stalledCameras = camerasArr.filter((c: any) => c.operationalStatus === 'offline' || c.status === 'error').length
 

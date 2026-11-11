@@ -55,7 +55,9 @@ export default function ImageServiceSettings() {
     staleTime: 1000 * 60,
   });
 
-  const rulesArr = Array.isArray((alertRules as any)?.data) ? (alertRules as any).data : [];
+  // Rules for kinds nothing in the system raises any more (factory-era) are left out: they could never fire.
+  const DEAD_RULE_TYPES = new Set(['ingest_lag', 'camera_no_new_images']);
+  const rulesArr = (Array.isArray((alertRules as any)?.data) ? (alertRules as any).data : []).filter((r: any) => !DEAD_RULE_TYPES.has(r.alertType));
 
   const createRuleMutation = useMutation({
     mutationFn: (data: any) => imageServiceApi.createAlertRule(data),
@@ -159,89 +161,8 @@ export default function ImageServiceSettings() {
 
 
 
-      {/* Notification */}
-      <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-cyan-500/10">
-            <Bell size={18} className="text-cyan-400" />
-          </div>
-          <div>
-            <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.settings.notifications')}</h3>
-            <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.settings.notificationsDesc')}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.imageServiceSettings.email')}{' '}{t('imageService.settings.alertEmail')}</label>
-            <input value={alertEmail} onChange={e => setAlertEmail(e.target.value)}
-              placeholder="admin@example.com"
-              className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.imageServiceSettings.webhookUrl')}</label>
-            <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)}
-              placeholder="https://hooks.example.com/alerts"
-              className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-        </div>
-      </div>
-
-      {/* Processing */}
-      <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-amber-500/10">
-            <Server size={18} className="text-amber-400" />
-          </div>
-          <div>
-            <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.settings.processing')}</h3>
-            <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.settings.processingDesc')}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.settings.pollInterval')}</label>
-            <input type="number" value={pollInterval} onChange={e => setPollInterval(parseInt(e.target.value) || 30)}
-              min={5} max={300}
-              className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.settings.retryMax')}</label>
-            <input type="number" value={retryMax} onChange={e => setRetryMax(parseInt(e.target.value) || 3)}
-              min={0} max={10}
-              className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-        </div>
-      </div>
-
-      {/* System Info */}
-      <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-500/10">
-            <Database size={18} className="text-blue-400" />
-          </div>
-          <div>
-            <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.settings.systemInfo')}</h3>
-            <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.settings.systemInfoDesc')}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className={themeConfig.text.secondary}>{t('imageService.settings.totalAlerts')}:</span>
-            <span className={`ml-2 font-medium ${themeConfig.text.primary}`}>{alertsArr.length}</span>
-          </div>
-          <div>
-            <span className={themeConfig.text.secondary}>{t('ui.imageServiceSettings.apiKey')}</span>
-            <span className={`ml-2 font-mono text-xs ${themeConfig.text.primary}`}>
-              {showApiKey ? 'sk-••••••••••••••••' : '••••••••••••••••'}
-              <button onClick={() => setShowApiKey(!showApiKey)} className="ml-1 align-middle">
-                {showApiKey ? <EyeOff size={13} className="text-gray-400" /> : <Eye size={13} className="text-gray-400" />}
-              </button>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Alert Rules */}
+      {/* Alert Rules: the only part of this page the server acts on. Email, webhook, poll and retry fields
+          that lived here were kept in this browser only and did nothing; the real webhook is in System Config. */}
       <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -360,10 +281,6 @@ export default function ImageServiceSettings() {
 
       {/* Actions */}
       <div className="flex items-center gap-3">
-        <Button onClick={handleSaveGeneral} disabled={saving}>
-          <Save size={16} className="mr-1.5" />
-          {saving ? t('common.saving') : t('common.save')}
-        </Button>
         <Button variant="secondary" onClick={() => queryClient.invalidateQueries()}>
           <RefreshCw size={16} className="mr-1.5" />
           {t('imageService.settings.refreshData')}

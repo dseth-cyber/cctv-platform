@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
@@ -73,12 +74,19 @@ export class MediaNodesService {
       });
     }
 
+    // A node with no heartbeat agent (the single local MediaMTX this system runs) is not 'degraded' for that:
+    // ask MediaMTX itself whether it answers and how many camera streams it is pulling now.
+    const needsProbe = nodes.some((n) => !n.lastHeartbeatAt || Date.now() - new Date(n.lastHeartbeatAt).getTime() > 60000);
+    const probe = needsProbe ? await MediaMtxService.countWebrtcSessions() : null;
+    const livePaths = probe !== null ? (await MediaMtxService.getLivePaths()).filter((p: any) => p?.ready).length : 0;
+
     // Check heartbeat freshness (stale > 60s marked as offline if previously online)
     const now = Date.now();
     return nodes.map((node) => {
       const lastHb = node.lastHeartbeatAt ? new Date(node.lastHeartbeatAt).getTime() : 0;
       const isHeartbeatStale = lastHb > 0 && now - lastHb > 60000;
-      const effectiveStatus = isHeartbeatStale && node.status === 'online' ? 'degraded' : node.status;
+      const probed = node.isDefault && (lastHb === 0 || isHeartbeatStale);
+      const effectiveStatus = probed ? (probe !== null ? 'online' : 'offline') : isHeartbeatStale && node.status === 'online' ? 'degraded' : node.status;
       const utilizationPercent = Math.min(
         100,
         Math.round((((lastHb > 0 && !isHeartbeatStale ? node.currentLoadChannels : 0) || node._count.cameras) / Math.max(1, node.capacityChannels)) * 100),
@@ -90,7 +98,7 @@ export class MediaNodesService {
       return {
         ...node,
         // The load a node reports is stale too; the count of cameras assigned to it stands in (see utilizationPercent).
-        currentLoadChannels: fresh ? node.currentLoadChannels : 0,
+        currentLoadChannels: fresh ? node.currentLoadChannels : probed ? livePaths : 0,
         cpuPercent: fresh ? node.cpuPercent : null,
         ramPercent: fresh ? node.ramPercent : null,
         diskPercent: fresh ? node.diskPercent : null,
@@ -101,6 +109,9 @@ export class MediaNodesService {
         utilizationPercent,
         isHeartbeatStale,
         metricsCurrent: fresh,
+        // Status and stream count read from MediaMTX directly (no heartbeat agent on this node).
+        statusFromMediaMtx: probed,
+        viewerSessions: probed ? probe : null,
       };
     });
   }

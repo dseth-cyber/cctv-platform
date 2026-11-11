@@ -890,13 +890,14 @@
         "playback_clip_max_minutes": "คลิปจาก DVR/NVR ยาวสุด (นาที)",
         "live_auto_hd_2x2": "ตาราง 2x2 เปิดเป็น HD เอง",
         "live_auto_hd_3x3": "ตาราง 3x3 เปิดเป็น HD เอง",
-        "live_auto_hd_4x4": "ตาราง 4x4 เปิดเป็น HD เอง"
+        "live_auto_hd_4x4": "ตาราง 4x4 เปิดเป็น HD เอง",
+        "incident_attachment_max_mb": "ขนาดไฟล์แนบใน Incident สูงสุด (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "เปอร์เซ็นต์การใช้ดิสก์สำหรับแจ้งเตือนวิกฤต",
         "alert_warning_threshold": "เปอร์เซ็นต์การใช้ดิสก์สำหรับแจ้งเตือน",
         "max_storage_gb": "ความจุพื้นที่เก็บข้อมูลรวมสูงสุด (GB) สำหรับพยากรณ์",
-        "camera_offline_threshold_minutes": "จำนวนนาทีที่ไม่มีการ poll ก่อนถือว่ากล้องออฟไลน์",
+        "camera_offline_threshold_minutes": "ไม่ได้รับภาพจากกล้องนานกี่นาที จึงถือว่ากล้องออฟไลน์",
         "camera_sla_target": "เปอร์เซ็นต์เป้าหมายความพร้อมใช้งานกล้อง",
         "login_max_failed_attempts": "จำนวนครั้งที่ล็อกอินผิด (ต่อชื่อผู้ใช้) ก่อนถูกล็อกบัญชีชั่วคราว",
         "login_failure_window_minutes": "ช่วงเวลาสำหรับนับจำนวนครั้งล็อกอินผิด (นาที) — ตัวนับจะรีเซ็ตถ้าไม่มีการผิดพลาดใหม่ในช่วงนี้",
@@ -937,7 +938,8 @@
         "playback_clip_max_minutes": "การคัดลอกใช้เวลาเท่ากับความยาวคลิป และกินช่องเล่นของเครื่องตลอดเวลานั้น",
         "live_auto_hd_2x2": "ทุกช่องแสดง SD ก่อนแล้วสลับเป็น HD (4 สตรีมหลักต่อคน)",
         "live_auto_hd_3x3": "ทุกช่องเป็น HD (9 สตรีมหลักต่อคน): ช่องเล็ก ภาพชัดขึ้นไม่มาก แต่ใช้เน็ตและเครื่องบันทึกมากขึ้น",
-        "live_auto_hd_4x4": "ทุกช่องเป็น HD (16 สตรีมหลักต่อคน): หนักที่สุด ใช้เมื่อเน็ตและเครื่องบันทึกรับไหว"
+        "live_auto_hd_4x4": "ทุกช่องเป็น HD (16 สตรีมหลักต่อคน): หนักที่สุด ใช้เมื่อเน็ตและเครื่องบันทึกรับไหว",
+        "incident_attachment_max_mb": "ขนาดไฟล์แนบต่อไฟล์ ในใบงานและ Incident"
       },
       "title": "ตั้งค่าระบบ",
       "subtitle": "จัดการการตั้งค่าระบบทั้งหมด",
@@ -2711,9 +2713,9 @@
       "saveFailed": "บันทึกไม่สำเร็จ",
       "mediaNodeDeleted": "ลบโหนดมีเดียเรียบร้อย",
       "cannotRunWebRTCIceDiagnosticsIn": "ไม่สามารถรัน WebRTC ICE Diagnostic บนเบราว์เซอร์นี้ได้",
-      "multiNodeMediaPlaneScaleWfh": "Media Plane หลายโหนด การขยายระบบ และ WFH",
-      "phase5MultiNodeArchitecture": "เฟส 5: สถาปัตยกรรมหลายโหนด",
-      "manageADistributedMediaNodeCluster": "บริหารคลัสเตอร์โหนดมีเดียแบบกระจายตัว กระจายโหลดตามไซต์อาคาร และจัดการการเข้าถึง WFH ผ่าน VPN/STUN",
+      "multiNodeMediaPlaneScaleWfh": "เซิร์ฟเวอร์สตรีมภาพสด",
+      "phase5MultiNodeArchitecture": "โหนดมีเดีย (MediaMTX)",
+      "manageADistributedMediaNodeCluster": "เครื่องที่รับภาพจาก DVR/NVR แล้วส่งเป็นภาพสดให้เบราว์เซอร์ ระบบตอนนี้ใช้โหนดเดียว สถานะอ่านจาก MediaMTX โดยตรง",
       "clusterNodes": "โหนดคลัสเตอร์ (",
       "loadCapacitySizing": "คำนวณโหลดและขนาดระบบ",
       "wfhWebRTCStunTurn": "WFH และ WebRTC STUN/TURN",

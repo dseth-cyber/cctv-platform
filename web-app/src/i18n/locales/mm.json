@@ -653,7 +653,8 @@
         "playback_clip_max_minutes": "DVR/NVR ကလစ် အရှည်ဆုံး (မိနစ်)",
         "live_auto_hd_2x2": "2x2 နံရံ HD ဖြင့် ဖွင့်ရန်",
         "live_auto_hd_3x3": "3x3 နံရံ HD ဖြင့် ဖွင့်ရန်",
-        "live_auto_hd_4x4": "4x4 နံရံ HD ဖြင့် ဖွင့်ရန်"
+        "live_auto_hd_4x4": "4x4 နံရံ HD ဖြင့် ဖွင့်ရန်",
+        "incident_attachment_max_mb": "ဖြစ်ရပ် ပူးတွဲဖိုင် အများဆုံး (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "အရေးကြီးသတိပေးချက်အတွက် အသုံးပြုထားသောဒစ်စပေ့ရာခိုင်နှုန်း",
@@ -661,7 +662,7 @@
         "max_storage_gb": "ခန့်မှန်းချက်အတွက် အသုံးပြုရန် စုစုပေါင်းအများဆုံးသိုလှောင်မှုပမာဏ (GB)",
         "audit_logs_retention_days": "ဤရက်ထက်ပိုအေးသော စစ်ဆေးမှုမှတ်တမ်းများကို အလိုအလျောက်ဖျက်ပါမည်။ 0 = အမြဲသိမ်းထားရန်။",
         "alerts_retention_days": "ဤရက်ထက်ပိုအေးသော ဖြေရှင်းပြီးသည့် သတိပေးချက်များကို အလိုအလျောက်ဖျက်ပါမည် (မဖြေရှင်းရသေးသော သတိပေးချက်များကို ဖျက်မည်မဟုတ်ပါ)။ 0 = အမြဲသိမ်းထားရန်။",
-        "camera_offline_threshold_minutes": "Poll မရှိဘဲ မိနစ်မည်မျှကြာလျှင် ကင်မရာကို Offline ဟု သတ်မှတ်မည်",
+        "camera_offline_threshold_minutes": "ကင်မရာမှ ဗီဒီယို မရသည်မှာ မိနစ်မည်မျှကြာလျှင် အော့ဖ်လိုင်းဟု သတ်မှတ်မည်",
         "camera_sla_target": "ကင်မရာ ရရှိနိုင်မှု SLA ပစ်မှတ် ရာခိုင်နှုန်း",
         "login_max_failed_attempts": "အကောင့်ကို ယာယီပိတ်ခြင်းမတိုင်မီ (username တစ်ခုစီ) Login မအောင်မြင်ခွင့် အကြိမ်ရေ",
         "login_failure_window_minutes": "Login မအောင်မြင်မှု ရေတွက်သည့် အချိန် (မိနစ်) — ဤကာလအတွင်း မအောင်မြင်မှု မရှိပါက ရေတွက်မှု ပြန်စမည်",
@@ -700,7 +701,8 @@
         "playback_clip_max_minutes": "ကူးချိန်သည် ကလစ်အရှည်နှင့် တူပြီး ထိုအတောအတွင်း စက်၏နေရာတစ်ခု သုံးသည်",
         "live_auto_hd_2x2": "အကွက်တိုင်း SD အရင်ပြပြီး HD သို့ ပြောင်းသည် (လူတစ်ဦးလျှင် main stream 4 ခု)",
         "live_auto_hd_3x3": "အကွက်တိုင်း HD (လူတစ်ဦးလျှင် 9 ခု): အကွက်သေးသဖြင့် ကြည်လင်မှု အနည်းငယ်သာ တိုးသော်လည်း ကွန်ရက်နှင့် ရီကော်ဒါ ပိုသုံးသည်",
-        "live_auto_hd_4x4": "အကွက်တိုင်း HD (လူတစ်ဦးလျှင် 16 ခု): အလေးဆုံး၊ ကွန်ရက်နှင့် ရီကော်ဒါ ခံနိုင်မှသာ"
+        "live_auto_hd_4x4": "အကွက်တိုင်း HD (လူတစ်ဦးလျှင် 16 ခု): အလေးဆုံး၊ ကွန်ရက်နှင့် ရီကော်ဒါ ခံနိုင်မှသာ",
+        "incident_attachment_max_mb": "အလုပ်အမိန့်နှင့် ဖြစ်ရပ်တွင် ဖိုင်တစ်ခုချင်း အများဆုံး"
       },
       "problems": {
         "summary": "မသိမ်းရသေးပါ — ပြင်ရန် {{count}} ခု ရှိသည်၊ အနီရောင်စာကို ကြည့်ပါ",
@@ -2667,9 +2669,9 @@
       "saveFailed": "သိမ်းဆည်းမှု မအောင်မြင်ပါ",
       "mediaNodeDeleted": "Media Node ဖျက်ပြီး",
       "cannotRunWebRTCIceDiagnosticsIn": "ဤ browser တွင် WebRTC ICE စစ်ဆေးမှု မလုပ်နိုင်ပါ",
-      "multiNodeMediaPlaneScaleWfh": "Node အများ Media Plane၊ Scale နှင့် WFH",
-      "phase5MultiNodeArchitecture": "အဆင့် ၅: Node အများ ဗိသုကာ",
-      "manageADistributedMediaNodeCluster": "ဖြန့်ကျက်ထားသော Media Node cluster ကို စီမံ၊ နေရာအလိုက် ဝန်ခွဲဝေပြီး VPN/STUN ဖြင့် WFH ဝင်ရောက်မှုကို စီမံရန်",
+      "multiNodeMediaPlaneScaleWfh": "တိုက်ရိုက် stream ဆာဗာ",
+      "phase5MultiNodeArchitecture": "မီဒီယာ နုဒ် (MediaMTX)",
+      "manageADistributedMediaNodeCluster": "DVR/NVR မှ ဗီဒီယိုယူပြီး browser သို့ တိုက်ရိုက်ပို့သော စက်။ စနစ်သည် နုဒ်တစ်ခုသာ သုံးပြီး အခြေအနေကို MediaMTX မှ တိုက်ရိုက်ဖတ်သည်။",
       "clusterNodes": "Cluster Node (",
       "loadCapacitySizing": "ဝန်နှင့် ပမာဏ တွက်ချက်မှု",
       "wfhWebRTCStunTurn": "WFH နှင့် WebRTC STUN/TURN",

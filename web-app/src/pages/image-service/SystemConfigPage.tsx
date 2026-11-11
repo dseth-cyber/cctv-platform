@@ -93,9 +93,12 @@ export default function SystemConfigPage() {
 
   const inputClass = `w-full px-3 py-2 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`;
 
+  // Kept in the database but nothing uses it any more (the storage forecast left with the factory system).
+  const HIDDEN_KEYS = new Set(['max_storage_gb']);
   const grouped: Record<string, [string, any][]> = {};
   if (configs) {
     for (const [key, cfg] of Object.entries(configs)) {
+      if (HIDDEN_KEYS.has(key)) continue;
       const cat = (cfg as any).category ?? 'other';
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push([key, cfg]);

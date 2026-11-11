@@ -85,20 +85,6 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
     ],
   },
   {
-    entity: 'cameraTemplate',
-    labelKey: 'imageService.requiredFields.cameraTemplate',
-    groups: [
-      {
-        labelKey: 'imageService.requiredFields.groupGeneral',
-        fields: [
-          f('name', true),
-          f('description'),
-          f('retentionPolicyId'),
-        ],
-      },
-    ],
-  },
-  {
     entity: 'storageProvider',
     labelKey: 'imageService.requiredFields.storageProvider',
     groups: [

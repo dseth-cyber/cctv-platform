@@ -653,7 +653,8 @@
         "playback_clip_max_minutes": "DVR/NVR クリップの最大長（分）",
         "live_auto_hd_2x2": "2x2 ウォールを自動でHD",
         "live_auto_hd_3x3": "3x3 ウォールを自動でHD",
-        "live_auto_hd_4x4": "4x4 ウォールを自動でHD"
+        "live_auto_hd_4x4": "4x4 ウォールを自動でHD",
+        "incident_attachment_max_mb": "インシデント添付の最大サイズ (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "致命的なアラートを発信するためのディスク使用率",
@@ -661,7 +662,7 @@
         "max_storage_gb": "予測のための全体の最大ストレージ容量 (GB)",
         "audit_logs_retention_days": "この日数より古い監査ログを自動削除します。0 = 永久保持。",
         "alerts_retention_days": "この日数より古い対応済みアラートを自動削除します（未対応のアラートは自動削除されません）。0 = 永久保持。",
-        "camera_offline_threshold_minutes": "ポーリングがない状態で何分経過したらオフラインとするか",
+        "camera_offline_threshold_minutes": "カメラから映像が来ない状態が何分続いたらオフラインとみなすか",
         "camera_sla_target": "カメラ稼働率の SLA 目標（%）",
         "login_max_failed_attempts": "一時的にアカウントをロックするまでのログイン失敗回数（ユーザー名ごと）",
         "login_failure_window_minutes": "ログイン失敗を集計する時間（分）。この時間失敗がなければカウンターはリセットされます",
@@ -700,7 +701,8 @@
         "playback_clip_max_minutes": "コピーにはクリップの長さと同じ時間がかかり、その間機器の枠を 1 つ使います",
         "live_auto_hd_2x2": "各タイルはSDの後にHDへ切り替え（1人あたりメイン4本）",
         "live_auto_hd_3x3": "全タイルHD（1人あたりメイン9本）: 小さいタイルでは鮮明さの向上は少なく、ネットワークとレコーダーの負荷が増えます",
-        "live_auto_hd_4x4": "全タイルHD（1人あたりメイン16本）: 最も重い。ネットワークとレコーダーに余裕がある場合のみ"
+        "live_auto_hd_4x4": "全タイルHD（1人あたりメイン16本）: 最も重い。ネットワークとレコーダーに余裕がある場合のみ",
+        "incident_attachment_max_mb": "作業指示とインシデントの添付ファイル1件あたりの上限"
       },
       "problems": {
         "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
@@ -2672,9 +2674,9 @@
       "saveFailed": "保存に失敗しました",
       "mediaNodeDeleted": "メディアノードを削除しました",
       "cannotRunWebRTCIceDiagnosticsIn": "このブラウザでは WebRTC ICE 診断を実行できません",
-      "multiNodeMediaPlaneScaleWfh": "マルチノード メディアプレーン・スケール・在宅勤務",
-      "phase5MultiNodeArchitecture": "フェーズ 5: マルチノード構成",
-      "manageADistributedMediaNodeCluster": "分散メディアノードクラスタを管理し、拠点ごとに負荷を分散、VPN/STUN による在宅アクセスを扱います",
+      "multiNodeMediaPlaneScaleWfh": "ライブ配信サーバー",
+      "phase5MultiNodeArchitecture": "メディアノード (MediaMTX)",
+      "manageADistributedMediaNodeCluster": "DVR/NVR から映像を受けてブラウザにライブ配信するマシン。現在は1ノード構成で、状態は MediaMTX から直接読み取ります。",
       "clusterNodes": "クラスタノード（",
       "loadCapacitySizing": "負荷・容量見積",
       "wfhWebRTCStunTurn": "在宅勤務と WebRTC STUN/TURN",

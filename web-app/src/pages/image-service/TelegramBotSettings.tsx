@@ -216,36 +216,6 @@ export default function TelegramBotSettings() {
             </p>
           </div>
 
-          <div className="border-t border-gray-700/30 pt-4 mt-6">
-            <h4 className={`text-sm font-semibold mb-3 ${themeConfig.text.primary}`}>{t('imageService.telegramBot.callbackSettings')}</h4>
-
-            <div className="mb-4">
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.telegramBot.apiBaseUrl')}</label>
-              <input value={apiBaseUrl} onChange={e => setApiBaseUrl(e.target.value)}
-                placeholder="http://backend:3000"
-                className={`w-full px-4 py-2.5 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>
-                {t('imageService.telegramBot.apiBaseUrlHint')}
-              </p>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.telegramBot.apiToken')}</label>
-              <div className="relative">
-                <input value={apiToken} onChange={e => setApiToken(e.target.value)}
-                  type={showToken ? 'text' : 'password'}
-                  placeholder="sk_..."
-                  autoComplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other"
-                  className={`w-full px-4 py-2.5 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 pr-10`} />
-                <button onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>
-                {t('imageService.telegramBot.apiTokenHint')}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -346,86 +316,7 @@ export default function TelegramBotSettings() {
         <p className="text-xs mt-2 text-amber-400">⚠️ {t('imageService.telegramBot.rememberSave')}</p>
       </div>
 
-      {/* Provider-agnostic on purpose: an OpenAI-compatible endpoint, Anthropic, or a model
-          hosted inside the company differ only by base URL and model name. The key is
-          encrypted at rest and never sent back to the browser — the page only learns
-          whether one is stored. */}
-      <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-violet-500/10">
-            <Sparkles size={18} className="text-violet-400" />
-          </div>
-          <div>
-            <h3 className={`text-sm font-semibold ${themeConfig.text.primary}`}>{t('imageService.llm.title')}</h3>
-            <p className={`text-xs ${themeConfig.text.secondary}`}>{t('imageService.llm.subtitle')}</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={llm.enabled} onChange={e => setLlm({ ...llm, enabled: e.target.checked })}
-              className="rounded border-gray-600 text-cyan-500 focus:ring-cyan-500/50" />
-            <span className={`text-sm ${themeConfig.text.primary}`}>{t('imageService.llm.enabled')}</span>
-          </label>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.llm.baseUrl')}</label>
-            <input value={llm.baseUrl} onChange={e => setLlm({ ...llm, baseUrl: e.target.value })}
-              placeholder="https://api.example.com/v1"
-              className={`w-full px-4 py-2.5 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.llm.model')}</label>
-            <input value={llm.model} onChange={e => setLlm({ ...llm, model: e.target.value })}
-              placeholder="claude-sonnet-5"
-              className={`w-full px-4 py-2.5 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-              {t('imageService.llm.apiKey')}
-              {llmKeySet && (
-                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">
-                  {t('imageService.llm.keyStored')}
-                </span>
-              )}
-            </label>
-            <div className="relative">
-              <input value={llmKeyInput} onChange={e => setLlmKeyInput(e.target.value)}
-                type={showLlmKey ? 'text' : 'password'}
-                placeholder={llmKeySet ? t('imageService.llm.keyPlaceholderStored') : 'sk-...'}
-                autoComplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other"
-                className={`w-full px-4 py-2.5 rounded-md text-sm border font-mono ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 pr-10`} />
-              <button onClick={() => setShowLlmKey(!showLlmKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                {showLlmKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('imageService.llm.apiKeyHint')}</p>
-            {llmKeySet && (
-              <button onClick={() => clearLlmKey.mutate()}
-                className="mt-2 text-xs px-2.5 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10">
-                {t('imageService.llm.clearKey')}
-              </button>
-            )}
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.llm.timeout')}</label>
-            <input type="number" min={5} max={300} value={llm.timeout} onChange={e => setLlm({ ...llm, timeout: e.target.value })}
-              className={`w-full px-4 py-2.5 rounded-md text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-          </div>
-
-          <div className={`rounded-md border ${themeConfig.inputBorder} px-4 py-3 text-xs ${themeConfig.text.secondary}`}>
-            {t('imageService.llm.dataSourceNote')}
-          </div>
-
-          <Button onClick={handleSaveLlm} disabled={saveLlm.isPending}>
-            <Save size={16} className="mr-1.5" />
-            {t('imageService.llm.saveLlm')}
-          </Button>
-        </div>
-      </div>
+      {/* The AI (LLM) settings card was removed from this page: nothing in the system uses it (no /insights). */}
 
       <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
         <h4 className={`text-sm font-semibold mb-3 ${themeConfig.text.primary}`}>{t('imageService.telegramBot.howToGetToken')}</h4>

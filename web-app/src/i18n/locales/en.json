@@ -890,13 +890,14 @@
         "playback_clip_max_minutes": "Longest DVR/NVR clip (minutes)",
         "live_auto_hd_2x2": "2x2 wall opens in HD",
         "live_auto_hd_3x3": "3x3 wall opens in HD",
-        "live_auto_hd_4x4": "4x4 wall opens in HD"
+        "live_auto_hd_4x4": "4x4 wall opens in HD",
+        "incident_attachment_max_mb": "Largest Incident attachment (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "Disk usage percentage for critical alert",
         "alert_warning_threshold": "Disk usage percentage for warning alert",
         "max_storage_gb": "Global max storage capacity in GB for forecast",
-        "camera_offline_threshold_minutes": "Minutes without poll before camera is offline",
+        "camera_offline_threshold_minutes": "Minutes without video from a camera before it counts as offline",
         "camera_sla_target": "Camera availability SLA target percentage",
         "login_max_failed_attempts": "Failed login attempts (per username) before temporary account lockout",
         "login_failure_window_minutes": "Time window for counting failed login attempts (minutes) — the counter resets after this long with no failures",
@@ -937,7 +938,8 @@
         "playback_clip_max_minutes": "Copying takes as long as the clip lasts and holds one of the recorder's slots throughout",
         "live_auto_hd_2x2": "Each tile shows SD first, then HD (4 main streams per person)",
         "live_auto_hd_3x3": "Every tile in HD (9 main streams per person): small tiles look only a little sharper but use more network and recorder",
-        "live_auto_hd_4x4": "Every tile in HD (16 main streams per person): the heaviest; only when the network and recorders can take it"
+        "live_auto_hd_4x4": "Every tile in HD (16 main streams per person): the heaviest; only when the network and recorders can take it",
+        "incident_attachment_max_mb": "Largest file per attachment, on work orders and incidents"
       },
       "title": "System Configuration",
       "subtitle": "Manage all system settings",
@@ -2708,9 +2710,9 @@
       "saveFailed": "Save failed",
       "mediaNodeDeleted": "Media node deleted",
       "cannotRunWebRTCIceDiagnosticsIn": "Cannot run WebRTC ICE diagnostics in this browser",
-      "multiNodeMediaPlaneScaleWfh": "Multi-Node Media Plane, Scale & WFH",
-      "phase5MultiNodeArchitecture": "Phase 5: Multi-Node Architecture",
-      "manageADistributedMediaNodeCluster": "Manage a distributed media node cluster, balance load per site and handle WFH access via VPN/STUN",
+      "multiNodeMediaPlaneScaleWfh": "Live streaming server",
+      "phase5MultiNodeArchitecture": "Media nodes (MediaMTX)",
+      "manageADistributedMediaNodeCluster": "The machine that takes video from the DVR/NVRs and serves it live to browsers. The system runs one node; its status is read from MediaMTX directly.",
       "clusterNodes": "Cluster Nodes (",
       "loadCapacitySizing": "Load & Capacity Sizing",
       "wfhWebRTCStunTurn": "WFH & WebRTC STUN/TURN",

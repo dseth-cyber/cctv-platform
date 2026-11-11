@@ -653,7 +653,8 @@
         "playback_clip_max_minutes": "DVR/NVR 片段最长（分钟）",
         "live_auto_hd_2x2": "2x2 墙自动高清",
         "live_auto_hd_3x3": "3x3 墙自动高清",
-        "live_auto_hd_4x4": "4x4 墙自动高清"
+        "live_auto_hd_4x4": "4x4 墙自动高清",
+        "incident_attachment_max_mb": "Incident 附件最大 (MB)"
       },
       "descriptions": {
         "alert_critical_threshold": "用于严重告警的磁盘空间使用百分比",
@@ -661,7 +662,7 @@
         "max_storage_gb": "用于预测的全局最大存储容量 (GB)",
         "audit_logs_retention_days": "自动删除超过此天数的审计日志。0 = 永久保留。",
         "alerts_retention_days": "自动删除超过此天数的已处理告警（未处理的告警不会被自动删除）。0 = 永久保留。",
-        "camera_offline_threshold_minutes": "无轮询多少分钟后判定摄像机离线",
+        "camera_offline_threshold_minutes": "摄像机多少分钟没有画面即视为离线",
         "camera_sla_target": "摄像机可用性 SLA 目标百分比",
         "login_max_failed_attempts": "临时锁定账户前（每个用户名）允许的登录失败次数",
         "login_failure_window_minutes": "统计登录失败次数的时间窗口（分钟）——在此时长内无失败则计数清零",
@@ -700,7 +701,8 @@
         "playback_clip_max_minutes": "复制所需时间与片段时长相同，期间占用设备的一个名额",
         "live_auto_hd_2x2": "每格先显示标清再切换为高清（每人 4 路主码流）",
         "live_auto_hd_3x3": "每格高清（每人 9 路主码流）：小格子清晰度提升有限，但更占网络和录像机",
-        "live_auto_hd_4x4": "每格高清（每人 16 路主码流）：负载最重，仅在网络和录像机能承受时使用"
+        "live_auto_hd_4x4": "每格高清（每人 16 路主码流）：负载最重，仅在网络和录像机能承受时使用",
+        "incident_attachment_max_mb": "工单和事件中每个附件的最大大小"
       },
       "problems": {
         "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
@@ -2672,9 +2674,9 @@
       "saveFailed": "保存失败",
       "mediaNodeDeleted": "媒体节点已删除",
       "cannotRunWebRTCIceDiagnosticsIn": "无法在此浏览器中运行 WebRTC ICE 诊断",
-      "multiNodeMediaPlaneScaleWfh": "多节点媒体平面、扩展与远程办公",
-      "phase5MultiNodeArchitecture": "阶段 5：多节点架构",
-      "manageADistributedMediaNodeCluster": "管理分布式媒体节点集群，按站点分配负载，并通过 VPN/STUN 管理远程办公访问",
+      "multiNodeMediaPlaneScaleWfh": "直播流服务器",
+      "phase5MultiNodeArchitecture": "媒体节点 (MediaMTX)",
+      "manageADistributedMediaNodeCluster": "从 DVR/NVR 取流并向浏览器提供直播的机器。系统目前使用一个节点，状态直接读取自 MediaMTX。",
       "clusterNodes": "集群节点（",
       "loadCapacitySizing": "负载与容量规划",
       "wfhWebRTCStunTurn": "远程办公与 WebRTC STUN/TURN",
