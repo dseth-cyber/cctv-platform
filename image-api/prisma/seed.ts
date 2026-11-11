@@ -135,8 +135,8 @@ async function main() {
     },
     create: {
       id: '00000000-0000-0000-0000-000000000001',
-      name: 'การจัดเก็บเริ่มต้น (Default)',
-      description: 'Standard retention policy for production cameras',
+      name: 'มาตรฐาน',
+      description: 'ใช้กับกล้องที่ให้ Server บันทึกเอง (ไม่ใช่ภาพใน HDD ของ DVR/NVR): ไฟล์ที่เก่ากว่าจำนวนวันที่ตั้งจะย้ายไปที่พักไฟล์ 7 วันแล้วลบถาวร ไฟล์ที่ติด Legal Hold ไม่ถูกลบ',
       isDefault: true,
     },
   });
@@ -147,8 +147,8 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000002',
-      name: 'การจัดเก็บระยะยาว (Long-Term)',
-      description: 'Extended retention for quality inspection cameras',
+      name: 'เก็บนาน',
+      description: 'สำหรับกล้องที่ต้องเก็บหลักฐานนานกว่าปกติ เช่น ประตูเข้า-ออก จุดรับเงิน (ใช้เมื่อให้ Server บันทึกกล้องนั้นเอง)',
       recordingRetentionDays: 90,
     },
   });
