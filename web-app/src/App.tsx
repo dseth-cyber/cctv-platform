@@ -114,15 +114,12 @@ const navItems = [
 
 const settingsSubItems = [
   { path: '/cctv/settings', labelKey: 'nav.settings', icon: Settings, permission: 'settings:read' },
-  { path: '/cctv/roadmap', labelKey: 'nav.roadmap', icon: Map, permission: 'roadmap:read' },
-  { path: '/cctv/api-keys', labelKey: 'nav.apiKeys', icon: Key, permission: 'api-keys:read' },
   { path: '/cctv/telegram-bot', labelKey: 'nav.telegramBot', icon: MessageCircle, permission: 'telegram-bot:read' },
   { path: '/cctv/system-config', labelKey: 'nav.systemConfig', icon: Sliders, permission: 'system-config:read' },
   { path: '/cctv/required-fields', labelKey: 'nav.requiredFields', icon: ClipboardList, permission: 'system-config:read' },
   { path: '/cctv/users', labelKey: 'nav.users', icon: Users, permission: 'users:read' },
   { path: '/cctv/health', labelKey: 'nav.health', icon: HeartPulse, permission: 'health:read' },
   { path: '/cctv/media-nodes', labelKey: 'nav.mediaNodes', icon: Server, permission: 'cameras:read' },
-  { path: '/cctv/storage-providers', labelKey: 'nav.storageProviders', icon: Server, permission: 'storage:read' },
   { path: '/cctv/audit-log', labelKey: 'nav.auditLog', icon: History, permission: 'audit-log:read', allCameras: true },
   { path: '/cctv/backup', labelKey: 'nav.backup', icon: Shield, permission: 'backup:read' },
   { path: '/cctv/release', labelKey: 'nav.release', icon: FileCheck, permission: 'settings:read' },
@@ -1140,9 +1137,8 @@ export default function App() {
             {/* Now a tab of master data; old links land on it. */}
             {/* Camera templates are hidden (they only carried a retention policy); old links land on master data. */}
             <Route path="/cctv/camera-templates" element={<Navigate to="/cctv/masterdata" replace />} />
-            <Route path="/cctv/storage-providers" element={
-              hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
-            } />
+            {/* Hidden: not used by the system today (see HANDOFF); the address goes to Settings. */}
+            <Route path="/cctv/storage-providers" element={<Navigate to="/cctv/settings" replace />} />
             <Route path="/cctv/audit-log" element={
               hasPermission(user, 'audit-log:read') && user?.allCameras !== false ? <AuditLogViewer /> : <UnauthorizedPage />
             } />
@@ -1151,9 +1147,8 @@ export default function App() {
             } />
             {/* Now a tab of master data; old links land on it. */}
             <Route path="/cctv/retention" element={<Navigate to="/cctv/masterdata?tab=retention" replace />} />
-            <Route path="/cctv/roadmap" element={
-              hasPermission(user, 'roadmap:read') ? <ImageServiceRoadmap /> : <UnauthorizedPage />
-            } />
+            {/* Hidden: not used by the system today (see HANDOFF); the address goes to Settings. */}
+            <Route path="/cctv/roadmap" element={<Navigate to="/cctv/settings" replace />} />
             <Route path="/cctv/alerts" element={
               hasPermission(user, 'alerts:read') ? <AlertManagement /> : <UnauthorizedPage />
             } />
@@ -1163,9 +1158,8 @@ export default function App() {
             <Route path="/cctv/health" element={
               hasPermission(user, 'health:read') ? <HealthStatus /> : <UnauthorizedPage />
             } />
-            <Route path="/cctv/api-keys" element={
-              hasPermission(user, 'api-keys:read') ? <ApiKeysManagement /> : <UnauthorizedPage />
-            } />
+            {/* Hidden: not used by the system today (see HANDOFF); the address goes to Settings. */}
+            <Route path="/cctv/api-keys" element={<Navigate to="/cctv/settings" replace />} />
             <Route path="/cctv/telegram-bot" element={
               hasPermission(user, 'telegram-bot:read') ? <TelegramBotSettings /> : <UnauthorizedPage />
             } />

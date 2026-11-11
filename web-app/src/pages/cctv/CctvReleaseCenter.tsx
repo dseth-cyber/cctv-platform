@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 interface PreflightItem {
   id: string;
-  category: 'isolation' | 'security' | 'storage' | 'streaming' | 'database';
+  category: 'isolation' | 'security' | 'storage' | 'streaming' | 'database' | 'acceptance';
   name: string;
   status: 'passed' | 'warning' | 'failed';
   details: string;

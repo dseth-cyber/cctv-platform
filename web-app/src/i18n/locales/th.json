@@ -3256,7 +3256,7 @@
       "approved": "อนุมัติแล้ว",
       "approver": "ผู้อนุมัติ:",
       "target": "เป้าหมาย:",
-      "pilotReleaseCenterPhase": "ศูนย์ Pilot และ Release (เฟส 6)",
+      "pilotReleaseCenterPhase": "ศูนย์ Pilot และ Release",
       "rollingBufferFMP": "Rolling Buffer fMP4",
       "isolationNotVerified": "ยังไม่ได้ยืนยันการแยกระบบ:",
       "isolationNotVerifiedDetail": "ยังไม่มีการยืนยันว่าเครื่องนี้แยกขาดจาก Image Service production เดิม ให้ตรวจด้วยตนเองก่อน แล้วจึงตั้ง CCTV_ISOLATION_VERIFIED=true",

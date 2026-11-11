@@ -66,6 +66,7 @@
 - [ ] `git clone` repo แล้ว checkout **release tag** ที่ Dev ระบุ (ไม่ใช้ branch ที่กำลังพัฒนา)
 - [ ] สร้าง `.env` บนเครื่อง (สิทธิ์ 600) จากชื่อตัวแปรใน `.env.example`; ค่าลับใหม่ทั้งหมด (ห้ามใช้ค่าจาก Dev): `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `MEDIA_WEBHOOK_SECRET`, `SERVICE_API_KEY`, `MINIO_*`, `SEAWEEDFS_*`, `TURN_SECRET`, `GF_RENDERER_TOKEN`
 - [ ] ตัวแปรเครือข่าย: `WEB_LAN_ADDRESS`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST` = IP ฝั่งที่ผู้ใช้เปิดเว็บ; `NTP_BIND` = IP ฝั่ง LAN กล้อง; `NTP_ALLOW` = วง LAN กล้องทั้งหมด (เช่น `192.168.20.0/24,192.168.30.0/24`); `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL` = ที่อยู่เว็บจริง
+- [ ] `DEPLOY_ENV=production` ให้ image-api (หน้านำร่องและส่งมอบแสดงสภาพแวดล้อมจากค่านี้; ไม่ตั้ง = แสดงเป็น Dev) — `NODE_ENV` เป็น production ในทุก container จึงใช้แยกไม่ได้
 - [ ] ห้ามผูกพอร์ตใดกับวง 192.168.60.x (Image Service Production เดิม)
 - [ ] Postgres/Redis ไม่เปิดพอร์ตออก host (บน Dev ใช้ override `ports: !reset []`)
 - [ ] Firewall (IT ทำ): เข้าเว็บ 80/443 จาก LAN สำนักงาน, UDP 8189 (WebRTC) จาก LAN ผู้ดู, UDP 123 จาก LAN กล้อง, SSH เฉพาะเครื่องดูแล

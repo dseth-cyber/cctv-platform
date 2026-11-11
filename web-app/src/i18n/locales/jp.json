@@ -3217,7 +3217,7 @@
       "approved": "承認済み",
       "approver": "承認者:",
       "target": "対象:",
-      "pilotReleaseCenterPhase": "パイロット＆リリースセンター（フェーズ 6）",
+      "pilotReleaseCenterPhase": "パイロット＆リリースセンター",
       "rollingBufferFMP": "ローリングバッファ fMP4",
       "isolationNotVerified": "分離は未確認です:",
       "isolationNotVerifiedDetail": "このホストが旧 Image Service 本番環境から切り離されていることは未確認です。手動で確認してから CCTV_ISOLATION_VERIFIED=true を設定してください。",

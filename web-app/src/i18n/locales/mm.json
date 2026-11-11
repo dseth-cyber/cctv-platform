@@ -3212,7 +3212,7 @@
       "approved": "ခွင့်ပြုပြီး",
       "approver": "ခွင့်ပြုသူ:",
       "target": "ပစ်မှတ်:",
-      "pilotReleaseCenterPhase": "Pilot နှင့် Release စင်တာ (အဆင့် ၆)",
+      "pilotReleaseCenterPhase": "Pilot နှင့် Release စင်တာ",
       "rollingBufferFMP": "Rolling Buffer fMP4",
       "isolationNotVerified": "သီးခြားခွဲထားမှု အတည်မပြုရသေး:",
       "isolationNotVerifiedDetail": "ဤ host သည် legacy Image Service production မှ ခွဲထားကြောင်း အတည်မပြုရသေးပါ။ ကိုယ်တိုင် စစ်ဆေးပြီးမှ CCTV_ISOLATION_VERIFIED=true သတ်မှတ်ပါ။",

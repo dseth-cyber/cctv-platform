@@ -1,5 +1,8 @@
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
+  // Which installation this is, for people (Release Center). NODE_ENV is 'production' in every container, the Dev
+  // machine's too, so it cannot say. Unset means the Dev machine; the production server sets DEPLOY_ENV=production.
+  deployEnv: process.env.DEPLOY_ENV ?? 'dev',
   host: process.env.HOST ?? '0.0.0.0',
   port: parseInt(process.env.PORT ?? '3002', 10),
   logLevel: process.env.LOG_LEVEL ?? 'info',

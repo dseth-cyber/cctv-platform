@@ -5,7 +5,7 @@ import { MediaMtxService } from '../media/mediamtx.service.js';
 
 export interface PreflightCheckItem {
   id: string;
-  category: 'isolation' | 'security' | 'storage' | 'streaming' | 'database';
+  category: 'isolation' | 'security' | 'storage' | 'streaming' | 'database' | 'acceptance';
   name: string;
   status: 'passed' | 'warning' | 'failed';
   details: string;
@@ -181,6 +181,18 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
     });
   }
 
+  // 4. The pilot is signed off by a person, with its checklist passed. Until then the system is not ready to
+  // release however well the technical checks go.
+  try {
+    const signoffs = await prisma.signoffRecord.findMany({ orderBy: { createdAt: 'desc' }, take: 50 });
+    const passed = signoffs.find((r: any) => (r.metadata as any)?.checklistPassed === true);
+    items.push(passed
+      ? { id: 'pilot-signoff', category: 'acceptance', name: 'Pilot sign-off', status: 'passed', details: `Signed off by ${passed.signoffBy} (${passed.phase}) on ${passed.createdAt.toISOString().slice(0, 10)}` }
+      : { id: 'pilot-signoff', category: 'acceptance', name: 'Pilot sign-off', status: 'warning', details: 'No sign-off with a passed checklist yet (Roadmap R4.1 waits for the user).', remediation: 'Run the pilot checklist, then record the sign-off in step 4.' });
+  } catch {
+    items.push({ id: 'pilot-signoff', category: 'acceptance', name: 'Pilot sign-off', status: 'warning', details: 'Sign-off records could not be read' });
+  }
+
   // Calculate score
   const passedCount = items.filter((i) => i.status === 'passed').length;
   const failedCount = items.filter((i) => i.status === 'failed').length;
@@ -197,7 +209,7 @@ export async function getPreflightReadiness(): Promise<PreflightReport> {
   return {
     score,
     overallStatus,
-    environment: config.nodeEnv || 'development',
+    environment: config.deployEnv,
     isolationVerified: items.find((i) => i.id === 'iso-fail-closed')?.status === 'passed',
     checkedAt: new Date().toISOString(),
     items,

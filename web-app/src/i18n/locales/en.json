@@ -3253,7 +3253,7 @@
       "approved": "APPROVED",
       "approver": "Approver:",
       "target": "Target:",
-      "pilotReleaseCenterPhase": "Pilot & Release Center (Phase 6)",
+      "pilotReleaseCenterPhase": "Pilot & Release Center",
       "rollingBufferFMP": "Rolling Buffer fMP4",
       "isolationNotVerified": "Isolation not verified:",
       "isolationNotVerifiedDetail": "Nobody has confirmed that this host is cut off from the legacy Image Service production. Check it by hand, then set CCTV_ISOLATION_VERIFIED=true.",

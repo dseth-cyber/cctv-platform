@@ -3217,7 +3217,7 @@
       "approved": "已批准",
       "approver": "批准人：",
       "target": "目标：",
-      "pilotReleaseCenterPhase": "试点与发布中心（阶段 6）",
+      "pilotReleaseCenterPhase": "试点与发布中心",
       "rollingBufferFMP": "滚动缓冲 fMP4",
       "isolationNotVerified": "隔离尚未确认：",
       "isolationNotVerifiedDetail": "尚未确认此主机已与旧版 Image Service 生产环境隔离。请先人工检查，再设置 CCTV_ISOLATION_VERIFIED=true。",
