@@ -3774,6 +3774,18 @@
         "publisher": "Camera stream",
         "auth": "Sign-in"
       }
+    },
+    "assistant": {
+      "button": "Ask AI Assistant",
+      "title": "iSmart CCTV assistant",
+      "subtitle": "Status, statistics, how-to and fixes (from the system's own data, within your rights)",
+      "placeholder": "Ask e.g. \"which cameras are offline\", \"live MD ch 4\", \"how to set NTP\"",
+      "send": "Send",
+      "thinking": "Looking it up...",
+      "suggested": "Suggested",
+      "failed": "Could not answer; try again",
+      "tooFast": "Too many questions; wait a moment",
+      "dragHint": "Click to ask, drag to move"
     }
   }
 }

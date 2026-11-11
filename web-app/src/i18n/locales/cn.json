@@ -3771,6 +3771,18 @@
         "publisher": "摄像机码流",
         "auth": "登录"
       }
+    },
+    "assistant": {
+      "button": "问 AI 助手",
+      "title": "iSmart CCTV 助手",
+      "subtitle": "状态、统计、用法和故障处理（基于系统真实数据，按您的权限）",
+      "placeholder": "例如“哪些摄像机离线”“直播 MD 通道 4”“如何设置 NTP”",
+      "send": "发送",
+      "thinking": "正在查找...",
+      "suggested": "推荐问题",
+      "failed": "回答失败，请重试",
+      "tooFast": "提问过于频繁，请稍候",
+      "dragHint": "点击提问，拖动可移动位置"
     }
   }
 }

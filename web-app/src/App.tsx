@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { AssistantWidget } from '@/components/cctv/AssistantWidget'
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { useTranslation } from 'react-i18next'
@@ -1183,6 +1184,7 @@ export default function App() {
           </PageErrorBoundary>
         </main>
       </div>
+      <AssistantWidget />
       <ChangePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
       <AboutModal isOpen={aboutModalOpen} onClose={() => setAboutModalOpen(false)} />
     </div>

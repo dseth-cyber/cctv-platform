@@ -45,6 +45,8 @@ export function createImageServiceApi(api: any) {
       api.delete(`${BASE}/camera-groups/${id}`),
     setDeviceHealthNoteAck: (deviceId: string, note: 'sub_recording' | 'smart_codec', acknowledged: boolean) =>
       api.put(`${BASE}/devices/${deviceId}/health/notes/${note}`, { acknowledged }).then((r: any) => r.data),
+    askAssistant: (text: string, lang: string) =>
+      api.post(`${BASE}/assistant/ask`, { text, lang }).then((r: any) => r.data),
     getLiveViews: () =>
       api.get(`${BASE}/live-views`).then((r: any) => r.data),
     createLiveView: (data: Record<string, unknown>) =>

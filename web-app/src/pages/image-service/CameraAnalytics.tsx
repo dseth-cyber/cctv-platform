@@ -9,7 +9,7 @@ import { hasPermission } from '@/App'
 import { useToast } from '@/contexts/ToastContext'
 import { Responsive, WidthProvider } from 'react-grid-layout'
 import { imageServiceApi } from '@/services/imageServiceApi'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CameraSpecBadges } from '@/components/cctv/CameraSpecCard'
 import { CameraLiveModal } from '@/components/cctv/CameraLiveModal'
 import { Modal } from '@/components/ui'
@@ -151,7 +151,10 @@ export default function CameraAnalytics() {
   const toast = useToast()
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
   const [period, setPeriod] = useState<string>('7d')
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('')
+  // ?camera=<id> (e.g. a link from the assistant) opens on that camera, also when the page is already open.
+  const [urlParams] = useSearchParams()
+  const [selectedCameraId, setSelectedCameraId] = useState<string>(() => urlParams.get('camera') ?? '')
+  useEffect(() => { const id = urlParams.get('camera'); if (id) setSelectedCameraId(id) }, [urlParams])
   const [isEditing, setIsEditing] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const [hoverSeg, setHoverSeg] = useState<{ seg: any; widthPct: number; x: number; y: number } | null>(null)
