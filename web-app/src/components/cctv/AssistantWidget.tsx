@@ -13,7 +13,7 @@ interface Answer { intent: string; title: string; text?: string; items?: Item[];
 type Msg = { from: 'me'; text: string; at: number } | { from: 'bot'; answer: Answer; at: number } | { from: 'bot'; error: string; at: number };
 
 const POS_KEY = 'cctv_assistant_pos';
-const BTN_W = 190, BTN_H = 44, PANEL_W = 420, PANEL_H = 600, MARGIN = 12, DRAG_THRESHOLD = 5;
+const BTN_W = 168, BTN_H = 36, PANEL_W = 420, PANEL_H = 600, MARGIN = 12, DRAG_THRESHOLD = 5;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 function loadPos(): { x: number; y: number } {
@@ -123,9 +123,9 @@ export function AssistantWidget() {
         onPointerUp={onPointerUp}
         title={t('ui.assistant.dragHint')}
         style={{ left: pos.x, top: pos.y, width: BTN_W, height: BTN_H, touchAction: 'none' }}
-        className="fixed z-[62] inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold shadow-lg shadow-cyan-900/40 hover:brightness-110 select-none cursor-grab active:cursor-grabbing"
+        className="fixed z-[62] inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-semibold shadow-lg shadow-cyan-900/40 hover:brightness-110 select-none cursor-grab active:cursor-grabbing"
       >
-        <Sparkles size={16} /> {t('ui.assistant.button')}
+        <Sparkles size={14} /> {t('ui.assistant.button')}
       </button>
 
       {open && (
