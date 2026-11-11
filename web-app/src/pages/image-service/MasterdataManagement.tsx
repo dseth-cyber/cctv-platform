@@ -11,11 +11,9 @@ import { Plus, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 
 // Set up as pages of their own before; now tabs here, loaded when opened.
 const CameraGroups = lazy(() => import('@/pages/cctv/CameraGroups'));
-const CameraTemplates = lazy(() => import('@/pages/image-service/CameraTemplates'));
 const ImageServiceRetention = lazy(() => import('@/pages/image-service/ImageServiceRetention'));
 const PAGE_TABS: Record<string, (props: { embedded?: boolean }) => JSX.Element> = {
   '/cctv/camera-groups': (p) => <CameraGroups {...p} />,
-  '/cctv/camera-templates': (p) => <CameraTemplates {...p} />,
   '/cctv/retention': (p) => <ImageServiceRetention {...p} />,
 };
 /** The tab key of each of those pages in ?tab=, e.g. camera-groups. */

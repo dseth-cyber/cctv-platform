@@ -3756,6 +3756,25 @@
         "clip_export": "ตัดคลิป",
         "clip_download": "ดาวน์โหลดคลิป"
       }
+    },
+    "alertSource": {
+      "kind": {
+        "camera": "กล้อง",
+        "device": "เครื่องบันทึก",
+        "incident": "Incident",
+        "provider": "ที่เก็บไฟล์",
+        "system": "ระบบ",
+        "deleted": "ถูกลบแล้ว"
+      },
+      "system": {
+        "disk_watermark_monitor": "ตรวจพื้นที่ดิสก์ Server",
+        "health_monitor": "ตรวจสถานะกล้อง",
+        "recording_index_audit": "ตรวจไฟล์บันทึก",
+        "recorder_hdd": "ตรวจ HDD เครื่องบันทึก",
+        "system": "ระบบ",
+        "publisher": "สตรีมกล้อง",
+        "auth": "การเข้าสู่ระบบ"
+      }
     }
   }
 }

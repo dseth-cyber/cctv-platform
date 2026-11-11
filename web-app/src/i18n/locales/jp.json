@@ -3750,6 +3750,25 @@
         "clip_export": "クリップ切り出し",
         "clip_download": "クリップのダウンロード"
       }
+    },
+    "alertSource": {
+      "kind": {
+        "camera": "カメラ",
+        "device": "レコーダー",
+        "incident": "インシデント",
+        "provider": "ストレージ",
+        "system": "システム",
+        "deleted": "削除済み"
+      },
+      "system": {
+        "disk_watermark_monitor": "サーバーのディスク容量チェック",
+        "health_monitor": "カメラ状態チェック",
+        "recording_index_audit": "録画ファイルチェック",
+        "recorder_hdd": "レコーダーHDDチェック",
+        "system": "システム",
+        "publisher": "カメラのストリーム",
+        "auth": "サインイン"
+      }
     }
   }
 }

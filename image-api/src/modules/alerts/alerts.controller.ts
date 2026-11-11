@@ -1,4 +1,5 @@
 import { allowedAlertSources, guardAlertParam } from '../access/camera-scope.js';
+import { withSourceInfo } from './alert-source.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
 import { getPrisma } from '../../lib/prisma.js';
@@ -32,14 +33,15 @@ async function listHandler(request: FastifyRequest, reply: FastifyReply) {
     sortBy: query.sortBy,
     sortDir: query.sortDir === 'asc' ? 'asc' : query.sortDir === 'desc' ? 'desc' : undefined,
   });
-  return reply.send(result);
+  // What each alert is about, in words a person can read (camera or recorder name, or which check raised it).
+  return reply.send({ ...result, data: await withSourceInfo(result.data) });
 }
 
 async function getByIdHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const alert = await alertsService.getAlertById(id);
   if (!alert) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Alert not found' });
-  return reply.send(alert);
+  return reply.send((await withSourceInfo([alert]))[0]);
 }
 
 async function acknowledgeHandler(request: FastifyRequest, reply: FastifyReply) {

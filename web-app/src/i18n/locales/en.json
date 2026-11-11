@@ -3753,6 +3753,25 @@
         "clip_export": "cut a clip",
         "clip_download": "downloaded a clip"
       }
+    },
+    "alertSource": {
+      "kind": {
+        "camera": "Camera",
+        "device": "Recorder",
+        "incident": "Incident",
+        "provider": "Storage",
+        "system": "System",
+        "deleted": "Deleted"
+      },
+      "system": {
+        "disk_watermark_monitor": "Server disk space check",
+        "health_monitor": "Camera status check",
+        "recording_index_audit": "Recording files check",
+        "recorder_hdd": "Recorder HDD check",
+        "system": "System",
+        "publisher": "Camera stream",
+        "auth": "Sign-in"
+      }
     }
   }
 }

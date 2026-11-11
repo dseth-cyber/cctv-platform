@@ -92,7 +92,6 @@ function UnauthorizedPage() {
 // The setup pages opened from the master data page, with what each one needs.
 export const MASTERDATA_LINKS = [
   { path: '/cctv/camera-groups', labelKey: 'nav.cameraGroups', icon: FolderTree, permission: 'cameras:read' },
-  { path: '/cctv/camera-templates', labelKey: 'nav.cameraTemplates', icon: LayoutTemplate, permission: 'camera-template:read' },
   { path: '/cctv/retention', labelKey: 'nav.retention', icon: Shield, permission: 'retention:read' },
 ]
 const MASTERDATA_PAGE_PERMISSIONS = ['masterdata:read', ...MASTERDATA_LINKS.map((l) => l.permission)]
@@ -1139,7 +1138,8 @@ export default function App() {
               hasPermission(user, 'cameras:read') ? <ImageServiceReports /> : <UnauthorizedPage />
             } />
             {/* Now a tab of master data; old links land on it. */}
-            <Route path="/cctv/camera-templates" element={<Navigate to="/cctv/masterdata?tab=camera-templates" replace />} />
+            {/* Camera templates are hidden (they only carried a retention policy); old links land on master data. */}
+            <Route path="/cctv/camera-templates" element={<Navigate to="/cctv/masterdata" replace />} />
             <Route path="/cctv/storage-providers" element={
               hasPermission(user, 'storage:read') ? <StorageProvidersPage /> : <UnauthorizedPage />
             } />

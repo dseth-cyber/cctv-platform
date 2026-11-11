@@ -3750,6 +3750,25 @@
         "clip_export": "剪辑片段",
         "clip_download": "下载片段"
       }
+    },
+    "alertSource": {
+      "kind": {
+        "camera": "摄像机",
+        "device": "录像机",
+        "incident": "事件",
+        "provider": "存储",
+        "system": "系统",
+        "deleted": "已删除"
+      },
+      "system": {
+        "disk_watermark_monitor": "服务器磁盘空间检查",
+        "health_monitor": "摄像机状态检查",
+        "recording_index_audit": "录像文件检查",
+        "recorder_hdd": "录像机硬盘检查",
+        "system": "系统",
+        "publisher": "摄像机码流",
+        "auth": "登录"
+      }
     }
   }
 }

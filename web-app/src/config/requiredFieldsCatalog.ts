@@ -44,7 +44,6 @@ export const REQUIRED_FIELD_CATALOG: RequiredFieldEntity[] = [
         fields: [
           f('name', true),
           f('description'),
-          f('templateId'),
           f('retentionPolicyId', true),
         ],
       },

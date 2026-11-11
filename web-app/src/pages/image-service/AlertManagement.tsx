@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { imageServiceApi } from '@/services/imageServiceApi'
 import { formatDateTime } from '@/utils/dateUtils'
+import { AlertSource } from '@/components/cctv/AlertSource'
 import { translateAlertTitle, translateAlertMessage, getLocalizedValue, type IncidentLabelMaps } from '@/utils/textUtils'
 import { Modal, Button, SearchableSelect, TableSkeleton } from '@/components/ui'
 import { Search, Bell, Eye, CheckCircle, XCircle, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, AlertTriangle, RotateCcw, ArrowLeft } from 'lucide-react'
@@ -246,7 +247,7 @@ export default function AlertManagement() {
                     </div>
                     <p className={`text-sm font-medium ${themeConfig.text.primary} break-words`}>{translateAlertTitle(item.title, t)}{item.resolvedAt && <span data-alert-closed className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300">{t('imageService.alerts.closedBadge')}</span>}</p>
                     <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>
-                      {item.source ?? '—'} · {formatDateTime(item.createdAt, i18n.language)}
+                      <AlertSource info={item.sourceInfo} raw={item.source} /> · {formatDateTime(item.createdAt, i18n.language)}
                     </p>
                   </div>
                 </div>
@@ -303,7 +304,7 @@ export default function AlertManagement() {
                       </span>
                     </td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.primary} max-w-[320px] truncate`}>{translateAlertTitle(item.title, t)}{item.resolvedAt && <span data-alert-closed className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300">{t('imageService.alerts.closedBadge')}</span>}</td>
-                    <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>{item.source ?? '—'}</td>
+                    <td data-alert-source-cell className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}><AlertSource info={item.sourceInfo} raw={item.source} /></td>
                     <td className={`px-4 py-3 text-sm ${themeConfig.text.secondary}`}>
                       {formatDateTime(item.createdAt, i18n.language)}
                     </td>
@@ -434,7 +435,7 @@ export default function AlertManagement() {
             <div className="grid grid-cols-2 gap-3 text-xs">
               {[
                 [t('imageService.alerts.severity'), viewing.severity],
-                [t('imageService.alerts.source'), viewing.source ?? '—'],
+                [t('imageService.alerts.source'), <AlertSource key="src" info={viewing.sourceInfo} raw={viewing.source} />],
                 [t('imageService.alerts.type'), viewing.alertType],
                 [t('imageService.alerts.createdAt'), formatDateTime(viewing.createdAt, i18n.language)],
                 [t('imageService.alerts.acknowledgedAt'), viewing.acknowledgedAt ? formatDateTime(viewing.acknowledgedAt, i18n.language) : '—'],

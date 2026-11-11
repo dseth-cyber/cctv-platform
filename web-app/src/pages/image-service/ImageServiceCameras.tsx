@@ -254,11 +254,6 @@ export default function ImageServiceCameras() {
   });
   const cameraStatuses = (cameraStatusesRaw?.data ?? cameraStatusesRaw ?? []) as any[];
 
-  const { data: templates = [] } = useQuery({
-    queryKey: ['camera-templates'],
-    queryFn: () => imageServiceApi.getCameraTemplates(),
-    staleTime: 1000 * 60 * 5,
-  });
 
   const handleSort = (col: string) => {
     if (col === 'actions' || col === 'no') return;
@@ -282,24 +277,10 @@ export default function ImageServiceCameras() {
     return candidate;
   };
 
-  const handleTemplateChange = (templateId: string) => {
-    const tpl = templates.find((t: any) => t.id === templateId);
-    setForm(p => ({
-      ...p,
-      templateId,
-      ...(tpl ? { retentionPolicyId: tpl.retentionPolicyId || p.retentionPolicyId } : {})
-    }));
-  };
 
   const openCreate = () => {
-    const defaultTemplate = templates.find((t: any) => t.isDefault && t.isActive);
+    // Camera templates are hidden: a new camera gets no template, and the default retention policy as before.
     const formInit = emptyForm();
-    if (defaultTemplate) {
-      formInit.templateId = defaultTemplate.id;
-      if (defaultTemplate.retentionPolicyId) {
-        formInit.retentionPolicyId = defaultTemplate.retentionPolicyId;
-      }
-    }
     const defaultRetention = policies.find((rp: any) => rp.isDefault);
     if (defaultRetention) {
       formInit.retentionPolicyId = defaultRetention.id;
@@ -1718,15 +1699,6 @@ export default function ImageServiceCameras() {
                 rows={2}
                 placeholder={t('imageService.cameras.descriptionPlaceholder')}
                 className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
-            </div>
-            <div className="col-span-2">
-              <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
-                {t('imageService.cameras.template')}{cameraStar('templateId')}
-              </label>
-              <SearchableSelect value={form.templateId} onChange={handleTemplateChange}
-                placeholder={t('imageService.cameras.templateNone')}
-                options={[{ value: '', label: t('imageService.cameras.templateNone') }, ...(templates as any[]).filter((tp: any) => tp.isActive).map((tp: any) => ({ value: tp.id, label: tp.isDefault ? `${tp.name} ★` : tp.name }))]} />
-              <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.templateHint')}</p>
             </div>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>

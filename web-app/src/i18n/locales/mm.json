@@ -3745,6 +3745,25 @@
         "clip_export": "ကလစ်ဖြတ်",
         "clip_download": "ကလစ်ဒေါင်းလုဒ်"
       }
+    },
+    "alertSource": {
+      "kind": {
+        "camera": "ကင်မရာ",
+        "device": "ရီကော်ဒါ",
+        "incident": "ဖြစ်ရပ်",
+        "provider": "သိုလှောင်မှု",
+        "system": "စနစ်",
+        "deleted": "ဖျက်ပြီး"
+      },
+      "system": {
+        "disk_watermark_monitor": "ဆာဗာ ဒစ်နေရာ စစ်ဆေးမှု",
+        "health_monitor": "ကင်မရာ အခြေအနေ စစ်ဆေးမှု",
+        "recording_index_audit": "မှတ်တမ်းဖိုင် စစ်ဆေးမှု",
+        "recorder_hdd": "ရီကော်ဒါ HDD စစ်ဆေးမှု",
+        "system": "စနစ်",
+        "publisher": "ကင်မရာ stream",
+        "auth": "ဝင်ရောက်မှု"
+      }
     }
   }
 }
