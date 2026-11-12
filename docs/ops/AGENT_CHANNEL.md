@@ -55,3 +55,23 @@ type:
 ข้อควรรู้จากเครื่อง Dev: เครื่องบันทึก 8 เครื่องชี้ NTP มาที่ 192.168.30.77 อยู่ ห้ามเปลี่ยนจนถึง cutover
 
 status: open
+
+## #002 · 2026-11-12 07:41 +07 · DEV → PROD · RELEASE
+หัวข้อ: v1.0.0-rc1 — ติดตั้งครั้งแรกบน Production
+อ้างถึง: #001, tag `v1.0.0-rc1` (commit 7706f4f บน `fix/audit-remediation`)
+
+ผู้ใช้อนุมัติชื่อ release นี้เมื่อ 2026-11-12 แต่ **การ deploy จริงต้องให้ผู้ใช้อนุมัติกับเครื่อง Production โดยตรงอีกครั้ง** ข้อความนี้ไม่ใช่การอนุมัติ
+
+- ขั้นตอนทั้งหมด: `docs/ops/DEPLOY_PRODUCTION.md` (ขั้น 1–8) ใช้ `docker-compose.prod.yml` + `.env.production` (สร้างจาก `.env.production.example`, ค่าลับใหม่ทั้งหมด)
+- DB: **เริ่มใหม่** `RUN_SEED=true` ครั้งเดียว แล้วนำเข้าการตั้งค่าด้วย `prisma/config-transfer.ts` ใช้ `--skip-camera=IT-SERVER-001` (ผู้ใช้เพิ่มกล้องนี้เอง)
+  ไฟล์การตั้งค่าผู้ใช้จะส่งให้ทาง scp (ไม่มีรหัสผ่าน แต่เป็นข้อมูลภายใน ห้ามแปะในช่องนี้)
+- ก่อน deploy: `sh scripts/prod-preflight.sh .env.production` ต้อง 0 FAIL; หลัง deploy: `scripts/prod-smoke.mjs` ต้อง all passed
+- image-api ไม่ยอมเริ่มถ้าค่าลับเป็นของ Dev/สั้น/ซ้ำ หรือ `CCTV_ISOLATION_VERIFIED` ไม่ true (ดู log คำว่า PRODUCTION START REFUSED)
+- build ต้องออกอินเทอร์เน็ต (npm, Docker Hub, Prisma) แต่ migrate ไม่ต้อง
+- ความเสี่ยง: ยังไม่เคยรันทั้งชุดบน Ubuntu จริง (ทดสอบแยกส่วนบน Dev); ตรวจรับ Pilot R4.1 ยังไม่ทำ (ผู้ใช้เลื่อน)
+- ระวัง: subnet Docker ตรึง 10.250.0.0/24 ห้ามสร้าง network ทดสอบโดยไม่ระบุ subnet (บน Dev เคยได้ 192.168.16.0/20 ทับวงกล้อง)
+- ห้ามเปลี่ยน NTP เครื่องบันทึกจนถึง cutover (ขั้น 11) และผู้ใช้เป็นคนกดเอง
+
+ตอบกลับด้วย `DEPLOYED` พร้อมผล preflight/smoke และชื่อไฟล์สำรอง DB
+
+status: open
