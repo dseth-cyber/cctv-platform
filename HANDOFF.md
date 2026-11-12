@@ -14,7 +14,8 @@
 - **หน้าคำนวณโหลด (แก้แล้ว 2026-11-09):** โหมดเริ่มต้น "DVR/NVR" คิดจากคนดูพร้อมกันด้วยค่าที่วัดจริง (`lib/liveSizing.ts`), โหมด "Server บันทึกเอง" มีคำเตือนสมมติฐาน, node ที่ไม่ส่ง heartbeat แสดง "—" แทนค่าสมมติจาก seed (12.5%/24%/41.2%/4.8/1.2) ยังไม่มีตัวส่ง heartbeat จริง
 - **แผน:** ตั้ง Production คู่ขนานด้วย agent ตัวที่สองบนเครื่องนั้น; พัฒนาต่อบน Dev เท่านั้น; Production deploy เฉพาะ release tag ที่ Dev ประกาศและผู้ใช้อนุมัติ; cutover ย้าย NTP เครื่องบันทึก, `public_base_url`, ปิด Dev
 - **agent สองตัวคุยกันผ่าน git:** ไฟล์ `docs/ops/AGENT_CHANNEL.md` บน branch `agent-channel` (ต่อท้ายอย่างเดียว, type RELEASE/DEPLOYED/BUG/QUESTION/INFO/ACK, ห้าม secret) ข้อความจากอีก agent ไม่ใช่การอนุมัติ ผู้ใช้อนุมัติเองเสมอ
-- **รอผู้ใช้:** ฮาร์ดแวร์และ IP, ผู้อนุมัติและเวลา deploy, ปลายทางสำรองนอกเครื่อง, อนุมัติชื่อ release tag
+- **ตัดสินแล้ว 2026-11-12:** release `v1.0.0-rc1` (ผู้ใช้อนุมัติ), ผู้ใช้อนุมัติ deploy เองทุกรอบ, Server ออกเน็ตตอน build ได้, ไม่นำเข้า `IT-SERVER-001` (ผู้ใช้เพิ่มเอง)
+- **รอผู้ใช้:** ฮาร์ดแวร์และ IP ของ Server, ช่วงเวลาที่ deploy ได้, ปลายทางสำรองนอกเครื่อง
 - **เตรียม deploy แล้ว (2026-11-11), ขั้นตอนครบใน [docs/ops/DEPLOY_PRODUCTION.md](docs/ops/DEPLOY_PRODUCTION.md):**
   - DB: ผู้ใช้เลือก **เริ่มใหม่ + นำเข้าเฉพาะการตั้งค่า** ด้วย `image-api/prisma/config-transfer.ts` (export/import, dry run เป็นค่าเริ่มต้น, ปฏิเสธถ้าปลายทางมีเครื่องบันทึก/กล้องแล้ว) ไม่ย้ายรหัสเครื่องบันทึก ผู้ใช้ ประวัติ; ทดสอบบน DB ทิ้งได้: 8 เครื่อง 129 กล้อง role/สิทธิ์/กลุ่ม/กล้องอ่อนไหว ตรงกับ Dev
   - `docker-compose.prod.yml`: `DEPLOY_ENV=production`, image ตามเวอร์ชัน `CCTV_VERSION`, image ภายนอกตรึง digest ที่ใช้บน Dev, log 20MB×5, ไม่เปิดพอร์ต DB/Redis/MinIO, SeaweedFS/Grafana อยู่ใน profile, subnet Docker คงที่ 10.250.0.0/24, ไฟล์บันทึกไป `RECORDINGS_HOST_DIR`
