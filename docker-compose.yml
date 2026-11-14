@@ -234,7 +234,8 @@ services:
       - local-storage-data:/data/images
       - incident-attachments-data:/app/incident-attachments
       - backup-data:/app/backups
-      - ./host-storage:/mnt/host-storage
+      # An SMB/NFS storage provider needs its share mounted into this container first; add a line here for it
+      # (e.g. - /mnt/nas:/mnt/host-storage/nas). None is mounted by default: CCTV keeps its files on the local disk.
       # Same path as inside mediamtx so indexed segment paths resolve in both containers,
       # and the disk watermark monitor measures the filesystem that actually holds video [R1.7]
       - ./mediamtx/recordings:/recordings

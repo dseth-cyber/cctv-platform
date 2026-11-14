@@ -132,13 +132,36 @@ SMOKE_USER=<admin> SMOKE_PASSWORD='<รหัส>' node scripts/prod-smoke.mjs h
 
 ## ขั้น 8 สำรองข้อมูล
 
-- ระบบสำรอง DB เองตามตารางใน volume `backup-data` (หน้า สำรองข้อมูล) ให้ IT ตั้ง cron บน host คัดลอก backup ออกนอกเครื่องทุกวัน
-- สำรองด้วยมือก่อนทุก deploy (`mkdir -p ~/cctv-backup` ครั้งแรก นอกโฟลเดอร์ repo):
+ที่ทำจริงบน 192.168.30.244 (2026-11-14):
+
+- **สำรองหลัก = cron บน host** สั่ง `pg_dump -Fc` ทุกวัน 02:30 ลง HDD `/srv/cctv-data/backup` เก็บ 14 วัน
+  (ไม่ได้อาศัย volume `backup-data`: ตัวสำรองในแอป 03:00 เขียนลง volume นั้นบน SSD ระบบ ใช้เป็นสำเนาที่สองได้ แต่ไม่ต้องคัดลอกออก)
+- สำรองด้วยมือก่อนทุก deploy ลงที่เดียวกัน:
   ```sh
-  docker exec cctv-postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > ~/cctv-backup/cctv-$(date +%F-%H%M).dump
+  docker exec cctv-postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/cctv-data/backup/cctv-$(date +%F-%H%M)-before-<เวอร์ชัน>.dump
   ```
-- ทดสอบ restore อย่างน้อยหนึ่งครั้งหลังติดตั้ง (ปุ่ม restore-test ในหน้าสำรองข้อมูล หรือ `pg_restore` ลง DB ทดลอง)
-- เก็บ `.env.production` ไว้ในตู้รหัสผ่าน: backup ใช้ไม่ได้ถ้าไม่มี `ENCRYPTION_KEY`
+- **ยังไม่มีสำเนานอกเครื่อง** (รอผู้ใช้เลือกปลายทาง) ถ้าเครื่องเสียทั้งเครื่อง backup บน HDD เดียวกันหายด้วย
+- เก็บ `.env.production` ไว้ในตู้รหัสผ่าน: backup ถอดรหัสผ่านเครื่องบันทึกไม่ได้ถ้าไม่มี `ENCRYPTION_KEY` ตัวเดิม
+
+### ทดสอบ restore (อย่างน้อยหลังติดตั้ง และทุกครั้งที่เปลี่ยน ENCRYPTION_KEY)
+
+กู้ลง DB ทดลองแยก ไม่แตะ `cctv-postgres` จริง แล้วตรวจ 2 อย่าง: จำนวนแถว และ **ค่าที่เข้ารหัสยังถอดได้ด้วยกุญแจของเครื่องนี้**
+
+```sh
+F=/srv/cctv-data/backup/<ไฟล์ล่าสุด>.dump
+docker network create --internal --subnet 10.250.99.0/24 cctv-restore-test          # 10.x เสมอ ห้ามให้ Docker เลือกเอง
+docker run -d --name cctv-restore-db --network cctv-restore-test -e POSTGRES_PASSWORD=restore-test -e POSTGRES_DB=restore postgres:15-alpine
+sleep 5; docker exec -i cctv-restore-db pg_restore -U postgres -d restore --no-owner < "$F"
+# 1) นับแถวตารางหลักเทียบกับ DB จริง (devices, cameras, users, recording_clips, ...)
+# 2) ค่าที่เข้ารหัส: ใช้ image เวอร์ชันที่รันอยู่ + ENCRYPTION_KEY ของเครื่องนี้ ไม่พิมพ์ค่าหรือกุญแจออกมา
+docker run --rm --network cctv-restore-test --env-file .env.production \
+  -e DATABASE_URL=postgresql://postgres:restore-test@cctv-restore-db:5432/restore \
+  --entrypoint node cctv-api:<เวอร์ชัน> dist/scripts/verify-secrets.js
+docker rm -f cctv-restore-db && docker network rm cctv-restore-test
+```
+
+`verify-secrets` ตอบ exit 0 = รหัสผ่านเครื่องบันทึก, RTSP URL ที่มีรหัส และค่าลับของระบบถอดได้ครบ;
+exit 1 = มีรายการที่ถอดไม่ได้ (บอกชื่อเครื่อง/กล้อง) แปลว่ากุญแจไม่ตรงกับ backup นี้ ให้หยุดและหากุญแจที่ถูกก่อน
 
 ## ขั้น 9 อัปเดตรอบถัดไป
 

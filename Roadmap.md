@@ -312,6 +312,7 @@
 - [x] (2026-11-14, rc3) คลิปหลักฐาน: ถังขยะ + กู้คืน + ลบถาวรหลัง 7 วัน, หมดอายุ 90 วัน (`clips_retention_days`, อนุมัติแล้ว), Legal Hold ชนะ, ยืนยันรหัสผ่าน — ทดสอบบน Dev กับคลิปจริงแล้ว ยังไม่ [A]: รอบ 04:00 และหน้าจอยังไม่ได้ตรวจในเบราว์เซอร์
 - [A] (2026-11-14) Production deploy v1.0.0-rc3 บน 192.168.30.244: preflight 0 FAIL, smoke all passed (รายงาน #003 DEPLOYED)
 - [x] (2026-11-14, rc4) Production: http → https (301), วัดสุขภาพ storage เฉพาะตัวที่เปิด — ยังไม่ deploy
+- [x] (2026-11-14, rc5) เครื่องมือ verify-secrets หลัง restore + ขั้นตอนทดสอบ restore ใน runbook (ทดสอบบน Dev แล้ว), ถอด host-storage, log Telegram ชัดเจน — ยังไม่ [A]: ยังไม่ได้รันบน Production
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 6 ครบถ้วน (มีคู่มือแยกระบบ Dev/Staging/Prod ชัดเจน, ตรวจสอบ Secret Hygiene, ซักซ้อมกู้คืน DR Drill, แดชบอร์ด UAT 6 มิติ, ระบบลงนามอนุมัติ Pilot Release, และรักษาสถานะ Fail-closed ไม่กระทบ Image Service เดิม 100%)
 

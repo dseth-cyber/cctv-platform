@@ -237,8 +237,18 @@ async function handleUpdate(botToken: string, chatId: string, update: TelegramUp
   await handlePrivateMessage(botToken, update);
 }
 
+// Say once whether the bot is actually set up, so "poller started" is not read as "Telegram works".
+let lastConfigured: boolean | null = null;
+function noteConfigured(configured: boolean) {
+  if (lastConfigured === configured) return;
+  lastConfigured = configured;
+  if (configured) logger.info('Telegram bot token and chat are set: listening for commands');
+  else logger.info('Telegram bot is not set up (no bot token or chat in settings): nothing is sent or received');
+}
+
 async function pollOnce(): Promise<number> {
   const creds = await getTelegramCredentials();
+  noteConfigured(!!creds);
   if (!creds) return IDLE_DELAY_MS;
 
   const updates = await getUpdates(creds.botToken, offset, POLL_TIMEOUT_SECONDS);
@@ -258,7 +268,7 @@ async function pollOnce(): Promise<number> {
 export function startTelegramBot(): void {
   if (running) return;
   running = true;
-  logger.info('Telegram bot poller started (long polling)');
+  logger.info('Telegram bot poller started; it stays idle until a bot token and chat are set');
 
   void (async () => {
     while (running) {
