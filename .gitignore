@@ -22,7 +22,8 @@ seaweedfs/s3.json
 *.crt
 *.key
 *.pem
-ssl/
+ssl/*
+!ssl/generate-cert.sh
 
 # Camera credential fixtures (contain SMB passwords) — keep out of the repo
 camera.json

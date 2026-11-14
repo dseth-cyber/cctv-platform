@@ -77,13 +77,20 @@ if [ -n "$R" ]; then
     [ "$ROOT_DEV" != "$REC_DEV" ] && ok "recordings are on their own disk ($REC_DEV)" || warn "recordings share the system disk; a full disk would stop the database too"
   else fail "RECORDINGS_HOST_DIR $R does not exist"; fi
 fi
-[ -f ssl/server.crt ] && [ -f ssl/server.key ] && ok "TLS certificate present (ssl/)" || fail "ssl/server.crt or ssl/server.key missing (sh ssl/generate-cert.sh, or the company certificate)"
+[ -f ssl/server.crt ] && [ -f ssl/server.key ] && ok "TLS certificate present (ssl/)" || fail "ssl/server.crt or ssl/server.key missing (bash ssl/generate-cert.sh <server IP>, or the company certificate)"
 
 echo "[7] docker"
 if ! docker info >/dev/null 2>&1; then fail "docker is not running or this user cannot use it"; else
   ok "docker $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
   if docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.prod.yml config -q 2>/dev/null; then ok "compose files + settings are valid"
   else fail "docker compose config fails; run it without -q to see why"; fi
+  # MinIO images come from the release tarball (docker load), not a registry: the IDs must be the ones tested on Dev.
+  for pair in cctv-minio:RELEASE.2025-09-07T16-13-09Z=sha256:69b2ec208575b69597784255eec6fa6a2985ee9e1a47f4411a51f7f5fdd193a9               cctv-mc:RELEASE.2025-08-13T08-35-41Z=sha256:c2ad77420d33bb4ad8694457d3edf7188076428582bd24e3dd4d09d6a1d52872; do
+    IMG=${pair%%=*}; WANT=${pair#*=}; GOT=$(docker image inspect --format '{{.Id}}' "$IMG" 2>/dev/null)
+    if [ -z "$GOT" ]; then fail "$IMG not loaded (sha256sum -c cctv-minio-images.tar.sha256 && docker load -i cctv-minio-images.tar)"
+    elif [ "$GOT" = "$WANT" ]; then ok "$IMG is the image tested on Dev"
+    else fail "$IMG has ID $GOT, not the tested $WANT"; fi
+  done
   for svc in $(docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.prod.yml config --services 2>/dev/null); do printf '%s ' "$svc"; done; echo "(services that will start)"
 fi
 

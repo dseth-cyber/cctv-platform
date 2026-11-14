@@ -5,7 +5,7 @@
 # Run scripts/prod-preflight.sh first (docs/ops/DEPLOY_PRODUCTION.md). What this file changes from Dev:
 #  - DEPLOY_ENV=production is fixed here, so image-api refuses to start on Dev/default secrets;
 #  - our own images carry the release version (CCTV_VERSION), so the previous release stays on disk for rollback;
-#  - third-party images are pinned to the exact build tested on Dev (no :latest);
+#  - third-party images are pinned to the exact build tested on Dev (no :latest); MinIO comes from the release tarball;
 #  - every container's log is rotated (20 MB x 5), so logs cannot fill the disk;
 #  - SeaweedFS and the Prometheus/Grafana/Loki stack are not started (Dev does not run them either);
 #    start them only on purpose: --profile seaweedfs / --profile observability;
@@ -32,14 +32,19 @@ services:
     logging: *logging
 
   minio:
-    # RELEASE.2025-09-07T16-13-09Z
-    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    # MinIO no longer publishes images (minio/minio and minio/mc are gone from Docker Hub). This is the exact image
+    # tested on Dev, shipped with the release as cctv-minio-images.tar and loaded with `docker load`
+    # (image ID sha256:69b2ec208575..., checked by scripts/prod-preflight.sh). Never pulled.
+    image: cctv-minio:RELEASE.2025-09-07T16-13-09Z
+    pull_policy: never
     # No host port: only containers on cctv-network reach it.
     ports: !reset []
     logging: *logging
 
   minio-init:
-    image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    # From the same tarball as minio (image ID sha256:c2ad77420d33...).
+    image: cctv-mc:RELEASE.2025-08-13T08-35-41Z
+    pull_policy: never
     logging: *logging
 
   ntp-server:
@@ -79,6 +84,8 @@ services:
     logging: *logging
   seaweedfs-init:
     profiles: ["seaweedfs"]
+    image: cctv-mc:RELEASE.2025-08-13T08-35-41Z
+    pull_policy: never
     logging: *logging
 
   prometheus:

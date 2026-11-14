@@ -52,7 +52,7 @@ alias dcp='docker compose --env-file .env.production -f docker-compose.yml -f do
 - subnet ของ Docker: ค่าเริ่มต้น `10.250.0.0/24` ต้องไม่ชนกับ LAN ใดที่เครื่องนี้ใช้ ถ้าชนให้ตั้ง `CCTV_DOCKER_SUBNET`
   แนะนำตั้ง `default-address-pools` ใน `/etc/docker/daemon.json` เป็นวง 10.x ด้วย เพื่อไม่ให้ network อื่นของ Docker ไปได้วง 192.168.x
   (บน Dev เคยเกิด: network ทดสอบได้ 192.168.16.0/20 แล้วทับวงกล้อง 192.168.20.x/30.x ทำให้ทุก container ติดต่อเครื่องบันทึกไม่ได้)
-- TLS: ใส่ใบรับรองของบริษัทที่ `ssl/server.crt` และ `ssl/server.key` (หรือ `sh ssl/generate-cert.sh` ชั่วคราว) โฟลเดอร์นี้ไม่อยู่ใน git
+- TLS: ใส่ใบรับรองของบริษัทที่ `ssl/server.crt` และ `ssl/server.key` (หรือ `bash ssl/generate-cert.sh <IP ของ Server>` ชั่วคราว; ใช้ bash ไม่ใช่ sh) โฟลเดอร์นี้ไม่อยู่ใน git
 - `git clone` แล้ว `git checkout v<เวอร์ชัน>` (ห้าม deploy จาก branch)
 
 ## ขั้น 2 ตรวจการแยกจาก Image Service เดิม
@@ -77,6 +77,18 @@ sh scripts/prod-preflight.sh .env.production      # ต้องได้ 0 FAIL
 ```
 
 เก็บ `ENCRYPTION_KEY` ไว้ในตู้รหัสผ่านด้วย ถ้าหาย backup ที่ restore กลับมาจะอ่านรหัสเครื่องบันทึกไม่ได้ และห้ามเปลี่ยนหลังเพิ่มเครื่องบันทึกแล้ว
+
+## ขั้น 3.5 image ของ MinIO (ทุก release ที่ไฟล์ tar เปลี่ยน)
+
+MinIO เลิกแจกจ่าย image แล้ว (`minio/minio`, `minio/mc` ไม่มีบน Docker Hub) Dev จึงส่ง image ตัวที่ทดสอบแล้วมาเป็นไฟล์
+`cctv-minio-images.tar` + `cctv-minio-images.tar.sha256` (ไม่อยู่ใน git เพราะใหญ่ 238 MB) ผู้ใช้ scp มาให้:
+
+```sh
+cd ~/cctv-release && sha256sum -c cctv-minio-images.tar.sha256     # ต้อง OK; ไม่ OK ห้าม load
+docker load -i cctv-minio-images.tar                                 # ได้ cctv-minio:RELEASE.2025-09-07T16-13-09Z, cctv-mc:RELEASE.2025-08-13T08-35-41Z
+```
+
+preflight ตรวจ image ID ให้ตรงกับที่ทดสอบบน Dev; compose ตั้ง `pull_policy: never` จะไม่ไปดึงจากที่อื่น
 
 ## ขั้น 4 ติดตั้งครั้งแรก (DB ว่าง)
 
