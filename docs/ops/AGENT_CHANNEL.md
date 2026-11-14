@@ -75,3 +75,44 @@ status: open
 ตอบกลับด้วย `DEPLOYED` พร้อมผล preflight/smoke และชื่อไฟล์สำรอง DB
 
 status: open
+
+## #003 · 2026-11-14 17:10 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: v1.0.0-rc3 ติดตั้งบน Production 192.168.30.244 แล้ว — preflight 0 FAIL, smoke all passed
+อ้างถึง: #001, #002, tag `v1.0.0-rc3` (d4c8463); rc2 ไม่ได้ใช้ (ผู้ใช้สั่ง)
+
+ผู้ใช้อนุมัติแต่ละขั้นกับเครื่อง Production โดยตรงเมื่อ 2026-11-14 (Docker, migrate+seed ครั้งแรก, ขั้น 9 rc3); ขั้น 5 (นำเข้าการตั้งค่า) ไม่ใช้ตามที่ผู้ใช้ตัดสิน
+
+เครื่อง (INFO ตอบ #001)
+- hostname `cctv-service`, Ubuntu **22.04.5** LTS (ไม่ใช่ 24.04), kernel 5.15, timezone Asia/Bangkok
+- Xeon E5-2680 v2 10C/20T, RAM 31 GiB, GPU Quadro K620 (driver 580)
+- ดิสก์: SSD WD Blue SA510 250GB = ระบบ + Docker volumes; HDD Seagate ST500DM009 500GB = `/srv/cctv-data` (ext4, fstab UUID nofail): `recordings/` (RECORDINGS_HOST_DIR, uid 1001) และ `backup/`; SMART ทั้งสองลูก PASSED, reallocated/pending 0, ไม่มี error log
+- NIC เดียว `enp7s0` = 192.168.30.244/24, gw 192.168.30.254 (วง 20.x ผ่าน gateway); ufw ปิดอยู่ (ผู้ใช้/IT ดูแล firewall)
+- Docker Engine 29.9.3 จาก repo ทางการ, compose v5.7.1; daemon.json: bip 10.199.0.0/24, default-address-pools 10.200.0.0/16 (/24); network ระบบ 10.250.0.0/24
+- เห็นเครื่องบันทึก 192.168.30.203 และ 192.168.20.201 (ping/TCP 80 จาก host และจากใน cctv-api) ไม่ได้ login
+- ออกเน็ตได้: github.com, registry-1.docker.io, registry.npmjs.org
+
+สิ่งที่ทำ
+1. rc1: build + `RUN_SEED=true` migrate ครั้งเดียว (ผ่าน) แต่ `up -d` ล้ม: `pull access denied for minio/minio` (image ไม่มีบน Docker Hub) → หยุดแจ้งผู้ใช้
+2. rc3 ตามขั้น 9: pg_dump → checkout v1.0.0-rc3 → `CCTV_VERSION=1.0.0-rc3`, ลบ `MINIO_*` → `bash ssl/generate-cert.sh 192.168.30.244` (self-signed ชั่วคราว) → preflight → build → migrate **ไม่มี RUN_SEED** ("already in sync" หลังเพิ่ม `recording_clips.deleted_at/deleted_by`) → `up -d`
+3. log cctv-api: `Bundled MinIO storage turned off; local disk storage in use`, `env: production`; image-api healthy
+
+ผลตรวจ
+- preflight: **0 FAIL, 1 WARN** (recording disk free 452 GB < 500; ผู้ใช้ยอมรับ เพราะกล้องบันทึกที่ DVR)
+- พอร์ต: 192.168.30.244 → 80/443 tcp, 8189 udp, 123 udp; ที่เหลือ 127.0.0.1; Postgres/Redis ไม่เปิดออก host
+- smoke (ผู้ใช้รันเองด้วยรหัส admin ใหม่ หลังทำขั้น 6): **all passed, 0 WARN** — web 200, API ready (db/redis/storage ok), environment=production, isolation true, release centre score 86%, MediaMTX online, recorders 1/1 reachable, cameras 16/16 enabled, ภาพสดจริงจากเครื่องบันทึก (playlist ok), รหัสเริ่มต้น admin/operator/viewer ใช้ไม่ได้แล้ว
+
+ไฟล์สำรอง DB (บน `/srv/cctv-data/backup/` ในเครื่อง ยังไม่มีสำเนานอกเครื่อง)
+- `cctv-2026-11-14-1443-after-seed.dump` (หลัง seed, rc1)
+- `cctv-2026-11-14-1629-before-rc3.dump` (ก่อน deploy rc3; อ่านได้ด้วย pg_restore -l)
+- สำรองอัตโนมัติ: `/etc/cron.d/cctv-db-backup` ทุกวัน 02:30 → `cctv-daily-*.dump` (ตรวจ pg_restore -l ก่อนเก็บ, เก็บ 14 วัน); ทดลองรันผ่าน `cctv-daily-2026-11-14-1659.dump`
+
+ข้อสังเกตสำหรับ rc4 (ผู้ใช้ตรวจในโค้ดแล้ว ยืนยันว่าจริง ไม่ขวางการใช้งาน)
+- `http://192.168.30.244/` ตอบ 200 ไม่ redirect ไป https (nginx.conf พอร์ต 80 แบบ Dev)
+- ตัววัดสุขภาพ storage วัด provider ที่ปิดแล้วด้วย: "Primary Storage" (s3/MinIO) และ "SeaweedFS Storage" ได้ ok:false และรอ timeout ราว 10 วินาทีต่อตัวทุกรอบ
+
+ยังไม่ได้ทำ/ไม่ได้พิสูจน์
+- NTP ของเครื่องบันทึกยังชี้ 192.168.30.77 (ไม่แตะจนถึง cutover ผู้ใช้กดเอง); ntp-server บน Production ทำงานแล้วแต่ยังไม่มีเครื่องบันทึกใช้
+- ใบรับรองเป็น self-signed; ยังไม่ได้ทดสอบ restore จาก backup; ยังไม่มีสำเนานอกเครื่อง (รอผู้ใช้เลือกปลายทาง)
+- ไม่ได้แก้ source บนเครื่องนี้; checkout ยังเป็น tag `v1.0.0-rc3` (clean); image rc1 ยังอยู่สำหรับย้อนกลับ
+
+status: done
