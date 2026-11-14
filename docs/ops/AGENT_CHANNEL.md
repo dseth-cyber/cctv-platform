@@ -116,3 +116,31 @@ status: open
 - ไม่ได้แก้ source บนเครื่องนี้; checkout ยังเป็น tag `v1.0.0-rc3` (clean); image rc1 ยังอยู่สำหรับย้อนกลับ
 
 status: done
+
+## #004 · 2026-11-14 17:45 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: v1.0.0-rc4 ติดตั้งบน Production 192.168.30.244 แล้ว — preflight 0 FAIL, smoke all passed
+อ้างถึง: #003 (ข้อสังเกต 2 ข้อ), tag `v1.0.0-rc4` (855bf3f)
+
+ผู้ใช้สั่ง deploy rc4 กับเครื่อง Production โดยตรงเมื่อ 2026-11-14
+
+สิ่งที่ทำ (ขั้น 9)
+- pg_dump → checkout `v1.0.0-rc4` (clean) → `CCTV_VERSION=1.0.0-rc4` → preflight → build image-api + web-app → migrate **ไม่มี RUN_SEED** ("already in sync", schema ไม่เปลี่ยน) → `up -d`
+- recreate เฉพาะ cctv-api, cctv-web-app; postgres/redis/mediamtx/ntp ไม่ถูกแตะ; cctv-api healthy
+
+ผลตรวจ
+- preflight: **0 FAIL, 1 WARN** (recording disk free 452 GB; ผู้ใช้ยอมรับ)
+- `curl -sI http://192.168.30.244/` → `301`, `Location: https://192.168.30.244/`; path+query คงอยู่ (`/live/abc?x=1` → `https://192.168.30.244/live/abc?x=1`); https 200
+- log cctv-api ตอนเริ่ม: `Initial metric collection done` วัดเฉพาะ `Local Disk Storage` (ok) ไม่มี "Primary Storage"/SeaweedFS/SMB/NFS อีก (rc3 วัด 5 ตัว)
+- smoke (ผู้ใช้รันเองด้วยรหัส admin, ใช้ SMOKE_HTTP_URL ค่าเริ่มต้น 127.0.0.1:8080 ซึ่งตรงกับ WEB_HTTP_PORT): **all passed, 0 WARN** — รวมข้อใหม่ `plain HTTP redirects to HTTPS (http://127.0.0.1:8080 -> HTTP 301 https://127.0.0.1/)`, recorders 1/1 reachable, cameras 16/16, ภาพสดจริง playlist ok, รหัสเริ่มต้นใช้ไม่ได้
+
+ไฟล์สำรอง DB (`/srv/cctv-data/backup/`)
+- `cctv-2026-11-14-1734-before-rc4.dump` (ก่อน deploy rc4; pg_restore -l อ่านได้ 35 ตาราง)
+- ทดสอบ restore แล้ว 2026-11-14 (`cctv-daily-2026-11-14-1725.dump` → container ทิ้ง `--network none`): pg_restore exit 0, จำนวนแถวตรงกับ DB จริงครบ 35 ตาราง; ยังไม่ได้ทดสอบถอดรหัสรหัสผ่านเครื่องบันทึกหลัง restore
+
+ย้อนกลับ: image `cctv-api:1.0.0-rc3` / `cctv-web-app:1.0.0-rc3` ยังอยู่ (checkout v1.0.0-rc3 + `CCTV_VERSION=1.0.0-rc3` + `up -d image-api web-app`; schema เหมือนกัน)
+
+หมายเหตุเล็ก (ไม่ขวาง): redirect ใช้ `$host` ไม่มีพอร์ต ดังนั้น http://127.0.0.1:8080 ไปที่ https://127.0.0.1/ (พอร์ต 443 ผูกเฉพาะ 192.168.30.244) ใช้จาก LAN ได้ถูกต้อง มีผลแค่การเรียกจากในเครื่อง
+
+ยังค้าง (ผู้ใช้เลื่อนไว้): สำเนา backup นอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
+
+status: done
