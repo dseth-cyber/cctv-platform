@@ -1,4 +1,4 @@
-import { SearchableSelect } from '@/components/ui';
+import { Modal, PasswordInput, SearchableSelect } from '@/components/ui';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -390,10 +390,11 @@ export const CctvPlayback: React.FC = () => {
     setCurrentTimeSec(Math.max(start, end - 300));
   }, [timelineData, selectedCameraId, selectedDate]);
 
-  // Fetch exported clips
+  // Fetch exported clips (or, with the trash view on, the ones in the trash)
+  const [showClipTrash, setShowClipTrash] = useState(false);
   const { data: clipsData, refetch: refetchClips } = useQuery({
-    queryKey: ['cctv-recording-clips', selectedCameraId],
-    queryFn: () => imageServiceApi.getRecordingClips({ cameraId: selectedCameraId }),
+    queryKey: ['cctv-recording-clips', selectedCameraId, showClipTrash],
+    queryFn: () => imageServiceApi.getRecordingClips({ cameraId: selectedCameraId, ...(showClipTrash ? { trash: 'true' } : {}) }),
     enabled: !!selectedCameraId,
     refetchInterval: (query: any) =>
       (query.state.data?.items ?? []).some((c: any) => c.status === 'QUEUED' || c.status === 'PROCESSING') ? 3000 : false,
@@ -865,21 +866,32 @@ export const CctvPlayback: React.FC = () => {
     onSettled: () => refetchClips(),
   });
 
-  // A finished clip is evidence: deleting it removes the file for good (the server writes the audit log).
-  const deleteClipMutation = useMutation({
-    mutationFn: (clipId: string) => imageServiceApi.cancelRecordingClip(clipId),
+  // A finished clip is evidence: "delete" moves it to the trash (password asked again); it can be restored until
+  // the server purges the trash. The server writes the audit log and checks Legal Hold and ownership itself.
+  const [clipConfirm, setClipConfirm] = useState<{ kind: 'cancel' | 'trash'; clip: any } | null>(null);
+  const [clipPassword, setClipPassword] = useState('');
+  const closeClipConfirm = () => { setClipConfirm(null); setClipPassword(''); };
+  const clipErrorMessage = (err: any) => {
+    const code = err?.response?.data?.details?.code ?? err?.response?.data?.code;
+    return code ? t(`ui.cctvPlayback.clipDeleteError.${code}`, { defaultValue: t('ui.cctvPlayback.clipDeleteFailed') }) : t('ui.cctvPlayback.clipDeleteFailed');
+  };
+  const trashClipMutation = useMutation({
+    mutationFn: ({ clipId, password }: { clipId: string; password: string }) => imageServiceApi.trashRecordingClip(clipId, password),
     onSuccess: () => {
       toast.success(t('ui.cctvPlayback.clipDeleted'));
+      closeClipConfirm();
     },
-    onError: (err: any) => {
-      const code = err?.response?.data?.details?.code;
-      toast.error(code ? t(`ui.cctvPlayback.clipDeleteError.${code}`, { defaultValue: t('ui.cctvPlayback.clipDeleteFailed') }) : t('ui.cctvPlayback.clipDeleteFailed'));
-    },
-    onSettled: () => refetchClips(),
+    onError: (err: any) => toast.error(clipErrorMessage(err)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['cctv-recording-clips'] }),
   });
-  const canDeleteClip = (clip: { status: string; legalHold?: boolean; exportedBy?: string | null }) =>
-    canExportClips && !clip.legalHold && clip.status !== 'QUEUED' && clip.status !== 'PROCESSING'
-    && (clip.exportedBy === user?.username || user?.role === 'admin' || user?.role === 'system');
+  const restoreClipMutation = useMutation({
+    mutationFn: (clipId: string) => imageServiceApi.restoreRecordingClip(clipId),
+    onSuccess: () => toast.success(t('ui.cctvPlayback.clipRestored')),
+    onError: (err: any) => toast.error(clipErrorMessage(err)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['cctv-recording-clips'] }),
+  });
+  const canManageClip = (clip: { exportedBy?: string | null }) =>
+    canExportClips && (clip.exportedBy === user?.username || user?.role === 'admin' || user?.role === 'system');
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
@@ -1620,14 +1632,33 @@ export const CctvPlayback: React.FC = () => {
                 {t('ui.cctvPlayback.evidenceArchiveLegalHold')}
               </h3>
             </div>
-            <span className="text-xs text-slate-400">
-              {t('ui.cctvPlayback.totalClips')}{' '}{clips.length}{' '}{t('ui.cctvPlayback.itemsStoredOnMediaStorage')}
-            </span>
+            <div className="flex items-center gap-3">
+              {!showClipTrash && (
+                <span className="text-xs text-slate-400">
+                  {t('ui.cctvPlayback.totalClips')}{' '}{clips.length}{' '}{t('ui.cctvPlayback.itemsStoredOnMediaStorage')}
+                </span>
+              )}
+              <button
+                type="button"
+                data-clip-trash-toggle
+                onClick={() => setShowClipTrash((v) => !v)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  showClipTrash ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300' : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Trash2 size={13} />
+                <span>{showClipTrash ? t('ui.cctvPlayback.clipTrashBack') : t('ui.cctvPlayback.clipTrash')}</span>
+              </button>
+            </div>
           </div>
+
+          {showClipTrash && (
+            <p className="text-[11px] text-slate-400">{t('ui.cctvPlayback.clipTrashNote')}</p>
+          )}
 
           {clips.length === 0 ? (
             <div className="py-8 text-center text-slate-500 text-xs">
-              {t('ui.cctvPlayback.noEvidenceClipsForThisCamera')}
+              {showClipTrash ? t('ui.cctvPlayback.clipTrashEmpty') : t('ui.cctvPlayback.noEvidenceClipsForThisCamera')}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -1704,43 +1735,53 @@ export const CctvPlayback: React.FC = () => {
                         </button>
                       </td>
                       <td className="py-3 px-3 text-right whitespace-nowrap">
-                        {canExportClips && (clip.status === 'QUEUED' || clip.status === 'PROCESSING') && (
+                        {!showClipTrash && canExportClips && (clip.status === 'QUEUED' || clip.status === 'PROCESSING') && (
                           <button
                             type="button"
                             data-cancel-clip={clip.id}
                             disabled={cancelClipMutation.isPending}
-                            onClick={() => {
-                              if (window.confirm(t('ui.cctvPlayback.clipCancelConfirm', { title: clip.title }))) cancelClipMutation.mutate(clip.id);
-                            }}
+                            onClick={() => setClipConfirm({ kind: 'cancel', clip })}
                             className="inline-flex items-center gap-1 px-2.5 py-1 mr-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 transition-all disabled:opacity-40"
                           >
                             <XCircle size={13} />
                             <span>{t('ui.cctvPlayback.clipCancel')}</span>
                           </button>
                         )}
-                        {canDeleteClip(clip) && (
+                        {!showClipTrash && canManageClip(clip) && clip.status !== 'QUEUED' && clip.status !== 'PROCESSING' && !clip.legalHold && (
                           <button
                             type="button"
                             data-delete-clip={clip.id}
-                            disabled={deleteClipMutation.isPending}
-                            onClick={() => {
-                              if (window.confirm(t('ui.cctvPlayback.clipDeleteConfirm', { title: clip.title }))) deleteClipMutation.mutate(clip.id);
-                            }}
+                            disabled={trashClipMutation.isPending}
+                            onClick={() => setClipConfirm({ kind: 'trash', clip })}
                             className="inline-flex items-center gap-1 px-2.5 py-1 mr-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 transition-all disabled:opacity-40"
                           >
                             <Trash2 size={13} />
                             <span>{t('ui.cctvPlayback.clipDelete')}</span>
                           </button>
                         )}
-                        <button
-                          type="button"
-                          disabled={clip.status !== 'COMPLETED' || !clip.downloadUrl}
-                          onClick={() => handleDownloadClip(clip)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Download size={13} />
-                          <span>{t('ui.cctvPlayback.download')}</span>
-                        </button>
+                        {showClipTrash && canManageClip(clip) && (
+                          <button
+                            type="button"
+                            data-restore-clip={clip.id}
+                            disabled={restoreClipMutation.isPending}
+                            onClick={() => restoreClipMutation.mutate(clip.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 mr-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-300 transition-all disabled:opacity-40"
+                          >
+                            <RotateCcw size={13} />
+                            <span>{t('ui.cctvPlayback.clipRestore')}</span>
+                          </button>
+                        )}
+                        {!showClipTrash && (
+                          <button
+                            type="button"
+                            disabled={clip.status !== 'COMPLETED' || !clip.downloadUrl}
+                            onClick={() => handleDownloadClip(clip)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Download size={13} />
+                            <span>{t('ui.cctvPlayback.download')}</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1750,6 +1791,57 @@ export const CctvPlayback: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Confirm: cancel a clip being made, or move a finished one to the trash (password) */}
+      <Modal
+        isOpen={!!clipConfirm}
+        onClose={closeClipConfirm}
+        size="md"
+        title={clipConfirm?.kind === 'trash' ? t('ui.cctvPlayback.clipDelete') : t('ui.cctvPlayback.clipCancel')}
+      >
+        {clipConfirm && (
+          <div className="space-y-4">
+            <p className={`text-sm ${themeConfig.text.secondary}`}>
+              {clipConfirm.kind === 'trash'
+                ? t('ui.cctvPlayback.clipDeleteConfirm', { title: clipConfirm.clip.title })
+                : t('ui.cctvPlayback.clipCancelConfirm', { title: clipConfirm.clip.title })}
+            </p>
+            {clipConfirm.kind === 'trash' && (
+              <div>
+                <label className={`block text-xs font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.cctvPlayback.clipPasswordLabel')}</label>
+                <PasswordInput
+                  autoComplete="current-password"
+                  value={clipPassword}
+                  onChange={(e) => setClipPassword(e.target.value)}
+                  data-clip-password
+                  className={`w-full px-3 py-2 rounded-lg text-sm border ${themeConfig.inputBorder} ${themeConfig.inputBg} ${themeConfig.text.primary} focus:outline-none`}
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeClipConfirm}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${themeConfig.cardBorder} ${themeConfig.text.secondary}`}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                data-clip-confirm
+                disabled={clipConfirm.kind === 'trash' ? !clipPassword || trashClipMutation.isPending : cancelClipMutation.isPending}
+                onClick={() => {
+                  if (clipConfirm.kind === 'trash') trashClipMutation.mutate({ clipId: clipConfirm.clip.id, password: clipPassword });
+                  else { cancelClipMutation.mutate(clipConfirm.clip.id); closeClipConfirm(); }
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Export Clip Modal Dialog */}
       {isExportModalOpen && (

@@ -336,10 +336,12 @@ async function main() {
         accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
         secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
       },
-      isDefault: true,
-      isActive: true,
+      // MinIO no longer ships with the system (its images left Docker Hub): this entry stays off unless someone runs
+      // `docker compose --profile minio` and turns it on. The local disk below is the default.
+      isDefault: false,
+      isActive: false,
       priority: 1,
-      description: 'Primary S3-compatible storage (MinIO)',
+      description: 'Bundled MinIO (optional: docker compose --profile minio)',
     },
   });
   console.log(`  Storage provider: ${storageProvider.name} (${storageProvider.type})`);
@@ -359,8 +361,9 @@ async function main() {
         accessKey: process.env.SEAWEEDFS_ACCESS_KEY || 'seaweedadmin',
         secretKey: process.env.SEAWEEDFS_SECRET_KEY || 'seaweedadmin',
       },
+      // SeaweedFS runs only with `docker compose --profile seaweedfs`; on by default it would show storage as degraded.
       isDefault: false,
-      isActive: true,
+      isActive: false,
       priority: 2,
       description: 'SeaweedFS distributed storage (S3-compatible)',
     },
@@ -372,15 +375,15 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000022',
-      name: 'Local Disk Storage (Example)',
+      name: 'Local Disk Storage',
       type: 'local',
       config: {
         basePath: process.env.LOCAL_STORAGE_PATH || '/data/images',
       },
-      isDefault: false,
+      isDefault: true,
       isActive: true,
       priority: 3,
-      description: 'Example local filesystem storage — writes to a disk path inside the image-api container/host',
+      description: 'Local disk inside image-api (volume image-data at /data/images)',
     },
   });
   console.log(`  Storage provider: ${localProvider.name} (${localProvider.type})`);

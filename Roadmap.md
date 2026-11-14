@@ -308,6 +308,8 @@
   - **Tab 3: Backup & DR Drill**: ตัวจำลองการซักซ้อมกู้คืนระบบแบบ Live Simulation พร้อม Code Snippets สคริปต์สำรองข้อมูล
   - **Tab 4: Sign-off & Release Authorization**: แบบฟอร์มลงนามอนุมัติปล่อยระบบจริงพร้อมตารางประวัติการลงนาม Audit Trail
 - [x] เพิ่ม Route `/image-service/release` และเมนูใน [App.tsx](file:///d:/Qwen/DVR/cctv-platform/web-app/src/App.tsx) พร้อมคำแปลภาษาไทยและอังกฤษ
+- [x] (2026-11-14, rc3) ติดตั้ง Production ใช้แค่ git: ตัด MinIO ออก (profile `minio` ปิด, ที่เก็บไฟล์ = Local Disk, ย้ายค่าเริ่มต้นเองครั้งแรก), `ssl/generate-cert.sh` อยู่ใน git — ยังไม่ [A]: ยังไม่ได้ deploy จริงบน Server
+- [x] (2026-11-14, rc3) คลิปหลักฐาน: ถังขยะ + กู้คืน + ลบถาวรหลัง 7 วัน, หมดอายุ 90 วัน (`clips_retention_days`, อนุมัติแล้ว), Legal Hold ชนะ, ยืนยันรหัสผ่าน — ทดสอบบน Dev กับคลิปจริงแล้ว ยังไม่ [A]: รอบ 04:00 และหน้าจอยังไม่ได้ตรวจในเบราว์เซอร์
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 6 ครบถ้วน (มีคู่มือแยกระบบ Dev/Staging/Prod ชัดเจน, ตรวจสอบ Secret Hygiene, ซักซ้อมกู้คืน DR Drill, แดชบอร์ด UAT 6 มิติ, ระบบลงนามอนุมัติ Pilot Release, และรักษาสถานะ Fail-closed ไม่กระทบ Image Service เดิม 100%)
 

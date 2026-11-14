@@ -497,12 +497,17 @@ export function createImageServiceApi(api: any) {
       postBufferSeconds?: number;
       legalHold?: boolean;
     }) => api.post(`${BASE}/recordings/clips`, data).then((r: any) => r.data),
-    getRecordingClips: (params?: { cameraId?: string; incidentId?: string }) =>
+    getRecordingClips: (params?: { cameraId?: string; incidentId?: string; trash?: 'true' }) =>
       api.get(`${BASE}/recordings/clips`, { params }).then((r: any) => r.data),
     toggleSegmentLegalHold: (id: string, legalHold: boolean) =>
       api.patch(`${BASE}/recordings/segments/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     cancelRecordingClip: (id: string) =>
       api.delete(`${BASE}/recordings/clips/${id}`).then((r: any) => r.data),
+    // Finished clip to the trash; a wrong password is a 403 this page explains itself (not "no permission").
+    trashRecordingClip: (id: string, password: string) =>
+      api.post(`${BASE}/recordings/clips/${id}/trash`, { password }, { silent403: true } as any).then((r: any) => r.data),
+    restoreRecordingClip: (id: string) =>
+      api.post(`${BASE}/recordings/clips/${id}/restore`).then((r: any) => r.data),
     toggleClipLegalHold: (id: string, legalHold: boolean) =>
       api.patch(`${BASE}/recordings/clips/${id}/legal-hold`, { legalHold }).then((r: any) => r.data),
     seedDevRecordings: (cameraId: string, date?: string) =>

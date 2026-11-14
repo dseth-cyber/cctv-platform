@@ -65,6 +65,7 @@ import { startTelegramBot, stopTelegramBot } from './modules/telegram-bot/telegr
 import { startSystemCleanup, stopSystemCleanup } from './modules/system-cleanup/system-cleanup.controller.js';
 import { metricsRoutes } from './modules/metrics/metrics.controller.js';
 import { storageRouter } from './lib/storage/storage-router.js';
+import { ensureStorageWithoutBundledMinio } from './lib/storage/ensure-local-storage.js';
 import { getPrisma } from './lib/prisma.js';
 
 /** Allows requests without an Origin and origins in CORS_ALLOWED_ORIGINS; others get 403 (was 500). */
@@ -233,6 +234,7 @@ export async function startApp() {
   startSystemCleanup();
   startTelegramBot();
 
+  await ensureStorageWithoutBundledMinio().catch((err) => logger.error({ err: err?.message }, 'Could not move storage off the bundled MinIO'));
   try {
     const prisma = getPrisma();
     const providers = await prisma.storageProvider.findMany({ where: { deletedAt: null } });

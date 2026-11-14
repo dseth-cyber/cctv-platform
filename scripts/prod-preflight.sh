@@ -31,7 +31,7 @@ done
 
 echo "[3] secrets (names only)"
 SEEN=""
-for k in POSTGRES_PASSWORD JWT_SECRET ENCRYPTION_KEY SERVICE_API_KEY MEDIA_WEBHOOK_SECRET MINIO_SECRET_KEY; do
+for k in POSTGRES_PASSWORD JWT_SECRET ENCRYPTION_KEY SERVICE_API_KEY MEDIA_WEBHOOK_SECRET; do
   v=$(val "$k")
   if [ -z "$v" ]; then fail "$k is empty"; continue; fi
   if printf '%s' "$v" | grep -Eiq 'change-?me|change-in-production|^dev-|-dev$|example|placeholder|^minioadmin$|^image_pass$'; then fail "$k is a placeholder or Dev default"; continue; fi
@@ -84,13 +84,6 @@ if ! docker info >/dev/null 2>&1; then fail "docker is not running or this user 
   ok "docker $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
   if docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.prod.yml config -q 2>/dev/null; then ok "compose files + settings are valid"
   else fail "docker compose config fails; run it without -q to see why"; fi
-  # MinIO images come from the release tarball (docker load), not a registry: the IDs must be the ones tested on Dev.
-  for pair in cctv-minio:RELEASE.2025-09-07T16-13-09Z=sha256:69b2ec208575b69597784255eec6fa6a2985ee9e1a47f4411a51f7f5fdd193a9               cctv-mc:RELEASE.2025-08-13T08-35-41Z=sha256:c2ad77420d33bb4ad8694457d3edf7188076428582bd24e3dd4d09d6a1d52872; do
-    IMG=${pair%%=*}; WANT=${pair#*=}; GOT=$(docker image inspect --format '{{.Id}}' "$IMG" 2>/dev/null)
-    if [ -z "$GOT" ]; then fail "$IMG not loaded (sha256sum -c cctv-minio-images.tar.sha256 && docker load -i cctv-minio-images.tar)"
-    elif [ "$GOT" = "$WANT" ]; then ok "$IMG is the image tested on Dev"
-    else fail "$IMG has ID $GOT, not the tested $WANT"; fi
-  done
   for svc in $(docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.prod.yml config --services 2>/dev/null); do printf '%s ' "$svc"; done; echo "(services that will start)"
 fi
 

@@ -21,9 +21,6 @@ export function productionProblems(env: Record<string, string | undefined>): str
   }
   const dbPassword = (() => { try { return decodeURIComponent(new URL(env.DATABASE_URL ?? '').password); } catch { return ''; } })();
   if (!dbPassword || dbPassword === 'image_pass' || PLACEHOLDER.test(dbPassword)) problems.push('the database password (POSTGRES_PASSWORD) is a default or placeholder');
-  if (!env.MINIO_SECRET_KEY || env.MINIO_SECRET_KEY === 'minioadmin' || PLACEHOLDER.test(env.MINIO_SECRET_KEY)) {
-    problems.push('MINIO_SECRET_KEY is a default or placeholder');
-  }
   if (env.CCTV_ISOLATION_VERIFIED !== 'true') problems.push('CCTV_ISOLATION_VERIFIED is not true (check this server cannot reach legacy production first)');
   if (env.ALLOW_DATA_LOSS === 'true') problems.push('ALLOW_DATA_LOSS must not be true');
   return problems;

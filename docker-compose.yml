@@ -41,7 +41,11 @@ services:
     networks:
       - cctv-network
 
+  # MinIO is optional and off: its images left Docker Hub (only machines that already have them can start it),
+  # and CCTV stores nothing in it; storage is the local disk (local-storage-data). Start it only on purpose:
+  # docker compose --profile minio up -d
   minio:
+    profiles: ["minio"]
     image: minio/minio:latest
     container_name: cctv-minio
     command: server /data --console-address ":9001"
@@ -64,6 +68,7 @@ services:
       - cctv-network
 
   minio-init:
+    profiles: ["minio"]
     image: minio/mc:latest
     container_name: cctv-minio-init
     depends_on:
@@ -282,8 +287,6 @@ services:
       image-api-migrate:
         condition: service_completed_successfully
       redis:
-        condition: service_started
-      minio:
         condition: service_started
     restart: unless-stopped
     networks:

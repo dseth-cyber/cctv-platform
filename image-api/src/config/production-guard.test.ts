@@ -6,7 +6,7 @@ const good = {
   DEPLOY_ENV: 'production',
   JWT_SECRET: strong('a'), ENCRYPTION_KEY: strong('b'), SERVICE_API_KEY: strong('c'), MEDIA_WEBHOOK_SECRET: strong('d'),
   DATABASE_URL: 'postgresql://cctv:Zq9%40long-real-pw@postgres:5432/cctv',
-  MINIO_SECRET_KEY: strong('e'), CCTV_ISOLATION_VERIFIED: 'true', ALLOW_DATA_LOSS: 'false',
+  CCTV_ISOLATION_VERIFIED: 'true', ALLOW_DATA_LOSS: 'false',
 };
 
 describe('production start-up guard', () => {
@@ -23,12 +23,12 @@ describe('production start-up guard', () => {
     const p = productionProblems({
       ...good,
       JWT_SECRET: 'dev-jwt-secret-change-in-production', ENCRYPTION_KEY: 'dev-encryption-key-32chars!!',
-      DATABASE_URL: 'postgresql://image_user:image_pass@postgres:5432/image_db', MINIO_SECRET_KEY: 'minioadmin',
+      DATABASE_URL: 'postgresql://image_user:image_pass@postgres:5432/image_db',
     });
     expect(p.join('\n')).toMatch(/JWT_SECRET is still a placeholder/);
     expect(p.join('\n')).toMatch(/ENCRYPTION_KEY is still a placeholder/);
     expect(p.join('\n')).toMatch(/POSTGRES_PASSWORD/);
-    expect(p.join('\n')).toMatch(/MINIO_SECRET_KEY/);
+    expect(p.join('\n')).not.toMatch(/MINIO_SECRET_KEY/); // MinIO no longer ships with the system
   });
 
   it('refuses short, missing, repeated secrets and the .env.example placeholders', () => {

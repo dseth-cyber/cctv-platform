@@ -66,7 +66,7 @@
 - [ ] IP คงที่: NIC LAN กล้อง และ NIC LAN สำนักงาน; บันทึกชื่อ NIC/IP ลง channel (ไม่ใช่ secret)
 - [ ] Docker Engine + compose plugin จาก repo ทางการของ Docker (ไม่ใช่ Docker Desktop)
 - [ ] `git clone` repo แล้ว checkout **release tag** ที่ Dev ระบุ (ไม่ใช้ branch ที่กำลังพัฒนา)
-- [ ] สร้าง `.env.production` บนเครื่อง (สิทธิ์ 600) จาก `.env.production.example`; ค่าลับใหม่ทั้งหมด (ห้ามใช้ค่าจาก Dev): `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `MEDIA_WEBHOOK_SECRET`, `SERVICE_API_KEY`, `MINIO_*`, `SEAWEEDFS_*`, `TURN_SECRET`, `GF_RENDERER_TOKEN`
+- [ ] สร้าง `.env.production` บนเครื่อง (สิทธิ์ 600) จาก `.env.production.example`; ค่าลับใหม่ทั้งหมด (ห้ามใช้ค่าจาก Dev): `JWT_SECRET`, `ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `MEDIA_WEBHOOK_SECRET`, `SERVICE_API_KEY`, `SEAWEEDFS_*` (ถ้าเปิด profile seaweedfs), `TURN_SECRET`, `GF_RENDERER_TOKEN`
 - [ ] ตัวแปรเครือข่าย: `WEB_LAN_ADDRESS`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST` = IP ฝั่งที่ผู้ใช้เปิดเว็บ; `NTP_BIND` = IP ฝั่ง LAN กล้อง; `NTP_ALLOW` = วง LAN กล้องทั้งหมด (เช่น `192.168.20.0/24,192.168.30.0/24`); `CORS_ALLOWED_ORIGINS`, `PUBLIC_BASE_URL` = ที่อยู่เว็บจริง
 - [ ] `DEPLOY_ENV=production` ให้ image-api (ตั้งไว้แล้วใน `docker-compose.prod.yml`; image-api ไม่ยอมเริ่มถ้าค่าลับเป็นของ Dev) (หน้านำร่องและส่งมอบแสดงสภาพแวดล้อมจากค่านี้; ไม่ตั้ง = แสดงเป็น Dev) — `NODE_ENV` เป็น production ในทุก container จึงใช้แยกไม่ได้
 - [ ] ห้ามผูกพอร์ตใดกับวง 192.168.60.x (Image Service Production เดิม)

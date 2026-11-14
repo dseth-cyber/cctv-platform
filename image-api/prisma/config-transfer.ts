@@ -34,7 +34,7 @@ const VERSION = 1;
 // live_permissions_ready moves with the roles: they already carry the live rights, so the target must not add
 // them again to a role that had them taken away.
 const SKIP_CONFIG = new Set([
-  'public_base_url', 'device_ntp_server', 'webhook_secret', 'webhook_url', 'system_version', 'camera_scope_ready',
+  'public_base_url', 'device_ntp_server', 'webhook_secret', 'webhook_url', 'system_version', 'camera_scope_ready', 'storage_local_ready',
 ]);
 
 const DEVICE_FIELDS = [

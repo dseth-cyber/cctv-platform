@@ -487,9 +487,10 @@ export class RecordingsService {
   /**
    * Retrieves list of exported event clips.
    */
-  static async getClips(cameraId?: string, incidentId?: string, scope?: object) {
+  /** Clips in the trash only when `trash` is true; otherwise only the ones that are not. */
+  static async getClips(cameraId?: string, incidentId?: string, scope?: object, trash = false) {
     const prisma = getPrisma();
-    const where: any = {};
+    const where: any = { deletedAt: trash ? { not: null } : null };
     if (scope) where.camera = scope;
     if (cameraId) where.cameraId = cameraId;
     if (incidentId) where.incidentId = incidentId;

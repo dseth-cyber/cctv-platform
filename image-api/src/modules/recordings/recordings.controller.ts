@@ -7,7 +7,8 @@ import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
-import { ClipCancelError, deleteClip } from './clip-cancel.js';
+import { ClipCancelError, cancelClip, restoreClip, trashClip } from './clip-cancel.js';
+import { passwordConfirmed } from '../../lib/password-confirm.js';
 import { clipDownloadName } from './clip-download-name.js';
 import { createAuditLog } from '../audit/audit.service.js';
 
@@ -82,7 +83,7 @@ export async function createDownloadLinkHandler(request: FastifyRequest, reply: 
   const { id } = request.params as { id: string };
   const user = (request as any).user;
   const clip = await RecordingsService.getClipById(id);
-  if (!clip) return reply.status(404).send({ message: 'Clip not found' });
+  if (!clip || clip.deletedAt) return reply.status(404).send({ message: 'Clip not found' });
   if (clip.status !== 'COMPLETED' || !clip.downloadUrl) {
     return reply.status(409).send({ message: 'Clip is not ready for download' });
   }
@@ -102,24 +103,66 @@ export async function downloadClipByLinkHandler(request: FastifyRequest, reply: 
   return downloadClipHandler(request, reply);
 }
 
-/**
- * Removes a clip: one still being made is cancelled, a finished one is deleted with its file.
- * Never a clip on Legal Hold; only the person who asked for it or an administrator.
- */
+/** The person changed their mind about a clip still being made. A finished clip goes to the trash instead (trashClipHandler). */
 export async function cancelClipHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const user = (request as any).user;
   try {
-    const { clip, cancelled } = await deleteClip(id, { username: user?.username, role: user?.role });
+    const clip = await cancelClip(id, { username: user?.username, role: user?.role });
     await createAuditLog({
       userId: user?.id,
-      action: cancelled ? 'clip_export_cancelled' : 'clip_deleted',
+      action: 'clip_export_cancelled',
       entity: 'recording_clip',
       entityId: id,
-      description: cancelled
-        ? `Clip export "${clip.title}" cancelled by ${user?.username ?? 'unknown'}`
-        : `Evidence clip "${clip.title}" deleted by ${user?.username ?? 'unknown'}`,
-      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, wasStatus: clip.status, sha256: clip.sha256Hash, fileSizeBytes: clip.fileSizeBytes?.toString() ?? null },
+      description: `Clip export "${clip.title}" cancelled by ${user?.username ?? 'unknown'}`,
+      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, wasStatus: clip.status },
+      ipAddress: request.ip,
+    });
+    return reply.status(204).send();
+  } catch (err) {
+    if (err instanceof ClipCancelError) return reply.status(err.statusCode).send({ message: err.message, details: { code: err.code } });
+    throw err;
+  }
+}
+
+/**
+ * A finished clip goes to the trash (password confirmed): its file moves to quarantine and can be restored until it
+ * is purged RECORDINGS_QUARANTINE_PURGE_DAYS later. Never a clip on Legal Hold; only its owner or an administrator.
+ */
+export async function trashClipHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  if (!(await passwordConfirmed(request, reply))) return reply;
+  try {
+    const clip = await trashClip(id, { username: user?.username, role: user?.role });
+    await createAuditLog({
+      userId: user?.id,
+      action: 'clip_trashed',
+      entity: 'recording_clip',
+      entityId: id,
+      description: `Evidence clip "${clip.title}" moved to the trash by ${user?.username ?? 'unknown'}`,
+      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, sha256: clip.sha256Hash, fileSizeBytes: clip.fileSizeBytes?.toString() ?? null },
+      ipAddress: request.ip,
+    });
+    return reply.status(204).send();
+  } catch (err) {
+    if (err instanceof ClipCancelError) return reply.status(err.statusCode).send({ message: err.message, details: { code: err.code } });
+    throw err;
+  }
+}
+
+export async function restoreClipHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = (request as any).user;
+  try {
+    const clip = await restoreClip(id, { username: user?.username, role: user?.role });
+    await createAuditLog({
+      userId: user?.id,
+      action: 'clip_restored',
+      entity: 'recording_clip',
+      entityId: id,
+      description: `Evidence clip "${clip.title}" restored from the trash by ${user?.username ?? 'unknown'}`,
+      metadata: { cameraId: clip.cameraId, deletedBy: clip.deletedBy, deletedAt: clip.deletedAt },
       ipAddress: request.ip,
     });
     return reply.status(204).send();
@@ -130,8 +173,8 @@ export async function cancelClipHandler(request: FastifyRequest, reply: FastifyR
 }
 
 export async function getClipsHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { cameraId, incidentId } = request.query as { cameraId?: string; incidentId?: string };
-  const clips = await RecordingsService.getClips(cameraId, incidentId, await cameraWhere(request));
+  const { cameraId, incidentId, trash } = request.query as { cameraId?: string; incidentId?: string; trash?: string };
+  const clips = await RecordingsService.getClips(cameraId, incidentId, await cameraWhere(request), trash === 'true');
   return reply.status(200).send({ items: clips });
 }
 
@@ -276,6 +319,16 @@ export async function recordingsRoutes(app: FastifyInstance) {
     '/clips/:id',
     { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
     cancelClipHandler,
+  );
+  app.post(
+    '/clips/:id/trash',
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
+    trashClipHandler,
+  );
+  app.post(
+    '/clips/:id/restore',
+    { preHandler: [app.authenticate, requirePermission('cameras:read'), requirePermission('clips:export'), guardClipParam()] },
+    restoreClipHandler,
   );
   app.get(
     '/clips/:id',

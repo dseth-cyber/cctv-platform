@@ -870,6 +870,10 @@ model RecordingClip {
   chainOfCustody    Json?           @default("[]") @map("chain_of_custody")
   downloadUrl       String?         @map("download_url") @db.Text
   exportedBy        String?         @map("exported_by") @db.VarChar(128)
+  /// In the trash: the file sits in quarantine (<quarantine>/clips) and comes back on restore; purged for good
+  /// RECORDINGS_QUARANTINE_PURGE_DAYS later. Set by a person (password confirmed) or by clips_retention_days.
+  deletedAt         DateTime?       @map("deleted_at")
+  deletedBy         String?         @map("deleted_by") @db.VarChar(128)
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
@@ -878,6 +882,7 @@ model RecordingClip {
 
   @@index([cameraId, createdAt(sort: Desc)])
   @@index([status])
+  @@index([deletedAt])
   @@map("recording_clips")
 }
 

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
+import { getRecordingCleanupDirs } from '../retention-sweeper/retention-sweeper.service.js';
 
 /** A stored file path, as a real path inside the recordings folder. Null for anything outside it. */
 export function recordingFileOnDisk(stored: string | null | undefined, recordingsDir: string): string | null {
@@ -34,7 +35,7 @@ export async function cameraDeletionImpact(ids: string[]): Promise<DeletionImpac
   const [clips, recordings] = await Promise.all([
     prisma.recordingClip.findMany({
       where: { cameraId: { in: ids } },
-      select: { cameraId: true, title: true, filePath: true, fileSizeBytes: true, sha256Hash: true, legalHold: true },
+      select: { cameraId: true, title: true, filePath: true, fileSizeBytes: true, sha256Hash: true, legalHold: true, deletedAt: true },
     }),
     prisma.cameraRecording.findMany({
       where: { cameraId: { in: ids } },
@@ -50,7 +51,11 @@ export async function cameraDeletionImpact(ids: string[]): Promise<DeletionImpac
     legalHold: held.length,
     heldCameraIds: [...new Set(held.map((row) => row.cameraId))],
     clipRecords: clips.map((c) => ({ title: c.title, sha256: c.sha256Hash, bytes: Number(c.fileSizeBytes ?? 0) })),
-    files: [...clips, ...recordings].map((row) => recordingFileOnDisk(row.filePath, dir)).filter((f): f is string => !!f),
+    files: [
+      ...[...clips, ...recordings].map((row) => recordingFileOnDisk(row.filePath, dir)),
+      // A clip in the trash has its file parked in quarantine.
+      ...clips.filter((c) => c.deletedAt && c.filePath).map((c) => path.join(getRecordingCleanupDirs().quarantineDir, 'clips', path.basename(c.filePath!))),
+    ].filter((f): f is string => !!f),
   };
 }
 
