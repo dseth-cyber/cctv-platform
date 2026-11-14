@@ -7,6 +7,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   // Auto-cleanup for operational/audit tables with no retention mechanism of their own
   // (see system-cleanup module, daily at 04:00). 0 = keep forever for that table.
   audit_logs_retention_days: { value: '180', description: 'Auto-delete Audit Log entries older than this many days. 0 = keep forever.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
+  clips_retention_days: { value: '90', description: 'Auto-delete finished evidence clips older than this many days, with their files (clips on Legal Hold are never auto-deleted). 0 = keep forever.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
   alerts_retention_days: { value: '60', description: 'Auto-delete resolved Alerts older than this many days (unresolved alerts are never auto-deleted). 0 = keep forever.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
   alert_critical_threshold: { value: '90', description: 'Disk usage percentage for critical alert', valueType: 'number', category: 'alert', min: 1, max: 100 },
   alert_warning_threshold: { value: '75', description: 'Disk usage percentage for warning alert', valueType: 'number', category: 'alert', min: 1, max: 100 },

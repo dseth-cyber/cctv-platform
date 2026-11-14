@@ -1,6 +1,7 @@
 import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
+import { deleteExpiredClips } from '../recordings/clip-cancel.js';
 
 // Auto-cleanup for the three operational/audit tables that have no built-in retention of
 // their own (unlike images, which go through RetentionPolicy) — Processing Logs, Audit
@@ -12,12 +13,14 @@ import { getAllConfigs } from '../system-config/system-config.service.js';
 export async function cleanupOperationalLogs(): Promise<{
   auditLogs: number;
   alerts: number;
+  clips: number;
 }> {
   const prisma = getPrisma();
   const configs = await getAllConfigs();
 
   const auditDays = Number(configs.audit_logs_retention_days?.value ?? 0);
   const alertsDays = Number(configs.alerts_retention_days?.value ?? 0);
+  const clipsDays = Number(configs.clips_retention_days?.value ?? 0);
 
   let auditLogs = 0;
   let alerts = 0;
@@ -46,9 +49,19 @@ export async function cleanupOperationalLogs(): Promise<{
     logger.error({ err }, 'Alert cleanup failed');
   }
 
-  if (auditLogs > 0 || alerts > 0) {
-    logger.info({ auditLogs, alerts }, 'Operational log cleanup completed');
+  // Evidence clips and their files (Legal Hold always stays).
+  let clips = 0;
+  try {
+    const result = await deleteExpiredClips(clipsDays);
+    clips = result.deleted;
+    if (result.errors > 0) logger.warn({ errors: result.errors }, 'Some expired clips could not be deleted');
+  } catch (err) {
+    logger.error({ err }, 'Clip cleanup failed');
   }
 
-  return { auditLogs, alerts };
+  if (auditLogs > 0 || alerts > 0 || clips > 0) {
+    logger.info({ auditLogs, alerts, clips }, 'Operational log cleanup completed');
+  }
+
+  return { auditLogs, alerts, clips };
 }

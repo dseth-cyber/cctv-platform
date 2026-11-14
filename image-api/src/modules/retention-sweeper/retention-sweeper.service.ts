@@ -449,15 +449,23 @@ export async function checkDiskHighWatermarkAndEvict(options?: {
     criticalThresholdPercent: critThreshold,
   });
 
-  if (ineffective || (evictedCount > 0 && current.freeBytes <= freeBytes)) {
+  if (ineffective || (evictedCount > 0 && current.freeBytes <= freeBytes) || current.usedPercent >= targetPercent) {
     ineffective = true;
+    // Evidence clips share this disk but are never deleted for space: say how much they hold, so a person can.
+    let clipBytes: number | null = null;
+    try {
+      clipBytes = Number((await prisma.recordingClip.aggregate({ _sum: { fileSizeBytes: true } }))._sum.fileSizeBytes ?? 0);
+    } catch (err) {
+      logger.warn({ err }, 'Could not total the evidence clip sizes for the disk alert');
+    }
+    const clipGb = clipBytes === null ? 'an unknown amount' : `${(clipBytes / 1024 ** 3).toFixed(1)} GB`;
     await createAlert({
       alertType: 'disk_space',
       severity: 'critical',
       source: 'disk_watermark_monitor',
       title: 'Emergency Eviction Did Not Free Space',
-      message: `Deleted ${evictedCount} recordings but usage is still ${current.usedPercent.toFixed(1)}%. Something other than recordings is filling ${dirPath}, or the remaining recordings are on Legal Hold.`,
-      details: { evictedCount, usedPercent: current.usedPercent, dirPath },
+      message: `Deleted ${evictedCount} recordings but usage is still ${current.usedPercent.toFixed(1)}%. Evidence clips hold ${clipGb} of ${dirPath} and are never deleted for space: delete old ones on the Playback page or lower clips_retention_days. Otherwise something else is filling the disk, or the remaining recordings are on Legal Hold.`,
+      details: { evictedCount, usedPercent: current.usedPercent, dirPath, clipBytes },
       skipDedup: true,
     });
   }

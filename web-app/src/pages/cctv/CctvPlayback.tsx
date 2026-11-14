@@ -39,6 +39,7 @@ import {
   FileVideo,
   Database,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { SecurityWatermark } from '@/components/cctv/SecurityWatermark';
 import { WhepPlayer } from '@/components/cctv/WhepPlayer';
@@ -863,6 +864,22 @@ export const CctvPlayback: React.FC = () => {
     },
     onSettled: () => refetchClips(),
   });
+
+  // A finished clip is evidence: deleting it removes the file for good (the server writes the audit log).
+  const deleteClipMutation = useMutation({
+    mutationFn: (clipId: string) => imageServiceApi.cancelRecordingClip(clipId),
+    onSuccess: () => {
+      toast.success(t('ui.cctvPlayback.clipDeleted'));
+    },
+    onError: (err: any) => {
+      const code = err?.response?.data?.details?.code;
+      toast.error(code ? t(`ui.cctvPlayback.clipDeleteError.${code}`, { defaultValue: t('ui.cctvPlayback.clipDeleteFailed') }) : t('ui.cctvPlayback.clipDeleteFailed'));
+    },
+    onSettled: () => refetchClips(),
+  });
+  const canDeleteClip = (clip: { status: string; legalHold?: boolean; exportedBy?: string | null }) =>
+    canExportClips && !clip.legalHold && clip.status !== 'QUEUED' && clip.status !== 'PROCESSING'
+    && (clip.exportedBy === user?.username || user?.role === 'admin' || user?.role === 'system');
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
@@ -1699,6 +1716,20 @@ export const CctvPlayback: React.FC = () => {
                           >
                             <XCircle size={13} />
                             <span>{t('ui.cctvPlayback.clipCancel')}</span>
+                          </button>
+                        )}
+                        {canDeleteClip(clip) && (
+                          <button
+                            type="button"
+                            data-delete-clip={clip.id}
+                            disabled={deleteClipMutation.isPending}
+                            onClick={() => {
+                              if (window.confirm(t('ui.cctvPlayback.clipDeleteConfirm', { title: clip.title }))) deleteClipMutation.mutate(clip.id);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 mr-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 transition-all disabled:opacity-40"
+                          >
+                            <Trash2 size={13} />
+                            <span>{t('ui.cctvPlayback.clipDelete')}</span>
                           </button>
                         )}
                         <button

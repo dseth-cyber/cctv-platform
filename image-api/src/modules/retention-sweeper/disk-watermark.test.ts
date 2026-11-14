@@ -14,6 +14,7 @@ const mockPrisma = {
     updateMany: vi.fn(),
     count: vi.fn(),
   },
+  recordingClip: { aggregate: vi.fn() },
 };
 
 vi.mock('../../lib/prisma.js', () => ({
@@ -49,6 +50,7 @@ describe('Disk High-Watermark: delete oldest recordings when critical (policy 20
     mockPrisma.cameraRecording.findFirst.mockResolvedValue({ id: 'x' }); // not on hold
     mockPrisma.cameraRecording.deleteMany.mockResolvedValue({ count: 1 });
     mockPrisma.cameraRecording.count.mockResolvedValue(0);
+    mockPrisma.recordingClip.aggregate.mockResolvedValue({ _sum: { fileSizeBytes: 0 } });
   });
 
   afterEach(() => {
@@ -160,6 +162,20 @@ describe('Disk High-Watermark: delete oldest recordings when critical (policy 20
     expect(result.status).toBe('emergency_eviction_ineffective');
     expect(result.evictedCount).toBe(10);
     expect(createAlert).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining('Did Not Free Space') }));
+  });
+
+  it('alerts with the space evidence clips take when nothing it may delete brings the disk down (clips are never deleted for space)', async () => {
+    candidates([], []);
+    mockPrisma.recordingClip.aggregate.mockResolvedValue({ _sum: { fileSizeBytes: BigInt(120 * GB) } });
+
+    const result = await checkDiskHighWatermarkAndEvict({ directoryPath: recordingsDir, quarantineDir, statfsProvider: fixedStatfs(95), enabled: true });
+
+    expect(result.status).toBe('emergency_eviction_ineffective');
+    expect(result.evictedCount).toBe(0);
+    expect(createAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: expect.stringContaining('Did Not Free Space'),
+      message: expect.stringContaining('Evidence clips hold 120.0 GB'),
+    }));
   });
 
   it('refuses to delete files outside the recordings directory', async () => {

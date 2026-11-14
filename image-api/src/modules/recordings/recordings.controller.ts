@@ -7,7 +7,7 @@ import { MediaMtxService } from '../media/mediamtx.service.js';
 import { getPrisma } from '../../lib/prisma.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import { config } from '../../config/index.js';
-import { ClipCancelError, cancelClip } from './clip-cancel.js';
+import { ClipCancelError, deleteClip } from './clip-cancel.js';
 import { clipDownloadName } from './clip-download-name.js';
 import { createAuditLog } from '../audit/audit.service.js';
 
@@ -102,19 +102,24 @@ export async function downloadClipByLinkHandler(request: FastifyRequest, reply: 
   return downloadClipHandler(request, reply);
 }
 
-/** The person changed their mind about a clip still being made. Finished clips are evidence and stay. */
+/**
+ * Removes a clip: one still being made is cancelled, a finished one is deleted with its file.
+ * Never a clip on Legal Hold; only the person who asked for it or an administrator.
+ */
 export async function cancelClipHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const user = (request as any).user;
   try {
-    const clip = await cancelClip(id, { username: user?.username, role: user?.role });
+    const { clip, cancelled } = await deleteClip(id, { username: user?.username, role: user?.role });
     await createAuditLog({
       userId: user?.id,
-      action: 'clip_export_cancelled',
+      action: cancelled ? 'clip_export_cancelled' : 'clip_deleted',
       entity: 'recording_clip',
       entityId: id,
-      description: `Clip export "${clip.title}" cancelled by ${user?.username ?? 'unknown'}`,
-      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, wasStatus: clip.status },
+      description: cancelled
+        ? `Clip export "${clip.title}" cancelled by ${user?.username ?? 'unknown'}`
+        : `Evidence clip "${clip.title}" deleted by ${user?.username ?? 'unknown'}`,
+      metadata: { cameraId: clip.cameraId, startTime: clip.startTime, endTime: clip.endTime, exportedBy: clip.exportedBy, wasStatus: clip.status, sha256: clip.sha256Hash, fileSizeBytes: clip.fileSizeBytes?.toString() ?? null },
       ipAddress: request.ip,
     });
     return reply.status(204).send();

@@ -178,13 +178,13 @@ export const HOWTO: HowTo[] = [
     th: { title: 'ดิสก์ Server ใกล้เต็ม', steps: [
       'ภาพหลักเก็บใน HDD ของ DVR/NVR เอง ดิสก์ Server เก็บฐานข้อมูล คลิปหลักฐาน และไฟล์ที่ Server บันทึกเอง',
       'ถ้ากล้องตั้ง "บันทึกลง Server" ไฟล์เก่าเกินนโยบายจะถูกย้ายไปที่พักแล้วลบ ดิสก์เกิน 92% ลบเก่าสุดจนต่ำกว่า 85%',
-      'ลบคลิปหลักฐานที่ไม่ต้องการในหน้าย้อนหลัง (คลิปไม่มีวันหมดอายุเอง)',
+      'คลิปหลักฐานที่เสร็จแล้วถูกลบเองเมื่อเก่าเกิน "จำนวนวันเก็บคลิปหลักฐาน" (ค่าเริ่มต้น 90 วัน, ตั้งค่าระบบ → การเก็บรักษา) ยกเว้นคลิปที่ Legal Hold; ลบเองได้ที่ปุ่มลบในรายการคลิปหน้าย้อนหลัง (ผู้สั่งตัดหรือผู้ดูแลระบบ) ตอนดิสก์เต็มระบบไม่ลบคลิปให้',
       'เกณฑ์เตือนตั้งได้ที่ ตั้งค่าระบบ → เกณฑ์แจ้งเตือนวิกฤต/ระดับเตือน',
     ] },
     en: { title: 'Server disk nearly full', steps: [
       'Footage stays on the recorders\' HDDs; the server disk holds the database, evidence clips and what the server records itself.',
       'For cameras the server records, old files go to quarantine then are deleted; past 92% the oldest go until under 85%.',
-      'Delete evidence clips you no longer need on the Playback page (clips never expire by themselves).',
+      'Finished evidence clips are deleted once older than "Evidence clip retention" (90 days by default, System config → Retention), except clips on Legal Hold; delete one yourself with the Delete button in the Playback clip list (whoever asked for it, or an administrator). A full disk never deletes clips.',
       'Thresholds are in System config.',
     ] },
   },
