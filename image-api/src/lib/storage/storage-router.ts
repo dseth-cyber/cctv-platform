@@ -16,6 +16,8 @@ interface ProviderRecord {
 class StorageRouter {
   private providers: Map<string, StorageProvider> = new Map();
   private defaultProviderId: string | null = null;
+  // Inactive providers stay registered so files already on them can still be found, but nothing measures them.
+  private activeIds: Set<string> = new Set();
 
   private buildProvider(record: ProviderRecord): StorageProvider {
     switch (record.type) {
@@ -34,6 +36,8 @@ class StorageRouter {
   register(record: ProviderRecord): void {
     const provider = this.buildProvider(record);
     this.providers.set(record.id, provider);
+    if (record.isActive) this.activeIds.add(record.id);
+    else this.activeIds.delete(record.id);
     if (record.isDefault) {
       this.defaultProviderId = record.id;
     }
@@ -41,6 +45,7 @@ class StorageRouter {
 
   unregister(id: string): void {
     this.providers.delete(id);
+    this.activeIds.delete(id);
     if (this.defaultProviderId === id) {
       this.defaultProviderId = this.providers.size > 0 ? this.providers.keys().next().value ?? null : null;
     }
@@ -67,6 +72,11 @@ class StorageRouter {
     return Array.from(this.providers.values());
   }
 
+  /** The providers that are turned on: the only ones worth health checks and capacity metrics. */
+  getActive(): StorageProvider[] {
+    return this.getAll().filter((p) => this.activeIds.has(p.id));
+  }
+
   getDefaultId(): string | null {
     return this.defaultProviderId;
   }
@@ -79,6 +89,7 @@ class StorageRouter {
   async refresh(loadFn: () => Promise<ProviderRecord[]>): Promise<void> {
     const records = await loadFn();
     this.providers.clear();
+    this.activeIds.clear();
     this.defaultProviderId = null;
     for (const record of records) {
       if (record.isActive) {

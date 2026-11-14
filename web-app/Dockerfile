@@ -14,6 +14,8 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Empty unless the production override mounts http-redirect.conf into it (see nginx.conf).
+RUN mkdir -p /etc/nginx/http-redirect.d
 
 EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]

@@ -91,7 +91,8 @@ export async function refreshProviderMetric(providerId: string): Promise<OneProv
 }
 
 export async function collectMetrics(): Promise<{ provider: string; ok: boolean; latencyMs: number }[]> {
-  const providers = storageRouter.getAll();
+  // Turned-off providers (e.g. the old bundled MinIO, SeaweedFS without its profile) would only time out.
+  const providers = storageRouter.getActive();
   const results: { provider: string; ok: boolean; latencyMs: number }[] = [];
 
   for (const p of providers) {

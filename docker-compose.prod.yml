@@ -11,6 +11,7 @@
 #  - SeaweedFS and the Prometheus/Grafana/Loki stack are not started (Dev does not run them either);
 #    start them only on purpose: --profile seaweedfs / --profile observability;
 #  - Postgres and Redis publish no port on the host;
+#  - plain HTTP redirects to HTTPS (web-app/http-redirect.conf);
 #  - recordings go to RECORDINGS_HOST_DIR (the big recording disk), not the repo folder.
 
 x-logging: &logging
@@ -56,6 +57,10 @@ services:
 
   web-app:
     image: cctv-web-app:${CCTV_VERSION:?set CCTV_VERSION to the release being deployed}
+    volumes:
+      # http:// answers 301 to https:// (nginx.conf includes this directory in the port-80 server).
+      # The cloudflared tunnel profile, if ever used, must then point at https://web-app:443.
+      - ./web-app/http-redirect.conf:/etc/nginx/http-redirect.d/redirect.conf:ro
     logging: *logging
 
   seaweedfs-master:

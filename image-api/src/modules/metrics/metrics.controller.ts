@@ -25,7 +25,7 @@ async function getMetrics(_request: FastifyRequest, reply: FastifyReply) {
     prisma.$queryRawUnsafe<any[]>('SELECT numbackends FROM pg_stat_database WHERE datname = current_database()').catch(() => []),
   ]);
 
-  const providers = storageRouter.getAll();
+  const providers = storageRouter.getActive();
   const storageStats = await Promise.all(
     providers.map(async (p) => {
       try {

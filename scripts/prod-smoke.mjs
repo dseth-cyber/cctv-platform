@@ -32,6 +32,18 @@ try {
   const web = await get(BASE + '/');
   check('web app serves the page', web.status === 200 && /<title>/i.test(web.text), `HTTP ${web.status}`);
 
+  // Production answers plain HTTP with a redirect to HTTPS (web-app/http-redirect.conf). Dev serves HTTP as is.
+  if (EXPECT_ENV === 'production') {
+    const httpUrl = process.env.SMOKE_HTTP_URL ?? BASE.replace(/^https:/, 'http:').replace(/:8443$/, ':8080');
+    try {
+      const r = await fetch(httpUrl + '/', { redirect: 'manual' });
+      const to = r.headers.get('location') ?? '';
+      check('plain HTTP redirects to HTTPS', r.status === 301 && to.startsWith('https://'), `${httpUrl} -> HTTP ${r.status}${to ? ` ${to}` : ''}`);
+    } catch (e) {
+      warn('could not reach the plain-HTTP port to check the redirect (set SMOKE_HTTP_URL)', `${httpUrl}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
   const ready = await get('/health/ready');
   const checks = ready.json?.checks ?? {};
   check('API ready: database, redis, storage', ready.status === 200 && Object.values(checks).every((v) => v === 'ok'), JSON.stringify(checks));
