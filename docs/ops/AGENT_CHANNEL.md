@@ -144,3 +144,45 @@ status: done
 ยังค้าง (ผู้ใช้เลื่อนไว้): สำเนา backup นอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
 
 status: done
+
+## #005 · 2026-11-16 21:20 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: v1.0.0-rc8 (รวม rc5–rc7) ติดตั้งบน Production 192.168.30.244 แล้ว — preflight 0 FAIL, smoke all passed, restore + verify-secrets ผ่าน
+อ้างถึง: #004, tag `v1.0.0-rc8` (5e0d653); ข้าม rc5–rc7 ไปลง rc8 ตรง (rc8 รวมทั้งหมด)
+
+ผู้ใช้สั่ง deploy rc8 กับเครื่อง Production โดยตรงเมื่อ 2026-11-16 และรันคำสั่ง sudo เอง
+
+สิ่งที่ทำ (ขั้น 9)
+- pg_dump → checkout `v1.0.0-rc8` (clean) → `.env.production`: `CCTV_VERSION=1.0.0-rc8`, `BACKUP_HOST_DIR=/srv/cctv-data/backup`, `APP_TIME_ZONE=Asia/Bangkok` → preflight → build → migrate **ไม่มี RUN_SEED** (เพิ่ม 4 คอลัมน์: `custom_roles.max_sessions`, `user_sessions.revoked_at`, `user_sessions.revoked_reason`, `refresh_tokens.session_id`) → `up -d`; cctv-api healthy
+- โฟลเดอร์ backup: ใช้ `chown 1001:administrator` + `chmod 2770` (setgid) **แทน** `chown 1001:1001` ที่ runbook บอก เพราะ 1001:1001 (700) ทำให้ cron 02:30 และการ pg_dump ด้วยมือก่อน deploy (รันเป็น administrator) เขียนไม่ได้; preflight ผ่าน (ตรวจแค่ uid 1001) และแอปเขียนได้ — เสนอให้ runbook ระบุแบบนี้
+- `./host-storage` (ว่าง, root) ผู้ใช้ `sudo rmdir` แล้ว; rc8 ไม่ mount แล้ว
+
+ผลตรวจ
+- preflight: **0 FAIL, 1 WARN** (recording disk free 452 GB; ผู้ใช้ยอมรับ); `BACKUP_HOST_DIR` owner 1001 ok, อยู่คนละดิสก์กับระบบ (/dev/sdb1) ok
+- `curl -sI http://192.168.30.244/` → 301 `Location: https://192.168.30.244/`
+- smoke (ผู้ใช้รันเอง ด้วยบัญชี role admin ที่ไม่ใช่ `admin`): **all passed, 0 WARN** รวม plain HTTP redirect, recorders 1/1, cameras 16/16, ภาพสดจริง playlist ok, รหัสเริ่มต้น admin/operator/viewer ใช้ไม่ได้
+
+ทดสอบ restore (runbook ขั้น 8)
+- network `--internal --subnet 10.250.99.0/24` + container postgres:15 (digest เดียวกับ production) กู้ `cctv-2026-11-16-1951-before-rc8.dump`: pg_restore `--exit-on-error` exit 0
+- นับแถว 35 ตาราง: ตารางหลักตรงกัน; ต่างกัน 5 ตาราง (alerts +1, camera_events +5, camera_incidents +1, storage_provider_metrics +2, document_counters +1) = แถวที่เกิดหลังเวลาสำรอง 19:51 พอดี
+- `verify-secrets` (cctv-api:1.0.0-rc8, `--env-file .env.production`): **exit 0** — รหัสเครื่องบันทึก 1/1, RTSP URL ที่มีรหัส 32/32, ค่าลับระบบ 0/0
+- ลบ container + network ทดสอบแล้ว
+
+หน้า สำรองข้อมูล (ผู้ใช้กดเอง, agent ตรวจฝั่ง server)
+- ตั้งค่า: อัตโนมัติเปิด, 03:00 Asia/Bangkok, เก็บ 14 วัน, ที่เก็บ = ดิสก์ backup แยก `/srv/cctv-data/backup`
+- "สำรองทันที" (ฐานข้อมูล): `pg_dump_2026-11-16T13-58-47-150Z.sql.gz` 52,359 byte บน HDD, record `completed`, `destination: external`; sha256 ที่คำนวณเองตรงกับ checksum ที่บันทึก; gzip -t ผ่าน; CREATE TABLE 35 / COPY 35
+- ปุ่มทดสอบ: `Backup file check passed` tables 35, dataSections 35
+- การ์ดดิสก์: backup ดิสก์แยก (/srv/cctv-data/backup, ว่าง 452.7 GB) แยกจาก backup ดิสก์ระบบ (volume backup-data, ว่าง 197.9 GB); แสดงว่าดิสก์แยกใช้ร่วมกับไฟล์บันทึก/คลิป
+- cron 02:30 ยังเปิด (ผู้ใช้ให้รอ backup จากหน้าเว็บได้ผล 2 วัน); ได้ผลทุกคืน 15–16 พ.ย.
+
+ไฟล์สำรอง DB: `cctv-2026-11-16-1951-before-rc8.dump` (ก่อน deploy), `pg_dump_2026-11-16T13-58-47-150Z.sql.gz` (หน้าเว็บ)
+
+BUG / ข้อเสนอ (ไม่ขวางการใช้งาน)
+1. BUG "สำรองพื้นที่จัดเก็บ" สร้าง `.tar.gz` **0 byte** (sha256 = ไฟล์เปล่า e3b0c442…) แต่ record `completed` และหน้าเว็บขึ้น "สำเร็จ" (กด 3 ครั้ง 20:09, 20:44 ×2; log `objects: 0`) — ขัดกฎห้ามรายงานสำเร็จปลอม; ถ้าไม่มีอะไรให้สำรองควรบอกตามจริง ไม่ใช่ไฟล์ว่างที่สำเร็จ; และไฟล์ไปลง volume ระบบ ไม่ใช่ที่เก็บที่เลือก
+2. smoke ตรวจ "รหัสเริ่มต้นใช้ไม่ได้" ด้วยการ login ผิดจริง จึงเพิ่มตัวนับ lockout ของ `admin` ทุกรอบ (5 ครั้ง/10 นาที = ล็อก 15 นาที) วันนี้รันซ้ำหลายรอบจนถึง 4/5; และ smoke login นับเป็น 1 เครื่องตามขีดจำกัด rc7 (อาจเตะ session เก่าของผู้ใช้) — เสนอ: logout ท้าย smoke และ/หรือ endpoint ตรวจรหัสเริ่มต้นที่ไม่นับ lockout
+3. runbook ขั้น 8/9: สิทธิ์โฟลเดอร์ backup ตามข้อบนสุด
+
+ย้อนกลับ: image `cctv-api:1.0.0-rc4` / `cctv-web-app:1.0.0-rc4` ยังอยู่ แต่ rc8 เพิ่มคอลัมน์ (เพิ่มอย่างเดียว) — rc4 ควรยังทำงานกับ schema ใหม่ได้ ยังไม่ได้ทดสอบ
+
+ยังค้าง (ผู้ใช้เลื่อนไว้): สำเนา backup นอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw, ปิด cron หลังครบ 2 วัน
+
+status: done
