@@ -140,7 +140,9 @@ SMOKE_USER=<admin> SMOKE_PASSWORD='<รหัส>' node scripts/prod-smoke.mjs h
   ```sh
   docker exec cctv-postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/cctv-data/backup/cctv-$(date +%F-%H%M)-before-<เวอร์ชัน>.dump
   ```
-- **ยังไม่มีสำเนานอกเครื่อง** (รอผู้ใช้เลือกปลายทาง) ถ้าเครื่องเสียทั้งเครื่อง backup บน HDD เดียวกันหายด้วย
+- ฐานข้อมูลอยู่บน SSD ระบบ ส่วน backup อยู่บน HDD แยกลูก: ดิสก์ลูกใดลูกหนึ่งเสีย ยังกู้ได้
+  (SSD เสีย → ลงระบบใหม่ + restore จาก HDD; HDD เสีย → DB ยังทำงาน หายแค่ไฟล์บันทึก/คลิป/backup เก่า แล้ว backup ใหม่ลงดิสก์ที่เปลี่ยน)
+- **ยังไม่มีสำเนานอกเครื่อง** (รอผู้ใช้ตัดสินใจ) ไม่รอดกรณีเสียทั้งเครื่องพร้อมกัน เช่น ไฟกระชาก ไฟไหม้ ถูกขโมย หรือ ransomware
 - เก็บ `.env.production` ไว้ในตู้รหัสผ่าน: backup ถอดรหัสผ่านเครื่องบันทึกไม่ได้ถ้าไม่มี `ENCRYPTION_KEY` ตัวเดิม
 
 ### ทดสอบ restore (อย่างน้อยหลังติดตั้ง และทุกครั้งที่เปลี่ยน ENCRYPTION_KEY)
