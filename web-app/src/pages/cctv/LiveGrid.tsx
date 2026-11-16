@@ -48,6 +48,7 @@ import {
 
 import { useTranslation } from 'react-i18next';
 import { useCctvCameras } from '@/hooks/useCctvCameras';
+import { useTouchAutoHide } from '@/hooks/useTouchAutoHide';
 type GridLayout = '1x1' | '2x2' | '3x3' | '4x4';
 
 interface GridCell {
@@ -272,6 +273,8 @@ export default function LiveGrid() {
 
   // Double click: one camera at full size in its best quality. The tiles behind it stop streaming meanwhile.
   const [focus, setFocus] = useState<{ cameraId: string; name: string; streamUrl: string; profile: 'main' | 'sub'; hasSub: boolean; fellBack: boolean } | null>(null);
+  // One camera on a phone: its buttons hide after a moment and come back on a tap, like the fullscreen dock.
+  const focusChrome = useTouchAutoHide(!!focus);
   const openFocus = async (cam: any, preferred: 'main' | 'sub' = 'main', fellBack = false) => {
     try {
       const stream = await imageServiceApi.getCameraStream(cam.id, { profile: preferred });
@@ -699,8 +702,8 @@ export default function LiveGrid() {
       className="h-[calc(100vh-60px)] flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none"
     >
       {/* Top Toolbar */}
-      <div className="h-14 px-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="min-h-14 px-4 py-2 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <Radio className="w-5 h-5 text-emerald-400 animate-pulse" />
             <h1 className="text-base font-bold tracking-tight text-slate-100">{t('ui.liveGrid.cctvLiveWall')}</h1>
@@ -819,7 +822,7 @@ export default function LiveGrid() {
         )}
 
         {/* Right Toolbar: Layout Selectors & Action Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Grid Selectors */}
           <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
             <button
@@ -923,6 +926,7 @@ export default function LiveGrid() {
         {focus && (
           <div
             className="flex-1 min-h-0 relative bg-black"
+            onPointerDown={focusChrome.reveal}
             onDoubleClick={(e) => {
               if (!(e.target as HTMLElement).closest('button, a')) setFocus(null);
             }}
@@ -945,8 +949,10 @@ export default function LiveGrid() {
               }}
               className="w-full h-full"
             />}
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300">
-              <span className="pointer-events-none">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
+            <div className={`absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300 max-w-[calc(100%-1rem)] transition-opacity duration-200 ${focusChrome.visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              {(focus.fellBack || !focusChrome.touch) && (
+                <span className="pointer-events-none whitespace-nowrap truncate">{focus.fellBack ? t('ui.liveGrid.mainStreamFellBack') : t('ui.liveGrid.focusHint')}</span>
+              )}
               <CameraQuickActions cameraId={focus.cameraId} deviceId={cameras.find((c: any) => c.id === focus.cameraId)?.deviceId} isFavorite={favorites.has(focus.cameraId)} onToggleFavorite={toggleFavorite} />
               <button type="button" onClick={() => setFocus(null)} title={t('ui.liveGrid.focusClose')} aria-label={t('ui.liveGrid.focusClose')} className="p-0.5 rounded hover:bg-slate-800 text-slate-200">
                 <X className="w-3.5 h-3.5" />

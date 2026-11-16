@@ -1,4 +1,5 @@
 import { Modal, PasswordInput, SearchableSelect } from '@/components/ui';
+import { useTouchAutoHide } from '@/hooks/useTouchAutoHide';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -247,6 +248,8 @@ export const CctvPlayback: React.FC = () => {
   const dockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dockVisible, setDockVisible] = useState(true);
+  // On a phone the name/time cards on the picture hide after a moment and come back on a tap (fullscreen has its dock).
+  const pictureChrome = useTouchAutoHide();
   const { user } = useAuth();
   const canExportClips = hasPermission(user, 'clips:export');
   const queryClient = useQueryClient();
@@ -1117,6 +1120,7 @@ export const CctvPlayback: React.FC = () => {
         {/* Video Player Box & Status Viewport */}
         <div
           data-playback-picture
+          onPointerDown={pictureChrome.reveal}
           onDoubleClick={(e) => {
             if (!(e.target as HTMLElement).closest('button, select, input, a')) toggleFullscreen();
           }}
@@ -1262,18 +1266,18 @@ export const CctvPlayback: React.FC = () => {
           )}
 
           {/* Top Video HUD Info */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-            <div className="flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-xs font-mono">
-              <span className="font-bold text-cyan-400">{selectedCamera?.name || '—'}</span>
+          <div className={`absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 flex items-start justify-between gap-2 pointer-events-none transition-opacity duration-200 ${(isFullscreen ? dockVisible : pictureChrome.visible) ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-center gap-2 min-w-0 bg-slate-950/80 backdrop-blur-md px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl border border-white/10 text-[11px] sm:text-xs font-mono">
+              <span className="font-bold text-cyan-400 truncate">{selectedCamera?.name || '—'}</span>
               <span className="text-slate-500">|</span>
-              <span className="text-white font-semibold">
+              <span className="text-white font-semibold whitespace-nowrap">
                 {liveView ? t('ui.cctvPlayback.liveNow') : `${selectedDate} ${formatSeconds(currentTimeSec)}`}
               </span>
-              <span className="text-slate-500">|</span>
-              <span className="text-slate-300">{isDeviceMode ? t('ui.cctvPlayback.deviceClock') : t('ui.cctvPlayback.asiaBangkokUtc')}</span>
+              <span className="hidden sm:inline text-slate-500">|</span>
+              <span className="hidden sm:inline text-slate-300 whitespace-nowrap">{isDeviceMode ? t('ui.cctvPlayback.deviceClock') : t('ui.cctvPlayback.asiaBangkokUtc')}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {currentStatus.incident && (
                 <div className="flex items-center gap-2 bg-rose-950/90 border border-rose-500/50 text-rose-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold animate-pulse">
                   <AlertTriangle size={15} />
@@ -1281,7 +1285,7 @@ export const CctvPlayback: React.FC = () => {
                 </div>
               )}
 
-              <div className="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-slate-300 flex items-center gap-2">
+              <div className="bg-slate-950/80 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-white/10 text-[11px] sm:text-xs text-slate-300 flex items-center gap-2 whitespace-nowrap">
                 <span className={`w-2 h-2 rounded-full ${isPlaying || liveView ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                 <span className="font-mono uppercase">{liveView ? 'LIVE' : isPlaying ? t('ui.cctvPlayback.playingX', { playbackSpeed: isDeviceMode ? deviceSpeed : playbackSpeed }) : 'PAUSED'}</span>
               </div>
