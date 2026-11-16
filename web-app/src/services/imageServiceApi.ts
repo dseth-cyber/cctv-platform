@@ -438,6 +438,15 @@ export function createImageServiceApi(api: any) {
     runRestoreTest: (id: string) =>
       api.post(`${BASE}/backup/${id}/restore-test`).then((r: any) => r.data),
 
+    getBackupSettings: () =>
+      api.get(`${BASE}/backup/settings`).then((r: any) => r.data),
+
+    saveBackupSettings: (settings: { enabled: boolean; time: string; keepDays: number; destination: string }) =>
+      api.put(`${BASE}/backup/settings`, settings).then((r: any) => r.data),
+
+    getBackupDisks: () =>
+      api.get(`${BASE}/backup/disks`).then((r: any) => r.data),
+
     // Storage Providers
     getStorageProviders: (params?: {}, options?: { silent403?: boolean }) =>
       api.get(`${BASE}/storage-providers`, { params, ...options }).then((r: any) => r.data),

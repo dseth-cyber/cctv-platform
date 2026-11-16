@@ -495,7 +495,43 @@
       "storageBackupFailed": "สำรองพื้นที่จัดเก็บล้มเหลว",
       "restoreTestSuccess": "ทดสอบกู้คืน: {{message}}",
       "restoreTestFailed": "ทดสอบกู้คืนล้มเหลว: {{message}}",
-      "restoreTestError": "ข้อผิดพลาดการทดสอบกู้คืน"
+      "restoreTestError": "ข้อผิดพลาดการทดสอบกู้คืน",
+      "statusExpired": "หมดอายุ (ลบไฟล์แล้ว)",
+      "scheduleTitle": "สำรองฐานข้อมูลอัตโนมัติ",
+      "scheduleEnabled": "สำรองทุกวันอัตโนมัติ",
+      "scheduleTime": "เวลา ({{tz}})",
+      "scheduleKeepDays": "เก็บย้อนหลัง (วัน)",
+      "scheduleDestination": "ที่เก็บ",
+      "scheduleNote": "ไฟล์ที่เก่ากว่าจำนวนวันที่ตั้งจะถูกลบหลังสำรองสำเร็จ แต่จะเหลือไฟล์ล่าสุด 3 ไฟล์ไว้เสมอ ไฟล์ที่ระบบไม่ได้สร้าง เช่นไฟล์จาก cron ของเครื่อง จะไม่ถูกแตะ",
+      "scheduleNoExternal": "เครื่องนี้ยังไม่ได้ mount ดิสก์ backup แยก (BACKUP_HOST_DIR) จึงเลือกได้แค่ดิสก์ระบบ",
+      "scheduleSave": "บันทึก",
+      "scheduleSaved": "บันทึกการตั้งค่าสำรองข้อมูลแล้ว",
+      "scheduleSaveFailed": "บันทึกการตั้งค่าไม่สำเร็จ",
+      "destinationNotWritable": "ระบบเขียนไม่ได้",
+      "destination": {
+        "internal": "ดิสก์ระบบ (SSD)",
+        "external": "ดิสก์ backup แยก"
+      },
+      "scheduleError": {
+        "DESTINATION_NOT_MOUNTED": "ที่เก็บนี้ไม่ได้ mount ไว้บนเครื่องนี้",
+        "DESTINATION_NOT_WRITABLE": "ระบบเขียนไฟล์ลงที่เก็บนี้ไม่ได้ (ตรวจสิทธิ์ของโฟลเดอร์)",
+        "INVALID": "ค่าที่ใส่ไม่ถูกต้อง"
+      },
+      "disksTitle": "ดิสก์ที่ใช้เก็บข้อมูล",
+      "disk": {
+        "recordings": "ไฟล์บันทึกและคลิปหลักฐาน",
+        "backup_internal": "backup บนดิสก์ระบบ",
+        "backup_external": "backup บนดิสก์แยก"
+      },
+      "diskColWhat": "เก็บอะไร",
+      "diskColPath": "ที่อยู่บนเครื่อง",
+      "diskColUse": "ใช้ไป",
+      "diskColFree": "ว่าง",
+      "diskColHolds": "ข้อมูลของระบบนี้",
+      "diskHoldsRecordings": "ไฟล์บันทึก {{recordings}} · คลิป {{clips}}",
+      "diskHoldsBackups": "backup {{count}} ไฟล์ · {{size}}",
+      "diskSameAs": "อยู่ดิสก์เดียวกับ: {{names}}",
+      "diskUnavailable": "ไม่พบ / ไม่ได้ mount"
     },
     "settings": {
       "title": "ตั้งค่า",
@@ -1106,7 +1142,8 @@
         "authFailed": "ชื่อผู้ใช้หรือรหัสผ่านของกล้องไม่ถูกต้อง",
         "diskFull": "ดิสก์เต็ม"
       },
-      "messageCameraStreamDropped": "กล้อง \"{{name}}\" สตรีมขาดทันที (ตรวจพบภายใน 3 วินาที) สตรีม: {{path}}"
+      "messageCameraStreamDropped": "กล้อง \"{{name}}\" สตรีมขาดทันที (ตรวจพบภายใน 3 วินาที) สตรีม: {{path}}",
+      "titleBackupFailed": "สำรองฐานข้อมูลไม่สำเร็จ"
     },
     "users": {
       "title": "จัดการผู้ใช้",

@@ -396,7 +396,43 @@
       "storageBackupFailed": "သိုလှောင်မှု မိတ္တူကူးခြင်းမအောင်မြင်",
       "restoreTestSuccess": "ပြန်လည်ရယူခြင်းစမ်းသပ်မှု: {{message}}",
       "restoreTestFailed": "ပြန်လည်ရယူခြင်းစမ်းသပ်မှုမအောင်မြင်: {{message}}",
-      "restoreTestError": "ပြန်လည်ရယူခြင်းစမ်းသပ်မှုအမှား"
+      "restoreTestError": "ပြန်လည်ရယူခြင်းစမ်းသပ်မှုအမှား",
+      "statusExpired": "သက်တမ်းကုန် (ဖိုင်ဖျက်ပြီး)",
+      "scheduleTitle": "ဒေတာဘေ့စ် အလိုအလျောက် backup",
+      "scheduleEnabled": "နေ့စဉ် အလိုအလျောက် backup လုပ်ရန်",
+      "scheduleTime": "အချိန် ({{tz}})",
+      "scheduleKeepDays": "သိမ်းထားမည့်ရက်",
+      "scheduleDestination": "သိမ်းမည့်နေရာ",
+      "scheduleNote": "backup အောင်မြင်ပြီးနောက် သတ်မှတ်ရက်ထက်ဟောင်းသော ဖိုင်များကို ဖျက်ပါမည်၊ နောက်ဆုံး ၃ ဖိုင်ကို အမြဲထားပါမည်။ စနစ်မဖန်တီးသော ဖိုင်များ (ဥပမာ host cron ၏ dump) ကို မထိပါ။",
+      "scheduleNoExternal": "ဤ server တွင် သီးခြား backup disk (BACKUP_HOST_DIR) mount မထားသဖြင့် system disk ကိုသာ ရွေးနိုင်သည်။",
+      "scheduleSave": "သိမ်းရန်",
+      "scheduleSaved": "backup ဆက်တင်ကို သိမ်းပြီးပါပြီ",
+      "scheduleSaveFailed": "backup ဆက်တင်ကို သိမ်း၍မရပါ",
+      "destinationNotWritable": "ရေး၍မရ",
+      "destination": {
+        "internal": "System disk (SSD)",
+        "external": "သီးခြား backup disk"
+      },
+      "scheduleError": {
+        "DESTINATION_NOT_MOUNTED": "ဤနေရာကို ဤ server တွင် mount မထားပါ",
+        "DESTINATION_NOT_WRITABLE": "စနစ်က ဤနေရာသို့ ရေး၍မရပါ (folder ပိုင်ရှင်ကို စစ်ပါ)",
+        "INVALID": "ထည့်သောတန်ဖိုး မမှန်ပါ"
+      },
+      "disksTitle": "အသုံးပြုနေသော disk များ",
+      "disk": {
+        "recordings": "မှတ်တမ်းဖိုင်နှင့် အထောက်အထား ကလစ်",
+        "backup_internal": "System disk ပေါ်ရှိ backup",
+        "backup_external": "သီးခြား disk ပေါ်ရှိ backup"
+      },
+      "diskColWhat": "သိမ်းထားသည်",
+      "diskColPath": "server ပေါ်ရှိ path",
+      "diskColUse": "သုံးပြီး",
+      "diskColFree": "လွတ်",
+      "diskColHolds": "ဤစနစ်၏ ဒေတာ",
+      "diskHoldsRecordings": "မှတ်တမ်း {{recordings}} · ကလစ် {{clips}}",
+      "diskHoldsBackups": "backup {{count}} ဖိုင် · {{size}}",
+      "diskSameAs": "disk တူသည်: {{names}}",
+      "diskUnavailable": "မတွေ့ / mount မထား"
     },
     "settings": {
       "title": "ဆက်တင်များ",
@@ -851,7 +887,8 @@
         "authFailed": "ကင်မရာ အသုံးပြုသူအမည် သို့မဟုတ် စကားဝှက် မှားနေသည်",
         "diskFull": "ဒစ်ခ် ပြည့်နေသည်"
       },
-      "messageCameraStreamDropped": "ကင်မရာ \"{{name}}\" stream ပြတ်သွားသည် (၃ စက္ကန့်အတွင်း တွေ့ရှိ)။ Stream: {{path}}"
+      "messageCameraStreamDropped": "ကင်မရာ \"{{name}}\" stream ပြတ်သွားသည် (၃ စက္ကန့်အတွင်း တွေ့ရှိ)။ Stream: {{path}}",
+      "titleBackupFailed": "ဒေတာဘေ့စ် backup မအောင်မြင်ပါ"
     },
     "users": {
       "title": "အသုံးပြုသူစီမံခန့်ခွဲမှု",

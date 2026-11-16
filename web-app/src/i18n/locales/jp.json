@@ -396,7 +396,43 @@
       "storageBackupFailed": "ストレージバックアップに失敗しました",
       "restoreTestSuccess": "復元テスト: {{message}}",
       "restoreTestFailed": "復元テスト失敗: {{message}}",
-      "restoreTestError": "復元テストエラー"
+      "restoreTestError": "復元テストエラー",
+      "statusExpired": "期限切れ（ファイル削除済み）",
+      "scheduleTitle": "データベースの自動バックアップ",
+      "scheduleEnabled": "毎日自動でバックアップ",
+      "scheduleTime": "時刻（{{tz}}）",
+      "scheduleKeepDays": "保存期間（日）",
+      "scheduleDestination": "保存先",
+      "scheduleNote": "バックアップ成功後、設定日数より古いファイルは削除されますが、最新の 3 件は常に残ります。システムが作成していないファイル（ホストの cron によるダンプなど）は対象外です。",
+      "scheduleNoExternal": "このサーバーには独立したバックアップ用ディスク（BACKUP_HOST_DIR）がマウントされていないため、システムディスクのみ選択できます。",
+      "scheduleSave": "保存",
+      "scheduleSaved": "バックアップ設定を保存しました",
+      "scheduleSaveFailed": "バックアップ設定を保存できませんでした",
+      "destinationNotWritable": "書き込み不可",
+      "destination": {
+        "internal": "システムディスク（SSD）",
+        "external": "バックアップ用ディスク"
+      },
+      "scheduleError": {
+        "DESTINATION_NOT_MOUNTED": "この保存先はこのサーバーにマウントされていません",
+        "DESTINATION_NOT_WRITABLE": "この保存先に書き込めません（フォルダーの所有者を確認してください）",
+        "INVALID": "入力値が正しくありません"
+      },
+      "disksTitle": "使用中のディスク",
+      "disk": {
+        "recordings": "録画と証拠クリップ",
+        "backup_internal": "システムディスク上のバックアップ",
+        "backup_external": "独立ディスク上のバックアップ"
+      },
+      "diskColWhat": "保存内容",
+      "diskColPath": "サーバー上のパス",
+      "diskColUse": "使用量",
+      "diskColFree": "空き",
+      "diskColHolds": "このシステムのデータ",
+      "diskHoldsRecordings": "録画 {{recordings}} · クリップ {{clips}}",
+      "diskHoldsBackups": "バックアップ {{count}} ファイル · {{size}}",
+      "diskSameAs": "同じディスク: {{names}}",
+      "diskUnavailable": "見つかりません / 未マウント"
     },
     "settings": {
       "title": "設定",
@@ -851,7 +887,8 @@
         "authFailed": "カメラのユーザー名またはパスワードが正しくありません",
         "diskFull": "ディスクがいっぱいです"
       },
-      "messageCameraStreamDropped": "カメラ「{{name}}」のストリームが切断されました（3 秒以内に検知）。ストリーム: {{path}}"
+      "messageCameraStreamDropped": "カメラ「{{name}}」のストリームが切断されました（3 秒以内に検知）。ストリーム: {{path}}",
+      "titleBackupFailed": "データベースのバックアップに失敗しました"
     },
     "users": {
       "title": "ユーザー管理",

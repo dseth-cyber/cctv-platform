@@ -25,7 +25,7 @@ case "$PERM" in 600|400) ok "$ENV_FILE readable by its owner only ($PERM)";; "")
 if git ls-files --error-unmatch "$ENV_FILE" >/dev/null 2>&1; then fail "$ENV_FILE is tracked by git; remove it from git"; else ok "$ENV_FILE is not in git"; fi
 
 echo "[2] required values"
-for k in CCTV_VERSION WEB_LAN_ADDRESS PUBLIC_BASE_URL MEDIA_UDP_BIND MEDIA_WEBRTC_HOST NTP_BIND NTP_ALLOW RECORDINGS_HOST_DIR POSTGRES_USER POSTGRES_DB; do
+for k in CCTV_VERSION WEB_LAN_ADDRESS PUBLIC_BASE_URL MEDIA_UDP_BIND MEDIA_WEBRTC_HOST NTP_BIND NTP_ALLOW RECORDINGS_HOST_DIR BACKUP_HOST_DIR POSTGRES_USER POSTGRES_DB; do
   [ -n "$(val "$k")" ] && ok "$k set" || fail "$k is empty"
 done
 
@@ -76,6 +76,15 @@ if [ -n "$R" ]; then
     ROOT_DEV=$(df -P / | awk 'NR==2 {print $1}'); REC_DEV=$(df -P "$R" | awk 'NR==2 {print $1}')
     [ "$ROOT_DEV" != "$REC_DEV" ] && ok "recordings are on their own disk ($REC_DEV)" || warn "recordings share the system disk; a full disk would stop the database too"
   else fail "RECORDINGS_HOST_DIR $R does not exist"; fi
+fi
+B=$(val BACKUP_HOST_DIR)
+if [ -n "$B" ]; then
+  case "$B" in /*) ;; *) fail "BACKUP_HOST_DIR must be an absolute path";; esac
+  if [ -d "$B" ]; then
+    BOWNER=$(stat -c '%u' "$B" 2>/dev/null); [ "$BOWNER" = "1001" ] && ok "backup folder owned by uid 1001 (image-api writes backups there)" || fail "backup folder owner is uid $BOWNER; run: chown 1001:1001 $B"
+    ROOT_DEV=$(df -P / | awk 'NR==2 {print $1}'); BAK_DEV=$(df -P "$B" | awk 'NR==2 {print $1}')
+    [ "$ROOT_DEV" != "$BAK_DEV" ] && ok "backups are on another disk than the system/database ($BAK_DEV)" || warn "backups share the system disk with the database; one disk failure loses both"
+  else fail "BACKUP_HOST_DIR $B does not exist"; fi
 fi
 [ -f ssl/server.crt ] && [ -f ssl/server.key ] && ok "TLS certificate present (ssl/)" || fail "ssl/server.crt or ssl/server.key missing (bash ssl/generate-cert.sh <server IP>, or the company certificate)"
 

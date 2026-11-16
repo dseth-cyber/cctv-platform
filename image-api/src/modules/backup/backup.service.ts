@@ -2,40 +2,51 @@ import { getPrisma } from '../../lib/prisma.js';
 import { logger } from '../../lib/logger.js';
 import { config } from '../../config/index.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
-import { execSync } from 'child_process';
+import { createAlert } from '../alerts/alerts.service.js';
+import { createAuditLog } from '../audit/audit.service.js';
+import { backupDestinations, destinationWritable, getBackupSettings, internalBackupDir, pruneBackupFiles } from './backup-settings.js';
+import { execFileSync } from 'child_process';
+import * as zlib from 'zlib';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups');
+const BACKUP_DIR = internalBackupDir();
 
-export async function runDatabaseBackup(): Promise<{ id: string; status: string; filePath?: string }> {
+/**
+ * One database backup into the destination chosen on the backup page (default: the separate backup disk when it
+ * is mounted). Plain SQL, gzip: psql of any PostgreSQL version restores it (the image's pg_dump is newer than the
+ * server, and a custom-format archive would not open in the server's own pg_restore). After a good backup, this
+ * app's files older than the keep period are removed there (the newest few always stay). A destination that is
+ * not there or not writable fails the backup, visibly: no fallback to another disk.
+ */
+export async function runDatabaseBackup(options?: { trigger?: 'schedule' | 'manual' }): Promise<{ id: string; status: string; filePath?: string }> {
   const prisma = getPrisma();
+  const settings = await getBackupSettings();
+  const dest = backupDestinations().find((d) => d.id === settings.destination) ?? backupDestinations()[0];
 
   const record = await prisma.backupRecord.create({
-    data: { type: 'database', status: 'running' },
+    data: { type: 'database', status: 'running', metadata: { destination: dest.id, hostPath: dest.hostPath, trigger: options?.trigger ?? 'manual' } },
   });
 
   try {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    if (dest.id === 'internal') fs.mkdirSync(dest.dir, { recursive: true });
+    if (!destinationWritable(dest.dir)) throw new Error(`Backup destination ${dest.hostPath} is not mounted or not writable`);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filePath = path.join(BACKUP_DIR, `pg_dump_${timestamp}.sql.gz`);
+    const filePath = path.join(dest.dir, `pg_dump_${timestamp}.sql.gz`);
 
     const dbUrl = new URL(config.database.url);
-    const pgDumpCmd = [
-      'pg_dump',
+    execFileSync('pg_dump', [
       `--host=${dbUrl.hostname}`,
       `--port=${dbUrl.port || 5432}`,
-      `--username=${dbUrl.username}`,
+      `--username=${decodeURIComponent(dbUrl.username)}`,
       `--dbname=${dbUrl.pathname.slice(1)}`,
       '--no-owner',
       '--no-acl',
       '--compress=9',
       `--file=${filePath}`,
-    ];
-
-    execSync(pgDumpCmd.join(' '), {
-      env: { ...process.env, PGPASSWORD: dbUrl.password },
+    ], {
+      env: { ...process.env, PGPASSWORD: decodeURIComponent(dbUrl.password) },
       stdio: 'pipe',
       timeout: 300_000,
     });
@@ -45,29 +56,52 @@ export async function runDatabaseBackup(): Promise<{ id: string; status: string;
 
     await prisma.backupRecord.update({
       where: { id: record.id },
-      data: {
-        status: 'completed',
-        filePath,
-        fileSize: BigInt(stats.size),
-        checksum,
-        completedAt: new Date(),
-      },
+      data: { status: 'completed', filePath, fileSize: BigInt(stats.size), checksum, completedAt: new Date() },
     });
+    logger.info({ destination: dest.id, size: stats.size }, 'Database backup completed');
 
-    logger.info({ filePath, size: stats.size }, 'Database backup completed');
+    await pruneOldBackups(dest.dir, settings.keepDays);
     return { id: record.id, status: 'completed', filePath };
   } catch (err: any) {
-    const friendlyMsg = err.message?.includes('not found')
+    const raw = String(err?.stderr?.toString?.() || err?.message || err);
+    const friendlyMsg = raw.includes('ENOENT') && raw.includes('pg_dump')
       ? 'pg_dump not installed in container'
-      : err.message?.includes('connection refused')
+      : raw.includes('connection refused')
       ? 'Cannot connect to database'
-      : err.message;
+      : raw.split('\n')[0].slice(0, 500);
     await prisma.backupRecord.update({
       where: { id: record.id },
       data: { status: 'failed', errorMessage: friendlyMsg, completedAt: new Date() },
     });
-    logger.error({ err }, 'Database backup failed');
+    logger.error({ err: friendlyMsg, destination: dest.id }, 'Database backup failed');
+    await createAlert({
+      alertType: 'storage_warning',
+      severity: 'critical',
+      source: 'backup_scheduler',
+      title: 'Database Backup Failed',
+      message: `The database backup to ${dest.hostPath} failed: ${friendlyMsg}`,
+      details: { destination: dest.id, hostPath: dest.hostPath, backupRecordId: record.id },
+    }).catch(() => {});
     return { id: record.id, status: 'failed' };
+  }
+}
+
+/** Removes this app's backups past the keep period in one folder, marks their records expired, writes the audit log. */
+async function pruneOldBackups(dir: string, keepDays: number) {
+  try {
+    const { deleted } = pruneBackupFiles(dir, keepDays);
+    if (deleted.length === 0) return;
+    const prisma = getPrisma();
+    await prisma.backupRecord.updateMany({ where: { filePath: { in: deleted } }, data: { status: 'expired' } });
+    await createAuditLog({
+      action: 'backup_pruned',
+      entity: 'backup',
+      description: `${deleted.length} database backup file(s) older than ${keepDays} days removed`,
+      metadata: { keepDays, files: deleted.map((f) => path.basename(f)) },
+    }).catch(() => {});
+    logger.info({ removed: deleted.length, keepDays }, 'Old database backups removed');
+  } catch (err) {
+    logger.warn({ err }, 'Could not remove old database backups');
   }
 }
 
@@ -123,40 +157,59 @@ export async function runStorageBackup(): Promise<{ id: string; status: string; 
   }
 }
 
+/**
+ * Checks that a backup file is whole and holds the database: the gzip stream reads to the end and the dump
+ * creates tables and loads their data. Not a full restore (that is the drill in DEPLOY_PRODUCTION.md step 8,
+ * which also checks the encrypted values with verify-secrets).
+ */
 export async function runRestoreTest(backupRecordId: string): Promise<{ success: boolean; message: string }> {
   const prisma = getPrisma();
-
   const record = await prisma.backupRecord.findUnique({ where: { id: backupRecordId } });
   if (!record || record.status !== 'completed' || !record.filePath) {
     return { success: false, message: 'Backup record not found or not completed' };
   }
-
-  try {
-    if (record.type === 'database') {
-      const testDbUrl = process.env.TEST_DATABASE_URL;
-      if (!testDbUrl) {
-        return { success: false, message: 'TEST_DATABASE_URL not configured' };
-      }
-
-      execSync(`gunzip -c ${record.filePath} | psql ${testDbUrl}`, {
-        stdio: 'pipe',
-        timeout: 300_000,
-      });
-
-      const result = execSync(`psql ${testDbUrl} -c "SELECT count(*) FROM images;" -t`, {
-        stdio: 'pipe',
-        timeout: 30_000,
-      });
-
-      logger.info({ rowCount: result.toString().trim() }, 'Restore test passed');
-      return { success: true, message: `Restore verified: ${result.toString().trim()} rows in images table` };
-    }
-
-    return { success: true, message: 'Backup file exists and is accessible' };
-  } catch (err: any) {
-    logger.error({ err }, 'Restore test failed');
-    return { success: false, message: `Restore test failed: ${err.message}` };
+  if (record.type !== 'database') {
+    return fs.existsSync(record.filePath)
+      ? { success: true, message: 'Backup file exists and is accessible' }
+      : { success: false, message: 'Backup file is missing' };
   }
+  try {
+    const counts = await scanSqlDump(record.filePath);
+    if (record.checksum) {
+      const sum = crypto.createHash('sha256').update(fs.readFileSync(record.filePath)).digest('hex');
+      if (sum !== record.checksum) return { success: false, message: 'Checksum does not match: the file changed after the backup' };
+    }
+    if (counts.tables === 0) return { success: false, message: 'The file reads, but it creates no tables' };
+    logger.info(counts, 'Backup file check passed');
+    return { success: true, message: `File complete: ${counts.tables} tables, ${counts.dataSections} with data (checksum ok). Full restore drill: runbook step 8` };
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Backup file check failed');
+    return { success: false, message: `Backup file is damaged or unreadable: ${String(err?.message || err).slice(0, 200)}` };
+  }
+}
+
+/** Streams a gzip SQL dump to the end, counting CREATE TABLE and COPY ... FROM stdin sections. */
+export function scanSqlDump(file: string): Promise<{ tables: number; dataSections: number }> {
+  return new Promise((resolve, reject) => {
+    let tables = 0;
+    let dataSections = 0;
+    let tail = '';
+    const gunzip = zlib.createGunzip();
+    gunzip.on('data', (chunk: Buffer) => {
+      const text = tail + chunk.toString('utf8');
+      const lines = text.split('\n');
+      tail = lines.pop() ?? '';
+      for (const line of lines) {
+        if (line.startsWith('CREATE TABLE ')) tables++;
+        else if (line.startsWith('COPY ') && line.endsWith('FROM stdin;')) dataSections++;
+      }
+    });
+    gunzip.on('end', () => resolve({ tables, dataSections }));
+    gunzip.on('error', reject);
+    const input = fs.createReadStream(file);
+    input.on('error', reject);
+    input.pipe(gunzip);
+  });
 }
 
 export async function getBackupStatus() {

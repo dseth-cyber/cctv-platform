@@ -12,6 +12,7 @@
 #    start them only on purpose: --profile seaweedfs / --profile observability;
 #  - Postgres and Redis publish no port on the host;
 #  - plain HTTP redirects to HTTPS (web-app/http-redirect.conf);
+#  - database backups can go to BACKUP_HOST_DIR (picked on the backup page);
 #  - recordings go to RECORDINGS_HOST_DIR (the big recording disk), not the repo folder.
 
 x-logging: &logging
@@ -51,8 +52,12 @@ services:
     image: cctv-api:${CCTV_VERSION:?set CCTV_VERSION to the release being deployed}
     volumes:
       - ${RECORDINGS_HOST_DIR:?set RECORDINGS_HOST_DIR to the recording disk}:/recordings
+      # Database backups can go here (chosen on the backup page): the separate backup disk.
+      - ${BACKUP_HOST_DIR:?set BACKUP_HOST_DIR to the backup folder on its own disk}:/backups-external
     environment:
       DEPLOY_ENV: production
+      BACKUP_EXTERNAL_DIR: /backups-external
+      BACKUP_HOST_DIR: ${BACKUP_HOST_DIR}
     logging: *logging
 
   web-app:

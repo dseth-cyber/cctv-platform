@@ -7,6 +7,11 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   // Auto-cleanup for operational/audit tables with no retention mechanism of their own
   // (see system-cleanup module, daily at 04:00). 0 = keep forever for that table.
   audit_logs_retention_days: { value: '180', description: 'Auto-delete Audit Log entries older than this many days. 0 = keep forever.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
+  // Database backups: edited on the backup page (validated there), not on the system config page.
+  backup_enabled: { value: 'true', description: 'Run the database backup every day by itself', valueType: 'boolean', category: 'backup' },
+  backup_time: { value: '03:00', description: 'Time of the daily database backup (HH:MM, APP_TIME_ZONE)', valueType: 'string', category: 'backup' },
+  backup_keep_days: { value: '14', description: 'Days database backups are kept; the newest 3 always stay', valueType: 'number', category: 'backup', min: 1, max: 365 },
+  backup_destination: { value: '', description: 'Where database backups go: internal (system disk) or external (separate backup disk). Empty = external when mounted.', valueType: 'string', category: 'backup' },
   clips_retention_days: { value: '90', description: 'Finished evidence clips older than this many days go to the trash (restorable until the quarantine purge, then deleted for good). Clips on Legal Hold are never touched. 0 = keep forever. Approved 2026-11-14: 90 days.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
   alerts_retention_days: { value: '60', description: 'Auto-delete resolved Alerts older than this many days (unresolved alerts are never auto-deleted). 0 = keep forever.', valueType: 'number', category: 'retention', min: 0, max: 3650 },
   alert_critical_threshold: { value: '90', description: 'Disk usage percentage for critical alert', valueType: 'number', category: 'alert', min: 1, max: 100 },

@@ -6,6 +6,7 @@ import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime } from '@/utils/dateUtils';
 import { Database, HardDrive, RefreshCw, CheckCircle, XCircle, Clock, Play, Shield, FileText } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { BackupScheduleCard, DiskOverviewCard } from './BackupSettingsCards';
 
 function formatBytes(bytes: number | null): string {
   if (!bytes) return '—';
@@ -20,18 +21,21 @@ function statusBadge(status: string, themeConfig: any, t: (key: string) => strin
     failed: 'bg-red-500/20 text-red-400',
     running: 'bg-blue-500/20 text-blue-400',
     pending: 'bg-gray-500/20 text-gray-400',
+    expired: 'bg-gray-500/20 text-gray-400',
   };
   const icons: Record<string, any> = {
     completed: CheckCircle,
     failed: XCircle,
     running: Clock,
     pending: Clock,
+    expired: Clock,
   };
   const statusKey: Record<string, string> = {
     completed: 'imageService.backup.statusCompleted',
     failed: 'imageService.backup.statusFailed',
     running: 'imageService.backup.statusRunning',
     pending: 'imageService.backup.statusPending',
+    expired: 'imageService.backup.statusExpired',
   };
   const Icon = icons[status] || Clock;
   return (
@@ -92,6 +96,11 @@ export default function BackupDashboard() {
         </p>
         <h1 className={`text-2xl font-bold ${themeConfig.text.primary}`}>{t('imageService.backup.title')}</h1>
         <p className={`text-sm mt-1 ${themeConfig.text.secondary}`}>{t('imageService.backup.subtitle')}</p>
+      </div>
+
+      <div className="space-y-5 mb-6">
+        <BackupScheduleCard />
+        <DiskOverviewCard />
       </div>
 
       <div className="grid grid-cols-2 gap-5 mb-6">

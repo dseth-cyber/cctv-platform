@@ -495,7 +495,43 @@
       "storageBackupFailed": "Storage backup failed",
       "restoreTestSuccess": "Restore test: {{message}}",
       "restoreTestFailed": "Restore test failed: {{message}}",
-      "restoreTestError": "Restore test error"
+      "restoreTestError": "Restore test error",
+      "statusExpired": "Expired (file removed)",
+      "scheduleTitle": "Automatic database backup",
+      "scheduleEnabled": "Back up every day by itself",
+      "scheduleTime": "Time ({{tz}})",
+      "scheduleKeepDays": "Keep for (days)",
+      "scheduleDestination": "Destination",
+      "scheduleNote": "Files older than the days set are removed after a good backup; the newest 3 always stay. Files the system did not write (e.g. a host cron's dumps) are never touched.",
+      "scheduleNoExternal": "This server has no separate backup disk mounted (BACKUP_HOST_DIR), so only the system disk can be chosen.",
+      "scheduleSave": "Save",
+      "scheduleSaved": "Backup settings saved",
+      "scheduleSaveFailed": "Could not save the backup settings",
+      "destinationNotWritable": "not writable",
+      "destination": {
+        "internal": "System disk (SSD)",
+        "external": "Separate backup disk"
+      },
+      "scheduleError": {
+        "DESTINATION_NOT_MOUNTED": "This destination is not mounted on this server",
+        "DESTINATION_NOT_WRITABLE": "The system cannot write to this destination (check the folder's owner)",
+        "INVALID": "Invalid values"
+      },
+      "disksTitle": "Disks in use",
+      "disk": {
+        "recordings": "Recordings and evidence clips",
+        "backup_internal": "Backups on the system disk",
+        "backup_external": "Backups on the separate disk"
+      },
+      "diskColWhat": "Holds",
+      "diskColPath": "Path on the server",
+      "diskColUse": "Used",
+      "diskColFree": "Free",
+      "diskColHolds": "This system's data",
+      "diskHoldsRecordings": "Recordings {{recordings}} · clips {{clips}}",
+      "diskHoldsBackups": "{{count}} backup files · {{size}}",
+      "diskSameAs": "Same disk as: {{names}}",
+      "diskUnavailable": "Not found / not mounted"
     },
     "settings": {
       "title": "Settings",
@@ -1106,7 +1142,8 @@
         "authFailed": "Camera username or password is incorrect",
         "diskFull": "Disk is full"
       },
-      "messageCameraStreamDropped": "Camera \"{{name}}\" stream dropped (detected within 3 s). Stream: {{path}}"
+      "messageCameraStreamDropped": "Camera \"{{name}}\" stream dropped (detected within 3 s). Stream: {{path}}",
+      "titleBackupFailed": "Database backup failed"
     },
     "users": {
       "title": "User Management",

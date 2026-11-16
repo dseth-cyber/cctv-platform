@@ -85,6 +85,7 @@ const RECORDING_TITLE_KEYS: Record<string, string> = {
   'Emergency FIFO Eviction Triggered': 'imageService.alerts.titleRecordingEviction',
   'Emergency Eviction Did Not Free Space': 'imageService.alerts.titleRecordingEvictionIneffective',
   'Recording files missing from disk': 'imageService.alerts.titleRecordingMissing',
+  'Database Backup Failed': 'imageService.alerts.titleBackupFailed',
 }
 
 // Recognizes common technical failure text (connection timeouts, camera auth, full disk) and

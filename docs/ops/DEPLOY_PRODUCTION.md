@@ -132,10 +132,17 @@ SMOKE_USER=<admin> SMOKE_PASSWORD='<รหัส>' node scripts/prod-smoke.mjs h
 
 ## ขั้น 8 สำรองข้อมูล
 
-ที่ทำจริงบน 192.168.30.244 (2026-11-14):
+**ตั้งแต่ rc6: ตั้งค่าในหน้า สำรองข้อมูล** (เปิด/ปิด, เวลา, เก็บกี่วัน, ที่เก็บ) แก้ได้เฉพาะผู้มีสิทธิ์ `system-config:update` มี audit log
+- ที่เก็บเลือกได้ 2 ที่: ดิสก์ระบบ (volume `backup-data`) หรือดิสก์ backup แยก = `BACKUP_HOST_DIR` ใน `.env.production`
+  (`docker-compose.prod.yml` mount เข้า `/backups-external`; โฟลเดอร์ต้องเป็นของ uid 1001 — preflight ตรวจ) ค่าเริ่มต้นคือดิสก์แยก
+- หน้าเว็บเลือกได้เฉพาะที่ mount ไว้แล้ว ไม่ได้ mount ดิสก์เอง; ที่เก็บหายหรือเขียนไม่ได้ = backup FAILED + แจ้งเตือน "สำรองฐานข้อมูลไม่สำเร็จ" ไม่ย้ายไปดิสก์อื่นเอง
+- หลังสำรองสำเร็จ ลบไฟล์ของแอป (`pg_dump_*.sql.gz`) ที่เก่ากว่าจำนวนวันที่ตั้ง แต่เหลือ 3 ไฟล์ล่าสุดเสมอ; ไฟล์อื่นในโฟลเดอร์ (เช่น `cctv-*.dump` จาก cron เดิม) ไม่ถูกแตะ
+- รูปแบบไฟล์ของแอป = SQL บีบอัด (`.sql.gz`) เพราะ pg_dump ใน image (16) ใหม่กว่า server (15) และไฟล์ `-Fc` ของ 16 เปิดด้วย pg_restore 15 ไม่ได้
+- ปุ่ม "ทดสอบ" ในตาราง = อ่านไฟล์จนจบ + checksum + นับตาราง (ไม่ใช่ restore เต็ม; restore เต็มดูหัวข้อถัดไป)
+- หน้าเดียวกันแสดงดิสก์: ไฟล์บันทึก/คลิป และที่เก็บ backup อยู่ path ไหน ใช้ไปเท่าไร ว่างเท่าไร และอยู่ดิสก์เดียวกันหรือไม่
 
-- **สำรองหลัก = cron บน host** สั่ง `pg_dump -Fc` ทุกวัน 02:30 ลง HDD `/srv/cctv-data/backup` เก็บ 14 วัน
-  (ไม่ได้อาศัย volume `backup-data`: ตัวสำรองในแอป 03:00 เขียนลง volume นั้นบน SSD ระบบ ใช้เป็นสำเนาที่สองได้ แต่ไม่ต้องคัดลอกออก)
+ก่อน rc6 บน 192.168.30.244 ใช้ cron บน host สั่ง `pg_dump -Fc` 02:30 ลง `/srv/cctv-data/backup` เก็บ 14 วัน;
+เมื่อสำรองจากหน้าเว็บลงดิสก์แยกได้ผล 2 วันติด ปิด cron นั้นได้ (ผู้ใช้ตัดสินใจ) ไฟล์ `.dump` เดิมยังอยู่และไม่ถูกลบโดยแอป
 - สำรองด้วยมือก่อนทุก deploy ลงที่เดียวกัน:
   ```sh
   docker exec cctv-postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/cctv-data/backup/cctv-$(date +%F-%H%M)-before-<เวอร์ชัน>.dump
@@ -153,7 +160,11 @@ SMOKE_USER=<admin> SMOKE_PASSWORD='<รหัส>' node scripts/prod-smoke.mjs h
 F=/srv/cctv-data/backup/<ไฟล์ล่าสุด>.dump
 docker network create --internal --subnet 10.250.99.0/24 cctv-restore-test          # 10.x เสมอ ห้ามให้ Docker เลือกเอง
 docker run -d --name cctv-restore-db --network cctv-restore-test -e POSTGRES_PASSWORD=restore-test -e POSTGRES_DB=restore postgres:15-alpine
-sleep 5; docker exec -i cctv-restore-db pg_restore -U postgres -d restore --no-owner < "$F"
+sleep 5
+case "$F" in
+  *.dump)   docker exec -i cctv-restore-db pg_restore -U postgres -d restore --no-owner < "$F" ;;     # จาก pg_dump -Fc (cron / ด้วยมือ)
+  *.sql.gz) gunzip -c "$F" | docker exec -i cctv-restore-db psql -q -v ON_ERROR_STOP=1 -U postgres -d restore ;;  # จากหน้าเว็บ
+esac
 # 1) นับแถวตารางหลักเทียบกับ DB จริง (devices, cameras, users, recording_clips, ...)
 # 2) ค่าที่เข้ารหัส: ใช้ image เวอร์ชันที่รันอยู่ + ENCRYPTION_KEY ของเครื่องนี้ ไม่พิมพ์ค่าหรือกุญแจออกมา
 docker run --rm --network cctv-restore-test --env-file .env.production \

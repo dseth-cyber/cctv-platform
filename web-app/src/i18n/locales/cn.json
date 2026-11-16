@@ -396,7 +396,43 @@
       "storageBackupFailed": "存储备份失败",
       "restoreTestSuccess": "恢复测试: {{message}}",
       "restoreTestFailed": "恢复测试失败: {{message}}",
-      "restoreTestError": "恢复测试错误"
+      "restoreTestError": "恢复测试错误",
+      "statusExpired": "已过期（文件已删除）",
+      "scheduleTitle": "自动数据库备份",
+      "scheduleEnabled": "每天自动备份",
+      "scheduleTime": "时间（{{tz}}）",
+      "scheduleKeepDays": "保留（天）",
+      "scheduleDestination": "保存位置",
+      "scheduleNote": "备份成功后，早于设定天数的文件会被删除，但始终保留最新的 3 个。系统未创建的文件（例如主机 cron 的备份）不会被处理。",
+      "scheduleNoExternal": "此服务器未挂载独立备份磁盘（BACKUP_HOST_DIR），只能选择系统盘。",
+      "scheduleSave": "保存",
+      "scheduleSaved": "备份设置已保存",
+      "scheduleSaveFailed": "无法保存备份设置",
+      "destinationNotWritable": "不可写入",
+      "destination": {
+        "internal": "系统盘（SSD）",
+        "external": "独立备份盘"
+      },
+      "scheduleError": {
+        "DESTINATION_NOT_MOUNTED": "此位置未在本服务器上挂载",
+        "DESTINATION_NOT_WRITABLE": "系统无法写入此位置（请检查文件夹权限）",
+        "INVALID": "输入值无效"
+      },
+      "disksTitle": "使用中的磁盘",
+      "disk": {
+        "recordings": "录像和证据片段",
+        "backup_internal": "系统盘上的备份",
+        "backup_external": "独立磁盘上的备份"
+      },
+      "diskColWhat": "存放内容",
+      "diskColPath": "服务器路径",
+      "diskColUse": "已用",
+      "diskColFree": "可用",
+      "diskColHolds": "本系统的数据",
+      "diskHoldsRecordings": "录像 {{recordings}} · 片段 {{clips}}",
+      "diskHoldsBackups": "备份 {{count}} 个文件 · {{size}}",
+      "diskSameAs": "与以下位于同一磁盘：{{names}}",
+      "diskUnavailable": "未找到 / 未挂载"
     },
     "settings": {
       "title": "设置",
@@ -851,7 +887,8 @@
         "authFailed": "摄像机用户名或密码不正确",
         "diskFull": "磁盘已满"
       },
-      "messageCameraStreamDropped": "摄像机 \"{{name}}\" 视频流已中断（3 秒内检测到）。流：{{path}}"
+      "messageCameraStreamDropped": "摄像机 \"{{name}}\" 视频流已中断（3 秒内检测到）。流：{{path}}",
+      "titleBackupFailed": "数据库备份失败"
     },
     "users": {
       "title": "用户管理",
