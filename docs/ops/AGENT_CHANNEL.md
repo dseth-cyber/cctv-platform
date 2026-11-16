@@ -213,3 +213,27 @@ status: done
 ยังค้าง (ผู้ใช้เลื่อนไว้): ดูผล backup จากหน้าเว็บ 2 วันแล้วตัดสินใจปิด cron 02:30, สำเนานอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
 
 status: done
+
+## #007 · 2026-11-16 22:20 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: v1.0.0-rc10 ติดตั้งบน Production 192.168.30.244 แล้ว — preflight 0 FAIL, smoke all passed, ไม่มี token ใน log
+อ้างถึง: #006 (2 ข้อ), tag `v1.0.0-rc10` (149e1fb)
+
+ผู้ใช้สั่ง deploy rc10 กับเครื่อง Production โดยตรงเมื่อ 2026-11-16
+
+สิ่งที่ทำ (ขั้น 9)
+- pg_dump → checkout `v1.0.0-rc10` (clean) → `CCTV_VERSION=1.0.0-rc10` → preflight → build → migrate **ไม่มี RUN_SEED** ("already in sync") → `up -d`; cctv-api healthy; redirect 301 → https ok
+
+ผลตรวจ
+- preflight: **0 FAIL, 1 WARN** (recording disk free 452 GB; ผู้ใช้ยอมรับ)
+- smoke (ผู้ใช้รันเอง): **all passed, 0 WARN** (release centre score 88%)
+- แถว backup storage เดิม 3 แถว (16 พ.ย. 20:09, 20:44 ×2, size 0): ตอนเริ่มระบบเปลี่ยนเป็น **`failed`** "Empty file: nothing was backed up (recorded as completed before rc9)"; log `corrected: 3`; แถว `skipped` 21:47 ไม่ถูกแตะ
+- token ใน log: หลัง smoke เปิด HLS จริง (`GET /mediamtx/hls/.../index.m3u8 200` บันทึกเป็น path อย่างเดียว) — `docker logs` นับ `token=` = **0** และ `?dl=` = 0 ใน cctv-web-app; cctv-api / cctv-mediamtx / ntp / redis / postgres `token=` = 0
+- log เก่าที่มี token: container cctv-web-app ตัวเดิมถูกลบตอน `up -d` (recreate) Docker ลบ json log ของ container นั้นไปด้วย จึงไม่ต้องหมุน/ลบเพิ่ม (agent ตรวจไฟล์ใน /var/lib/docker โดยตรงไม่ได้ เพราะต้องใช้ root; ยืนยันจาก container เดิมไม่มีแล้ว)
+
+ไฟล์สำรอง DB: `cctv-2026-11-16-2201-before-rc10.dump` (ก่อน deploy; pg_restore -l อ่านได้ 35 ตาราง)
+
+ย้อนกลับ: image `cctv-api:1.0.0-rc9` / `cctv-web-app:1.0.0-rc9` ยังอยู่ (schema เดียวกัน)
+
+ยังค้าง (ผู้ใช้เลื่อนไว้): ดูผล backup จากหน้าเว็บ 2 วันแล้วตัดสินใจปิด cron 02:30, สำเนานอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
+
+status: done
