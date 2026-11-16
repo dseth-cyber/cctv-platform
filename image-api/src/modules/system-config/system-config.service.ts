@@ -21,6 +21,7 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   camera_sla_target: { value: '99.5', description: 'Camera availability SLA target (%)', valueType: 'number', category: 'alert', min: 0, max: 100 },
   login_max_failed_attempts: { value: '5', description: 'Failed login attempts (per username) before temporary account lockout', valueType: 'number', category: 'alert', min: 1, max: 100 },
   login_failure_window_minutes: { value: '10', description: 'Time window for counting failed login attempts (minutes) — the counter resets after this long with no failures', valueType: 'number', category: 'alert', min: 1, max: 1440 },
+  login_max_sessions_per_user: { value: '2', description: 'Devices one person can be signed in on at once; signing in on one more signs out the one used least recently. A role can set its own number. 0 = no limit.', valueType: 'number', category: 'alert', min: 0, max: 20 },
   login_lockout_minutes: { value: '15', description: 'How long an account stays locked after too many failed login attempts (minutes)', valueType: 'number', category: 'alert', min: 1, max: 1440 },
 
   camera_auto_incident_enabled: { value: 'true', description: 'Automatically create an Incident when a camera goes offline (debounced by the offline threshold above)', valueType: 'boolean', category: 'automation' },

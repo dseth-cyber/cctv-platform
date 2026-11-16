@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import { UnauthorizedError } from '../lib/errors.js';
 import { config } from '../config/index.js';
 import { getPrisma } from '../lib/prisma.js';
+import { AppError } from '../lib/errors.js';
+import { sessionEndReason } from '../modules/auth/device-sessions.js';
 
 const SERVICE_USER_ID = 'system-service';
 
@@ -11,6 +13,7 @@ export interface AuthenticatedUser {
   username: string;
   email: string;
   role: string;
+  sid?: string;
 }
 
 // Plain `===` leaks how many leading bytes matched via response-time differences —
@@ -37,6 +40,11 @@ export async function authenticate(
   if (user.id === SERVICE_USER_ID) return;
   const account = await getPrisma().user.findUnique({ where: { id: user.id }, select: { enabled: true, deletedAt: true } });
   if (!account || !account.enabled || account.deletedAt) throw new UnauthorizedError('This account is no longer active');
+  // The device was signed out (from elsewhere, by an administrator, or by logout): its token stops here, not at expiry.
+  if (user.sid) {
+    const ended = await sessionEndReason(user.sid);
+    if (ended) throw new AppError(401, 'This sign-in has ended', { code: ended === 'replaced' ? 'SESSION_REPLACED' : 'SESSION_ENDED' });
+  }
 }
 
 async function verifyToken(
@@ -73,7 +81,7 @@ async function verifyToken(
           if (decoded && decoded.id) {
             (request as unknown as { user: AuthenticatedUser }).user = {
               id: decoded.id, username: decoded.username ?? 'unknown',
-              email: decoded.email ?? '', role: decoded.role ?? 'user',
+              email: decoded.email ?? '', role: decoded.role ?? 'user', sid: decoded.sid,
             };
             return;
           }

@@ -4,6 +4,9 @@ import * as rolesService from '../roles/roles.service.js';
 import { createUserSchema, updateUserSchema } from './users.schema.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import * as sessionService from '../auth/user-session.service.js';
+import * as deviceSessions from '../auth/device-sessions.js';
+import { getPrisma } from '../../lib/prisma.js';
+import { createAuditLog as auditDeviceSession } from '../audit/audit.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { ForbiddenError } from '../../lib/errors.js';
 import { isLocked, unlockUser } from '../../lib/login-security.js';
@@ -151,4 +154,31 @@ export async function userRoutes(app: FastifyInstance): Promise<void> {
   app.patch('/:id', { preHandler: [app.authenticate, requirePermission('users:update')] }, updateHandler);
   app.post('/:id/unlock', { preHandler: [app.authenticate, requirePermission('users:update')] }, unlockHandler);
   app.delete('/:id', { preHandler: [app.authenticate, requirePermission('users:delete')] }, deactivateHandler);
+  // Devices a person is signed in on, and ending one of them (it is signed out at once).
+  app.get('/:id/sessions', { preHandler: [app.authenticate, requirePermission('users:read')] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const current = (request as any).user?.sid;
+    const [items, limit] = await Promise.all([
+      deviceSessions.listActiveSessions(id),
+      getPrisma().user.findUnique({ where: { id }, select: { role: true } }).then((u) => deviceSessions.sessionLimitFor(u?.role)),
+    ]);
+    return reply.send({ items: items.map((s) => ({ ...s, current: s.id === current })), limit });
+  });
+  app.post('/:id/sessions/:sid/revoke', { preHandler: [app.authenticate, requirePermission('users:update')] }, async (request, reply) => {
+    const { id, sid } = request.params as { id: string; sid: string };
+    const actor = (request as any).user;
+    const session = await getPrisma().userSession.findFirst({ where: { id: sid, userId: id }, select: { id: true, username: true, ipAddress: true } });
+    if (!session) return reply.status(404).send({ message: 'Session not found' });
+    const ended = await deviceSessions.revokeSessions([sid], 'admin');
+    auditDeviceSession({
+      userId: actor?.id,
+      action: 'session_revoked',
+      entity: 'user_session',
+      entityId: sid,
+      description: `${actor?.username ?? 'unknown'} signed ${session.username} out of one device`,
+      metadata: { targetUserId: id, ipAddress: session.ipAddress, wasOpen: ended > 0 },
+      ipAddress: request.ip,
+    }).catch(() => {});
+    return reply.status(204).send();
+  });
 }

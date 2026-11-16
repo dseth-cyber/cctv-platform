@@ -3,6 +3,8 @@ export interface AuthenticatedUser {
   username: string;
   email: string;
   role: string;
+  /** The device sign-in (user_sessions.id); absent on tokens issued before sessions were tracked. */
+  sid?: string;
 }
 
 export interface PaginationParams {

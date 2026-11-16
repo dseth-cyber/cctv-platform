@@ -12,6 +12,8 @@ export const createRoleSchema = z.object({
   permissions: z.array(z.string()).default([]),
   cameraScope: cameraScopeSchema.optional(),
   liveQuota: z.number().int().min(1).max(64).nullable().optional(),
+  // Devices signed in at once; null = the system setting, 0 = no limit for this role.
+  maxSessions: z.number().int().min(0).max(20).nullable().optional(),
   sortOrder: z.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -26,6 +28,8 @@ export const updateRoleSchema = z.object({
   permissions: z.array(z.string()).optional(),
   cameraScope: cameraScopeSchema.optional(),
   liveQuota: z.number().int().min(1).max(64).nullable().optional(),
+  // Devices signed in at once; null = the system setting, 0 = no limit for this role.
+  maxSessions: z.number().int().min(0).max(20).nullable().optional(),
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });

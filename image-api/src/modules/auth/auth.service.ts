@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { getPrisma } from '../../lib/prisma.js';
-import { UnauthorizedError, ValidationError } from '../../lib/errors.js';
+import { AppError, UnauthorizedError, ValidationError } from '../../lib/errors.js';
 import { isLocked, recordFailedLogin, clearFailedLogins } from '../../lib/login-security.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { createAlert } from '../alerts/alerts.service.js';
@@ -125,14 +125,14 @@ export async function updateUiPreferences(userId: string, patch: Record<string, 
   return { uiPreferences: merged };
 }
 
-export async function createRefreshToken(userId: string): Promise<string> {
+export async function createRefreshToken(userId: string, sessionId?: string): Promise<string> {
   const prisma = getPrisma();
   const token = crypto.randomBytes(64).toString('hex');
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
   await prisma.refreshToken.create({
-    data: { userId, token, expiresAt },
+    data: { userId, token, expiresAt, sessionId: sessionId ?? null },
   });
 
   return token;
@@ -142,6 +142,12 @@ export async function verifyRefreshToken(input: RefreshInput) {
   const prisma = getPrisma();
 
   const stored = await prisma.refreshToken.findUnique({ where: { token: input.refreshToken } });
+  if (stored?.revokedAt && stored.sessionId) {
+    // Say why, so the page can tell the person they were signed out from another device.
+    const s = await prisma.userSession.findUnique({ where: { id: stored.sessionId }, select: { revokedReason: true } });
+    if (s?.revokedReason === 'replaced') throw new AppError(401, 'Signed in on another device', { code: 'SESSION_REPLACED' });
+    if (s?.revokedReason) throw new AppError(401, 'This sign-in was ended by an administrator', { code: 'SESSION_ENDED' });
+  }
   if (!stored || stored.revokedAt) {
     throw new UnauthorizedError('Invalid refresh token');
   }
@@ -159,7 +165,7 @@ export async function verifyRefreshToken(input: RefreshInput) {
     data: { revokedAt: new Date() },
   });
 
-  return { id: user.id, username: user.username, email: user.email, role: user.role };
+  return { id: user.id, username: user.username, email: user.email, role: user.role, sessionId: stored.sessionId };
 }
 
 export async function revokeRefreshToken(token: string): Promise<void> {

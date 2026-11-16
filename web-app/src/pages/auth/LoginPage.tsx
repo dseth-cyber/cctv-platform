@@ -22,7 +22,16 @@ export default function LoginPage({ logoBase64 }: { logoBase64?: string }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
-  const [error, setError] = useState('')
+  // Shown once after being signed out from elsewhere (set by the token refresh in lib/axios.ts).
+  const [error, setError] = useState(() => {
+    try {
+      const reason = localStorage.getItem('logoutReason')
+      localStorage.removeItem('logoutReason')
+      if (reason === 'SESSION_REPLACED') return t('imageService.auth.sessionReplaced')
+      if (reason === 'SESSION_ENDED') return t('imageService.auth.sessionEnded')
+    } catch { /* private mode */ }
+    return ''
+  })
   const [loading, setLoading] = useState(false)
 
   // Query configurations dynamically to populate branding elements

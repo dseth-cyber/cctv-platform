@@ -604,7 +604,9 @@
       "currentPasswordIncorrect": "Current password is incorrect",
       "passwordSameAsOld": "New password must be different from the current password",
       "passwordTooWeak": "This password is too common/easily guessed — choose a less predictable one",
-      "noAccount": "Don't have an account? Register here"
+      "noAccount": "Don't have an account? Register here",
+      "sessionReplaced": "You were signed out because this account signed in on more devices than allowed.",
+      "sessionEnded": "An administrator signed this device out. Please sign in again."
     },
     "nav": {
       "workOrders": "Work orders",
@@ -928,7 +930,8 @@
         "live_auto_hd_2x2": "2x2 wall opens in HD",
         "live_auto_hd_3x3": "3x3 wall opens in HD",
         "live_auto_hd_4x4": "4x4 wall opens in HD",
-        "incident_attachment_max_mb": "Largest Incident attachment (MB)"
+        "incident_attachment_max_mb": "Largest Incident attachment (MB)",
+        "login_max_sessions_per_user": "Devices signed in at once per user"
       },
       "descriptions": {
         "alert_critical_threshold": "Disk usage percentage for critical alert",
@@ -977,7 +980,8 @@
         "live_auto_hd_2x2": "Each tile shows SD first, then HD (4 main streams per person)",
         "live_auto_hd_3x3": "Every tile in HD (9 main streams per person): small tiles look only a little sharper but use more network and recorder",
         "live_auto_hd_4x4": "Every tile in HD (16 main streams per person): the heaviest; only when the network and recorders can take it",
-        "incident_attachment_max_mb": "Largest file per attachment, on work orders and incidents"
+        "incident_attachment_max_mb": "Largest file per attachment, on work orders and incidents",
+        "login_max_sessions_per_user": "How many devices one person can be signed in on at once. Signing in on one more signs out the device used least recently. A role can set its own number. 0 = no limit."
       },
       "title": "System Configuration",
       "subtitle": "Manage all system settings",
@@ -3844,6 +3848,25 @@
       "failed": "Could not answer; try again",
       "tooFast": "Too many questions; wait a moment",
       "dragHint": "Click to ask, drag to move"
+    },
+    "maxSessions": {
+      "label": "Devices signed in at once",
+      "placeholder": "System setting",
+      "hint": "Empty = the system setting (2 by default) · 0 = no limit · past it, the device used least recently is signed out"
+    },
+    "userSessions": {
+      "open": "Signed-in devices",
+      "title": "Devices {{username}} is signed in on",
+      "limit": "Up to {{count}} devices at once",
+      "noLimit": "No limit on devices",
+      "none": "Not signed in anywhere",
+      "thisDevice": "this device",
+      "signedIn": "Signed in",
+      "lastUsed": "last used",
+      "revoke": "Sign out",
+      "confirmRevoke": "Confirm sign out",
+      "revoked": "That device was signed out",
+      "revokeFailed": "Could not sign that device out"
     }
   }
 }

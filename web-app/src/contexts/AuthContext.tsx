@@ -77,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    try { await api.post('/image-service/api/v1/auth/logout') } catch { /* ignore */ }
+    // The refresh token too, so this device's sign-in cannot be renewed after logout.
+    try { await api.post('/image-service/api/v1/auth/logout', { refreshToken: localStorage.getItem('refreshToken') }) } catch { /* ignore */ }
     clearTokens()
     setAccessToken(null)
     setUser(null)

@@ -74,9 +74,14 @@ api.interceptors.response.use(
       processQueue(null, data.accessToken)
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
       return api(originalRequest)
-    } catch (refreshError) {
+    } catch (refreshError: any) {
       processQueue(refreshError, null)
       localStorage.clear()
+      // Signed out from elsewhere: the login page says why (another device signed in, or an administrator).
+      const code = refreshError?.response?.data?.details?.code
+      if (code === 'SESSION_REPLACED' || code === 'SESSION_ENDED') {
+        try { localStorage.setItem('logoutReason', code) } catch { /* private mode */ }
+      }
       window.location.href = '/login'
       return Promise.reject(refreshError)
     } finally {

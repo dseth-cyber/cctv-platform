@@ -109,6 +109,8 @@ model CustomRole {
   cameraScope Json? @map("camera_scope")
   /// Live tiles one person with this role may have at once; null follows live_max_streams_per_user.
   liveQuota   Int?     @map("live_quota")
+  /// Devices one person with this role may be signed in on at once; null follows login_max_sessions_per_user.
+  maxSessions Int?     @map("max_sessions")
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -164,6 +166,10 @@ model UserSession {
   durationSeconds Int?      @map("duration_seconds")
   ipAddress       String?   @map("ip_address") @db.VarChar(45)
   userAgent       String?   @map("user_agent") @db.Text
+  /// Signed out from elsewhere: `replaced` (the same person signed in on more devices than allowed, the least
+  /// recently used one goes) or `admin` (an administrator ended it). Its access token stops working at once.
+  revokedAt       DateTime? @map("revoked_at")
+  revokedReason   String?   @map("revoked_reason") @db.VarChar(32)
   createdAt       DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
@@ -179,10 +185,13 @@ model RefreshToken {
   expiresAt DateTime  @map("expires_at")
   createdAt DateTime  @default(now()) @map("created_at")
   revokedAt DateTime? @map("revoked_at")
+  /// The device sign-in (user_sessions.id) this token keeps alive. Null for tokens issued before sessions were tracked.
+  sessionId String?   @map("session_id") @db.Uuid
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([sessionId])
   @@map("refresh_tokens")
 }
 

@@ -10,7 +10,8 @@ import { imageServiceApi } from '@/services/imageServiceApi'
 import { formatDateTime } from '@/utils/dateUtils'
 import { Modal, Button, SearchableSelect, TableSkeleton, ExportButton, PasswordStrengthMeter, PasswordInput } from '@/components/ui'
 import type { ExportSection } from '@/components/ui'
-import { Users, Plus, Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ShieldAlert, Key, Globe, Layout, CheckSquare, Square, Info, ToggleLeft, ToggleRight, BarChart3, Clock, Activity, ArrowLeft, Unlock } from 'lucide-react'
+import { Users, Plus, Edit, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ShieldAlert, Key, Globe, Layout, CheckSquare, Square, Info, ToggleLeft, ToggleRight, BarChart3, Clock, Activity, ArrowLeft, Unlock, MonitorSmartphone } from 'lucide-react'
+import { UserSessionsModal } from './UserSessionsModal'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -321,6 +322,21 @@ const PERMISSION_MODULES = [
 /** '' (follow the role, then the system) or 1-64 live tiles. */
 const quotaToApi = (v: string): number | null => (v.trim() === '' ? null : Math.max(1, Math.min(64, Math.round(Number(v)) || 1)))
 
+/** '' (follow the system setting) or 0-20 devices; 0 = no limit for this role. */
+const maxSessionsToApi = (v: string): number | null => (v.trim() === '' ? null : Math.max(0, Math.min(20, Math.round(Number(v)) || 0)))
+
+function MaxSessionsField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation()
+  return (
+    <div data-max-sessions>
+      <label className="block text-sm font-medium mb-1.5 text-slate-200">{t('ui.maxSessions.label')}</label>
+      <input type="number" min={0} max={20} value={value} placeholder={t('ui.maxSessions.placeholder')} onChange={(e) => onChange(e.target.value)}
+        className="w-40 px-3 py-2 rounded-md bg-slate-950 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
+      <p className="text-xs mt-1 text-slate-500">{t('ui.maxSessions.hint')}</p>
+    </div>
+  )
+}
+
 function LiveQuotaField({ value, onChange, hint }: { value: string; onChange: (v: string) => void; hint: string }) {
   const { t } = useTranslation()
   return (
@@ -341,6 +357,7 @@ function emptyRoleForm() {
   return {
     cameraScope: {} as CameraScopeValue,
     liveQuota: '',
+    maxSessions: '',
     code: '',
     nameTh: '',
     nameEn: '',
@@ -381,6 +398,7 @@ export default function UserManagement() {
   // Roles Page/Sort state
   const [roleModal, setRoleModal] = useState<{ open: boolean; item?: any | null }>({ open: false })
   const [roleForm, setRoleForm] = useState(emptyRoleForm())
+  const [sessionsUser, setSessionsUser] = useState<{ id: string; username: string } | null>(null)
   const [submittingRole, setSubmittingRole] = useState(false)
 
   // Load Users Query
@@ -571,6 +589,7 @@ export default function UserManagement() {
       permissions: Array.isArray(role.permissions) ? role.permissions : [],
       cameraScope: role.cameraScope ?? {},
       liveQuota: role.liveQuota ? String(role.liveQuota) : '',
+      maxSessions: role.maxSessions === null || role.maxSessions === undefined ? '' : String(role.maxSessions),
       sortOrder: role.sortOrder || 0,
       isActive: role.isActive ?? true,
     })
@@ -581,10 +600,10 @@ export default function UserManagement() {
     setSubmittingRole(true)
     try {
       if (roleModal.item) {
-        await imageServiceApi.updateRole(roleModal.item.id, { ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota) })
+        await imageServiceApi.updateRole(roleModal.item.id, { ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota), maxSessions: maxSessionsToApi(roleForm.maxSessions) })
         toast.success(t('common.saveSuccess') || t('ui.userManagement.roleUpdatedSuccessfully'))
       } else {
-        await imageServiceApi.createRole({ ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota) })
+        await imageServiceApi.createRole({ ...roleForm, liveQuota: quotaToApi(roleForm.liveQuota), maxSessions: maxSessionsToApi(roleForm.maxSessions) })
         toast.success(t('common.saveSuccess') || t('ui.userManagement.roleCreatedSuccessfully'))
       }
       setRoleModal({ open: false })
@@ -792,6 +811,8 @@ export default function UserManagement() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-1">
+                              <button data-user-sessions={item.username} onClick={() => setSessionsUser({ id: item.id, username: item.username })}
+                                className="p-2 rounded-lg hover:bg-cyan-500/20" title={t('ui.userSessions.open')}><MonitorSmartphone size={15} className="text-cyan-400" /></button>
                               {hasPermission(user, 'users:update') && (
                                 <>
                                   <button onClick={() => openEditUser(item)}
@@ -1164,6 +1185,7 @@ export default function UserManagement() {
       )}
 
       {/* User Create/Edit Modal */}
+      <UserSessionsModal target={sessionsUser} onClose={() => setSessionsUser(null)} />
       <Modal isOpen={userModal.open} onClose={() => setUserModal({ open: false })} size="5xl"
         title={userModal.item ? t('imageService.users.editUser') : t('imageService.users.newUser')}>
         <div className="space-y-4 p-1">
@@ -1386,6 +1408,7 @@ export default function UserManagement() {
           {roleForm.code !== 'admin' && (
             <LiveQuotaField value={roleForm.liveQuota} onChange={(liveQuota) => setRoleForm((f) => ({ ...f, liveQuota }))} hint={t('ui.liveQuota.roleHint')} />
           )}
+          <MaxSessionsField value={roleForm.maxSessions} onChange={(maxSessions) => setRoleForm((f) => ({ ...f, maxSessions }))} />
 
           <div className="flex justify-end gap-2 pt-3">
             <Button variant="secondary" onClick={() => setRoleModal({ open: false })}>{t('common.cancel')}</Button>

@@ -505,7 +505,9 @@
       "passwordSameAsOld": "新しいパスワードは現在のパスワードと異なる必要があります",
       "passwordTooWeak": "このパスワードは一般的すぎて推測されやすいです。より予測しにくいものを選んでください",
       "noAccount": "アカウントをお持ちでないですか？こちらで登録",
-      "forbidden": "この操作を行う権限がありません"
+      "forbidden": "この操作を行う権限がありません",
+      "sessionReplaced": "このアカウントが許可数を超える端末でログインしたため、ログアウトされました。",
+      "sessionEnded": "管理者がこの端末をログアウトしました。もう一度ログインしてください。"
     },
     "nav": {
       "workOrders": "作業指示",
@@ -691,7 +693,8 @@
         "live_auto_hd_2x2": "2x2 ウォールを自動でHD",
         "live_auto_hd_3x3": "3x3 ウォールを自動でHD",
         "live_auto_hd_4x4": "4x4 ウォールを自動でHD",
-        "incident_attachment_max_mb": "インシデント添付の最大サイズ (MB)"
+        "incident_attachment_max_mb": "インシデント添付の最大サイズ (MB)",
+        "login_max_sessions_per_user": "ユーザーごとの同時ログイン台数"
       },
       "descriptions": {
         "alert_critical_threshold": "致命的なアラートを発信するためのディスク使用率",
@@ -740,7 +743,8 @@
         "live_auto_hd_2x2": "各タイルはSDの後にHDへ切り替え（1人あたりメイン4本）",
         "live_auto_hd_3x3": "全タイルHD（1人あたりメイン9本）: 小さいタイルでは鮮明さの向上は少なく、ネットワークとレコーダーの負荷が増えます",
         "live_auto_hd_4x4": "全タイルHD（1人あたりメイン16本）: 最も重い。ネットワークとレコーダーに余裕がある場合のみ",
-        "incident_attachment_max_mb": "作業指示とインシデントの添付ファイル1件あたりの上限"
+        "incident_attachment_max_mb": "作業指示とインシデントの添付ファイル1件あたりの上限",
+        "login_max_sessions_per_user": "1 人のユーザーが同時にログインできる端末数。超えると、最も長く使われていない端末がログアウトされます。ロールごとに設定可能。0 = 無制限。"
       },
       "problems": {
         "summary": "保存していません — 修正が必要な設定が {{count}} 件あります（赤字を確認）",
@@ -3841,6 +3845,25 @@
       "failed": "回答できませんでした。もう一度お試しください",
       "tooFast": "質問が多すぎます。少し待ってください",
       "dragHint": "クリックで質問、ドラッグで移動"
+    },
+    "maxSessions": {
+      "label": "同時ログイン台数",
+      "placeholder": "システム設定に従う",
+      "hint": "空欄 = システム設定（既定 2）· 0 = 無制限 · 超えると最も長く使われていない端末がログアウト"
+    },
+    "userSessions": {
+      "open": "ログイン中の端末",
+      "title": "{{username}} がログイン中の端末",
+      "limit": "同時に最大 {{count}} 台",
+      "noLimit": "台数制限なし",
+      "none": "ログイン中の端末はありません",
+      "thisDevice": "この端末",
+      "signedIn": "ログイン",
+      "lastUsed": "最終使用",
+      "revoke": "ログアウト",
+      "confirmRevoke": "ログアウトを確定",
+      "revoked": "その端末をログアウトしました",
+      "revokeFailed": "その端末をログアウトできませんでした"
     }
   }
 }

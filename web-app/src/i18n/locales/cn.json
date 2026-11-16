@@ -505,7 +505,9 @@
       "passwordSameAsOld": "新密码不能与当前密码相同",
       "passwordTooWeak": "此密码过于常见/容易被猜到，请选择不易预测的密码",
       "noAccount": "还没有账户？在此注册",
-      "forbidden": "您没有执行此操作的权限"
+      "forbidden": "您没有执行此操作的权限",
+      "sessionReplaced": "由于此账户在超过允许数量的设备上登录，您已被登出。",
+      "sessionEnded": "管理员已登出此设备，请重新登录。"
     },
     "nav": {
       "workOrders": "工单",
@@ -691,7 +693,8 @@
         "live_auto_hd_2x2": "2x2 墙自动高清",
         "live_auto_hd_3x3": "3x3 墙自动高清",
         "live_auto_hd_4x4": "4x4 墙自动高清",
-        "incident_attachment_max_mb": "Incident 附件最大 (MB)"
+        "incident_attachment_max_mb": "Incident 附件最大 (MB)",
+        "login_max_sessions_per_user": "每个用户可同时登录的设备数"
       },
       "descriptions": {
         "alert_critical_threshold": "用于严重告警的磁盘空间使用百分比",
@@ -740,7 +743,8 @@
         "live_auto_hd_2x2": "每格先显示标清再切换为高清（每人 4 路主码流）",
         "live_auto_hd_3x3": "每格高清（每人 9 路主码流）：小格子清晰度提升有限，但更占网络和录像机",
         "live_auto_hd_4x4": "每格高清（每人 16 路主码流）：负载最重，仅在网络和录像机能承受时使用",
-        "incident_attachment_max_mb": "工单和事件中每个附件的最大大小"
+        "incident_attachment_max_mb": "工单和事件中每个附件的最大大小",
+        "login_max_sessions_per_user": "一个用户可同时在多少台设备上登录。超出时，最久未使用的设备将被登出。角色可单独设置。0 = 不限制。"
       },
       "problems": {
         "summary": "未保存 — 有 {{count}} 项需要修改，请查看红色提示",
@@ -3841,6 +3845,25 @@
       "failed": "回答失败，请重试",
       "tooFast": "提问过于频繁，请稍候",
       "dragHint": "点击提问，拖动可移动位置"
+    },
+    "maxSessions": {
+      "label": "可同时登录的设备数",
+      "placeholder": "跟随系统设置",
+      "hint": "留空 = 使用系统设置（默认 2）· 0 = 不限制 · 超出时最久未使用的设备将被登出"
+    },
+    "userSessions": {
+      "open": "已登录的设备",
+      "title": "{{username}} 已登录的设备",
+      "limit": "最多同时 {{count}} 台设备",
+      "noLimit": "设备数量不限",
+      "none": "没有已登录的设备",
+      "thisDevice": "本设备",
+      "signedIn": "登录于",
+      "lastUsed": "最近使用",
+      "revoke": "登出",
+      "confirmRevoke": "确认登出",
+      "revoked": "已登出该设备",
+      "revokeFailed": "无法登出该设备"
     }
   }
 }

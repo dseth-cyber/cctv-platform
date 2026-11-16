@@ -293,6 +293,12 @@ export function createImageServiceApi(api: any) {
     unlockUser: (id: string) =>
       api.post(`${BASE}/users/${id}/unlock`).then((r: any) => r.data),
 
+    getUserSessions: (id: string) =>
+      api.get(`${BASE}/users/${id}/sessions`).then((r: any) => r.data),
+
+    revokeUserSession: (id: string, sid: string) =>
+      api.post(`${BASE}/users/${id}/sessions/${sid}/revoke`).then((r: any) => r.data),
+
     getUserActivity: (id: string, period?: string) =>
       api.get(`${BASE}/users/${id}/activity`, { params: { period } }).then((r: any) => r.data),
 
