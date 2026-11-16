@@ -20,11 +20,20 @@ const get = async (path, token) => {
   let json = null; try { json = JSON.parse(text); } catch { /* not json */ }
   return { status: r.status, json, text };
 };
+let refreshToken = null;
 const login = async (username, password) => {
   const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
   const j = await r.json().catch(() => ({}));
-  return r.ok ? (j.data ?? j).accessToken : null;
+  if (!r.ok) return null;
+  refreshToken = (j.data ?? j).refreshToken ?? null;
+  return (j.data ?? j).accessToken;
 };
+// The smoke test's own sign-in counts as one device (login_max_sessions_per_user): end it when done.
+const logout = async (token) => {
+  if (!token) return;
+  await fetch(`${API}/auth/logout`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ refreshToken }) }).catch(() => {});
+};
+let token = null;
 const list = (j) => (Array.isArray(j) ? j : j?.items ?? j?.data ?? []);
 
 console.log(`CCTV smoke test against ${BASE} (${new Date().toISOString()})`);
@@ -51,7 +60,7 @@ try {
   const user = process.env.SMOKE_USER;
   const pass = process.env.SMOKE_PASSWORD;
   if (!user || !pass) throw new Error('set SMOKE_USER and SMOKE_PASSWORD (an admin account) in the environment');
-  const token = await login(user, pass);
+  token = await login(user, pass);
   if (!check('admin sign-in', !!token)) throw new Error('cannot sign in; the remaining checks need it');
 
   const pre = (await get('/release/preflight', token)).json ?? {};
@@ -100,13 +109,14 @@ try {
     }
   }
 
-  // The seeded passwords must have been changed. One try each; a wrong password is one normal failed sign-in.
-  for (const [u, p] of [['admin', 'admin123'], ['operator', 'operator123'], ['viewer', 'viewer123']]) {
-    const t = await login(u, p);
-    check(`default password of "${u}" no longer works`, !t);
-  }
+  // The seeded passwords must have been changed. The server compares them with the stored hashes (release
+  // preflight item sec-default-passwords): no sign-in attempt, so no account's lockout count goes up.
+  const seeded = (pre.items ?? []).find((i) => i.id === 'sec-default-passwords');
+  check('seeded accounts (admin, operator, viewer) no longer use the seed passwords', seeded?.status === 'passed', seeded?.details ?? 'check missing from release preflight');
 } catch (err) {
   check('smoke test ran to the end', false, err instanceof Error ? err.message : String(err));
+} finally {
+  await logout(token);
 }
 console.log(failed ? `${failed} FAILED, ${warned} WARN` : `all passed, ${warned} WARN`);
 process.exit(failed ? 1 : 0);

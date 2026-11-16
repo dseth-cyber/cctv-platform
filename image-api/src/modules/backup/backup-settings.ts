@@ -122,6 +122,8 @@ export function localClock(now: Date, timeZone: string): { hhmm: string; day: st
 
 /** Backup files this app writes (old plain-SQL name and the current custom-format name). Nothing else is touched. */
 export const APP_BACKUP_FILE = /^(pg_dump_.+\.sql\.gz|cctv-db-.+\.dump)$/;
+/** Storage backups this app writes; kept and pruned on their own, so they never push database backups out. */
+export const STORAGE_BACKUP_FILE = /^storage_backup_.+\.(bin\.gz|tar\.gz)$/;
 
 export interface PruneResult { deleted: string[]; kept: number }
 
@@ -130,10 +132,10 @@ export interface PruneResult { deleted: string[]; kept: number }
  * so a stopped schedule can never age every backup away. Files the app did not write (e.g. a host cron's dumps)
  * are never touched.
  */
-export function pruneBackupFiles(dir: string, keepDays: number, now = new Date()): PruneResult {
+export function pruneBackupFiles(dir: string, keepDays: number, now = new Date(), pattern: RegExp = APP_BACKUP_FILE): PruneResult {
   let names: string[];
   try {
-    names = fs.readdirSync(dir).filter((n) => APP_BACKUP_FILE.test(n));
+    names = fs.readdirSync(dir).filter((n) => pattern.test(n));
   } catch {
     return { deleted: [], kept: 0 };
   }

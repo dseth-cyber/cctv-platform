@@ -81,7 +81,10 @@ B=$(val BACKUP_HOST_DIR)
 if [ -n "$B" ]; then
   case "$B" in /*) ;; *) fail "BACKUP_HOST_DIR must be an absolute path";; esac
   if [ -d "$B" ]; then
-    BOWNER=$(stat -c '%u' "$B" 2>/dev/null); [ "$BOWNER" = "1001" ] && ok "backup folder owned by uid 1001 (image-api writes backups there)" || fail "backup folder owner is uid $BOWNER; run: chown 1001:1001 $B"
+    BOWNER=$(stat -c '%u' "$B" 2>/dev/null); [ "$BOWNER" = "1001" ] && ok "backup folder owned by uid 1001 (image-api writes backups there)" || fail "backup folder owner is uid $BOWNER; run: chown 1001:<admin group> $B && chmod 2770 $B"
+    BMODE=$(stat -c '%a' "$B" 2>/dev/null)
+    # Group-writable with setgid: the admin's cron / manual pg_dump keep writing next to the app's backups.
+    case "$BMODE" in 2770|2775|2771) ok "backup folder mode $BMODE (group can write, new files keep the group)";; *) warn "backup folder mode is $BMODE; for the admin's cron and manual dumps run: chmod 2770 $B";; esac
     ROOT_DEV=$(df -P / | awk 'NR==2 {print $1}'); BAK_DEV=$(df -P "$B" | awk 'NR==2 {print $1}')
     [ "$ROOT_DEV" != "$BAK_DEV" ] && ok "backups are on another disk than the system/database ($BAK_DEV)" || warn "backups share the system disk with the database; one disk failure loses both"
   else fail "BACKUP_HOST_DIR $B does not exist"; fi

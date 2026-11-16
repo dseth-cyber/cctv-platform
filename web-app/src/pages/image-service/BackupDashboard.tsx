@@ -22,6 +22,7 @@ function statusBadge(status: string, themeConfig: any, t: (key: string) => strin
     running: 'bg-blue-500/20 text-blue-400',
     pending: 'bg-gray-500/20 text-gray-400',
     expired: 'bg-gray-500/20 text-gray-400',
+    skipped: 'bg-gray-500/20 text-gray-400',
   };
   const icons: Record<string, any> = {
     completed: CheckCircle,
@@ -29,6 +30,7 @@ function statusBadge(status: string, themeConfig: any, t: (key: string) => strin
     running: Clock,
     pending: Clock,
     expired: Clock,
+    skipped: Clock,
   };
   const statusKey: Record<string, string> = {
     completed: 'imageService.backup.statusCompleted',
@@ -36,6 +38,7 @@ function statusBadge(status: string, themeConfig: any, t: (key: string) => strin
     running: 'imageService.backup.statusRunning',
     pending: 'imageService.backup.statusPending',
     expired: 'imageService.backup.statusExpired',
+    skipped: 'imageService.backup.statusSkipped',
   };
   const Icon = icons[status] || Clock;
   return (
@@ -61,8 +64,10 @@ export default function BackupDashboard() {
   const dbMutation = useMutation({
     mutationFn: () => imageServiceApi.runDatabaseBackup(),
     onSuccess: (res: any) => {
-      toast.success(res.status === 'completed' ? t('imageService.backup.dbBackupCompleted') : t('imageService.backup.dbBackupFailed'));
+      if (res.status === 'completed') toast.success(t('imageService.backup.dbBackupCompleted'));
+      else toast.error(t('imageService.backup.dbBackupFailed'));
       queryClient.invalidateQueries({ queryKey: ['backup-status'] });
+      queryClient.invalidateQueries({ queryKey: ['backup-records'] });
     },
     onError: (e: any) => { if (!e?._handled) toast.error(t('imageService.backup.dbBackupFailed')); },
   });
@@ -70,8 +75,11 @@ export default function BackupDashboard() {
   const storageMutation = useMutation({
     mutationFn: () => imageServiceApi.runStorageBackup(),
     onSuccess: (res: any) => {
-      toast.success(res.status === 'completed' ? t('imageService.backup.storageBackupCompleted') : t('imageService.backup.storageBackupFailed'));
+      if (res.status === 'completed') toast.success(t('imageService.backup.storageBackupCompleted'));
+      else if (res.status === 'skipped') toast.info(t('imageService.backup.storageBackupSkipped'));
+      else toast.error(t('imageService.backup.storageBackupFailed'));
       queryClient.invalidateQueries({ queryKey: ['backup-status'] });
+      queryClient.invalidateQueries({ queryKey: ['backup-records'] });
     },
     onError: (e: any) => { if (!e?._handled) toast.error(t('imageService.backup.storageBackupFailed')); },
   });

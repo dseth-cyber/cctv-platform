@@ -432,7 +432,9 @@
       "diskHoldsRecordings": "録画 {{recordings}} · クリップ {{clips}}",
       "diskHoldsBackups": "バックアップ {{count}} ファイル · {{size}}",
       "diskSameAs": "同じディスク: {{names}}",
-      "diskUnavailable": "見つかりません / 未マウント"
+      "diskUnavailable": "見つかりません / 未マウント",
+      "statusSkipped": "スキップ（ファイルなし）",
+      "storageBackupSkipped": "ストレージにファイルがないため、バックアップファイルは作成されませんでした"
     },
     "settings": {
       "title": "設定",

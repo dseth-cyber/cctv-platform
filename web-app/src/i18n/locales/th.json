@@ -531,7 +531,9 @@
       "diskHoldsRecordings": "ไฟล์บันทึก {{recordings}} · คลิป {{clips}}",
       "diskHoldsBackups": "backup {{count}} ไฟล์ · {{size}}",
       "diskSameAs": "อยู่ดิสก์เดียวกับ: {{names}}",
-      "diskUnavailable": "ไม่พบ / ไม่ได้ mount"
+      "diskUnavailable": "ไม่พบ / ไม่ได้ mount",
+      "statusSkipped": "ข้าม (ไม่มีไฟล์)",
+      "storageBackupSkipped": "ไม่มีไฟล์ในพื้นที่จัดเก็บให้สำรอง จึงไม่ได้สร้างไฟล์"
     },
     "settings": {
       "title": "ตั้งค่า",

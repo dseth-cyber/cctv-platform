@@ -4,14 +4,13 @@ import { config } from '../../config/index.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
 import { createAlert } from '../alerts/alerts.service.js';
 import { createAuditLog } from '../audit/audit.service.js';
-import { backupDestinations, destinationWritable, getBackupSettings, internalBackupDir, pruneBackupFiles } from './backup-settings.js';
+import { APP_BACKUP_FILE, STORAGE_BACKUP_FILE, backupDestinations, destinationWritable, getBackupSettings, pruneBackupFiles } from './backup-settings.js';
 import { execFileSync } from 'child_process';
 import * as zlib from 'zlib';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-const BACKUP_DIR = internalBackupDir();
 
 /**
  * One database backup into the destination chosen on the backup page (default: the separate backup disk when it
@@ -87,9 +86,9 @@ export async function runDatabaseBackup(options?: { trigger?: 'schedule' | 'manu
 }
 
 /** Removes this app's backups past the keep period in one folder, marks their records expired, writes the audit log. */
-async function pruneOldBackups(dir: string, keepDays: number) {
+async function pruneOldBackups(dir: string, keepDays: number, pattern = APP_BACKUP_FILE) {
   try {
-    const { deleted } = pruneBackupFiles(dir, keepDays);
+    const { deleted } = pruneBackupFiles(dir, keepDays, new Date(), pattern);
     if (deleted.length === 0) return;
     const prisma = getPrisma();
     await prisma.backupRecord.updateMany({ where: { filePath: { in: deleted } }, data: { status: 'expired' } });
@@ -105,54 +104,70 @@ async function pruneOldBackups(dir: string, keepDays: number) {
   }
 }
 
-export async function runStorageBackup(): Promise<{ id: string; status: string; filePath?: string }> {
+/**
+ * Backs up the files in the default storage provider (the local disk since MinIO left) into the destination chosen
+ * on the backup page, as one gzip stream: per file a line "<key>\t<bytes>\n" then the bytes. Streamed, never held in
+ * memory whole. CCTV keeps no files there today, so most runs find none: that is recorded as `skipped` with no file
+ * written, never as a 0-byte "completed" backup. A destination that is not there fails, visibly.
+ */
+export async function runStorageBackup(): Promise<{ id: string; status: string; filePath?: string; message?: string }> {
   const prisma = getPrisma();
-
+  const settings = await getBackupSettings();
+  const dest = backupDestinations().find((d) => d.id === settings.destination) ?? backupDestinations()[0];
   const record = await prisma.backupRecord.create({
-    data: { type: 'storage', status: 'running' },
+    data: { type: 'storage', status: 'running', metadata: { destination: dest.id, hostPath: dest.hostPath } },
   });
 
+  let filePath: string | null = null;
   try {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filePath = path.join(BACKUP_DIR, `storage_backup_${timestamp}.tar.gz`);
+    if (dest.id === 'internal') fs.mkdirSync(dest.dir, { recursive: true });
+    if (!destinationWritable(dest.dir)) throw new Error(`Backup destination ${dest.hostPath} is not mounted or not writable`);
 
     const provider = storageRouter.getDefault();
-    const chunks: Buffer[] = [];
-    let objectCount = 0;
-
-    for await (const key of provider.list()) {
-      const data = await provider.getBuffer(key);
-      const header = Buffer.from(`${key}:${data.length}\n`);
-      chunks.push(header, data);
-      objectCount++;
+    const keys: string[] = [];
+    for await (const key of provider.list()) keys.push(key);
+    if (keys.length === 0) {
+      const message = 'Nothing to back up: the storage has no files';
+      await prisma.backupRecord.update({ where: { id: record.id }, data: { status: 'skipped', errorMessage: message, completedAt: new Date() } });
+      logger.info({ destination: dest.id }, 'Storage backup skipped: no files');
+      return { id: record.id, status: 'skipped', message };
     }
 
-    const data = Buffer.concat(chunks);
-    fs.writeFileSync(filePath, data);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    filePath = path.join(dest.dir, `storage_backup_${timestamp}.bin.gz`);
+    const gzip = zlib.createGzip();
+    const out = fs.createWriteStream(filePath);
+    const done = new Promise<void>((resolve, reject) => {
+      out.on('finish', () => resolve());
+      out.on('error', reject);
+      gzip.on('error', reject);
+    });
+    gzip.pipe(out);
+    const write = (chunk: Buffer | string) => new Promise<void>((resolve) => { if (gzip.write(chunk)) resolve(); else gzip.once('drain', () => resolve()); });
+    for (const key of keys) {
+      const data = await provider.getBuffer(key);
+      await write(`${key}\t${data.length}\n`);
+      await write(data);
+    }
+    gzip.end();
+    await done;
 
-    const stats = fs.statSync(filePath);
-    const checksum = crypto.createHash('sha256').update(data).digest('hex');
-
+    const checksum = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    const size = fs.statSync(filePath).size;
     await prisma.backupRecord.update({
       where: { id: record.id },
-      data: {
-        status: 'completed',
-        filePath,
-        fileSize: BigInt(stats.size),
-        checksum,
-        completedAt: new Date(),
-      },
+      data: { status: 'completed', filePath, fileSize: BigInt(size), checksum, completedAt: new Date(), metadata: { destination: dest.id, hostPath: dest.hostPath, objects: keys.length } },
     });
-
-    logger.info({ filePath, size: stats.size, objects: objectCount }, 'Storage backup completed');
+    logger.info({ destination: dest.id, size, objects: keys.length }, 'Storage backup completed');
+    await pruneOldBackups(dest.dir, settings.keepDays, STORAGE_BACKUP_FILE);
     return { id: record.id, status: 'completed', filePath };
   } catch (err: any) {
+    if (filePath) fs.rmSync(filePath, { force: true });
     await prisma.backupRecord.update({
       where: { id: record.id },
-      data: { status: 'failed', errorMessage: err.message, completedAt: new Date() },
+      data: { status: 'failed', errorMessage: String(err?.message || err).slice(0, 500), completedAt: new Date() },
     });
-    logger.error({ err }, 'Storage backup failed');
+    logger.error({ err: err?.message, destination: dest.id }, 'Storage backup failed');
     return { id: record.id, status: 'failed' };
   }
 }

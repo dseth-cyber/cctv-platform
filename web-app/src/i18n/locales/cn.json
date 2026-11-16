@@ -432,7 +432,9 @@
       "diskHoldsRecordings": "录像 {{recordings}} · 片段 {{clips}}",
       "diskHoldsBackups": "备份 {{count}} 个文件 · {{size}}",
       "diskSameAs": "与以下位于同一磁盘：{{names}}",
-      "diskUnavailable": "未找到 / 未挂载"
+      "diskUnavailable": "未找到 / 未挂载",
+      "statusSkipped": "已跳过（无文件）",
+      "storageBackupSkipped": "存储中没有文件，因此未创建备份文件"
     },
     "settings": {
       "title": "设置",

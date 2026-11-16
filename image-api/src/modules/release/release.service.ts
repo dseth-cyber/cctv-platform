@@ -2,6 +2,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../lib/logger.js';
 import { MediaMtxService } from '../media/mediamtx.service.js';
+import bcrypt from 'bcryptjs';
 
 export interface PreflightCheckItem {
   id: string;
@@ -97,8 +98,43 @@ function auditSecretHygiene(): PreflightCheckItem[] {
 /**
  * Check Database and MediaMTX readiness
  */
+/** The accounts the seed creates, with the passwords it gives them. */
+export const SEEDED_ACCOUNTS: Array<[string, string]> = [['admin', 'admin123'], ['operator', 'operator123'], ['viewer', 'viewer123']];
+
+/**
+ * Are the seeded accounts still on the seed's passwords? Compared against the stored hashes, never by signing in,
+ * so it adds nothing to an account's failed-sign-in (lockout) count and opens no session. Names only in the result.
+ */
+export async function auditDefaultPasswords(): Promise<PreflightCheckItem> {
+  const users = await getPrisma().user.findMany({
+    where: { username: { in: SEEDED_ACCOUNTS.map(([u]) => u) }, enabled: true, deletedAt: null },
+    select: { username: true, password: true },
+  });
+  const still: string[] = [];
+  for (const u of users) {
+    const seeded = SEEDED_ACCOUNTS.find(([name]) => name === u.username)?.[1];
+    if (seeded && u.password && (await bcrypt.compare(seeded, u.password))) still.push(u.username);
+  }
+  const production = process.env.DEPLOY_ENV === 'production';
+  return {
+    id: 'sec-default-passwords',
+    category: 'security',
+    name: 'Seeded accounts use new passwords',
+    status: still.length === 0 ? 'passed' : production ? 'failed' : 'warning',
+    details: still.length === 0
+      ? 'admin, operator and viewer no longer accept the passwords the seed gave them (or are switched off)'
+      : `Still on the seed's password: ${still.join(', ')}`,
+    remediation: 'Change these passwords on the Users page, or switch the accounts off.',
+  };
+}
+
 export async function getPreflightReadiness(): Promise<PreflightReport> {
   const items: PreflightCheckItem[] = [...auditSecretHygiene()];
+  try {
+    items.push(await auditDefaultPasswords());
+  } catch {
+    items.push({ id: 'sec-default-passwords', category: 'security', name: 'Seeded accounts use new passwords', status: 'warning', details: 'Accounts could not be read' });
+  }
   const prisma = getPrisma();
 
   // 1. Database Check

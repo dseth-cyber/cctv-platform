@@ -531,7 +531,9 @@
       "diskHoldsRecordings": "Recordings {{recordings}} · clips {{clips}}",
       "diskHoldsBackups": "{{count}} backup files · {{size}}",
       "diskSameAs": "Same disk as: {{names}}",
-      "diskUnavailable": "Not found / not mounted"
+      "diskUnavailable": "Not found / not mounted",
+      "statusSkipped": "Skipped (nothing to back up)",
+      "storageBackupSkipped": "The storage has no files, so no backup file was made"
     },
     "settings": {
       "title": "Settings",

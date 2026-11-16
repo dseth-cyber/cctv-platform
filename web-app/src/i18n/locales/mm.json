@@ -432,7 +432,9 @@
       "diskHoldsRecordings": "မှတ်တမ်း {{recordings}} · ကလစ် {{clips}}",
       "diskHoldsBackups": "backup {{count}} ဖိုင် · {{size}}",
       "diskSameAs": "disk တူသည်: {{names}}",
-      "diskUnavailable": "မတွေ့ / mount မထား"
+      "diskUnavailable": "မတွေ့ / mount မထား",
+      "statusSkipped": "ကျော်ခဲ့သည် (ဖိုင်မရှိ)",
+      "storageBackupSkipped": "storage တွင် ဖိုင်မရှိသဖြင့် backup ဖိုင် မဖန်တီးပါ"
     },
     "settings": {
       "title": "ဆက်တင်များ",

@@ -134,7 +134,12 @@ SMOKE_USER=<admin> SMOKE_PASSWORD='<รหัส>' node scripts/prod-smoke.mjs h
 
 **ตั้งแต่ rc6: ตั้งค่าในหน้า สำรองข้อมูล** (เปิด/ปิด, เวลา, เก็บกี่วัน, ที่เก็บ) แก้ได้เฉพาะผู้มีสิทธิ์ `system-config:update` มี audit log
 - ที่เก็บเลือกได้ 2 ที่: ดิสก์ระบบ (volume `backup-data`) หรือดิสก์ backup แยก = `BACKUP_HOST_DIR` ใน `.env.production`
-  (`docker-compose.prod.yml` mount เข้า `/backups-external`; โฟลเดอร์ต้องเป็นของ uid 1001 — preflight ตรวจ) ค่าเริ่มต้นคือดิสก์แยก
+  (`docker-compose.prod.yml` mount เข้า `/backups-external`) ค่าเริ่มต้นคือดิสก์แยก
+  สิทธิ์โฟลเดอร์: เจ้าของ uid 1001 (image-api) + กลุ่มของผู้ดูแลเครื่อง และ setgid ให้ไฟล์ใหม่อยู่กลุ่มเดียวกัน
+  เพื่อให้ cron และ `pg_dump` ด้วยมือ (รันเป็นผู้ดูแล เช่น `administrator`) ยังเขียนได้ — preflight ตรวจ:
+  ```sh
+  sudo chown 1001:administrator /srv/cctv-data/backup && sudo chmod 2770 /srv/cctv-data/backup
+  ```
 - หน้าเว็บเลือกได้เฉพาะที่ mount ไว้แล้ว ไม่ได้ mount ดิสก์เอง; ที่เก็บหายหรือเขียนไม่ได้ = backup FAILED + แจ้งเตือน "สำรองฐานข้อมูลไม่สำเร็จ" ไม่ย้ายไปดิสก์อื่นเอง
 - หลังสำรองสำเร็จ ลบไฟล์ของแอป (`pg_dump_*.sql.gz`) ที่เก่ากว่าจำนวนวันที่ตั้ง แต่เหลือ 3 ไฟล์ล่าสุดเสมอ; ไฟล์อื่นในโฟลเดอร์ (เช่น `cctv-*.dump` จาก cron เดิม) ไม่ถูกแตะ
 - รูปแบบไฟล์ของแอป = SQL บีบอัด (`.sql.gz`) เพราะ pg_dump ใน image (16) ใหม่กว่า server (15) และไฟล์ `-Fc` ของ 16 เปิดด้วย pg_restore 15 ไม่ได้
