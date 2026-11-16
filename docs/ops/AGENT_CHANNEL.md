@@ -186,3 +186,30 @@ BUG / ข้อเสนอ (ไม่ขวางการใช้งาน)
 ยังค้าง (ผู้ใช้เลื่อนไว้): สำเนา backup นอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw, ปิด cron หลังครบ 2 วัน
 
 status: done
+
+## #006 · 2026-11-16 21:55 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: v1.0.0-rc9 ติดตั้งบน Production 192.168.30.244 แล้ว — preflight 0 FAIL, smoke all passed, storage backup ข้ามเมื่อไม่มีไฟล์
+อ้างถึง: #005 (3 ข้อ), tag `v1.0.0-rc9` (f40d2d5)
+
+ผู้ใช้สั่ง deploy rc9 กับเครื่อง Production โดยตรงเมื่อ 2026-11-16
+
+สิ่งที่ทำ (ขั้น 9)
+- pg_dump → checkout `v1.0.0-rc9` (clean) → `CCTV_VERSION=1.0.0-rc9` → preflight → build → migrate **ไม่มี RUN_SEED** ("already in sync") → `up -d`; cctv-api healthy; redirect 301 → https ok
+
+ผลตรวจ
+- preflight: **0 FAIL, 1 WARN** (recording disk free 452 GB; ผู้ใช้ยอมรับ); ข้อใหม่ `backup folder mode 2770` ok
+- smoke (ผู้ใช้รันเอง): **all passed, 0 WARN** (release centre score 88%) รวมข้อใหม่ "seeded accounts … no longer use the seed passwords"; log ยืนยัน: ไม่มี `login_failed` เลยระหว่าง smoke, `POST /auth/logout` 204 ตอนจบ
+- "สำรองพื้นที่จัดเก็บ" (ผู้ใช้กด 21:47:57): record `storage` / **`skipped`** "Nothing to back up: the storage has no files", `destination: external`; log `Storage backup skipped: no files`; ไม่มีไฟล์ใหม่ทั้งบน HDD และ volume `backup-data`
+- ไฟล์ `.tar.gz` 0 byte 3 ไฟล์ใน volume `backup-data` ผู้ใช้ลบแล้ว (`find … -size 0 -delete`); เหลือ `pg_dump_*.sql.gz` 2 ไฟล์เดิม
+
+ไฟล์สำรอง DB: `cctv-2026-11-16-2140-before-rc9.dump` (ก่อน deploy; pg_restore -l อ่านได้ 35 ตาราง)
+
+ข้อสังเกตสำหรับรอบหน้า (ไม่ขวางการใช้งาน)
+1. `backup_records` 3 แถว storage เดิม (16 พ.ย. 20:09, 20:44 ×2) ยังเป็น `completed` แต่ไฟล์ 0 byte ถูกลบแล้ว — ปุ่มทดสอบที่แถวนั้นจะหาไฟล์ไม่เจอ; เสนอให้ migration/สคริปต์ครั้งเดียวเปลี่ยนสถานะแถว storage ที่ `file_size = 0` เป็น `failed`/`expired` พร้อมหมายเหตุ
+2. access log ของ nginx (`cctv-web-app`) บันทึก URL HLS พร้อม query `token=…` ครบทั้งตัว (เห็นจาก smoke `GET /mediamtx/hls/.../index.m3u8?token=...`) — ขัดกฎ redact token ใน AGENTS.md; token อายุสั้นและ log อยู่ในเครื่อง แต่ควรตัด query ออกจาก access log (เช่น log_format ใช้ `$uri` แทน `$request_uri`/`$request`) และตรวจ log ของ mediamtx/image-api ด้วย; ไม่ได้ใส่ค่า token ในข้อความนี้
+
+ย้อนกลับ: image `cctv-api:1.0.0-rc8` / `cctv-web-app:1.0.0-rc8` ยังอยู่ (schema เดียวกัน)
+
+ยังค้าง (ผู้ใช้เลื่อนไว้): ดูผล backup จากหน้าเว็บ 2 วันแล้วตัดสินใจปิด cron 02:30, สำเนานอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
+
+status: done
