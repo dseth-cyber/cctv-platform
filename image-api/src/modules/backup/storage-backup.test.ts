@@ -6,7 +6,7 @@ import zlib from 'node:zlib';
 import { getPrisma } from '../../lib/prisma.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
 import { storageRouter } from '../../lib/storage/storage-router.js';
-import { runStorageBackup } from './backup.service.js';
+import { correctEmptyCompletedBackups, runStorageBackup } from './backup.service.js';
 import { pruneBackupFiles, STORAGE_BACKUP_FILE } from './backup-settings.js';
 
 vi.mock('../system-config/system-config.service.js', () => ({ getAllConfigs: vi.fn() }));
@@ -87,5 +87,15 @@ describe('storage backup (bug from #005: 0-byte "completed" file on the system v
     const left = fs.readdirSync(dir);
     expect(left.filter((n) => n.startsWith('storage_backup_'))).toHaveLength(3);
     expect(left.filter((n) => n.startsWith('pg_dump_'))).toHaveLength(5);
+  });
+
+  it('startup puts right the empty backups old versions called completed, and only those', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 3 });
+    vi.mocked(getPrisma).mockReturnValue({ backupRecord: { updateMany } } as any);
+    expect(await correctEmptyCompletedBackups()).toBe(3);
+    expect(updateMany.mock.calls[0][0]).toMatchObject({
+      where: { status: 'completed', OR: [{ fileSize: BigInt(0) }, { fileSize: null }] },
+      data: { status: 'failed' },
+    });
   });
 });

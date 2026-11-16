@@ -105,6 +105,20 @@ async function pruneOldBackups(dir: string, keepDays: number, pattern = APP_BACK
 }
 
 /**
+ * Before rc9 the storage backup wrote an empty file and still recorded "completed". Those rows are put right at
+ * startup: a completed backup of 0 bytes is a failed one. Only rows that match change, so running it again is a no-op.
+ */
+export async function correctEmptyCompletedBackups(): Promise<number> {
+  const prisma = getPrisma();
+  const r = await prisma.backupRecord.updateMany({
+    where: { status: 'completed', OR: [{ fileSize: BigInt(0) }, { fileSize: null }] },
+    data: { status: 'failed', errorMessage: 'Empty file: nothing was backed up (recorded as completed before rc9)' },
+  });
+  if (r.count > 0) logger.info({ corrected: r.count }, 'Empty backups recorded as completed are now marked failed');
+  return r.count;
+}
+
+/**
  * Backs up the files in the default storage provider (the local disk since MinIO left) into the destination chosen
  * on the backup page, as one gzip stream: per file a line "<key>\t<bytes>\n" then the bytes. Streamed, never held in
  * memory whole. CCTV keeps no files there today, so most runs find none: that is recorded as `skipped` with no file

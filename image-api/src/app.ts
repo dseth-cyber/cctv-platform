@@ -66,6 +66,7 @@ import { startSystemCleanup, stopSystemCleanup } from './modules/system-cleanup/
 import { metricsRoutes } from './modules/metrics/metrics.controller.js';
 import { storageRouter } from './lib/storage/storage-router.js';
 import { ensureStorageWithoutBundledMinio } from './lib/storage/ensure-local-storage.js';
+import { correctEmptyCompletedBackups } from './modules/backup/backup.service.js';
 import { getPrisma } from './lib/prisma.js';
 
 /** Allows requests without an Origin and origins in CORS_ALLOWED_ORIGINS; others get 403 (was 500). */
@@ -234,6 +235,7 @@ export async function startApp() {
   startSystemCleanup();
   startTelegramBot();
 
+  await correctEmptyCompletedBackups().catch((err) => logger.warn({ err: err?.message }, 'Could not correct empty backup records'));
   await ensureStorageWithoutBundledMinio().catch((err) => logger.error({ err: err?.message }, 'Could not move storage off the bundled MinIO'));
   try {
     const prisma = getPrisma();
