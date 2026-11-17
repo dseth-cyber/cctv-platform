@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { SecurityWatermark } from './SecurityWatermark';
 import { useAuth } from '@/contexts/AuthContext';
+import { WEBRTC_CONNECT_TIMEOUT_MS, canPlayNativeHls, liveTransport, whepToHlsUrl } from '@/lib/hlsFallback';
 
 
 import { useTranslation } from 'react-i18next';
@@ -84,6 +85,9 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   const reconnectAttemptsRef = useRef<number>(0);
   const disconnectGraceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimeoutRef = useRef<any>(null);
+  // HLS fallback (see lib/hlsFallback.ts): the timer that gives up on WebRTC, and the listeners of the HLS playback.
+  const webrtcTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hlsCleanupRef = useRef<(() => void) | null>(null);
 
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   // Told once per player: the first frame drawn, where the browser can say so, else when playback starts.
@@ -135,6 +139,56 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
     return url;
   };
 
+  /** Ends an HLS playback started by startHls (listeners and the video's src). */
+  const stopHls = () => {
+    hlsCleanupRef.current?.();
+    hlsCleanupRef.current = null;
+    const video = videoRef.current;
+    if (video && video.getAttribute('src')) {
+      video.removeAttribute('src');
+      video.load();
+    }
+  };
+
+  /** Plays the same stream over HLS (plain HTTPS), for networks where WebRTC's UDP does not arrive. */
+  const startHls = (hlsUrl: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (webrtcTimeoutRef.current) {
+      clearTimeout(webrtcTimeoutRef.current);
+      webrtcTimeoutRef.current = null;
+    }
+    if (pcRef.current) {
+      pcRef.current.onconnectionstatechange = null;
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    if (resourceUrlRef.current) {
+      fetch(resourceUrlRef.current, { method: 'DELETE' }).catch(() => {});
+      resourceUrlRef.current = null;
+    }
+    stopHls();
+    setStatus('connecting');
+    setErrorMessage('');
+    const onHlsPlaying = () => {
+      setStatus('connected');
+      reconnectAttemptsRef.current = 0;
+    };
+    const onHlsError = () => {
+      setStatus('error');
+      setErrorMessage(t('ui.whepPlayer.streamConnectionLostReconnectionFailed'));
+    };
+    video.addEventListener('playing', onHlsPlaying);
+    video.addEventListener('error', onHlsError);
+    hlsCleanupRef.current = () => {
+      video.removeEventListener('playing', onHlsPlaying);
+      video.removeEventListener('error', onHlsError);
+    };
+    video.srcObject = null;
+    video.src = hlsUrl;
+    video.play().catch(() => {});
+  };
+
   const startStream = useCallback(async () => {
     if (!streamUrl) return;
 
@@ -145,12 +199,30 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    if (webrtcTimeoutRef.current) {
+      clearTimeout(webrtcTimeoutRef.current);
+      webrtcTimeoutRef.current = null;
+    }
 
     // Cleanup existing
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
     }
+    stopHls();
+
+    // Live only (a stream opened at a point in a recording cannot restart over HLS) and only where the browser
+    // plays HLS itself.
+    const hlsUrl = noReconnect ? null : whepToHlsUrl(resolveWhepUrl(streamUrl));
+    const canFallBack = !!hlsUrl && canPlayNativeHls(videoRef.current);
+    if (canFallBack && liveTransport.preferHls()) {
+      startHls(hlsUrl!);
+      return;
+    }
+    const fallBackToHls = () => {
+      liveTransport.markWebrtcUnreachable();
+      startHls(hlsUrl!);
+    };
 
     try {
       const resolvedIceServers: RTCIceServer[] = iceServers || (window as any).__CCTV_ICE_SERVERS__ || [];
@@ -174,8 +246,16 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
           disconnectGraceRef.current = null;
         }
         if (pc.connectionState === 'connected') {
+          if (webrtcTimeoutRef.current) {
+            clearTimeout(webrtcTimeoutRef.current);
+            webrtcTimeoutRef.current = null;
+          }
           setStatus('connected');
           reconnectAttemptsRef.current = 0;
+        } else if (canFallBack && pc.connectionState === 'failed') {
+          // The UDP path does not exist from here (e.g. outside the office, through the tunnel): retrying
+          // WebRTC would only fail again.
+          fallBackToHls();
         } else if (noReconnect && pc.connectionState === 'disconnected') {
           // Browsers report this for a brief gap and then recover by themselves. A stream opened at a
           // point in a recording cannot simply be restarted, so give it the chance first.
@@ -234,6 +314,15 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
 
       const answerSdp = await response.text();
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+
+      // The answer arrives over HTTPS even when the picture cannot (ontrack fires too, before any media flows):
+      // only a connected peer connection shows the UDP path works.
+      if (canFallBack) {
+        webrtcTimeoutRef.current = setTimeout(() => {
+          webrtcTimeoutRef.current = null;
+          if (pcRef.current === pc && pc.connectionState !== 'connected') fallBackToHls();
+        }, WEBRTC_CONNECT_TIMEOUT_MS);
+      }
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || t('ui.whepPlayer.failedToStartWebRTCStream'));
@@ -245,6 +334,11 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       clearTimeout(disconnectGraceRef.current);
       disconnectGraceRef.current = null;
     }
+    if (webrtcTimeoutRef.current) {
+      clearTimeout(webrtcTimeoutRef.current);
+      webrtcTimeoutRef.current = null;
+    }
+    stopHls();
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
