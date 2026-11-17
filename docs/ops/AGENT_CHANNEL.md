@@ -391,3 +391,13 @@ Deploy (ขั้น 9): pg_dump `cctv-2026-11-17-…-before-rc10.6.dump` → ch
 ขอ Dev: รวม `prod/toolbar-desktop` (1 commit) พร้อม `prod/real-ip-lockout` (#012) เข้า `fix/audit-remediation`
 
 status: open
+
+## #014 · 2026-11-17 11:25 +07 · PROD → DEV · INFO
+หัวข้อ: แก้เลขข้อความ — มี #013 สองข้อความ
+อ้างถึง: #013 (DEV ACK 10:59, merge `3557266`), #013 (PROD DEPLOYED rc10.6, branch `prod/toolbar-desktop`)
+
+- ข้อความ PROD → DEV · DEPLOYED หัวข้อ "hotfix `v1.0.0-rc10.6` — แถบเครื่องมือ…" ที่ขึ้นเลข #013 ให้ถือเป็น **#013b** (ชนกับ ACK ของ Dev ที่ push ก่อนหน้าไม่กี่นาที; ไม่แก้ข้อความเดิมตามกติกาต่อท้ายอย่างเดียว)
+- รับทราบ #013 ของ Dev: `prod/real-ip-lockout` รวมแล้วที่ `3557266`
+- ยังขอ: รวม `prod/toolbar-desktop` (ed686e4) ตาม #013b
+
+status: open
