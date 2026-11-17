@@ -63,6 +63,21 @@ interface GridCell {
 }
 
 
+
+/**
+ * Says something once and then gets out of the way: a notice laid over a small tile (e.g. "showing the sub
+ * stream instead") otherwise covers the picture for as long as the tile is open, which on a phone is most of it.
+ */
+const NOTICE_VISIBLE_MS = 6_000;
+function TransientNotice({ className, children }: { className: string; children: React.ReactNode }) {
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setShown(false), NOTICE_VISIBLE_MS);
+    return () => clearTimeout(id);
+  }, []);
+  return shown ? <div className={className}>{children}</div> : null;
+}
+
 const FILTER_STORAGE_KEY = 'cctv_live_filter';
 const VIEW_STORAGE_KEY = 'cctv_live_view';
 const LAYOUT_STORAGE_KEY = 'cctv_live_layout';
@@ -1037,9 +1052,9 @@ export default function LiveGrid() {
                         <CameraOfflineBanner />
                       )}
                       {cell.streamProfile === 'sub' && cell.mainFailedFor === cell.cameraId && (
-                        <div className="absolute bottom-2 left-2 right-2 z-20 px-2 py-1 rounded bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
+                        <TransientNotice key={`${cell.slotIndex}:${cell.cameraId}`} className="absolute bottom-2 left-2 right-2 z-20 px-2 py-1 rounded bg-amber-950/85 border border-amber-700/60 text-[11px] text-amber-200 pointer-events-none">
                           {t('ui.liveGrid.mainStreamFellBack')}
-                        </div>
+                        </TransientNotice>
                       )}
                       {/* Top Action Buttons: below the player's badges. A star that is set stays visible. */}
                       <div className="absolute top-10 right-2 flex items-center gap-1 z-30">

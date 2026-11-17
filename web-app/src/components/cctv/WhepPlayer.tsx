@@ -55,6 +55,8 @@ export interface WhepPlayerProps {
 }
 
 const DISCONNECT_GRACE_MS = 8_000;
+/** HLS errors retried (2 s, 4 s, 8 s) before the tile shows the error. */
+const HLS_RETRIES = 3;
 
 export const WhepPlayer: React.FC<WhepPlayerProps> = ({
   streamUrl,
@@ -168,6 +170,11 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       resourceUrlRef.current = null;
     }
     stopHls();
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    reconnectAttemptsRef.current = 0;
     setStatus('connecting');
     setErrorMessage('');
     const onHlsPlaying = () => {
@@ -175,6 +182,20 @@ export const WhepPlayer: React.FC<WhepPlayerProps> = ({
       reconnectAttemptsRef.current = 0;
     };
     const onHlsError = () => {
+      // A stream that has just been started on demand often has no segment yet: try again a few times first.
+      if (reconnectAttemptsRef.current < HLS_RETRIES) {
+        const delay = 2000 * Math.pow(2, reconnectAttemptsRef.current);
+        reconnectAttemptsRef.current += 1;
+        setStatus('connecting');
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
+          if (videoRef.current === video && hlsCleanupRef.current) {
+            video.src = hlsUrl;
+            video.play().catch(() => {});
+          }
+        }, delay);
+        return;
+      }
       setStatus('error');
       setErrorMessage(t('ui.whepPlayer.streamConnectionLostReconnectionFailed'));
     };

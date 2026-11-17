@@ -35,12 +35,15 @@ webrtcAddress: 0.0.0.0:8889
 webrtcLocalUDPAddress: 0.0.0.0:8189
 webrtcAllowOrigins: ["*"]
 
-# ── HLS Server (Low-Latency Fallback) ──────────────────────────
+# ── HLS Server (fallback for browsers WebRTC cannot reach, e.g. outside the office via the tunnel) ──
+# Plain fMP4 HLS, not Low-Latency: phones' built-in players stalled on LL-HLS (gap.mp4 404, "part duration
+# changed ... will cause an error in iOS clients", production 2026-11-17). Costs a few seconds of delay; the
+# office uses WebRTC and is not affected.
 hls: yes
 hlsAddress: 0.0.0.0:8888
+hlsVariant: fmp4
 hlsSegmentCount: 7
-hlsSegmentDuration: 1s
-hlsPartDuration: 200ms
+hlsSegmentDuration: 2s
 hlsAllowOrigins: ["*"]
 
 # ── Recording Defaults ──────────────────────────────────────────
