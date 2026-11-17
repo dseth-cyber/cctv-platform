@@ -37,6 +37,14 @@ services:
   ntp-server:
     logging: *logging
 
+  # Cloudflare Tunnel (profile tunnel, off unless started with --profile tunnel and TUNNEL_TOKEN set).
+  # Pinned like the other third-party images; no self-update inside the container.
+  cloudflared:
+    # 2026.10.7 (2026-10-30), multi-arch digest
+    image: cloudflare/cloudflared:2026.10.7@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba
+    command: tunnel --no-autoupdate run
+    logging: *logging
+
   mediamtx:
     # v1.21.3 (latest-ffmpeg as tested on Dev)
     image: bluenviron/mediamtx@sha256:208e9f1740a09a5ee63b6308e77ce0d54fce0456462f640e6bd9acfc62ebb5a2
@@ -92,9 +100,6 @@ services:
     logging: *logging
   loki:
     profiles: ["observability"]
-    logging: *logging
-
-  cloudflared:
     logging: *logging
 
 networks:

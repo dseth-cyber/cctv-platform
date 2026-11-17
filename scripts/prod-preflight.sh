@@ -89,6 +89,16 @@ if [ -n "$B" ]; then
     [ "$ROOT_DEV" != "$BAK_DEV" ] && ok "backups are on another disk than the system/database ($BAK_DEV)" || warn "backups share the system disk with the database; one disk failure loses both"
   else fail "BACKUP_HOST_DIR $B does not exist"; fi
 fi
+# MediaMTX runs as uid 1001 and reads this file through a bind mount: a checkout made under umask 077 left it 600
+# and live video stopped for everyone (production 2026-11-17).
+MM=mediamtx/mediamtx.yml
+MMODE=$(stat -c '%a' "$MM" 2>/dev/null)
+case "$MMODE" in *[4567]) ok "$MM readable by MediaMTX (mode $MMODE)";; "") fail "$MM missing";; *) fail "$MM mode $MMODE: MediaMTX (uid 1001) cannot read it; run: chmod 644 $MM";; esac
+T=$(val TUNNEL_TOKEN)
+if [ -n "$T" ]; then
+  case "$(val PUBLIC_BASE_URL)" in https://[0-9]*) warn "TUNNEL_TOKEN set but PUBLIC_BASE_URL is an IP; links in notifications will not open from outside";; https://*) ok "tunnel: PUBLIC_BASE_URL is a domain";; *) fail "TUNNEL_TOKEN set but PUBLIC_BASE_URL is not https";; esac
+  warn "tunnel on: the site is reachable from the internet (check Cloudflare Access or WAF rules are in place)"
+fi
 [ -f ssl/server.crt ] && [ -f ssl/server.key ] && ok "TLS certificate present (ssl/)" || fail "ssl/server.crt or ssl/server.key missing (bash ssl/generate-cert.sh <server IP>, or the company certificate)"
 
 echo "[7] docker"

@@ -12,7 +12,7 @@ import { scopeOfUser } from '../access/camera-scope.js';
 
 async function loginHandler(request: FastifyRequest, reply: FastifyReply) {
   const input = loginSchema.parse(request.body);
-  const ipAddress = (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || request.ip;
+  const ipAddress = request.ip;
 
   const user = await authService.login(input, ipAddress);
 
@@ -63,7 +63,7 @@ async function refreshHandler(request: FastifyRequest, reply: FastifyReply) {
   if (sessionId) {
     await deviceSessions.touchSession(sessionId);
   } else {
-    const ipAddress = (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || request.ip;
+    const ipAddress = request.ip;
     const session = await deviceSessions.startSession({ userId: user.id, username: user.username, ipAddress, userAgent: request.headers['user-agent'] || undefined });
     sessionId = session.id;
     await signOutExtraDevices(request, user, session.id);
