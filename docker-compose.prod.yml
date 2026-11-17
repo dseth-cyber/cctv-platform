@@ -102,9 +102,6 @@ services:
     profiles: ["observability"]
     logging: *logging
 
-  cloudflared:
-    logging: *logging
-
 networks:
   cctv-network:
     # A fixed subnet, so Docker never picks a 192.168.x block that swallows the camera LANs (on Dev an automatic
