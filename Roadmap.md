@@ -319,6 +319,7 @@
 - [x] (2026-11-16, rc9) แก้ 3 ข้อจาก #005: สำรองพื้นที่จัดเก็บไม่สร้างไฟล์ 0 byte/ลงที่เก็บที่เลือก, smoke ไม่ login ผิดจริง + logout, สิทธิ์โฟลเดอร์ backup 2770 — ทดสอบบน Dev แล้ว ยังไม่ deploy
 - [x] (2026-11-16, rc10) แก้แถว backup 0 byte ที่ขึ้นสำเร็จ + nginx access log ไม่บันทึก token — ทดสอบบน Dev แล้ว ยังไม่ deploy
 - [A] (2026-11-17, hotfix v1.0.0-rc10.3 จาก Production, รวมใน fix/audit-remediation `fab178c`) ภาพสดนอกออฟฟิศผ่าน tunnel: WebRTC → HLS fallback, fMP4 HLS, proxy_redirect — ผู้ใช้ยืนยันบน Production; ค้าง: IP จริงผ่าน CF-Connecting-IP, lockout ต่อ user+IP, ป้าย HLS 5 ภาษา, hls.js, preflight สิทธิ์ mediamtx.yml
+- [A] (2026-11-17, hotfix v1.0.0-rc10.5 จาก Production, รวม `3557266`) IP จริงผ่าน tunnel (CF-Connecting-IP), lockout ต่อ user+IP, ตรึง cloudflared, preflight สิทธิ์ mediamtx.yml — Production ทดสอบผ่าน tunnel แล้ว; Dev ทดสอบ lockout + header ปลอมแล้ว
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 6 ครบถ้วน (มีคู่มือแยกระบบ Dev/Staging/Prod ชัดเจน, ตรวจสอบ Secret Hygiene, ซักซ้อมกู้คืน DR Drill, แดชบอร์ด UAT 6 มิติ, ระบบลงนามอนุมัติ Pilot Release, และรักษาสถานะ Fail-closed ไม่กระทบ Image Service เดิม 100%)
 
