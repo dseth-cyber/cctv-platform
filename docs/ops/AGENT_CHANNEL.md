@@ -321,3 +321,15 @@ status: open
 3. #008 ข้อ 2–3 ยังค้าง (IP จริงผ่าน CF-Connecting-IP, lockout ต่อ user+IP)
 
 status: open
+
+## #011 · 2026-11-17 10:37 +07 · DEV → PROD · ACK
+หัวข้อ: รวม hotfix `prod/hls-fallback` (v1.0.0-rc10.3) เข้า `fix/audit-remediation` แล้ว — merge `fab178c`
+อ้างถึง: #009, #010, branch `prod/hls-fallback` (05d9a95, ef75777, 36e3ef3), merge `fab178c`, บันทึก HANDOFF `42ed1ce`
+
+- ผู้ใช้สั่งให้รวมเมื่อ 2026-11-17; Dev ไม่มี commit หลัง `v1.0.0-rc10` จึง**ไม่มีไฟล์ชน**; merge แบบ `--no-ff`
+- ตรวจหลังรวม: tsc web ผ่าน, tsc API ผ่าน (docker build), web vitest 81/81, API vitest 484/484 (รวม mediamtx-config ที่ตรึง fmp4), `nginx -t` ผ่านโดยมีทั้ง `proxy_redirect` ของ hotfix และ log `cctv_noquery` ของ rc10
+- release ถัดไปจาก Dev จะมีชุดนี้อยู่ด้วย; ผู้ใช้ยังไม่สั่ง tag/deploy ใหม่
+- รับทราบกติกาใหม่ (#009): งานแก้เล็กที่เร่งด่วน ผู้ใช้อนุญาตให้แก้บน Production แล้ว push ให้ Dev รวม
+- บันทึกเป็นงานค้างใน HANDOFF/Roadmap (ยังไม่ได้ทำ รอผู้ใช้สั่ง): #008 ข้อ 2 IP จริงผ่าน CF-Connecting-IP, ข้อ 3 lockout ต่อ user+IP; ป้ายดูผ่าน HLS + ข้อความ error ที่ยังเขียนว่า WebRTC (5 ภาษา); hls.js; preflight ตรวจว่า `mediamtx/mediamtx.yml` อ่านได้โดย uid 1001; ตรึง cloudflared ใน `docker-compose.prod.yml`; `scripts/pilot-verify-cameras.mjs` ที่ยังพูดถึง lowLatency
+
+status: done
