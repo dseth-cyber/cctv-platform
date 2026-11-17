@@ -8,18 +8,18 @@ import { createAuditLog } from '../audit/audit.service.js';
 import { createAlert } from '../alerts/alerts.service.js';
 import type { LoginInput, ChangePasswordInput, RefreshInput, UpdateMenuPreferencesInput } from './auth.schema.js';
 
-// Records a failed attempt (username-scoped, not tied to whether the account is real —
-// avoids leaking account existence through lockout behavior) and, only on the specific
-// call that crosses the threshold, writes an audit log entry + fires a Telegram alert.
+// Records a failed attempt (per username + address and per username overall, not tied to whether the account is
+// real — avoids leaking account existence through lockout behavior) and, only on the call that locks something,
+// fires an alert. See lib/login-security.ts.
 async function handleFailedLogin(username: string, ip?: string): Promise<void> {
-  const result = await recordFailedLogin(username);
+  const result = await recordFailedLogin(username, ip);
 
   createAuditLog({
     action: 'login_failed',
     entity: 'auth',
     entityId: username,
-    description: `Failed login attempt for "${username}" (${result.count}/${result.maxAttempts})`,
-    metadata: { username, attemptNumber: result.count },
+    description: `Failed login attempt for "${username}" (${result.count}/${result.maxAttempts} from this address, ${result.totalCount}/${result.maxAttemptsTotal} in all)`,
+    metadata: { username, attemptNumber: result.count, totalAttempts: result.totalCount },
     ipAddress: ip,
   }).catch(() => {});
 
@@ -29,8 +29,10 @@ async function handleFailedLogin(username: string, ip?: string): Promise<void> {
       severity: 'critical',
       source: username,
       title: `Suspicious login activity: ${username}`,
-      message: `${result.count} failed login attempts for user "${username}"${ip ? ` from IP ${ip}` : ''} within ${result.windowMinutes} minute(s) — account locked for ${result.lockoutMinutes} minute(s).`,
-      details: { username, ip, count: result.count, windowMinutes: result.windowMinutes, lockoutMinutes: result.lockoutMinutes },
+      message: result.lockedScope === 'everywhere'
+        ? `${result.totalCount} failed login attempts for user "${username}" from several addresses within ${result.windowMinutes} minute(s) — account locked everywhere for ${result.lockoutMinutes} minute(s).`
+        : `${result.count} failed login attempts for user "${username}"${ip ? ` from IP ${ip}` : ''} within ${result.windowMinutes} minute(s) — sign-in from that address locked for ${result.lockoutMinutes} minute(s).`,
+      details: { username, ip, scope: result.lockedScope, count: result.count, totalCount: result.totalCount, windowMinutes: result.windowMinutes, lockoutMinutes: result.lockoutMinutes },
     }).catch(() => {});
   }
 }
@@ -38,7 +40,7 @@ async function handleFailedLogin(username: string, ip?: string): Promise<void> {
 export async function login(input: LoginInput, ip?: string) {
   const prisma = getPrisma();
 
-  if (await isLocked(input.username)) {
+  if (await isLocked(input.username, ip ?? '')) {
     throw new UnauthorizedError('Account temporarily locked due to too many failed login attempts. Try again later.');
   }
 
@@ -54,7 +56,7 @@ export async function login(input: LoginInput, ip?: string) {
     throw new UnauthorizedError('Invalid username or password');
   }
 
-  await clearFailedLogins(input.username);
+  await clearFailedLogins(input.username, ip);
 
   await prisma.user.update({
     where: { id: user.id },
