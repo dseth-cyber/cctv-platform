@@ -717,8 +717,10 @@ export default function LiveGrid() {
       className="h-[calc(100vh-60px)] flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none"
     >
       {/* Top Toolbar */}
-      <div className="min-h-14 px-4 py-2 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      {/* Phones and narrow windows: the toolbar wraps so every button stays reachable (rc8). Desktop (lg+): one row with
+          the layout buttons on the right, as before rc8. */}
+      <div className="min-h-14 lg:h-14 px-4 py-2 lg:py-0 bg-slate-900 border-b border-slate-800 flex flex-wrap lg:flex-nowrap items-center justify-between gap-2 shrink-0">
+        <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <Radio className="w-5 h-5 text-emerald-400 animate-pulse" />
             <h1 className="text-base font-bold tracking-tight text-slate-100">{t('ui.liveGrid.cctvLiveWall')}</h1>
@@ -837,7 +839,7 @@ export default function LiveGrid() {
         )}
 
         {/* Right Toolbar: Layout Selectors & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap lg:flex-nowrap items-center gap-1.5 sm:gap-2">
           {/* Grid Selectors */}
           <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
             <button
