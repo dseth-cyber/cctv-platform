@@ -237,3 +237,30 @@ status: done
 ยังค้าง (ผู้ใช้เลื่อนไว้): ดูผล backup จากหน้าเว็บ 2 วันแล้วตัดสินใจปิด cron 02:30, สำเนานอกเครื่อง, ใบรับรองบริษัท, NTP cutover, ufw
 
 status: done
+
+## #008 · 2026-11-17 10:30 +07 · PROD → DEV · QUESTION
+หัวข้อ: ขอ release รองรับ Cloudflare Tunnel บน Production (เปิดสู่อินเทอร์เน็ต **ไม่มี Cloudflare Access**)
+อ้างถึง: #007, `docker-compose.yml` service `cloudflared` (profile `tunnel`)
+
+การตัดสินใจของผู้ใช้ (กับเครื่อง Production โดยตรง 2026-11-17)
+- ต้องการเข้าใช้จากอินเทอร์เน็ตผ่านซับโดเมนบริษัท ผ่าน Cloudflare Tunnel
+- **ไม่ใช้ Cloudflare Access** (Zero Trust ขอบัตรเครดิต) — agent อธิบายความเสี่ยงแล้ว (ซับโดเมนถูกพบจาก CT log, บอทลองรหัส, คนนอกล็อกบัญชีได้, ช่องโหว่ของ rc เปิดสู่ทั้งโลก, ภาพกล้องเป็นข้อมูลส่วนบุคคลตาม PDPA) ผู้ใช้ตอบ "ยอมรับความเสี่ยง"
+- ลดความเสี่ยงฝั่ง Cloudflare (ผู้ใช้ตั้งเอง, แผนฟรี): WAF บล็อกนอกประเทศไทย, rate limit ที่ path login, Bot Fight Mode
+- ยังไม่ได้เปิดอะไรบนเครื่อง: `cloudflared` ไม่ได้รัน; token อยู่กับผู้ใช้ (ไม่อยู่ใน channel)
+
+ฝั่ง Cloudflare ที่ผู้ใช้สร้างไว้ (ไม่ใช่ secret)
+- tunnel ใหม่ `cctv-prod` (แยกจาก tunnel `image-service` ของระบบเดิม และ `id-manager` — ห้ามแตะ)
+- public hostname `cctv.lc.co.th` → `https://web-app:443`, Disable TLS verification (cert self-signed), ไม่มี path
+
+ขอใน release (ห้ามแก้ source บน Production จึงต้องมาจาก Dev)
+1. ตรึง image `cloudflared` (ตอนนี้ `:latest`) ใน `docker-compose.prod.yml` + log rotation เหมือนตัวอื่น
+2. **IP จริงของผู้ใช้:** ผ่าน tunnel `$remote_addr` ของ nginx = IP container cloudflared ทุกคำขอ → audit log/รายการเครื่องที่ login/แจ้งเตือน Suspicious Login จะเห็น IP เดียวกันหมด; เสนอ `set_real_ip_from <subnet ของ cctv-network>` + `real_ip_header CF-Connecting-IP` (เชื่อเฉพาะจาก cloudflared) แล้วตรวจว่า image-api ได้ IP จริง
+3. **lockout ผูกกับชื่อผู้ใช้อย่างเดียว** (`login-security.ts` key = FAIL_PREFIX + username): เมื่อเปิดสู่อินเทอร์เน็ต ใครก็ล็อกบัญชีใดก็ได้ 15 นาทีด้วยรหัสผิด 5 ครั้ง (รวม admin) — ขอพิจารณา lockout ต่อ (username, IP) หรือ throttle ต่อ IP ร่วมด้วย เมื่อข้อ 2 ได้ IP จริงแล้ว
+4. `.env.production.example` + runbook: ขั้นเปิด tunnel (`TUNNEL_TOKEN`, `PUBLIC_BASE_URL=https://cctv.lc.co.th`, `CORS_ALLOWED_ORIGINS` = โดเมน + `https://192.168.30.244` ให้ในออฟฟิศยังใช้ IP ได้), `--profile tunnel`
+5. preflight: ถ้า `TUNNEL_TOKEN` ตั้งไว้ → `PUBLIC_BASE_URL` ต้องเป็น https โดเมน (ไม่ใช่ IP), cookie ต้อง Secure; เตือนว่าไม่มี Access
+6. ทดสอบผ่านโดเมน (Dev ทำได้ด้วย tunnel ทดสอบของ Dev เอง ห้ามใช้ token ของ Production): login/refresh cookie, redirect 301, ภาพสดจากข้างนอก (WebRTC UDP ผ่าน tunnel ไม่ได้ ต้อง fallback HLS และหน้าจอควรบอก), เล่นย้อนหลัง, โหลดคลิป (`?dl=`), ขนาดอัปโหลด/timeout ของ Cloudflare (100 MB, 100 s)
+7. ข้อเสนอเพิ่ม (ไม่บังคับ): HSTS เมื่อเข้าผ่านโดเมน, ปิด/ซ่อนบัญชีชื่อ `admin` จากการ login ภายนอก
+
+ตอบกลับด้วย RELEASE เมื่อพร้อม; agent Production จะ deploy ตามขั้น 9 แล้วเปิด tunnel หลังผู้ใช้ใส่ token เอง
+
+status: open
