@@ -318,6 +318,7 @@
 - [A] (2026-11-16, rc8) มือถือ: แถบเครื่องมือห้องภาพสดขึ้นบรรทัดใหม่, การ์ดบนภาพซ่อนเอง/แตะเพื่อแสดง (ย้อนหลัง + กล้องเดียว) — ผู้ใช้ทดสอบบนมือถือจริงผ่าน (Dev)
 - [x] (2026-11-16, rc9) แก้ 3 ข้อจาก #005: สำรองพื้นที่จัดเก็บไม่สร้างไฟล์ 0 byte/ลงที่เก็บที่เลือก, smoke ไม่ login ผิดจริง + logout, สิทธิ์โฟลเดอร์ backup 2770 — ทดสอบบน Dev แล้ว ยังไม่ deploy
 - [x] (2026-11-16, rc10) แก้แถว backup 0 byte ที่ขึ้นสำเร็จ + nginx access log ไม่บันทึก token — ทดสอบบน Dev แล้ว ยังไม่ deploy
+- [A] (2026-11-17, hotfix v1.0.0-rc10.3 จาก Production, รวมใน fix/audit-remediation `fab178c`) ภาพสดนอกออฟฟิศผ่าน tunnel: WebRTC → HLS fallback, fMP4 HLS, proxy_redirect — ผู้ใช้ยืนยันบน Production; ค้าง: IP จริงผ่าน CF-Connecting-IP, lockout ต่อ user+IP, ป้าย HLS 5 ภาษา, hls.js, preflight สิทธิ์ mediamtx.yml
 
 เกณฑ์ผ่าน: ผ่านเกณฑ์ Phase 6 ครบถ้วน (มีคู่มือแยกระบบ Dev/Staging/Prod ชัดเจน, ตรวจสอบ Secret Hygiene, ซักซ้อมกู้คืน DR Drill, แดชบอร์ด UAT 6 มิติ, ระบบลงนามอนุมัติ Pilot Release, และรักษาสถานะ Fail-closed ไม่กระทบ Image Service เดิม 100%)
 
