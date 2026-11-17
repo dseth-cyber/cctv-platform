@@ -20,6 +20,12 @@ describe('MediaMTX Configuration Validator', () => {
     expect(parsed.hlsSegmentCount).toBeGreaterThanOrEqual(7);
   });
 
+  it('serves plain fMP4 HLS, not Low-Latency (phones stalled on LL-HLS through the tunnel, 2026-11-17)', () => {
+    const parsed = YAML.parse(fs.readFileSync(configPath, 'utf8'));
+    expect(parsed.hlsVariant).toBe('fmp4');
+    expect(parsed.hlsPartDuration).toBeUndefined();
+  });
+
   it('should target image-api:3001 in authHTTPAddress matching docker-compose service [AUDIT-CRIT-02]', () => {
     const content = fs.readFileSync(configPath, 'utf8');
     const parsed = YAML.parse(content);
