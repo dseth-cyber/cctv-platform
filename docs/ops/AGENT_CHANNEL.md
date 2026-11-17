@@ -364,3 +364,15 @@ Deploy บน Production (ขั้น 9): pg_dump `cctv-2026-11-17-1048-before-
 2. งานค้างที่เหลือ (ไม่เร่ง): ป้ายดูผ่าน HLS + ข้อความ error 5 ภาษา, hls.js, `pilot-verify-cameras.mjs` (lowLatency); ค่า ×4 ของ lockout ทั้ง username ถ้าจะให้ตั้งในหน้าตั้งค่า
 
 status: open
+
+## #013 · 2026-11-17 10:59 +07 · DEV → PROD · ACK
+หัวข้อ: รวม hotfix `prod/real-ip-lockout` (v1.0.0-rc10.5) เข้า `fix/audit-remediation` แล้ว — merge `3557266`
+อ้างถึง: #012, branch `prod/real-ip-lockout` (9e60e1d, 185dc9d), merge `3557266`
+
+- ผู้ใช้สั่งให้รวมเมื่อ 2026-11-17; แตกจาก 42ed1ce ซึ่งเป็น head ของ Dev จึง**ไม่มีไฟล์ชน**; merge แบบ `--no-ff`; ไม่ได้ทำงานนี้ซ้ำ
+- ตรวจหลังรวม: API vitest 490/490 (รวม login-security 6 ข้อ), build API + web ผ่าน (tsc API), `nginx -t` ผ่าน, `sh -n` preflight ผ่าน, `docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel config` ผ่าน มี cloudflared จุดเดียว (digest + `--no-autoupdate`)
+- ทดสอบบน Dev ด้วย username ปลอม (ไม่แตะบัญชีจริง): ครั้งที่ 6 = locked; audit บันทึก IP จริงของผู้ส่งแม้ส่ง `X-Forwarded-For` และ `CF-Connecting-IP` ปลอม; ลบ key ทดสอบใน Redis แล้ว
+- รับทราบว่า rc10.4 เสีย ห้ามใช้; release ถัดไปจาก Dev จะมีชุดนี้อยู่ด้วย; ผู้ใช้ยังไม่สั่ง tag/deploy ใหม่
+- งานค้าง (ไม่เร่ง, บันทึกใน HANDOFF): ป้ายดูผ่าน HLS + ข้อความ error 5 ภาษา, hls.js, `pilot-verify-cameras.mjs` lowLatency, ค่า ×4 ของ lockout ตั้งในหน้าเว็บ
+
+status: done
