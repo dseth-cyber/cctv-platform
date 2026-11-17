@@ -333,3 +333,34 @@ status: open
 - บันทึกเป็นงานค้างใน HANDOFF/Roadmap (ยังไม่ได้ทำ รอผู้ใช้สั่ง): #008 ข้อ 2 IP จริงผ่าน CF-Connecting-IP, ข้อ 3 lockout ต่อ user+IP; ป้ายดูผ่าน HLS + ข้อความ error ที่ยังเขียนว่า WebRTC (5 ภาษา); hls.js; preflight ตรวจว่า `mediamtx/mediamtx.yml` อ่านได้โดย uid 1001; ตรึง cloudflared ใน `docker-compose.prod.yml`; `scripts/pilot-verify-cameras.mjs` ที่ยังพูดถึง lowLatency
 
 status: done
+
+## #012 · 2026-11-17 11:00 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: hotfix `v1.0.0-rc10.5` บน Production — IP จริงผ่าน tunnel, lockout ต่อ user+IP, ตรึง cloudflared (ผู้ใช้สั่งให้ทำที่ Production แทน Dev)
+อ้างถึง: #008 ข้อ 2–3, #011, branch `prod/real-ip-lockout` (แตกจาก `fix/audit-remediation` 42ed1ce: 9e60e1d, 185dc9d), tags `v1.0.0-rc10.4` (**เสีย ห้ามใช้**) / `v1.0.0-rc10.5`
+
+ผู้ใช้สั่งเมื่อ 2026-11-17 ให้ทำงานค้าง #008 ข้อ 2–3 บน Production เลย (ตามกติกา hotfix #009) — **Dev ไม่ต้องทำซ้ำ** ให้ดึงไปรวม
+
+สิ่งที่แก้ (9e60e1d)
+- `web-app/nginx.conf`: `set_real_ip_from 10.250.0.0/24; real_ip_header CF-Connecting-IP; real_ip_recursive off;` (http level) — เชื่อ header เฉพาะจาก Docker network (cloudflared); LAN เข้ามาด้วย IP ของตัวเองจึงปลอมไม่ได้; ถ้าเปลี่ยน `CCTV_DOCKER_SUBNET` ต้องแก้ตรงนี้ด้วย (fail closed); หมายเหตุ: คำขอจาก host เองผ่าน 127.0.0.1:8443 มาจาก 10.250.0.1 จึงอยู่ในวงที่เชื่อ (เฉพาะคนบนเครื่อง)
+- `auth.controller.ts`: login/refresh เคยใช้ **ตัวแรกของ X-Forwarded-For ซึ่ง client ปลอมได้** → ใช้ `request.ip` (trustProxy = hop ของ nginx)
+- `lib/login-security.ts`: lock ต่อ (username, IP) ที่ `login_max_failed_attempts` (5); lock ทั้ง username ทุก IP ที่ 5×4 = 20 ใน window เดียวกัน (กันเดาจากหลาย IP); login สำเร็จล้างเฉพาะ IP ตัวเอง; unlock ล้างทั้งหมด; SCAN escape glob; key ใหม่ `login:fail|lock:ip:<user>|<ip>` / `login:fail|lock:user:<user>` (key เก่าหมดอายุเอง 15 นาที); test ใหม่ 6 ข้อ (`login-security.test.ts`)
+- `auth.service.ts`: ส่ง IP เข้า lockout; audit "(n/5 from this address, m/20 in all)"; alert แยก "sign-in from that address locked" กับ "locked everywhere"
+- `docker-compose.prod.yml`: `cloudflared` ตรึง `2026.10.7@sha256:4955524a…`, `tunnel --no-autoupdate run`, log 20MB×5 — Production เลิกใช้ override ของเครื่องแล้ว
+- `scripts/prod-preflight.sh`: FAIL ถ้า `mediamtx/mediamtx.yml` uid 1001 อ่านไม่ได้; ตรวจ tunnel (`PUBLIC_BASE_URL` ต้อง https โดเมน) + WARN ว่าเปิดสู่อินเทอร์เน็ต
+- ทดสอบ: API tsc ok, API vitest 490/490, `nginx -t` ok, `sh -n` preflight ok
+
+**rc10.4 เสีย:** `docker-compose.prod.yml` มี `cloudflared:` ซ้ำ 2 ที่ (มีบรรทัดเดิมท้ายไฟล์) compose ปฏิเสธไฟล์ — preflight จับได้ก่อน deploy ไม่มีอะไรเสียหาย; แก้ใน 185dc9d → `v1.0.0-rc10.5`
+
+Deploy บน Production (ขั้น 9): pg_dump `cctv-2026-11-17-1048-before-rc10.4.dump` (ไม่มีอะไรเปลี่ยนจนถึง rc10.5) → checkout `v1.0.0-rc10.5` (สิทธิ์ไฟล์ 644/664, ไม่มี 600) → preflight 0 FAIL, 2 WARN (disk, tunnel) → build → migrate ไม่มี RUN_SEED → `up -d --profile tunnel` (ไม่ใช้ override); cctv-api healthy, โดเมน 200, ในออฟฟิศ 200
+- หมายเหตุ: เครื่องถูกรีบูตอย่างเรียบร้อยเวลา 10:41–10:42 (ไม่ใช่ agent สั่ง) ทุก container + tunnel + HDD กลับมาเอง
+
+ทดสอบบน Production (ใช้ username ปลอม `__iptest_105159` ไม่แตะบัญชีจริง; ลบ key ใน Redis แล้ว)
+- ผ่าน tunnel 5 ครั้ง → audit IP = **101.51.97.204** (IP จริง ไม่ใช่ 10.250.0.8), ครั้งที่ 6 = "Account temporarily locked"; alert ครั้งเดียว "…from IP 101.51.97.204 … sign-in from that address locked"
+- จาก LAN ทันทีหลังจากนั้น (ส่ง header ปลอม `CF-Connecting-IP: 1.2.3.4`) → **ไม่ถูกล็อก** ("Invalid username or password") และ audit IP = 192.168.30.244 (ไม่เชื่อ header ปลอม) — คนนอกล็อกบัญชีคนในไม่ได้แล้ว
+- access log nginx เห็น IP จริงของคำขอผ่าน tunnel
+
+ขอ Dev
+1. รวม `prod/real-ip-lockout` (หรือ tag `v1.0.0-rc10.5`) เข้า `fix/audit-remediation` — แตกจาก 42ed1ce จึงไม่น่าชน
+2. งานค้างที่เหลือ (ไม่เร่ง): ป้ายดูผ่าน HLS + ข้อความ error 5 ภาษา, hls.js, `pilot-verify-cameras.mjs` (lowLatency); ค่า ×4 ของ lockout ทั้ง username ถ้าจะให้ตั้งในหน้าตั้งค่า
+
+status: open
