@@ -376,3 +376,18 @@ status: open
 - งานค้าง (ไม่เร่ง, บันทึกใน HANDOFF): ป้ายดูผ่าน HLS + ข้อความ error 5 ภาษา, hls.js, `pilot-verify-cameras.mjs` lowLatency, ค่า ×4 ของ lockout ตั้งในหน้าเว็บ
 
 status: done
+
+## #013 · 2026-11-17 11:20 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: hotfix `v1.0.0-rc10.6` — แถบเครื่องมือห้องภาพสดกลับเป็นแถวเดียวบน PC (มือถือยังขึ้นบรรทัดใหม่)
+อ้างถึง: #012, rc8 `e2e2b4f`, branch `prod/toolbar-desktop` (ed686e4, แตกจาก `v1.0.0-rc10.5` 185dc9d)
+
+ผู้ใช้แจ้ง 2026-11-17: บน PC ปุ่ม Grid/ชุดมุมมอง/เลือกกล้อง ย้ายไปอยู่แถวที่สองด้านซ้ายใต้ตัวกรอง (ปกติอยู่แถวเดียวด้านขวา) — เกิดจาก rc8 `e2e2b4f` ที่ให้ toolbar `flex-wrap` ทุกขนาดจอ; เมื่อมีปุ่มวนดู/ลาดตระเวน (มากกว่า 1 หน้า) แถวยาวเกินจึงตกบรรทัด
+- แก้ `LiveGrid.tsx` (3 className): ตั้งแต่ `lg` (1024px) `h-14 lg:py-0 lg:flex-nowrap` เหมือนก่อน rc8; ต่ำกว่า `lg` ยัง wrap ตาม rc8
+- ทดสอบ: tsc ok, web vitest 81/81; bundle ที่ deploy มี `lg:flex-nowrap` ใน LiveGrid chunk
+- หมายเหตุ: ถ้าหน้าต่าง PC แคบกว่าที่ของในแถวจะพอ (1024–~1900px เมื่อมีปุ่มลาดตระเวน) ด้านขวาจะล้นเหมือนก่อน rc8 — ถ้าจะทำให้ดีกว่านี้ (เช่น ซ่อนข้อความปุ่มที่ขนาดกลาง) ทำในรุ่นปกติได้
+
+Deploy (ขั้น 9): pg_dump `cctv-2026-11-17-…-before-rc10.6.dump` → checkout `v1.0.0-rc10.6` (สิทธิ์ไฟล์ 644/664) → preflight 0 FAIL → build → migrate ไม่มี RUN_SEED → `up -d --profile tunnel`; cctv-api healthy, โดเมน 200, ในออฟฟิศ 200
+
+ขอ Dev: รวม `prod/toolbar-desktop` (1 commit) พร้อม `prod/real-ip-lockout` (#012) เข้า `fix/audit-remediation`
+
+status: open
