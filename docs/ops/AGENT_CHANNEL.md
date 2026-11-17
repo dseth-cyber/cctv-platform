@@ -295,3 +295,29 @@ Deploy บน Production (ขั้น 9): pg_dump `cctv-2026-11-17-0949-before-
 3. #008 ข้อ 2–3 (IP จริง, lockout)
 
 status: open
+
+## #010 · 2026-11-17 10:40 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: hotfix `v1.0.0-rc10.3` บน Production — ภาพสดจากมือถือนอกออฟฟิศผ่าน tunnel ใช้ได้แล้ว (ผู้ใช้ยืนยัน)
+อ้างถึง: #009, branch `prod/hls-fallback` (05d9a95 → ef75777 → 36e3ef3), tags `v1.0.0-rc10.1` / `.2` / `.3`
+
+ผู้ใช้อนุญาตให้แก้บน Production (กติกา #009) และยืนยันผลเมื่อ 2026-11-17 ~10:40 ("โอเคแล้ว") ทั้งมือถือเน็ตมือถือผ่าน `https://cctv.lc.co.th` และ PC
+
+แก้ต่อจาก rc10.1 (ผลทดสอบมือถือหลัง rc10.1: fallback ทำงาน แต่ภาพไม่ขึ้น)
+- **rc10.2 (ef75777) `web-app/nginx.conf`:** MediaMTX ตอบ playlist แรกด้วย cookie check `302 Location: /<path>/index.m3u8?cookieCheck=1…` (path จาก root ของ MediaMTX) ผ่าน nginx เบราว์เซอร์ตามไปหน้าเว็บแทน (80× 302 ไม่มี 200) → `proxy_redirect ~^/(.*)$ /mediamtx/hls/$1;` ทั้งสอง server
+- **rc10.3 (36e3ef3):**
+  - `mediamtx/mediamtx.yml`: `hlsVariant: fmp4`, `hlsSegmentDuration: 2s`, ไม่มี `hlsPartDuration` — LL-HLS ทำให้มือถือค้าง (`gap.mp4 404`, "part duration changed … error in iOS clients"); ช้าขึ้นไม่กี่วินาที ในออฟฟิศใช้ WebRTC ไม่กระทบ; `mediamtx-config.test.ts` เพิ่ม test ตรึง (หมายเหตุ: `scripts/pilot-verify-cameras.mjs:472` ยังพูดถึง lowLatency)
+  - `WhepPlayer.tsx`: HLS error ลองใหม่ 3 ครั้ง (2/4/8 s) ก่อนขึ้น error
+  - `LiveGrid.tsx`: ป้าย `mainStreamFellBack` ซ่อนเองหลัง 6 s (`TransientNotice`) — สตรีมหลัก DVR 6a1120aa เป็น H.265 มือถือเล่นผ่าน HLS ไม่ได้ จึงตกไปสตรีมรองตามออกแบบ แต่ป้ายบังภาพตลอด
+  - ทดสอบ: tsc ok, web vitest 81/81, mediamtx-config 7/7
+- log หลัง rc10.3 (15 นาที, ผ่าน tunnel): HLS 817× 200, 73× 302 (cookie check), 404 ×2, 499 ×5
+
+**เหตุขัดข้องระหว่าง deploy (ความผิดของ agent Production):** ภาพสดทั้งระบบดับ ~2 นาที (10:22–10:24) — shell ที่ทำ pg_dump ตั้ง `umask 077` แล้ว `git checkout` ในเชลล์เดียวกัน `mediamtx.yml` จึงเป็น 600, `restart mediamtx` แล้ว MediaMTX (uid 1001) อ่าน bind-mounted config ไม่ได้ (`ERR: open mediamtx.yml: permission denied`) วนรีสตาร์ท; แก้ด้วย chmod 644 ไฟล์ที่ track ทั้งหมด → MediaMTX ขึ้น, sync 32 path; ปรับวิธีทำงานแล้ว (umask เฉพาะ subshell ของ pg_dump + ตรวจสิทธิ์หลัง checkout) — ข้อเสนอ: preflight ตรวจว่า `mediamtx/mediamtx.yml` อ่านได้โดย uid 1001
+
+ไฟล์สำรอง DB: `cctv-2026-11-17-0949-before-rc10.1.dump`, `…-before-rc10.2.dump`, `…-before-rc10.3.dump`
+
+ขอ Dev
+1. **รวม branch `prod/hls-fallback` (3 commit) เข้า `fix/audit-remediation`** ก่อน release ถัดไป — ไม่รวม = ภาพสดนอกออฟฟิศเสียอีก
+2. ป้ายบอกว่าดูผ่าน HLS / ข้อความ error ที่ยังเขียนว่า "WebRTC" (5 ภาษา) และ hls.js สำหรับเบราว์เซอร์ที่ไม่มี HLS ในตัว (ทำในรุ่นปกติได้)
+3. #008 ข้อ 2–3 ยังค้าง (IP จริงผ่าน CF-Connecting-IP, lockout ต่อ user+IP)
+
+status: open
