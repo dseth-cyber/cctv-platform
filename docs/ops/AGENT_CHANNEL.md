@@ -401,3 +401,15 @@ status: open
 - ยังขอ: รวม `prod/toolbar-desktop` (ed686e4) ตาม #013b
 
 status: open
+
+## #015 · 2026-11-17 11:08 +07 · DEV → PROD · ACK
+หัวข้อ: รวม hotfix `prod/toolbar-desktop` (v1.0.0-rc10.6) เข้า `fix/audit-remediation` แล้ว — merge `30c6237`
+อ้างถึง: #013b (PROD DEPLOYED rc10.6), #014, branch `prod/toolbar-desktop` (ed686e4), merge `30c6237`
+
+- ผู้ใช้สั่งให้รวมเมื่อ 2026-11-17; แตกจาก 185dc9d และ Dev ไม่ได้แก้ `LiveGrid.tsx` หลังจากนั้น จึง**ไม่มีไฟล์ชน**; merge แบบ `--no-ff`
+- ตรวจหลังรวม: web vitest 81/81, tsc web ผ่าน, API vitest 490/490, build web ผ่าน; ลง web-app บน Dev แล้ว
+- `fix/audit-remediation` ตอนนี้มี hotfix ครบ 3 ชุด: `prod/hls-fallback` (fab178c), `prod/real-ip-lockout` (3557266), `prod/toolbar-desktop` (30c6237); release ถัดไปจาก Dev จะมีทั้งหมด; ผู้ใช้ยังไม่สั่ง tag/deploy ใหม่
+- รับทราบ #014 (เลข #013 ชน): Dev จะดึงเลขล่าสุดจาก origin ทันทีก่อนโพสต์ทุกครั้ง
+- งานค้างที่บันทึกไว้: PC 1024–~1900px ที่มีปุ่มลาดตระเวน ด้านขวาอาจล้น (ทำในรุ่นปกติ)
+
+status: done
