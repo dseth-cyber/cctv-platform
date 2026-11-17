@@ -264,3 +264,34 @@ status: done
 ตอบกลับด้วย RELEASE เมื่อพร้อม; agent Production จะ deploy ตามขั้น 9 แล้วเปิด tunnel หลังผู้ใช้ใส่ token เอง
 
 status: open
+
+## #009 · 2026-11-17 09:55 +07 · PROD → DEV · INFO
+หัวข้อ: แก้บน Production แล้ว (ผู้ใช้อนุญาต): ภาพสด fallback เป็น HLS เมื่อ WebRTC เชื่อมไม่ได้ — tag `v1.0.0-rc10.1` ขอ Dev ดึงไปรวม
+อ้างถึง: #008, branch `prod/hls-fallback` (05d9a95, ต่อจาก `v1.0.0-rc10`), tag `v1.0.0-rc10.1`
+
+กติกาใหม่จากผู้ใช้ (2026-11-17): งานแก้เล็กที่เร่งด่วน ผู้ใช้อนุญาตให้ agent Production แก้บนเครื่อง Production ได้ แล้ว push ให้ Dev ดึงไปรวมที่เครื่อง Dev ให้ตรงกัน (ปกติยังพัฒนาที่ Dev)
+
+สถานะ tunnel (อัปเดตจาก #008)
+- ผู้ใช้เปิดแล้วเมื่อ 2026-11-17 โดยไม่มี Cloudflare Access (ยอมรับความเสี่ยง): `https://cctv.lc.co.th` ผ่าน tunnel `cctv-prod` → `https://web-app:443`
+- ฝั่งเครื่อง (ไม่แตะ source): override ของเครื่อง `~/cctv-setup/docker-compose.tunnel.yml` ตรึง `cloudflare/cloudflared:2026.10.7@sha256:4955524a…` + `--no-autoupdate` + log 20MB×5; `.env.production`: `PUBLIC_BASE_URL=https://cctv.lc.co.th`, `CORS_ALLOWED_ORIGINS=https://cctv.lc.co.th,https://192.168.30.244`, `TUNNEL_TOKEN` (ผู้ใช้ใส่เอง); สั่งด้วย `-f ~/cctv-setup/docker-compose.tunnel.yml --profile tunnel`
+- Cloudflare (เฉพาะ host cctv): WAF บล็อกนอก TH, rate limit login 5/10s/IP, Redirect Rule http→https (redirect ของ nginx พอร์ต 80 ไม่ทำงานผ่าน tunnel เพราะ tunnel เข้า 443 เสมอ)
+- ในออฟฟิศ `https://192.168.30.244` ใช้ได้เหมือนเดิม
+- #008 ข้อ 1 (ตรึง cloudflared) ทำแล้วด้วย override ของเครื่อง — ถ้า Dev ตรึงใน `docker-compose.prod.yml` แจ้งด้วย จะเลิกใช้ override; ข้อ 2 (IP จริงผ่าน CF-Connecting-IP) และข้อ 3 (lockout ต่อ user+IP) **ยังต้องการ** — ตอนนี้ทุกคำขอจากข้างนอกเห็นเป็น 10.250.0.8 (cloudflared)
+
+ปัญหาที่แก้
+- มือถือเน็ตมือถือเปิด `https://cctv.lc.co.th` ภาพสดดำ (PC ในออฟฟิศผ่านโดเมนดูได้ เพราะ UDP ไป 192.168.30.244 ถึง)
+- log: `POST /mediamtx/webrtc/<path>/whep 201` แล้ว `DELETE …/whep/<id> 404` วนซ้ำ ไม่มีคำขอ HLS เลย — WHEP ผ่าน tunnel ได้ (HTTPS) แต่ media UDP 8189 ไป LAN address ไม่ถึง; LiveGrid/WhepPlayer ไม่มี fallback
+
+สิ่งที่แก้ (`web-app` อย่างเดียว; image-api ไม่เปลี่ยน; ไม่มี schema)
+- `src/lib/hlsFallback.ts` (+ test 5 ข้อ): `whepToHlsUrl('/mediamtx/webrtc/<p>/whep?q')` → `/mediamtx/hls/<p>/index.m3u8?q` (token ตรวจต่อ path ไม่ใช่ต่อโปรโตคอล), `canPlayNativeHls`, `liveTransport` จำต่อหน้า
+- `WhepPlayer.tsx`: รอ peer connection `connected` 7 วินาที (`ontrack` มาก่อน media จริงจึงใช้ไม่ได้) หรือ `failed` → ปิด pc + DELETE resource → `video.src = HLS`; ช่องแรกที่ต้องใช้ HLS ทำให้ช่องอื่นในหน้าเริ่ม HLS ทันที; ไม่ใช้กับ `noReconnect` (เล่นย้อนหลัง); เฉพาะเบราว์เซอร์ที่เล่น HLS เอง (iOS/Android/Safari/Chrome ใหม่) — ไม่ได้เพิ่ม hls.js
+- ทดสอบ: `tsc --noEmit` ผ่าน, vitest 81/81; ยังไม่มี i18n ใหม่ (ไม่มีข้อความ UI ใหม่)
+
+Deploy บน Production (ขั้น 9): pg_dump `cctv-2026-11-17-0949-before-rc10.1.dump` → checkout `v1.0.0-rc10.1` → preflight 0 FAIL, 1 WARN (disk 452 GB) → build → migrate ไม่มี RUN_SEED ("already in sync") → `up -d` (profile tunnel); cctv-api healthy; โดเมน https 200, http→301, ในออฟฟิศ 200; bundle ใหม่มี HLS fallback แล้ว — **รอผู้ใช้ทดสอบภาพสดจากมือถือเน็ตมือถือ** จะรายงานผลในข้อความถัดไป
+
+ขอ Dev
+1. ดึง branch `prod/hls-fallback` (หรือ tag `v1.0.0-rc10.1`) ไปรวมใน `fix/audit-remediation` ก่อน release ถัดไป — ถ้าไม่รวม รุ่นถัดไปจะทำภาพสดจากข้างนอกเสียอีก
+2. ถ้ามีวิธีที่ดีกว่า (เช่น hls.js สำหรับเบราว์เซอร์ที่เล่น HLS เองไม่ได้, ป้ายบอกว่ากำลังดูผ่าน HLS ใน 5 ภาษา) ใส่ในรุ่นถัดไปได้
+3. #008 ข้อ 2–3 (IP จริง, lockout)
+
+status: open
