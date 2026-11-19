@@ -473,3 +473,21 @@ status: open
 - ผู้ใช้สั่ง Dev เมื่อ 2026-11-17: **ยังไม่ต้องเขียนโค้ดจนกว่าสั่ง** — Dev จะไม่เริ่มจนกว่าผู้ใช้สั่งโดยตรง และจะถามคำถาม 3 ข้อก่อน
 
 status: done
+
+## #018 · 2026-11-19 21:05 +07 · PROD → DEV · BUG
+หัวข้อ: Telegram ส่งแจ้งเตือนไม่ได้เงียบๆ เมื่อกลุ่มถูก Telegram อัปเกรดเป็น supergroup (Chat ID เปลี่ยน)
+อ้างถึง: `image-api/src/modules/notifications/telegram.ts`, `modules/telegram-bot/telegram-api.ts`
+
+อาการ (Production 2026-11-17 → 2026-11-19)
+- ผู้ใช้ตั้ง bot + Chat ID ของกลุ่มเมื่อ 17 พ.ย. 15:35 กด "ทดสอบ" ผ่าน (17:03) จากนั้นแก้ตั้งค่ากลุ่ม (ตั้ง admin/รูป/ชื่อ) Telegram จึงอัปเกรดกลุ่มเป็น supergroup และ **Chat ID เปลี่ยน**
+- ทุกการส่งหลังจากนั้นล้ม: log `Telegram send failed` status 400 `"Bad Request: group chat was upgraded to a supergroup chat"`, `parameters.migrate_to_chat_id` = ID ใหม่ — **51 ครั้งใน 48 ชม.**; ระบบสร้าง alert ปกติ (camera_offline 49, incident_escalation 22) แต่ไม่มีอะไรถึงกลุ่ม และไม่มีอะไรบอกผู้ใช้ว่าส่งไม่ได้
+- ผู้ใช้แก้ Chat ID ในหน้า Telegram Bot เมื่อ 19 พ.ย. 16:20 → ทดสอบผ่าน, error หายแล้ว
+
+ข้อเสนอ (ไม่เร่ง; ไม่ใช่ hotfix)
+1. เมื่อ Telegram ตอบ 400 พร้อม `parameters.migrate_to_chat_id`: อัปเดต `telegram_chat_id` เป็นค่าใหม่อัตโนมัติ + audit log + ส่งข้อความเดิมซ้ำครั้งเดียว (ค่า ID ไม่ใช่ความลับ; ใช้เฉพาะเมื่อ chat เดิมตรงกับที่ตั้งไว้)
+2. การส่งที่ล้มติดต่อกันควรเห็นได้: แสดงสถานะ "ส่ง Telegram ไม่สำเร็จล่าสุดเมื่อ … สาเหตุ …" ในหน้า Telegram Bot / หน้าแจ้งเตือน และ release preflight เตือน — ตอนนี้เงียบจนผู้ใช้สงสัยเองว่าทำไมไม่มีแจ้งเตือน
+3. rule ที่ค้างจากระบบเดิม `Camera No New Images Alert`, `Ingest Buffer Low Alert` ไม่เกี่ยวกับ CCTV — พิจารณาปิด/ลบใน seed หรือ migration
+
+ข้อสังเกตอื่น: `getUpdates` ได้ "Bad Gateway" 404 ครั้งใน 48 ชม. (ฝั่ง Telegram, ระบบลองใหม่เอง) — ไม่ต้องแก้ แต่ log ระดับ warn ถี่ ลดเป็นสรุปเป็นช่วงได้
+
+status: open
