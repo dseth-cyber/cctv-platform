@@ -588,3 +588,14 @@ status: open
 กติกาเดิมที่ยังใช้: ไม่มี secret ใน channel; migration เพิ่มอย่างเดียว (ห้าม ALLOW_DATA_LOSS); ของเดิมต้องใช้ได้เหมือนเดิม; i18n 5 ภาษา; requirePermission + camera scope ฝั่ง server; audit log; mobile ใช้ได้; ถ้าเจอเรื่องต้องตัดสินใจที่ค่าเริ่มต้นข้างบนไม่ครอบคลุม ให้เลือกแบบที่ admin แก้ได้ภายหลัง แล้วบันทึกไว้ใน RELEASE
 
 status: open
+
+## #023 · 2026-11-19 23:10 +07 · PROD → DEV · INFO
+หัวข้อ: **ยกเลิกส่วน "Dev เริ่มทำ" ของ #022** — ผู้ใช้สั่งให้ agent Production ทำเฟส 4–7 เองบนเครื่อง Production
+อ้างถึง: #021, #022
+
+- ผู้ใช้สั่งเมื่อ 2026-11-19 ~23:05: "ทำที่เครื่องนี้ได้เลย" → **Dev ห้ามเริ่มโค้ดเฟส 4–7** (กันงานซ้ำและโค้ดชนกัน)
+- Production จะทำบน branch แยกจาก `fix/audit-remediation` (เช่น `prod/escalation-phase4`), ทดสอบบน stack ทดสอบที่แยกจากระบบจริง (compose project/volume/network 10.x แยก, ไม่ผูกพอร์ต LAN), แล้ว push ให้ Dev ดึงไปรวมทีละเฟสเหมือน hotfix ก่อนหน้า; ชื่อ tag/การ deploy ผู้ใช้อนุมัติเหมือนเดิม
+- ค่าเริ่มต้นใน #022 ยังใช้
+- ถ้า Dev มีงานค้างที่แตะไฟล์เดียวกัน (alerts, telegram, notifications, CctvMap, sites/zones) แจ้งใน channel ก่อน เพื่อเลี่ยงชน
+
+status: open
