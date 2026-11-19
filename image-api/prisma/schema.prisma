@@ -908,3 +908,109 @@ model SignoffRecord {
   @@index([phase])
   @@map("signoff_records")
 }
+
+// ── Escalation (phase 4, 2026-11-19) ──────────────────────────────────────────
+// Who is told about an alert that is still open, in what order and how often: teams and chains an admin builds on
+// the web page (nothing about the organisation is fixed in code). The first notice still goes out through the alert
+// rules as before; escalation only adds the reminders and the hand-offs after it.
+
+/// A unit of people to notify (technicians, IT, a contractor, managers…), named by the admin.
+model NotifyTeam {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @unique @db.VarChar(128)
+  description    String?  @db.Text
+  /// Telegram group of this team (chat id, e.g. -100…). Empty: the team has no group of its own.
+  telegramChatId String?  @map("telegram_chat_id") @db.VarChar(64)
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  members NotifyTeamMember[]
+
+  @@map("notify_teams")
+}
+
+model NotifyTeamMember {
+  teamId    String   @map("team_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team NotifyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("notify_team_members")
+}
+
+/// An ordered chain: step 1 is told first; when nobody acknowledges within its wait, the next step is told.
+model EscalationPolicy {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @unique @db.VarChar(128)
+  description   String?  @db.Text
+  /// After the last step: tell its targets again every this many minutes while the alert stays open.
+  repeatMinutes Int      @default(1440) @map("repeat_minutes")
+  /// Used for any alert no rule matches. Exactly one policy is the default.
+  isDefault     Boolean  @default(false) @map("is_default")
+  /// A template ships disabled: an admin turns it on (or copies it) when it fits.
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  steps EscalationStep[]
+  rules EscalationRule[]
+
+  @@map("escalation_policies")
+}
+
+model EscalationStep {
+  id          String @id @default(uuid()) @db.Uuid
+  policyId    String @map("policy_id") @db.Uuid
+  position    Int
+  /// Minutes this step waits for an acknowledgement before the next step is told (the last step repeats instead).
+  waitMinutes Int    @default(1440) @map("wait_minutes")
+  /// [{ "type": "team", "id": "<team id>" } | { "type": "default" }] — "default" is the Telegram group in Settings.
+  targets     Json   @default("[]")
+
+  policy EscalationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, position])
+  @@map("escalation_steps")
+}
+
+/// Which chain an alert follows: the most specific enabled rule wins (zone > site > anywhere; a named type > any type).
+model EscalationRule {
+  id        String   @id @default(uuid()) @db.Uuid
+  /// alert_type value, or null for any type.
+  alertType String?  @map("alert_type") @db.VarChar(64)
+  siteId    String?  @map("site_id") @db.Uuid
+  zoneId    String?  @map("zone_id") @db.Uuid
+  policyId  String   @map("policy_id") @db.Uuid
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  policy EscalationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([alertType])
+  @@map("escalation_rules")
+}
+
+/// Where one open alert is in its chain.
+model AlertEscalation {
+  alertId        String    @id @map("alert_id") @db.Uuid
+  policyId       String?   @map("policy_id") @db.Uuid
+  /// 0-based index into the policy's steps.
+  stepIndex      Int       @default(0) @map("step_index")
+  stepStartedAt  DateTime  @default(now()) @map("step_started_at")
+  nextNotifyAt   DateTime? @map("next_notify_at")
+  lastNotifiedAt DateTime? @map("last_notified_at")
+  notifyCount    Int       @default(0) @map("notify_count")
+  /// Acknowledged "working on it" until this time: no reminders before it; after it, the chain carries on.
+  dueAt          DateTime? @map("due_at")
+  ackNote        String?   @map("ack_note") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([nextNotifyAt])
+  @@map("alert_escalations")
+}

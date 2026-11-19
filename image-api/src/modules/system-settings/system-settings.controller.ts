@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { lastTelegramResult } from '../notifications/telegram.js';
 import { requirePermission } from '../../middleware/rbac.js';
 import * as settingsService from './system-settings.service.js';
 
@@ -50,6 +51,9 @@ async function clearLlmKey(_request: FastifyRequest, reply: FastifyReply) {
 
 export async function systemSettingsRoutes(app: FastifyInstance): Promise<void> {
   app.get('/telegram', { preHandler: [app.authenticate, requirePermission('telegram-bot:read')] }, getTelegramSettings);
+  // The last delivery to Telegram: a group that stopped accepting messages shows here instead of failing quietly.
+  app.get('/telegram/status', { preHandler: [app.authenticate, requirePermission('telegram-bot:read')] }, async (_request, reply) =>
+    reply.send({ last: await lastTelegramResult() }));
   app.patch('/telegram', { preHandler: [app.authenticate, requirePermission('telegram-bot:update')] }, updateTelegramSettings);
   app.get('/llm', { preHandler: [app.authenticate, requirePermission('telegram-bot:read')] }, getLlmSettings);
   app.patch('/llm', { preHandler: [app.authenticate, requirePermission('telegram-bot:update')] }, updateLlmSettings);

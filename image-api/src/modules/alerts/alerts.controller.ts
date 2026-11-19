@@ -1,4 +1,6 @@
 import { allowedAlertSources, guardAlertParam } from '../access/camera-scope.js';
+import { createAuditLog } from '../audit/audit.service.js';
+import { acknowledgeEscalation } from '../escalation/escalation.service.js';
 import { withSourceInfo } from './alert-source.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requirePermission } from '../../middleware/rbac.js';
@@ -34,21 +36,44 @@ async function listHandler(request: FastifyRequest, reply: FastifyReply) {
     sortDir: query.sortDir === 'asc' ? 'asc' : query.sortDir === 'desc' ? 'desc' : undefined,
   });
   // What each alert is about, in words a person can read (camera or recorder name, or which check raised it).
-  return reply.send({ ...result, data: await withSourceInfo(result.data) });
+  return reply.send({ ...result, data: await withEscalation(await withSourceInfo(result.data)) });
+}
+
+/** Where each open alert is in its escalation chain (next reminder, step, due time of an acknowledgement). */
+async function withEscalation<T extends { id: string }>(alerts: T[]) {
+  if (!alerts.length) return alerts;
+  const rows = await getPrisma().alertEscalation.findMany({ where: { alertId: { in: alerts.map((a) => a.id) } } });
+  const byId = new Map(rows.map((r) => [r.alertId, r]));
+  return alerts.map((a) => {
+    const e = byId.get(a.id);
+    return { ...a, escalation: e ? { stepIndex: e.stepIndex, nextNotifyAt: e.nextNotifyAt, dueAt: e.dueAt, ackNote: e.ackNote, notifyCount: e.notifyCount } : null };
+  });
 }
 
 async function getByIdHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const alert = await alertsService.getAlertById(id);
   if (!alert) return reply.status(404).send({ statusCode: 404, error: 'NotFound', message: 'Alert not found' });
-  return reply.send((await withSourceInfo([alert]))[0]);
+  return reply.send((await withEscalation(await withSourceInfo([alert])))[0]);
 }
 
 async function acknowledgeHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const user = (request as any).user;
+  // Optional (escalation): until when the person expects it fixed, and a note. Reminders pause until then.
+  const body = (request.body ?? {}) as { dueAt?: string | null; note?: string | null };
+  const requestedDue = body.dueAt ? new Date(body.dueAt) : null;
+  if (requestedDue && Number.isNaN(requestedDue.getTime())) {
+    return reply.status(400).send({ statusCode: 400, error: 'BadRequest', message: 'dueAt is not a date' });
+  }
   const alert = await alertsService.acknowledgeAlert(id, user?.username ?? 'system');
-  return reply.send(alert);
+  const escalation = await acknowledgeEscalation(id, { dueAt: requestedDue, note: body.note ?? null });
+  createAuditLog({
+    userId: user?.id, action: 'alert_acknowledge', entity: 'alert', entityId: id,
+    description: `Alert "${alert.title}" acknowledged by ${user?.username ?? 'system'} until ${escalation.dueAt.toISOString()}`,
+    metadata: { dueAt: escalation.dueAt, note: escalation.note }, ipAddress: request.ip,
+  }).catch(() => {});
+  return reply.send({ ...alert, escalation });
 }
 
 async function resolveHandler(request: FastifyRequest, reply: FastifyReply) {
