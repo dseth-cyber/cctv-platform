@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
 
 export interface ThemeConfig {
   name: string
@@ -134,6 +134,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   })
 
   const themeConfig = useMemo(() => themes[theme] || themes.modern, [theme])
+
+  // Tell the browser which way the page is lit, so its own controls follow: the calendar/clock icons of date and
+  // time boxes were drawn dark on the dark themes and could not be seen (user report 2026-11-20).
+  useEffect(() => {
+    document.documentElement.style.colorScheme = (themes[theme] || themes.modern).name === 'light' ? 'light' : 'dark'
+  }, [theme])
 
   const value = {
     theme,
