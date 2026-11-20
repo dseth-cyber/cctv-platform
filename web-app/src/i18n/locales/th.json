@@ -4136,6 +4136,12 @@
       "field_poNumber": "เลขที่ PO",
       "field_assetTag": "รหัสทรัพย์สิน",
       "field_purchasePrice": "ราคาซื้อ"
+    },
+    "datePicker": {
+      "open": "เปิดปฏิทิน",
+      "today": "วันนี้",
+      "clear": "ล้าง",
+      "invalid": "วันที่ไม่ถูกต้อง ใช้ วว/ดด/ปปปป เช่น 15/01/2569"
     }
   }
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formWarrantyEnd, MONTH_CHOICES, type AssetForm } from '@/lib/warranty';
 import { formatDate } from '@/utils/dateUtils';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export interface AssetOptions { monthChoices: number[]; vendors: Array<{ code: string; name: string; contactName: string | null; phone: string | null; email: string | null }>; canPrice: boolean }
 
@@ -31,11 +32,11 @@ export function AssetFields({ value, onChange, options }: { value: AssetForm; on
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-asset-fields>
       <div>
         <label className={label}>{k('purchaseDate')}</label>
-        <input type="date" className={input} value={value.purchaseDate} onChange={(e) => set({ purchaseDate: e.target.value })} data-asset="purchaseDate" />
+        <DatePicker name="purchaseDate" value={value.purchaseDate} onChange={(v) => set({ purchaseDate: v })} />
       </div>
       <div>
         <label className={label}>{k('installDate')}</label>
-        <input type="date" className={input} value={value.installDate} onChange={(e) => set({ installDate: e.target.value })} data-asset="installDate" />
+        <DatePicker name="installDate" value={value.installDate} onChange={(v) => set({ installDate: v })} />
       </div>
       <div>
         <label className={label}>{k('warranty')}</label>
@@ -71,7 +72,7 @@ export function AssetFields({ value, onChange, options }: { value: AssetForm; on
           </label>
         </div>
         {value.warrantyManual && (
-          <input type="date" className={input} value={value.warrantyUntil} onChange={(e) => set({ warrantyUntil: e.target.value })} data-asset="warrantyUntil" />
+          <DatePicker name="warrantyUntil" value={value.warrantyUntil} onChange={(v) => set({ warrantyUntil: v })} />
         )}
       </div>
       <div className="sm:col-span-2">

@@ -4130,6 +4130,12 @@
       "field_poNumber": "注文書番号",
       "field_assetTag": "資産番号",
       "field_purchasePrice": "価格"
+    },
+    "datePicker": {
+      "open": "カレンダーを開く",
+      "today": "今日",
+      "clear": "クリア",
+      "invalid": "日付が不正です：日/月/年（例 15/01/2026）"
     }
   }
 }

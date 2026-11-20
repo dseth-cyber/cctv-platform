@@ -4125,6 +4125,12 @@
       "field_poNumber": "PO နံပါတ်",
       "field_assetTag": "ပိုင်ဆိုင်မှုကုဒ်",
       "field_purchasePrice": "ဈေး"
+    },
+    "datePicker": {
+      "open": "ပြက္ခဒိန် ဖွင့်",
+      "today": "ယနေ့",
+      "clear": "ရှင်း",
+      "invalid": "ရက်စွဲ မမှန်: dd/mm/yyyy ဥပမာ 15/01/2026"
     }
   }
 }

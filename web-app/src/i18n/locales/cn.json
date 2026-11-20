@@ -4130,6 +4130,12 @@
       "field_poNumber": "采购单号",
       "field_assetTag": "资产编号",
       "field_purchasePrice": "价格"
+    },
+    "datePicker": {
+      "open": "打开日历",
+      "today": "今天",
+      "clear": "清除",
+      "invalid": "日期无效：请用 日/月/年，如 15/01/2026"
     }
   }
 }

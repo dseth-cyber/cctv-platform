@@ -4133,6 +4133,12 @@
       "field_poNumber": "PO number",
       "field_assetTag": "asset tag",
       "field_purchasePrice": "price"
+    },
+    "datePicker": {
+      "open": "Open calendar",
+      "today": "Today",
+      "clear": "Clear",
+      "invalid": "Not a valid date: use dd/mm/yyyy, e.g. 15/01/2026"
     }
   }
 }
