@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageThai, chatsFor, clampDue, decide, matchRule, parseTargets, type RuleLike, type StepLike } from './escalation-logic.js';
+import { ageThai, chatsFor, clampDue, decide, linkCode, matchRule, parseAckButton, parseLinkCommand, parseTargets, type RuleLike, type StepLike } from './escalation-logic.js';
 
 const t0 = new Date('2026-11-20T00:00:00Z');
 const at = (min: number) => new Date(t0.getTime() + min * 60_000);
@@ -116,5 +116,34 @@ describe('chatsFor / parseTargets', () => {
     const targets = parseTargets([{ type: 'default' }, { type: 'team', id: 'tech' }, { type: 'team', id: 'off' }, { type: 'team', id: 'nochat' }, { type: 'team', id: 'tech' }, { type: 'bogus' }]);
     expect(chatsFor(targets, '-1009', teams)).toEqual(['-1009', '-1001']);
     expect(chatsFor([{ type: 'default' }], null, teams)).toEqual([]);
+  });
+});
+
+describe('team members in private chats', () => {
+  it('adds linked members only when the team asks for it', () => {
+    const teams = new Map([
+      ['a', { telegramChatId: '-100', enabled: true, notifyMembers: true }],
+      ['b', { telegramChatId: null, enabled: true, notifyMembers: false }],
+    ]);
+    const members = new Map([['a', ['111', '222']], ['b', ['333']]]);
+    expect(chatsFor([{ type: 'team', id: 'a' }, { type: 'team', id: 'b' }], null, teams, members)).toEqual(['-100', '111', '222']);
+  });
+});
+
+describe('link codes and buttons', () => {
+  it('codes are six digits', () => {
+    expect(linkCode(() => 0)).toBe('100000');
+    expect(linkCode(() => 0.999999)).toMatch(/^\d{6}$/);
+  });
+  it('reads the link command in its forms', () => {
+    expect(parseLinkCommand('/link 123456')).toBe('123456');
+    expect(parseLinkCommand('เชื่อม 654321')).toBe('654321');
+    expect(parseLinkCommand('link 12345')).toBeNull();
+    expect(parseLinkCommand('hello')).toBeNull();
+  });
+  it('reads acknowledge buttons and refuses odd ones', () => {
+    expect(parseAckButton('ack:3f2b1c9e-1111-2222-3333-444455556666:24')).toEqual({ alertId: '3f2b1c9e-1111-2222-3333-444455556666', hours: 24 });
+    expect(parseAckButton('ack:3f2b1c9e-1111-2222-3333-444455556666:0')).toBeNull();
+    expect(parseAckButton('ack:nope:24')).toBeNull();
   });
 });

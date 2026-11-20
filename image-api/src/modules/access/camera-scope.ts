@@ -185,6 +185,16 @@ export const guardAllCameras: Guard = async (request) => {
 export async function allowedAlertSources(request: FastifyRequest): Promise<string[] | null> {
   const where = await cameraWhere(request);
   if (!where) return null;
+  return alertSourcesWithin(where);
+}
+
+/** The same reach for a person known only by id (a button pressed in Telegram by a linked account). */
+export async function alertSourcesForUser(userId: string): Promise<string[] | null> {
+  const scope = await scopeOfUser(userId);
+  return scope.all ? null : alertSourcesWithin(scope.where);
+}
+
+async function alertSourcesWithin(where: Prisma.CameraWhereInput): Promise<string[]> {
   const prisma = getPrisma();
   const cameras = await prisma.camera.findMany({ where, select: { id: true, deviceId: true } });
   const ids = cameras.map((c) => c.id);

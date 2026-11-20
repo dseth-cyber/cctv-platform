@@ -46,7 +46,7 @@ async function withEscalation<T extends { id: string }>(alerts: T[]) {
   const byId = new Map(rows.map((r) => [r.alertId, r]));
   return alerts.map((a) => {
     const e = byId.get(a.id);
-    return { ...a, escalation: e ? { stepIndex: e.stepIndex, nextNotifyAt: e.nextNotifyAt, dueAt: e.dueAt, ackNote: e.ackNote, notifyCount: e.notifyCount } : null };
+    return { ...a, escalation: e ? { stepIndex: e.stepIndex, nextNotifyAt: e.nextNotifyAt, dueAt: e.dueAt, ackNote: e.ackNote, notifyCount: e.notifyCount, workOrderId: e.workOrderId } : null };
   });
 }
 
@@ -61,17 +61,26 @@ async function acknowledgeHandler(request: FastifyRequest, reply: FastifyReply) 
   const { id } = request.params as { id: string };
   const user = (request as any).user;
   // Optional (escalation): until when the person expects it fixed, and a note. Reminders pause until then.
-  const body = (request.body ?? {}) as { dueAt?: string | null; note?: string | null };
+  const body = (request.body ?? {}) as { dueAt?: string | null; note?: string | null; workOrderId?: string | null };
+  if (body.workOrderId && !/^[0-9a-f-]{36}$/i.test(body.workOrderId)) {
+    return reply.status(400).send({ statusCode: 400, error: 'BadRequest', message: 'workOrderId is not an id' });
+  }
   const requestedDue = body.dueAt ? new Date(body.dueAt) : null;
   if (requestedDue && Number.isNaN(requestedDue.getTime())) {
     return reply.status(400).send({ statusCode: 400, error: 'BadRequest', message: 'dueAt is not a date' });
   }
+  let escalation;
+  try {
+    escalation = await acknowledgeEscalation(id, { dueAt: requestedDue, note: body.note ?? null, workOrderId: body.workOrderId ?? null });
+  } catch (err: any) {
+    if (err?.statusCode === 400) return reply.status(400).send({ statusCode: 400, error: 'BadRequest', message: err.message });
+    throw err;
+  }
   const alert = await alertsService.acknowledgeAlert(id, user?.username ?? 'system');
-  const escalation = await acknowledgeEscalation(id, { dueAt: requestedDue, note: body.note ?? null });
   createAuditLog({
     userId: user?.id, action: 'alert_acknowledge', entity: 'alert', entityId: id,
     description: `Alert "${alert.title}" acknowledged by ${user?.username ?? 'system'} until ${escalation.dueAt.toISOString()}`,
-    metadata: { dueAt: escalation.dueAt, note: escalation.note }, ipAddress: request.ip,
+    metadata: { dueAt: escalation.dueAt, note: escalation.note, workOrderId: escalation.workOrderId }, ipAddress: request.ip,
   }).catch(() => {});
   return reply.send({ ...alert, escalation });
 }

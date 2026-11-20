@@ -23,6 +23,7 @@ const UserManagement = lazy(() => import('@/pages/image-service/UserManagement')
 const HealthStatus = lazy(() => import('@/pages/image-service/HealthStatus'))
 const TelegramBotSettings = lazy(() => import('@/pages/image-service/TelegramBotSettings'))
 const EscalationSettings = lazy(() => import('@/pages/image-service/EscalationSettings'))
+const LinkTelegramModal = lazy(() => import('@/components/cctv/LinkTelegramModal'))
 const ApiKeysManagement = lazy(() => import('@/pages/image-service/ApiKeysManagement'))
 const MasterdataManagement = lazy(() => import('@/pages/image-service/MasterdataManagement'))
 const SystemConfigPage = lazy(() => import('@/pages/image-service/SystemConfigPage'))
@@ -410,7 +411,7 @@ function NavSearch() {
   )
 }
 
-function ProfileMenu({ username, role, onLogout, onChangePassword, onAbout }: { username: string; role: string; onLogout: () => void; onChangePassword: () => void; onAbout: () => void }) {
+function ProfileMenu({ username, role, onLogout, onChangePassword, onAbout, onLinkTelegram }: { username: string; role: string; onLogout: () => void; onChangePassword: () => void; onAbout: () => void; onLinkTelegram: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
@@ -438,6 +439,11 @@ function ProfileMenu({ username, role, onLogout, onChangePassword, onAbout }: { 
             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/10 transition-colors">
             <Lock size={13} />
             {t('imageService.auth.changePassword')}
+          </button>
+          <button onClick={() => { onLinkTelegram(); setOpen(false) }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/10 transition-colors">
+            <MessageCircle size={13} />
+            {t('ui.escalation.linkTelegram')}
           </button>
           <button onClick={() => { onAbout(); setOpen(false) }}
             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/10 transition-colors">
@@ -935,6 +941,7 @@ export default function App() {
   const toast = useToast()
   const location = useLocation()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [linkTelegramOpen, setLinkTelegramOpen] = useState(false)
   const [aboutModalOpen, setAboutModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true')
@@ -1054,6 +1061,7 @@ export default function App() {
             onLogout={logout}
             onChangePassword={() => setPasswordModalOpen(true)}
             onAbout={() => setAboutModalOpen(true)}
+            onLinkTelegram={() => setLinkTelegramOpen(true)}
           />
         </div>
       </header>
@@ -1191,6 +1199,7 @@ export default function App() {
       </div>
       <AssistantWidget />
       <ChangePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
+      {linkTelegramOpen && <Suspense fallback={null}><LinkTelegramModal onClose={() => setLinkTelegramOpen(false)} /></Suspense>}
       <AboutModal isOpen={aboutModalOpen} onClose={() => setAboutModalOpen(false)} />
     </div>
   )

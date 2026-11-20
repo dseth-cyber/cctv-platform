@@ -82,6 +82,10 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   escalation_max_ack_days: { value: '7', description: 'Longest an acknowledgement can pause reminders (days); after its due time the chain carries on.', valueType: 'number', category: 'escalation', min: 1, max: 30 },
   escalation_summary_enabled: { value: 'true', description: 'Send a daily summary of open alerts.', valueType: 'boolean', category: 'escalation' },
   escalation_summary_time: { value: '08:00', description: 'Time of the daily summary (HH:MM, APP_TIME_ZONE).', valueType: 'string', category: 'escalation' },
+  escalation_weekly_enabled: { value: 'true', description: 'Send a weekly summary (alerts of the past 7 days, how fast they were taken and fixed, what is still open). Nothing is sent while escalation_weekly_targets is empty.', valueType: 'boolean', category: 'escalation' },
+  escalation_weekly_day: { value: '1', description: 'Day of the weekly summary: 0 = Sunday … 1 = Monday … 6 = Saturday.', valueType: 'number', category: 'escalation', min: 0, max: 6 },
+  escalation_weekly_time: { value: '08:00', description: 'Time of the weekly summary (HH:MM, APP_TIME_ZONE).', valueType: 'string', category: 'escalation' },
+  escalation_weekly_targets: { value: '[]', description: 'Who gets the weekly summary, e.g. [{"type":"team","id":"…"}] for the managers team. Empty = not sent.', valueType: 'json', category: 'escalation' },
   escalation_summary_targets: { value: '[{"type":"default"}]', description: 'Who gets the daily summary: [{"type":"default"}] = the Telegram group in Settings, {"type":"team","id":"…"} = a team.', valueType: 'json', category: 'escalation' },
 
   required_fields: { value: '{}', description: 'Required field configuration per entity (JSON)', valueType: 'json', category: 'general' },

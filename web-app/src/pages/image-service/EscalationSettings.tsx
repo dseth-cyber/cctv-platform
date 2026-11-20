@@ -14,7 +14,7 @@ import { Plus, Edit3, Trash2, Users, GitBranch, ListFilter, Eye, Send, Star, Arr
 /** Escalation (phase 4): who is told about an open alert, in what order and how often. Everything here is set by an admin. */
 
 type Target = { type: 'default' } | { type: 'team'; id: string }
-interface Team { id: string; name: string; description: string | null; telegramChatId: string | null; enabled: boolean; memberIds: string[] }
+interface Team { id: string; name: string; description: string | null; telegramChatId: string | null; notifyMembers: boolean; enabled: boolean; memberIds: string[]; linkedMemberIds?: string[] }
 interface Step { waitMinutes: number; targets: Target[] }
 interface Policy { id: string; name: string; description: string | null; repeatMinutes: number; isDefault: boolean; enabled: boolean; steps: Step[]; ruleCount: number }
 interface Rule { id: string; alertType: string | null; siteId: string | null; zoneId: string | null; policyId: string; enabled: boolean; policy?: { name: string; enabled: boolean } }
@@ -119,7 +119,9 @@ function TeamsTab({ canManage }: { canManage: boolean }) {
               {teams.map((tm) => (
                 <tr key={tm.id} className={themeConfig.tableBorder}>
                   <td className="px-4 py-3"><div className="font-medium">{tm.name}</div>{tm.description && <div className={`text-xs ${themeConfig.text.secondary}`}>{tm.description}</div>}</td>
-                  <td className="px-4 py-3 text-center">{tm.memberIds.length}</td>
+                  <td className="px-4 py-3 text-center">{tm.memberIds.length}
+                    {tm.notifyMembers && <span className="block text-xs text-cyan-300">{t('ui.escalation.dmLinked', { n: tm.linkedMemberIds?.length ?? 0 })}</span>}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs">{tm.telegramChatId || <span className="text-amber-300">{t('ui.escalation.noGroup')}</span>}</td>
                   <td className="px-4 py-3 text-center">{tm.enabled ? <CheckCircle size={14} className="inline text-green-400" aria-label={t('ui.escalation.enabled')} /> : <XCircle size={14} className="inline text-red-400" aria-label={t('ui.escalation.disabled')} />}</td>
                   {canManage && (
@@ -160,6 +162,8 @@ function TeamModal({ team, onClose }: { team: Team | null; onClose: () => void }
   const [description, setDescription] = useState(team?.description ?? '')
   const [chatId, setChatId] = useState(team?.telegramChatId ?? '')
   const [enabled, setEnabled] = useState(team?.enabled ?? true)
+  const [notifyMembers, setNotifyMembers] = useState(team?.notifyMembers ?? false)
+  const linked = new Set(team?.linkedMemberIds ?? [])
   const [members, setMembers] = useState<string[]>(team?.memberIds ?? [])
   const [filter, setFilter] = useState('')
   const save = useMutation({
@@ -182,7 +186,10 @@ function TeamModal({ team, onClose }: { team: Team | null; onClose: () => void }
           </div>
         </div>
         <div><label className={labelClass}>{t('ui.escalation.description')}</label><textarea className={inputClass} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-        <label className="flex items-center gap-2 text-sm text-white"><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />{t('ui.escalation.enabled')}</label>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 text-sm text-white"><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />{t('ui.escalation.enabled')}</label>
+          <label className="flex items-center gap-2 text-sm text-white"><input type="checkbox" checked={notifyMembers} onChange={(e) => setNotifyMembers(e.target.checked)} />{t('ui.escalation.notifyMembers')}</label>
+        </div>
         <div>
           <label className={labelClass}>{t('ui.escalation.members')} ({members.length})</label>
           <input className={`${inputClass} mb-2`} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('common.search')} />
@@ -191,15 +198,16 @@ function TeamModal({ team, onClose }: { team: Team | null; onClose: () => void }
               <label key={u.id} className="flex items-center gap-2 px-3 py-1.5 text-sm text-white hover:bg-white/5">
                 <input type="checkbox" checked={members.includes(u.id)} onChange={(e) => setMembers((m) => (e.target.checked ? [...m, u.id] : m.filter((x) => x !== u.id)))} />
                 <span className="font-medium">{u.username}</span><span className="text-xs text-slate-400">{u.role}</span>
+                {linked.has(u.id) && <span className="text-xs text-cyan-300">· {t('ui.escalation.telegramLinked')}</span>}
               </label>
             ))}
           </div>
-          <p className="text-xs text-slate-400 mt-1">{t('ui.escalation.membersHint')}</p>
+          <p className="text-xs text-slate-400 mt-1">{t('ui.escalation.membersHint')} {t('ui.escalation.linkHowTo')}</p>
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
           <Button disabled={!name.trim() || !chatValid || save.isPending}
-            onClick={() => save.mutate({ name: name.trim(), description: description.trim() || null, telegramChatId: chatId.trim() || null, enabled, memberIds: members })}>
+            onClick={() => save.mutate({ name: name.trim(), description: description.trim() || null, telegramChatId: chatId.trim() || null, notifyMembers, enabled, memberIds: members })}>
             {t('common.save')}
           </Button>
         </div>
@@ -516,6 +524,12 @@ function PreviewTab({ canManage }: { canManage: boolean }) {
     queryFn: () => imageServiceApi.previewEscalation({ alertType, ...(cameraId ? { cameraId } : {}) }),
   })
   const { data: settings } = useQuery({ queryKey: ['escalation-settings'], queryFn: imageServiceApi.getEscalationSettings })
+  const sendWeekly = useMutation({
+    mutationFn: () => imageServiceApi.sendEscalationWeekly(),
+    onSuccess: (r: any) => (r?.sent && r.sent === r.chats ? toast.success(t('ui.escalation.summarySent')) : toast.error(t('ui.escalation.testPartial', { sent: r?.sent ?? 0, chats: r?.chats ?? 0 }))),
+    onError: onErr,
+  })
+  const days = [t('ui.escalation.sun'), t('ui.escalation.mon'), t('ui.escalation.tue'), t('ui.escalation.wed'), t('ui.escalation.thu'), t('ui.escalation.fri'), t('ui.escalation.sat')]
   const send = useMutation({
     mutationFn: () => imageServiceApi.sendEscalationSummary(),
     onSuccess: (r: any) => (r?.sent && r.sent === r.chats ? toast.success(t('ui.escalation.summarySent')) : toast.error(t('ui.escalation.testPartial', { sent: r?.sent ?? 0, chats: r?.chats ?? 0 }))),
@@ -564,6 +578,16 @@ function PreviewTab({ canManage }: { canManage: boolean }) {
           </p>
           {canManage && <Button className="mt-3" size="sm" onClick={() => send.mutate()} disabled={send.isPending}><Send size={14} className="mr-1" />{t('ui.escalation.sendSummaryNow')}</Button>}
           <p className="text-xs text-slate-400 mt-2">{settings ? (settings.enabled ? t('ui.escalation.engineOn', { days: settings.maxAckDays }) : t('ui.escalation.engineOff')) : ''}</p>
+        </div>
+        <div className="rounded-lg border border-white/15 p-4 bg-white/[0.03]">
+          <h3 className="font-semibold text-white mb-1">{t('ui.escalation.weeklyTitle')}</h3>
+          <p className={`text-sm ${themeConfig.text.secondary}`}>
+            {!settings?.weekly ? '…' : !settings.weekly.enabled ? t('ui.escalation.summaryOff')
+              : !settings.weekly.targets?.length ? t('ui.escalation.weeklyNoTargets')
+              : t('ui.escalation.weeklyAt', { day: days[settings.weekly.day] ?? settings.weekly.day, time: settings.weekly.time })}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">{t('ui.escalation.weeklyHint')} <Link to="/cctv/system-config" className="text-cyan-300 underline">{t('ui.escalation.systemConfigLink')}</Link></p>
+          {canManage && !!settings?.weekly?.targets?.length && <Button className="mt-3" size="sm" onClick={() => sendWeekly.mutate()} disabled={sendWeekly.isPending}><Send size={14} className="mr-1" />{t('ui.escalation.sendWeeklyNow')}</Button>}
         </div>
         <TelegramStatusCard last={tg} />
       </div>

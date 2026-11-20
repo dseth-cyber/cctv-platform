@@ -116,18 +116,47 @@ export function ageThai(from: Date, now: Date): string {
   return `${m} นาที`;
 }
 
-/** The Telegram chats one step's targets come to (each once). Teams without a group or switched off are skipped. */
-export function chatsFor(targets: EscalationTarget[], defaultChatId: string | null, teams: Map<string, { telegramChatId: string | null; enabled: boolean }>): string[] {
+/**
+ * The Telegram chats one step's targets come to (each once). Teams switched off are skipped; a team's own group is
+ * used when it has one, and with notifyMembers also each member's private chat (members who linked their Telegram).
+ */
+export function chatsFor(
+  targets: EscalationTarget[],
+  defaultChatId: string | null,
+  teams: Map<string, { telegramChatId: string | null; enabled: boolean; notifyMembers?: boolean }>,
+  memberChats: Map<string, string[]> = new Map(),
+): string[] {
   const chats = new Set<string>();
   for (const t of targets) {
     if (t.type === 'default') {
       if (defaultChatId) chats.add(defaultChatId);
     } else if (t.type === 'team') {
       const team = teams.get(t.id);
-      if (team?.enabled && team.telegramChatId) chats.add(team.telegramChatId);
+      if (!team?.enabled) continue;
+      if (team.telegramChatId) chats.add(team.telegramChatId);
+      if (team.notifyMembers) for (const c of memberChats.get(t.id) ?? []) chats.add(c);
     }
   }
   return [...chats];
+}
+
+/** Six digits, for linking a web account to Telegram ("/link 123456" to the bot). */
+export function linkCode(random: () => number = Math.random): string {
+  return String(Math.floor(random() * 900_000) + 100_000);
+}
+
+/** "/link 123456", "link 123456", "เชื่อม 123456" → the code; anything else → null. */
+export function parseLinkCommand(text: string): string | null {
+  const m = /^\s*(?:\/link|link|เชื่อม)\s+(\d{6})\s*$/i.exec(text ?? '');
+  return m ? m[1] : null;
+}
+
+/** "ack:<alert id>:<hours>" from an inline button. */
+export function parseAckButton(data: string): { alertId: string; hours: number } | null {
+  const m = /^ack:([0-9a-f-]{36}):(\d{1,3})$/i.exec(data ?? '');
+  if (!m) return null;
+  const hours = Number(m[2]);
+  return hours >= 1 && hours <= 720 ? { alertId: m[1], hours } : null;
 }
 
 export function parseTargets(raw: unknown): EscalationTarget[] {

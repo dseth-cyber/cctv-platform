@@ -5,6 +5,8 @@ import {
   type TelegramUpdate, type InlineButton,
 } from './telegram-api.js';
 import * as telegramUsers from './telegram-users.service.js';
+import { parseAckButton, parseLinkCommand } from '../escalation/escalation-logic.js';
+import { acknowledgeFromTelegram, consumeLinkCode } from '../escalation/escalation-telegram.js';
 import { buildCameraReport, buildOverallReport, buildCctvSiteReport, findCameraByName, listCameraNames } from './telegram-report.service.js';
 
 const POLL_TIMEOUT_SECONDS = 30;
@@ -77,6 +79,16 @@ async function handlePrivateMessage(botToken: string, update: TelegramUpdate): P
   const creds = await getTelegramCredentials();
   if (!creds?.allowPrivateChat) {
     await sendMessage(botToken, from.id, '🚫 ระบบปิดการแชทส่วนตัวกับบอทอยู่ กรุณาติดต่อผู้ดูแลระบบ');
+    return;
+  }
+
+  // "/link 123456": links this Telegram to the web account that asked for the code (and approves it for the bot).
+  const code = parseLinkCommand(text);
+  if (code) {
+    const linked = await consumeLinkCode(code, { telegramId, firstName: from.first_name, username: from.username });
+    await sendMessage(botToken, from.id, linked.ok
+      ? `✅ เชื่อม Telegram กับบัญชี <b>${escapeHtml(linked.username!)}</b> แล้ว\nต่อไปกด "รับทราบ" ใต้ข้อความแจ้งเตือนได้เลย`
+      : '❌ รหัสไม่ถูกต้องหรือหมดอายุ (ใช้ได้ 10 นาที) ขอรหัสใหม่ในหน้าเว็บ: กดชื่อผู้ใช้ → เชื่อม Telegram');
     return;
   }
 
@@ -177,6 +189,18 @@ async function handleCallback(botToken: string, chatId: string, update: Telegram
     await notifyAdminsDirectly(botToken, chatId, card, buttons);
     await answerCallbackQuery(botToken, cb.id, 'ส่งคำขอให้ผู้ดูแลแล้ว');
     await sendMessage(botToken, from.id, '📨 ส่งคำขอเรียบร้อยแล้ว กรุณารอผู้ดูแลอนุมัติ');
+    return;
+  }
+
+  // "✅ รับทราบ" under a reminder: acts as the linked web account (its permission and camera scope).
+  const ack = parseAckButton(data);
+  if (ack) {
+    const result = await acknowledgeFromTelegram(String(from.id), ack.alertId, ack.hours);
+    await answerCallbackQuery(botToken, cb.id, result.message, !result.ok);
+    if (result.ok && cb.message && result.line) {
+      const original = escapeHtml((cb.message as any).text ?? '');
+      await editMessageText(botToken, cb.message.chat.id, cb.message.message_id, `${original}\n\n${result.line}`);
+    }
     return;
   }
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/rbac.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { lastTelegramResult } from '../notifications/telegram.js';
+import { createLinkCode, getWeeklySettings, linkStatus, sendWeeklyNow, unlinkTelegram } from './escalation-telegram.js';
 import {
   deletePolicy, deleteRule, deleteTeam, EscalationError, getEscalationSettings, listPolicies, listRules, listTeams,
   policySchema, preview, ruleSchema, savePolicy, saveRule, saveTeam, sendSummaryNow, teamSchema, testPolicy,
@@ -35,7 +36,19 @@ export async function escalationRoutes(app: FastifyInstance) {
   const read = { preHandler: [app.authenticate, requirePermission(READ)] };
   const manage = { preHandler: [app.authenticate, requirePermission(MANAGE)] };
 
-  app.get('/settings', read, async (_req, reply) => respond(reply, async () => ({ ...(await getEscalationSettings()), telegram: await lastTelegramResult() })));
+  app.get('/settings', read, async (_req, reply) => respond(reply, async () => ({ ...(await getEscalationSettings()), weekly: await getWeeklySettings(), telegram: await lastTelegramResult() })));
+
+  // Linking one's own Telegram: any signed-in person, for their own account only.
+  const self = { preHandler: [app.authenticate] };
+  app.get('/link', self, async (request, reply) => respond(reply, () => linkStatus((request as any).user.id)));
+  app.post('/link/code', self, async (request, reply) => respond(reply, () => createLinkCode((request as any).user.id)));
+  app.delete('/link', self, async (request, reply) => respond(reply, async () => ({ unlinked: await unlinkTelegram((request as any).user.id, userOf(request)) })));
+
+  app.post('/weekly/send', manage, async (request, reply) => respond(reply, async () => {
+    const r = await sendWeeklyNow();
+    audit(request, 'escalation_weekly_send', 'weekly', 'Weekly alert summary sent on demand', r);
+    return r;
+  }));
 
   app.get('/teams', read, async (_req, reply) => respond(reply, () => listTeams()));
   app.post('/teams', manage, async (request, reply) => respond(reply, async () => {

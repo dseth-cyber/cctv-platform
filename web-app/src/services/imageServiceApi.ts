@@ -269,7 +269,7 @@ export function createImageServiceApi(api: any) {
       api.get(`${BASE}/alerts/${id}`).then((r: any) => r.data),
 
     /** dueAt/note (optional): until when the person expects it fixed; reminders pause until then. */
-    acknowledgeAlert: (id: string, body?: { dueAt?: string | null; note?: string | null }) =>
+    acknowledgeAlert: (id: string, body?: { dueAt?: string | null; note?: string | null; workOrderId?: string | null }) =>
       api.patch(`${BASE}/alerts/${id}/acknowledge`, body ?? {}).then((r: any) => r.data),
 
     resolveAlert: (id: string) =>
@@ -366,6 +366,11 @@ export function createImageServiceApi(api: any) {
     previewEscalation: (params: { alertType: string; cameraId?: string; siteId?: string; zoneId?: string }) =>
       api.get(`${BASE}/escalation/preview`, { params }).then((r: any) => r.data),
     sendEscalationSummary: () => api.post(`${BASE}/escalation/summary/send`).then((r: any) => r.data),
+    sendEscalationWeekly: () => api.post(`${BASE}/escalation/weekly/send`).then((r: any) => r.data),
+    /** Linking one's own Telegram (phase 5): status, a one-time code for "/link <code>", unlink. */
+    getTelegramLink: () => api.get(`${BASE}/escalation/link`).then((r: any) => r.data),
+    createTelegramLinkCode: () => api.post(`${BASE}/escalation/link/code`).then((r: any) => r.data),
+    unlinkTelegram: () => api.delete(`${BASE}/escalation/link`).then((r: any) => r.data),
 
     updateTelegramSettings: (data: Record<string, string>) =>
       api.patch(`${BASE}/settings/telegram`, data).then((r: any) => r.data),

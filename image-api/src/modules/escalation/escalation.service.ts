@@ -7,7 +7,7 @@ import { getRedisClient } from '../../lib/redis.js';
 import { getAllConfigs } from '../system-config/system-config.service.js';
 import { backupTimeZone, localClock } from '../backup/backup-settings.js';
 import { translateCameraAlertToThai } from '../../lib/telegram-translate-th.js';
-import { escapeHtml, sendTelegramText, severityIcon, telegramDefaults } from '../notifications/telegram.js';
+import { escapeHtml, sendTelegramText, severityIcon, telegramDefaults, type TelegramButton } from '../notifications/telegram.js';
 import {
   ageThai, chatsFor, clampDue, decide, matchRule, parseTargets,
   type AlertPlace, type EscalationReason, type EscalationTarget, type StepLike,
@@ -148,16 +148,41 @@ export function batchMessage(lines: string[], max = 20): string {
   return [head, ...body, '🔁 แจ้งซ้ำ · ⏫ ส่งต่อขั้นถัดไป · ⏰ เลยกำหนดเสร็จ', 'กด "รับทราบ" ในหน้าแจ้งเตือนเพื่อหยุดการแจ้งซ้ำ'].join('\n') + appLink();
 }
 
-async function teamsById(): Promise<Map<string, { telegramChatId: string | null; enabled: boolean; name: string }>> {
-  const teams = await getPrisma().notifyTeam.findMany({ select: { id: true, name: true, telegramChatId: true, enabled: true } });
+async function teamsById(): Promise<Map<string, { telegramChatId: string | null; enabled: boolean; notifyMembers: boolean; name: string }>> {
+  const teams = await getPrisma().notifyTeam.findMany({ select: { id: true, name: true, telegramChatId: true, enabled: true, notifyMembers: true } });
   return new Map(teams.map((t) => [t.id, t]));
 }
 
-async function sendToTargets(targets: EscalationTarget[], text: string): Promise<{ sent: number; chats: number }> {
+/** Private chats of team members who linked their Telegram (approved), per team. */
+async function memberChatsByTeam(): Promise<Map<string, string[]>> {
+  const prisma = getPrisma();
+  const members = await prisma.notifyTeamMember.findMany({ select: { teamId: true, userId: true } });
+  if (!members.length) return new Map();
+  const linked = await prisma.telegramUser.findMany({ where: { userId: { in: [...new Set(members.map((m) => m.userId))] }, status: 'approved' }, select: { userId: true, telegramId: true } });
+  const byUser = new Map(linked.map((l) => [l.userId!, l.telegramId]));
+  const out = new Map<string, string[]>();
+  for (const m of members) {
+    const chat = byUser.get(m.userId);
+    if (chat) out.set(m.teamId, [...(out.get(m.teamId) ?? []), chat]);
+  }
+  return out;
+}
+
+/** Buttons under a single-alert reminder: acknowledge for a day or three, from the chat. */
+export function ackButtons(alertId: string): TelegramButton[][] {
+  return [[
+    { text: '✅ รับทราบ 1 วัน', callback_data: `ack:${alertId}:24` },
+    { text: '✅ รับทราบ 3 วัน', callback_data: `ack:${alertId}:72` },
+  ]];
+}
+
+export const sendTargets = (targets: EscalationTarget[], text: string, buttons?: TelegramButton[][]) => sendToTargets(targets, text, buttons);
+
+async function sendToTargets(targets: EscalationTarget[], text: string, buttons?: TelegramButton[][]): Promise<{ sent: number; chats: number }> {
   const { chatId } = await telegramDefaults();
-  const chats = chatsFor(targets, chatId, await teamsById());
+  const chats = chatsFor(targets, chatId, await teamsById(), await memberChatsByTeam());
   let sent = 0;
-  for (const c of chats) if ((await sendTelegramText(c, text)).ok) sent++;
+  for (const c of chats) if ((await sendTelegramText(c, text, buttons)).ok) sent++;
   return { sent, chats: chats.length };
 }
 
@@ -189,9 +214,10 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
   let started = 0;
   let notified = 0;
   // Reminders of this round, per Telegram chat: sent after the loop, one message per chat (see batchMessage).
-  const outbox = new Map<string, { full: string; line: string }[]>();
+  const outbox = new Map<string, { full: string; line: string; alertId: string }[]>();
   const { chatId: defaultChat } = await telegramDefaults();
   const teamMap = await teamsById();
+  const memberChats = await memberChatsByTeam();
   for (const alert of open) {
     if (ESCALATE_TYPES_EXCLUDED.has(alert.alertType)) continue;
     let state = states.get(alert.id);
@@ -221,6 +247,13 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
       }
       continue;
     }
+    // Waiting for a repair: once its work order is completed or cancelled and the alert is still open, carry on now.
+    if (state.workOrderId && state.dueAt && state.dueAt > now) {
+      const wo = await prisma.workOrder.findUnique({ where: { id: state.workOrderId }, select: { status: true } }).catch(() => null);
+      if (!wo || ['completed', 'cancelled', 'closed'].includes(String(wo.status))) {
+        state = await prisma.alertEscalation.update({ where: { alertId: alert.id }, data: { dueAt: now, nextNotifyAt: now } });
+      }
+    }
     if (!state.nextNotifyAt || state.nextNotifyAt > now) continue;
     // A row made by an acknowledgement before this round saw the alert has no chain yet: find it now.
     if (!state.policyId) {
@@ -240,9 +273,9 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
         dueAt: state.dueAt, ackNote: state.ackNote, label: place.label, now,
       });
       const line = await reminderLine({ reason: d.reason, alert, stepNumber: d.stepIndex + 1, stepCount: steps.length, now });
-      for (const chat of chatsFor(steps[d.stepIndex].targets, defaultChat, teamMap)) {
+      for (const chat of chatsFor(steps[d.stepIndex].targets, defaultChat, teamMap, memberChats)) {
         const list = outbox.get(chat) ?? [];
-        list.push({ full: text, line });
+        list.push({ full: text, line, alertId: alert.id });
         outbox.set(chat, list);
       }
       notified++;
@@ -260,7 +293,8 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
   }
 
   for (const [chat, items] of outbox) {
-    await sendTelegramText(chat, items.length === 1 ? items[0].full : batchMessage(items.map((i) => i.line)));
+    if (items.length === 1) await sendTelegramText(chat, items[0].full, ackButtons(items[0].alertId));
+    else await sendTelegramText(chat, batchMessage(items.map((i) => i.line)));
   }
 
   const gone = [...states.keys()].filter((id) => !openIds.has(id));
@@ -272,17 +306,24 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
  * "รับทราบ" with a due time: reminders stop until then (at most escalation_max_ack_days); past it, the chain carries
  * on. Called from the alerts acknowledge endpoint, which also sets acknowledgedAt/By on the alert as before.
  */
-export async function acknowledgeEscalation(alertId: string, opts: { dueAt?: Date | null; note?: string | null }, now = new Date()) {
+export async function acknowledgeEscalation(alertId: string, opts: { dueAt?: Date | null; note?: string | null; workOrderId?: string | null }, now = new Date()) {
   const prisma = getPrisma();
   const { maxAckDays } = await getEscalationSettings();
-  const dueAt = clampDue(opts.dueAt ?? null, now, maxAckDays);
+  let requested = opts.dueAt ?? null;
+  const workOrderId = opts.workOrderId || null;
+  if (workOrderId) {
+    const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { scheduledAt: true } });
+    if (!wo) throw new EscalationError('UNKNOWN_WORK_ORDER', 400, 'Work order not found');
+    if (!requested && wo.scheduledAt) requested = wo.scheduledAt;
+  }
+  const dueAt = clampDue(requested, now, maxAckDays);
   const note = opts.note?.trim().slice(0, 500) || null;
   await prisma.alertEscalation.upsert({
     where: { alertId },
-    update: { dueAt, ackNote: note, nextNotifyAt: dueAt },
-    create: { alertId, dueAt, ackNote: note, nextNotifyAt: dueAt, stepStartedAt: now },
+    update: { dueAt, ackNote: note, nextNotifyAt: dueAt, workOrderId },
+    create: { alertId, dueAt, ackNote: note, nextNotifyAt: dueAt, stepStartedAt: now, workOrderId },
   });
-  return { dueAt, note };
+  return { dueAt, note, workOrderId };
 }
 
 // ── Daily summary ──────────────────────────────────────────────────────────────
@@ -355,6 +396,7 @@ export function startEscalation(): void {
     Promise.all([
       escalationTick().catch((err) => logger.error({ err }, 'Escalation round failed')),
       summaryTick().catch((err) => logger.error({ err }, 'Daily alert summary failed')),
+      import('./escalation-telegram.js').then((m) => m.weeklyTick()).catch((err) => logger.error({ err }, 'Weekly alert summary failed')),
     ]).finally(() => { ticking = false; });
   });
   logger.info('Escalation started: reminders and hand-offs for open alerts (chains on the Escalation page)');
@@ -411,6 +453,7 @@ export const teamSchema = z.object({
   name: z.string().trim().min(1).max(128),
   description: z.string().max(2000).nullable().optional(),
   telegramChatId: chatIdSchema,
+  notifyMembers: z.boolean().optional(),
   enabled: z.boolean().optional(),
   memberIds: z.array(z.string().uuid()).max(500).optional(),
 });
@@ -433,8 +476,10 @@ export const ruleSchema = z.object({
 });
 
 export async function listTeams() {
-  const teams = await getPrisma().notifyTeam.findMany({ orderBy: { name: 'asc' }, include: { members: true } });
-  return teams.map((t) => ({ ...t, memberIds: t.members.map((m) => m.userId), members: undefined }));
+  const prisma = getPrisma();
+  const teams = await prisma.notifyTeam.findMany({ orderBy: { name: 'asc' }, include: { members: true } });
+  const linked = new Set((await prisma.telegramUser.findMany({ where: { userId: { not: null }, status: 'approved' }, select: { userId: true } })).map((l) => l.userId!));
+  return teams.map((t) => ({ ...t, memberIds: t.members.map((m) => m.userId), linkedMemberIds: t.members.map((m) => m.userId).filter((id) => linked.has(id)), members: undefined }));
 }
 
 async function assertUsers(ids: string[]) {
@@ -454,7 +499,8 @@ export async function saveTeam(id: string | null, input: z.infer<typeof teamSche
   const prisma = getPrisma();
   const memberIds = [...new Set(input.memberIds ?? [])];
   await assertUsers(memberIds);
-  const data = { name: input.name, description: input.description ?? null, telegramChatId: input.telegramChatId || null, ...(input.enabled !== undefined ? { enabled: input.enabled } : {}) };
+  const data = { name: input.name, description: input.description ?? null, telegramChatId: input.telegramChatId || null,
+    ...(input.notifyMembers !== undefined ? { notifyMembers: input.notifyMembers } : {}), ...(input.enabled !== undefined ? { enabled: input.enabled } : {}) };
   try {
     return await prisma.$transaction(async (tx) => {
       const team = id ? await tx.notifyTeam.update({ where: { id }, data }) : await tx.notifyTeam.create({ data });

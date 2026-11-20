@@ -42,12 +42,14 @@ async function remember(ok: boolean, chatId: string, description?: string) {
   }
 }
 
-async function post(botToken: string, chatId: string, text: string): Promise<TelegramSendResult> {
+export interface TelegramButton { text: string; callback_data: string }
+
+async function post(botToken: string, chatId: string, text: string, buttons?: TelegramButton[][]): Promise<TelegramSendResult> {
   try {
     const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, ...(buttons?.length ? { reply_markup: { inline_keyboard: buttons } } : {}) }),
     });
     if (res.ok) return { ok: true };
     const body: any = await res.json().catch(() => ({}));
@@ -81,16 +83,16 @@ async function followMigration(oldChatId: string, newChatId: string): Promise<vo
 }
 
 /** Sends HTML text to one chat. Follows a supergroup migration once. */
-export async function sendTelegramText(chatId: string, text: string): Promise<TelegramSendResult> {
+export async function sendTelegramText(chatId: string, text: string, buttons?: TelegramButton[][]): Promise<TelegramSendResult> {
   const { botToken } = await telegramDefaults();
   if (!botToken) {
     logger.warn('Telegram not configured — skipping notification');
     return { ok: false, description: 'not configured' };
   }
-  let result = await post(botToken, chatId, text);
+  let result = await post(botToken, chatId, text, buttons);
   if (!result.ok && result.migratedTo) {
     await followMigration(chatId, result.migratedTo);
-    const retry = await post(botToken, result.migratedTo, text);
+    const retry = await post(botToken, result.migratedTo, text, buttons);
     result = { ...retry, migratedTo: result.migratedTo };
     chatId = result.migratedTo!;
   }

@@ -86,9 +86,9 @@ export default function AlertManagement() {
   // Acknowledging asks until when the person expects it fixed (escalation: reminders pause until then).
   const [ackTarget, setAckTarget] = useState<any | null>(null)
   const handleAcknowledge = (id: string) => setAckTarget(items.find((a: any) => a.id === id) ?? viewing ?? { id })
-  const submitAcknowledge = async (id: string, dueAt: string, note: string) => {
+  const submitAcknowledge = async (id: string, dueAt: string, note: string, workOrderId = '') => {
     try {
-      await imageServiceApi.acknowledgeAlert(id, { dueAt: dueAt ? new Date(dueAt).toISOString() : null, note: note.trim() || null })
+      await imageServiceApi.acknowledgeAlert(id, { dueAt: dueAt ? new Date(dueAt).toISOString() : null, note: note.trim() || null, workOrderId: workOrderId || null })
       toast.success(t('imageService.alerts.acknowledged'))
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
       setAckTarget(null)
@@ -536,13 +536,23 @@ export default function AlertManagement() {
 
 
 /** "รับทราบ": who takes it and until when. Reminders and hand-offs pause until the due time (at most the limit in settings). */
-function AcknowledgeModal({ alert, onClose, onSubmit }: { alert: any; onClose: () => void; onSubmit: (id: string, dueAt: string, note: string) => void }) {
+function AcknowledgeModal({ alert, onClose, onSubmit }: { alert: any; onClose: () => void; onSubmit: (id: string, dueAt: string, note: string, workOrderId: string) => void }) {
   const { t } = useTranslation()
   const pad = (n: number) => String(n).padStart(2, '0')
   const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   const initial = alert?.escalation?.dueAt ? new Date(alert.escalation.dueAt) : new Date(Date.now() + 86_400_000)
   const [dueAt, setDueAt] = useState(local(initial))
   const [note, setNote] = useState(alert?.escalation?.ackNote ?? '')
+  const [workOrderId, setWorkOrderId] = useState<string>(alert?.escalation?.workOrderId ?? '')
+  // Optional "waiting for repair": open work orders to tie this to; reminders resume when it is completed.
+  const { data: orders } = useQuery({
+    queryKey: ['ack-work-orders'],
+    queryFn: async () => {
+      const [open, busy] = await Promise.all([imageServiceApi.getWorkOrders({ status: 'open', limit: 100 }), imageServiceApi.getWorkOrders({ status: 'in_progress', limit: 100 })])
+      return [...(open?.data ?? []), ...(busy?.data ?? [])]
+    },
+    staleTime: 60_000,
+  })
   const quick = [4, 24, 72, 168]
   return (
     <Modal isOpen onClose={onClose} title={t('ui.escalation.ackTitle')} size="md">
@@ -567,9 +577,19 @@ function AcknowledgeModal({ alert, onClose, onSubmit }: { alert: any; onClose: (
           <textarea rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('ui.escalation.ackNotePlaceholder')}
             className="w-full px-3 py-2 rounded-md text-sm border border-white/30 bg-white/10 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50" />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-white mb-1">{t('ui.escalation.workOrder')}</label>
+          <SearchableSelect value={workOrderId} onChange={(v: string) => {
+              setWorkOrderId(v)
+              const wo = (orders ?? []).find((o: any) => o.id === v)
+              if (wo?.scheduledAt && new Date(wo.scheduledAt) > new Date()) setDueAt(local(new Date(wo.scheduledAt)))
+            }}
+            options={[{ value: '', label: t('ui.escalation.noWorkOrder') }, ...(orders ?? []).map((o: any) => ({ value: o.id, label: `${o.number}${o.technicianName ? ` · ${o.technicianName}` : ''}` }))]} />
+          <p className="text-xs text-slate-400 mt-1">{t('ui.escalation.workOrderHint')}</p>
+        </div>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button onClick={() => onSubmit(alert.id, dueAt, note)}>{t('imageService.alerts.acknowledge')}</Button>
+          <Button onClick={() => onSubmit(alert.id, dueAt, note, workOrderId)}>{t('imageService.alerts.acknowledge')}</Button>
         </div>
       </div>
     </Modal>
