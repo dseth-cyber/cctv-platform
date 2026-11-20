@@ -1112,6 +1112,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             </div>
           )}
 
+          {/* Description and the stream URL preview side by side (user request 2026-11-20). */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.location.description')}</label>
             <input
@@ -1131,13 +1133,15 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             const path = (tpl?.mainStreamPattern || '/').replace(/\{channel\}/g, '1');
             const preview = `rtsp://${formData.username || 'admin'}:${formData.password ? '••••••••' : 'password'}@${formData.ipAddress || '192.168.1.100'}:${formData.rtspPort || 554}${path}`;
             return (
-              <div className="p-2 bg-slate-950 border border-slate-800/80 rounded-lg text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                <span className="truncate">
-                  {t('ui.deviceManagement.vendorStreamUrlCh')}{' '}<span className="text-cyan-300">{preview}</span>
-                </span>
+              <div className="min-w-0">
+                <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.deviceManagement.vendorStreamUrlCh').replace(/[:：]\s*$/, '')}</label>
+                <div data-device-url-preview title={preview} className="h-10 px-3 bg-slate-950 border border-slate-800/80 rounded-lg text-[11px] font-mono text-cyan-300 flex items-center">
+                  <span className="truncate">{preview}</span>
+                </div>
               </div>
             );
           })()}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
