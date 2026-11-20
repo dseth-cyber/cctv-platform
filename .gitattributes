@@ -11,9 +11,9 @@ Dockerfile text eol=lf
 *.ps1     text
 
 # Left out of release packages (git archive / GitHub "Source code" zip): the first site's internal notes and history.
-docs/ops/**           export-ignore
-docs/audit/**         export-ignore
-docs/pilot/**         export-ignore
+docs/ops              export-ignore
+docs/audit            export-ignore
+docs/pilot            export-ignore
 HANDOFF.md            export-ignore
 AGENTS.md             export-ignore
 Roadmap.md            export-ignore
