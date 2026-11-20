@@ -88,6 +88,8 @@ const DEFAULT_CONFIGS: Record<string, { value: string; description: string; valu
   escalation_weekly_targets: { value: '[]', description: 'Who gets the weekly summary, e.g. [{"type":"team","id":"…"}] for the managers team. Empty = not sent.', valueType: 'json', category: 'escalation' },
   escalation_summary_targets: { value: '[{"type":"default"}]', description: 'Who gets the daily summary: [{"type":"default"}] = the Telegram group in Settings, {"type":"team","id":"…"} = a team.', valueType: 'json', category: 'escalation' },
 
+  asset_warranty_notice_days: { value: '90,30', description: 'Days before a recorder or camera warranty ends to raise a notice, comma separated. The smallest is a warning that follows the escalation chains; earlier ones are info. An ended warranty leaves a closed note.', valueType: 'string', category: 'assets' },
+
   required_fields: { value: '{}', description: 'Required field configuration per entity (JSON)', valueType: 'json', category: 'general' },
 };
 

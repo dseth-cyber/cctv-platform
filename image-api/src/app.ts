@@ -48,6 +48,8 @@ import { userRoutes } from './modules/users/users.controller.js';
 import { roleRoutes } from './modules/roles/roles.controller.js';
 import { alertRuleRoutes } from './modules/alert-rules/alert-rules.controller.js';
 import { escalationRoutes } from './modules/escalation/escalation.controller.js';
+import { assetRoutes } from './modules/assets/assets.controller.js';
+import { ensureAssetDefaults, startWarrantyNotices, stopWarrantyNotices } from './modules/assets/assets.service.js';
 import { ensureEscalationDefaults, startEscalation, stopEscalation } from './modules/escalation/escalation.service.js';
 import { systemSettingsRoutes } from './modules/system-settings/system-settings.controller.js';
 import { telegramUserRoutes } from './modules/telegram-bot/telegram-users.controller.js';
@@ -177,6 +179,7 @@ export async function buildApp() {
       await api.register(roleRoutes, { prefix: '/api/v1/roles' });
       await api.register(alertRuleRoutes, { prefix: '/api/v1/alert-rules' });
       await api.register(escalationRoutes, { prefix: '/api/v1/escalation' });
+      await api.register(assetRoutes, { prefix: '/api/v1/assets' });
       await api.register(systemSettingsRoutes, { prefix: '/api/v1/settings' });
       await api.register(telegramUserRoutes, { prefix: '/api/v1/telegram-users' });
       await api.register(apiKeyRoutes, { prefix: '/api/v1/api-keys' });
@@ -238,10 +241,12 @@ export async function startApp() {
   startSystemCleanup();
   startTelegramBot();
   startEscalation();
+  startWarrantyNotices();
 
   await correctEmptyCompletedBackups().catch((err) => logger.warn({ err: err?.message }, 'Could not correct empty backup records'));
   await ensureStorageWithoutBundledMinio().catch((err) => logger.error({ err: err?.message }, 'Could not move storage off the bundled MinIO'));
   await ensureEscalationDefaults().catch((err) => logger.error({ err: err?.message }, 'Could not prepare escalation defaults'));
+  await ensureAssetDefaults().catch((err) => logger.error({ err: err?.message }, 'Could not prepare asset defaults'));
   try {
     const prisma = getPrisma();
     const providers = await prisma.storageProvider.findMany({ where: { deletedAt: null } });
@@ -279,6 +284,7 @@ export async function startApp() {
     stopSystemCleanup();
     stopTelegramBot();
     stopEscalation();
+    stopWarrantyNotices();
     await app.close();
     process.exit(0);
   };

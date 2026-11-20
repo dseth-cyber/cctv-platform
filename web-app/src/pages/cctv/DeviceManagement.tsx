@@ -46,6 +46,9 @@ import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { canManageAll, hasPermission } from '@/App';
 import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib/csv';
+import { AssetFields, useAssetOptions } from '@/components/cctv/AssetFields';
+import { AssetCard } from '@/components/cctv/AssetCard';
+import { assetToForm, emptyAssetForm, formToPayload, sameForm, type AssetForm } from '@/lib/warranty';
 import { cloneIpPlaceholder, isValidIPv4, uniqueCopyName } from '@/lib/deviceChannels';
 
 import { useTranslation } from 'react-i18next';
@@ -70,6 +73,11 @@ export default function DeviceManagement() {
   const brandParam = urlParams.get('brand');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any | null>(null);
+  // Purchase and warranty (phase 5.5): saved after the recorder itself, only when something was filled in or changed.
+  const [assetForm, setAssetForm] = useState<AssetForm>(emptyAssetForm);
+  const [assetStart, setAssetStart] = useState<AssetForm>(emptyAssetForm);
+  const [assetOpen, setAssetOpen] = useState(false);
+  const { data: assetOptions } = useAssetOptions(isModalOpen);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null);
   const [previewCamera, setPreviewCamera] = useState<{ id: string; name: string } | null>(null);
@@ -162,9 +170,21 @@ export default function DeviceManagement() {
   }, [deviceParam]);
 
   // Mutations
+  // The recorder was saved; its purchase/warranty card follows. A failure there keeps the recorder and says so.
+  const saveAssetAfter = async (deviceId: string | undefined) => {
+    if (!deviceId || sameForm(assetForm, assetStart)) return;
+    try {
+      await imageServiceApi.saveAsset('device', deviceId, formToPayload(assetForm, !!assetOptions?.canPrice));
+      queryClient.invalidateQueries({ queryKey: ['asset', 'device', deviceId] });
+    } catch (err: any) {
+      if (!err?._handled) toast.error(`${t('ui.assets.saveFailed')}: ${err?.response?.data?.message ?? ''}`);
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: typeof formData) => imageServiceApi.createDevice(data),
-    onSuccess: () => {
+    onSuccess: async (res: any) => {
+      await saveAssetAfter(res?.id ?? res?.data?.id);
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
       toast.success(t('ui.deviceManagement.deviceAddedSuccessfully'));
@@ -178,7 +198,8 @@ export default function DeviceManagement() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => imageServiceApi.updateDevice(id, data),
-    onSuccess: () => {
+    onSuccess: async (_res: any, vars: { id: string; data: any }) => {
+      await saveAssetAfter(vars.id);
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       toast.success(t('ui.deviceManagement.deviceUpdated'));
       setIsModalOpen(false);
@@ -404,8 +425,11 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
     });
   };
 
+  const startAsset = (f: AssetForm) => { setAssetForm(f); setAssetStart(f); setAssetOpen(false); };
+
   const openAddModal = () => {
     resetForm();
+    startAsset(emptyAssetForm());
     if (siteParam) setFormData((prev) => ({ ...prev, siteId: siteParam, zoneId: zoneParam ?? '' }));
     setIsModalOpen(true);
   };
@@ -413,6 +437,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
   // Everything but what makes a machine itself: its address and its password are for the person to fill in.
   const openCloneModal = (dev: any) => {
     setEditingDevice(null);
+    // A copy is another machine: its purchase is its own, so the card starts empty.
+    startAsset(emptyAssetForm());
     setCloneSource(dev.name);
     setProbeState({ loading: false, result: null, error: null });
     setFormData({
@@ -444,6 +470,8 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
 
   const openEditModal = (dev: any) => {
     setEnabledChannels(null);
+    startAsset(emptyAssetForm());
+    imageServiceApi.getAsset('device', dev.id).then((a: any) => startAsset(assetToForm(a?.own))).catch(() => {});
     setCloneSource(null);
     setEditingDevice(dev);
     setProbeState({ loading: false, result: null, error: null });
@@ -807,6 +835,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                   {isExpanded && (
                     <div className="px-6 py-4 bg-slate-950/60 border-t border-slate-800/60 space-y-3">
                       <DeviceHealthPanel device={dev} canCheck={canUpdateDevices} />
+                      <AssetCard kind="device" id={dev.id} canEdit={canUpdateDevices} />
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-cyan-400" />
@@ -1136,6 +1165,19 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 <p className="mt-1 text-[11px] text-amber-400">{t('ui.deviceManagement.clonePasswordNeeded')}</p>
               )}
             </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-800" data-device-asset>
+            <button type="button" onClick={() => setAssetOpen((o) => !o)} className="w-full flex items-center justify-between text-xs font-semibold text-slate-200 py-1">
+              <span>{t('ui.assets.cardTitle')}{!sameForm(assetStart, emptyAssetForm()) && !assetOpen ? ` · ${t('ui.assets.filled')}` : ''}</span>
+              <span className="text-slate-400">{assetOpen ? '▲' : '▼'}</span>
+            </button>
+            {assetOpen && (
+              <div className="mt-2 space-y-2">
+                <p className="text-[11px] text-slate-400">{t('ui.assets.deviceHint')}</p>
+                <AssetFields value={assetForm} onChange={setAssetForm} options={assetOptions} />
+              </div>
+            )}
           </div>
 
           {!editingDevice && (

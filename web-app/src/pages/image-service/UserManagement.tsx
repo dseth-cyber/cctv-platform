@@ -273,6 +273,14 @@ const PERMISSION_MODULES = [
     ]
   },
   {
+    key: 'assets',
+    labelTh: 'ทรัพย์สินและการรับประกัน',
+    labelEn: 'Assets & Warranty',
+    permissions: [
+      { key: 'assets:price', labelTh: 'ดูและแก้ราคาซื้ออุปกรณ์', labelEn: 'View & Edit Purchase Price' }
+    ]
+  },
+  {
     key: 'telegram-bot',
     labelTh: 'Telegram Bot',
     labelEn: 'Telegram Bot',

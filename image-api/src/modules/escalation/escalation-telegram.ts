@@ -166,6 +166,9 @@ export async function weeklyText(now = new Date()): Promise<string> {
   } else {
     lines.push('✅ ไม่มีเรื่องค้างเกิน 7 วัน');
   }
+  // Warranties (phase 5.5): what ends within the notice window, and what already ended.
+  const w = await import('../assets/assets.service.js').then((m) => m.warrantyCounts(now)).catch(() => null);
+  if (w && (w.expiring || w.expired)) lines.push(`🛡 ประกันจะหมดใน ${w.soonDays} วัน ${w.expiring} รายการ · หมดแล้ว ${w.expired} รายการ (รายงาน → ทรัพย์สินและการรับประกัน)`);
   return lines.join('\n');
 }
 

@@ -3,7 +3,7 @@ import { getPrisma } from '../../lib/prisma.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors.js';
 import { builtInDeviceTemplates, setCustomDeviceTemplates, type DeviceVendorTemplate } from '../devices/devices.service.js';
 
-export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand', 'alert_level'] as const;
+export const MASTERDATA_TYPES = ['camera_status', 'incident_reason', 'incident_root_cause', 'incident_resolution', 'camera_type', 'device_brand', 'device_channel_count', 'device_type', 'camera_brand', 'alert_level', 'vendor'] as const;
 export type MasterdataType = (typeof MASTERDATA_TYPES)[number];
 
 /**
@@ -70,6 +70,7 @@ export async function createMasterdata(input: CreateMasterdataInput) {
   if (input.type === 'device_brand') validateBrand(input.code, input.config);
   if (input.type === 'device_channel_count') validateChannelCount(input.code);
   if (input.type === 'alert_level') validateAlertLevel(input.config);
+  if (input.type === 'vendor') validateVendor(input.config);
 
   const existing = await prisma.masterdata.findUnique({
     where: {
@@ -139,6 +140,7 @@ export async function updateMasterdata(id: string, input: UpdateMasterdataInput)
     throw fixedError(existing.type);
   }
   if (existing.type === 'alert_level' && input.config !== undefined) validateAlertLevel(input.config);
+  if (existing.type === 'vendor' && input.config !== undefined) validateVendor(input.config);
 
   if (input.code !== undefined && input.code !== existing.code) {
     const uses = await countUses(existing.type, existing.code);
@@ -195,7 +197,7 @@ export async function deleteMasterdata(id: string) {
 
 
 /** Lists a person chooses from on other pages. Readable by anyone who can see cameras. */
-export const OPTION_TYPES = ['camera_type', 'camera_brand', 'device_type', 'device_brand', 'device_channel_count', 'alert_level'] as const;
+export const OPTION_TYPES = ['camera_type', 'camera_brand', 'device_type', 'device_brand', 'device_channel_count', 'alert_level', 'vendor'] as const;
 
 export async function listMasterdataOptions(type: (typeof OPTION_TYPES)[number]) {
   return getPrisma().masterdata.findMany({
@@ -232,6 +234,17 @@ function validateAlertLevel(config: Record<string, unknown> | null | undefined) 
   }
 }
 
+/** A vendor's contact: name, phone and e-mail, each optional and short. */
+function validateVendor(config: Record<string, unknown> | null | undefined) {
+  for (const [key, max] of [['contactName', 200], ['phone', 64], ['email', 200]] as const) {
+    const value = config?.[key];
+    if (value == null || value === '') continue;
+    if (typeof value !== 'string' || value.length > max) throw new ValidationError(`The vendor's ${key} is text of at most ${max} characters`, { code: 'VENDOR_INVALID' });
+  }
+  const email = config?.email;
+  if (typeof email === 'string' && email && !/^[^\s@]+@[^\s@]+$/.test(email)) throw new ValidationError('The e-mail address does not look right', { code: 'VENDOR_INVALID' });
+}
+
 function validateChannelCount(code: string) {
   const n = Number(code);
   if (!Number.isInteger(n) || n < 1 || n > 256) {
@@ -246,6 +259,7 @@ async function countUses(type: string, code: string): Promise<number> {
   if (type === 'camera_brand') return prisma.camera.count({ where: { cameraBrand: { equals: code, mode: 'insensitive' }, deletedAt: null } });
   if (type === 'device_type') return prisma.device.count({ where: { deviceType: code } });
   if (type === 'device_brand') return prisma.device.count({ where: { brand: { equals: code, mode: 'insensitive' } } });
+  if (type === 'vendor') return prisma.assetRecord.count({ where: { vendorCode: code } });
   if (type === 'alert_level') {
     const [cameras, devices] = await Promise.all([
       prisma.camera.count({ where: { alertLevel: code, deletedAt: null } }),

@@ -11,6 +11,7 @@ import { formatDateTime } from '@/utils/dateUtils';
 import { getLocalizedValue } from '@/utils/textUtils';
 import { TableSkeleton, ExportButton, SearchableSelect } from '@/components/ui';
 import { DeviceReportTab } from '@/components/cctv/DeviceReportTab';
+import { AssetReportTab } from '@/components/cctv/AssetReportTab';
 import {
   FileSpreadsheet, CheckSquare, Square, Search, Sliders, Camera, GripVertical,
   ChevronUp, ChevronDown, ChevronsUpDown
@@ -57,20 +58,21 @@ const STORAGE_KEY = 'image_service_reports_columns_v1';
 export default function ImageServiceReports() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
-  const [tab, setTab] = useState<'cameras' | 'devices'>('cameras');
+  // ?tab=assets opens the purchase/warranty report (the Telegram warranty notices point there).
+  const [tab, setTab] = useState<'cameras' | 'devices' | 'assets'>(() => (new URLSearchParams(window.location.search).get('tab') === 'assets' ? 'assets' : 'cameras'));
   return (
     <div>
       <div className="pt-6 px-6">
         <div className={`inline-flex gap-1 px-1 py-1 rounded-lg ${themeConfig.card}`}>
-          {(['cameras', 'devices'] as const).map((key) => (
+          {(['cameras', 'devices', 'assets'] as const).map((key) => (
             <button key={key} type="button" data-report-tab={key} onClick={() => setTab(key)}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${tab === key ? 'bg-cyan-500/15 text-cyan-300' : `${themeConfig.text.secondary} hover:text-white`}`}>
-              {t(`ui.deviceReport.tab_${key}`)}
+              {key === 'assets' ? t('ui.assets.tab') : t(`ui.deviceReport.tab_${key}`)}
             </button>
           ))}
         </div>
       </div>
-      {tab === 'cameras' ? <CameraReport /> : <DeviceReportTab />}
+      {tab === 'cameras' ? <CameraReport /> : tab === 'devices' ? <DeviceReportTab /> : <AssetReportTab />}
     </div>
   );
 }

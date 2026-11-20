@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { AssetFields, useAssetOptions } from '@/components/cctv/AssetFields';
+import { assetToForm, emptyAssetForm, formToPayload, sameForm, type AssetForm } from '@/lib/warranty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CameraInfoImportModal } from '@/components/cctv/CameraInfoImportModal';
@@ -278,7 +280,16 @@ export default function ImageServiceCameras() {
   };
 
 
+  // Purchase and warranty (phase 5.5): saved after the camera itself, only when something was filled in or changed.
+  const [assetForm, setAssetForm] = useState<AssetForm>(emptyAssetForm);
+  const [assetStart, setAssetStart] = useState<AssetForm>(emptyAssetForm);
+  const [assetOpen, setAssetOpen] = useState(false);
+  const [assetInherited, setAssetInherited] = useState<string | null>(null);
+  const { data: assetOptions } = useAssetOptions(modal.open);
+  const startAsset = (f: AssetForm, inheritedFrom: string | null = null) => { setAssetForm(f); setAssetStart(f); setAssetOpen(false); setAssetInherited(inheritedFrom); };
+
   const openCreate = () => {
+    startAsset(emptyAssetForm());
     // Camera templates are hidden: a new camera gets no template, and the default retention policy as before.
     const formInit = emptyForm();
     const defaultRetention = policies.find((rp: any) => rp.isDefault);
@@ -310,6 +321,8 @@ export default function ImageServiceCameras() {
   };
 
   const openEdit = (item: any) => {
+    startAsset(emptyAssetForm());
+    imageServiceApi.getAsset('camera', item.id).then((a: any) => startAsset(assetToForm(a?.own), !a?.own && a?.inherited ? a.deviceName ?? '' : null)).catch(() => {});
     setDetect({ state: 'idle' });
     setShowAdvanced(false);
     setForm(formFromCamera(item));
@@ -445,12 +458,21 @@ export default function ImageServiceCameras() {
         if (form.streamPath) payload.streamPath = form.streamPath;
         return payload;
       };
+      let savedId: string | undefined;
       if (modal.item) {
         await imageServiceApi.updateCamera(modal.item.id, buildPayload());
+        savedId = modal.item.id;
         toast.success(t('imageService.cameras.updated'));
       } else {
-        await imageServiceApi.createCamera(buildPayload());
+        const created: any = await imageServiceApi.createCamera(buildPayload());
+        savedId = created?.id ?? created?.data?.id;
         toast.success(t('imageService.cameras.created'));
+      }
+      // The camera is saved; a failure on its purchase/warranty card keeps the camera and says so.
+      if (savedId && !sameForm(assetForm, assetStart)) {
+        await imageServiceApi.saveAsset('camera', savedId, formToPayload(assetForm, !!assetOptions?.canPrice))
+          .then(() => queryClient.invalidateQueries({ queryKey: ['asset', 'camera', savedId] }))
+          .catch((err: any) => { if (!err?._handled) toast.error(`${t('ui.assets.saveFailed')}: ${err?.response?.data?.message ?? ''}`); });
       }
       queryClient.invalidateQueries({ queryKey: ['cctv-devices'] });
       queryClient.invalidateQueries({ queryKey: ['cctv-device'] });
@@ -1729,6 +1751,19 @@ export default function ImageServiceCameras() {
             </div>
           </div>
           )}
+
+          <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }} data-camera-asset>
+            <button type="button" onClick={() => setAssetOpen((o) => !o)} className={`w-full flex items-center justify-between text-sm font-semibold py-1 ${themeConfig.text.primary}`}>
+              <span>{t('ui.assets.cardTitle')}{!sameForm(assetStart, emptyAssetForm()) && !assetOpen ? ` · ${t('ui.assets.filled')}` : ''}</span>
+              <span className={themeConfig.text.secondary}>{assetOpen ? '▲' : '▼'}</span>
+            </button>
+            {assetOpen && (
+              <div className="mt-2 space-y-2 text-slate-200">
+                {assetInherited !== null && <p className="text-[11px] text-slate-400">{t('ui.assets.ownCardHint', { name: assetInherited })}</p>}
+                <AssetFields value={assetForm} onChange={setAssetForm} options={assetOptions} />
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
             <Button variant="secondary" type="button" onClick={() => setModal({ open: false })}>{t('common.cancel')}</Button>

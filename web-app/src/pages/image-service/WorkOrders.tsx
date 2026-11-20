@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { ExportButton, Modal, SearchableSelect, TableSkeleton } from '@/components/ui';
+import { WarrantyStrip } from '@/components/cctv/AssetCard';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formatDateTime, toBangkokDateAndTimeString } from '@/utils/dateUtils';
 
@@ -121,6 +122,9 @@ function WorkOrderDialog({ order, canEdit, canSeeCost, onClose }: { order: any; 
           <Link to={`/cctv/incidents?incident=${order.incident?.incidentNumber}`} className="text-cyan-400 hover:underline">{order.incident?.incidentNumber}</Link>
           {' · '}{order.incident?.camera?.name}
         </div>
+        {order.incident?.camera?.id && (
+          <WarrantyStrip cameraId={order.incident.camera.id} onUseVendor={canEdit ? (v) => setForm((p) => ({ ...p, vendorCompany: p.vendorCompany || v.name, technicianName: p.technicianName || (v.contactName ?? ''), contactPhone: p.contactPhone || (v.phone ?? '') })) : undefined} />
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>{w('status')}</label>

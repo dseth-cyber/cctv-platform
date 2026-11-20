@@ -23,7 +23,7 @@ export const pageTabKey = (path: string) => path.replace('/cctv/', '');
 const FIXED_CODE_TABS = new Set(['camera_status']);
 import { Button, Modal } from '@/components/ui';
 
-type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count' | 'device_type' | 'camera_brand' | 'alert_level';
+type TabType = 'camera_status' | 'incident_reason' | 'incident_root_cause' | 'incident_resolution' | 'camera_type' | 'device_brand' | 'device_channel_count' | 'device_type' | 'camera_brand' | 'alert_level' | 'vendor';
 
 const TABS: { key: TabType; labelKey: string }[] = [
   { key: 'camera_type', labelKey: 'imageService.masterdataManagement.tabCameraType' },
@@ -32,6 +32,7 @@ const TABS: { key: TabType; labelKey: string }[] = [
   { key: 'device_brand', labelKey: 'imageService.masterdataManagement.tabDeviceBrand' },
   { key: 'device_channel_count', labelKey: 'imageService.masterdataManagement.tabChannelCount' },
   { key: 'alert_level', labelKey: 'imageService.masterdataManagement.tabAlertLevel' },
+  { key: 'vendor', labelKey: 'ui.assets.tabVendor' },
   { key: 'camera_status', labelKey: 'imageService.masterdataManagement.tabCameraStatus' },
   { key: 'incident_reason', labelKey: 'imageService.masterdataManagement.tabIncidentReason' },
   { key: 'incident_root_cause', labelKey: 'imageService.masterdataManagement.tabIncidentRootCause' },
@@ -63,7 +64,7 @@ export default function MasterdataManagement() {
   const setActiveTab = (key: TabType) => setSearchParams({ type: key }, { replace: true });
   const openPageTab = (path: string) => setSearchParams({ tab: pageTabKey(path) }, { replace: true });
   const [modal, setModal] = useState<{ open: boolean; editing?: any }>({ open: false });
-  const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '', alertDelay: '', incidentDelay: '' });
+  const [form, setForm] = useState<Record<string, any>>({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '', alertDelay: '', incidentDelay: '', contactName: '', phone: '', email: '' });
 
   const { data, isLoading } = useQuery({
     queryKey: ['masterdata', activeTab],
@@ -116,17 +117,17 @@ export default function MasterdataManagement() {
   });
 
   const openNew = () => {
-    setForm({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '', alertDelay: '', incidentDelay: '' });
+    setForm({ code: '', nameTh: '', nameEn: '', nameCn: '', nameMm: '', nameJp: '', description: '', sortOrder: 0, isActive: true, isDefault: false, mainStreamPattern: '', subStreamPattern: '', defaultRtspPort: '', defaultHttpPort: '', alertDelay: '', incidentDelay: '', contactName: '', phone: '', email: '' });
     setModal({ open: true, editing: undefined });
   };
 
   const openEdit = (item: any) => {
-    setForm({ code: item.code, nameTh: item.nameTh ?? '', nameEn: item.nameEn ?? '', nameCn: item.nameCn ?? '', nameMm: item.nameMm ?? '', nameJp: item.nameJp ?? '', description: item.description ?? '', sortOrder: item.sortOrder, isActive: item.isActive, isDefault: !!item.isDefault, mainStreamPattern: item.config?.mainStreamPattern ?? '', subStreamPattern: item.config?.subStreamPattern ?? '', defaultRtspPort: item.config?.defaultRtspPort ?? '', defaultHttpPort: item.config?.defaultHttpPort ?? '', alertDelay: item.config?.alertDelayMinutes ?? '', incidentDelay: item.config?.incidentDelayMinutes ?? '' });
+    setForm({ code: item.code, nameTh: item.nameTh ?? '', nameEn: item.nameEn ?? '', nameCn: item.nameCn ?? '', nameMm: item.nameMm ?? '', nameJp: item.nameJp ?? '', description: item.description ?? '', sortOrder: item.sortOrder, isActive: item.isActive, isDefault: !!item.isDefault, mainStreamPattern: item.config?.mainStreamPattern ?? '', subStreamPattern: item.config?.subStreamPattern ?? '', defaultRtspPort: item.config?.defaultRtspPort ?? '', defaultHttpPort: item.config?.defaultHttpPort ?? '', alertDelay: item.config?.alertDelayMinutes ?? '', incidentDelay: item.config?.incidentDelayMinutes ?? '', contactName: item.config?.contactName ?? '', phone: item.config?.phone ?? '', email: item.config?.email ?? '' });
     setModal({ open: true, editing: item });
   };
 
   const handleSave = () => {
-    const { mainStreamPattern, subStreamPattern, defaultRtspPort, defaultHttpPort, alertDelay, incidentDelay, ...fields } = form;
+    const { mainStreamPattern, subStreamPattern, defaultRtspPort, defaultHttpPort, alertDelay, incidentDelay, contactName, phone, email, ...fields } = form;
     const payload: Record<string, any> = { ...fields, type: activeTab, sortOrder: parseInt(form.sortOrder) || 0 };
     if (activeTab === 'device_brand') {
       payload.config = mainStreamPattern || subStreamPattern
@@ -136,6 +137,9 @@ export default function MasterdataManagement() {
     if (activeTab === 'alert_level') {
       const minutes = (value: unknown) => (value === '' || value === null ? null : Number(value));
       payload.config = { alertDelayMinutes: minutes(alertDelay), incidentDelayMinutes: minutes(incidentDelay) };
+    }
+    if (activeTab === 'vendor') {
+      payload.config = { contactName: String(contactName ?? '').trim(), phone: String(phone ?? '').trim(), email: String(email ?? '').trim() };
     }
     if (modal.editing) {
       updateMutation.mutate({ id: modal.editing.id, data: payload });
@@ -192,6 +196,7 @@ export default function MasterdataManagement() {
       {(activeTab === 'camera_type' || activeTab === 'device_brand' || activeTab === 'device_channel_count' || activeTab === 'alert_level') && (
         <p className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t(`imageService.masterdataManagement.hint_${activeTab}`)}</p>
       )}
+      {activeTab === 'vendor' && <p className={`mb-3 text-xs ${themeConfig.text.secondary}`}>{t('ui.assets.vendorTabHint')}</p>}
 
       <div className={`${themeConfig.card} rounded-lg overflow-hidden`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
@@ -224,6 +229,11 @@ export default function MasterdataManagement() {
                       <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
                         {t('imageService.masterdataManagement.formDefault')}
                       </span>
+                    )}
+                    {activeTab === 'vendor' && (item.config?.contactName || item.config?.phone || item.config?.email) && (
+                      <div data-vendor-summary={item.code} className={`mt-1 font-sans font-normal text-xs ${themeConfig.text.secondary}`}>
+                        {[item.config?.contactName, item.config?.phone, item.config?.email].filter(Boolean).join(' · ')}
+                      </div>
                     )}
                     {activeTab === 'alert_level' && (
                       <div data-level-summary={item.code} className={`mt-1 font-sans font-normal text-xs ${themeConfig.text.secondary}`}>
@@ -297,6 +307,23 @@ export default function MasterdataManagement() {
               <div>
                 <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>HTTP port</label>
                 <input type="number" min={1} max={65535} value={form.defaultHttpPort} onChange={e => setForm(f => ({ ...f, defaultHttpPort: e.target.value }))} placeholder="80" className={inputClass} />
+              </div>
+            </div>
+          )}
+          {activeTab === 'vendor' && (
+            <div data-vendor-form className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg border border-white/10">
+              <p className={`sm:col-span-3 text-xs ${themeConfig.text.secondary}`}>{t('ui.assets.vendorHelp')}</p>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('ui.assets.contactName')}</label>
+                <input maxLength={200} data-vendor-contact value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('ui.assets.phone')}</label>
+                <input maxLength={64} inputMode="tel" data-vendor-phone value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${themeConfig.text.primary}`}>{t('ui.assets.email')}</label>
+                <input maxLength={200} type="email" data-vendor-email value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={inputClass} />
               </div>
             </div>
           )}

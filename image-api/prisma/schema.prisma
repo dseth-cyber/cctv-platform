@@ -91,6 +91,7 @@ enum AlertType {
   recording_stopped
   clock_drift
   auth_anomaly
+  warranty_expiring
 
   @@map("alert_type")
 }
@@ -443,6 +444,7 @@ model Device {
   site    Site?    @relation(fields: [siteId], references: [id])
   zone    Zone?    @relation(fields: [zoneId], references: [id])
   cameras Camera[]
+  asset   AssetRecord?
 
   @@map("devices")
 }
@@ -523,6 +525,7 @@ model Camera {
   favorites        CameraFavorite[]
   recordings       CameraRecording[]
   recordingClips   RecordingClip[]
+  asset            AssetRecord?
 
   @@map("cameras")
 }
@@ -1021,4 +1024,41 @@ model AlertEscalation {
 
   @@index([nextNotifyAt])
   @@map("alert_escalations")
+}
+
+/// Purchase, warranty and installation of one recorder or one camera (exactly one of deviceId/cameraId).
+/// A channel camera without a row of its own takes its recorder's. Kept apart from devices/cameras so adding
+/// it changed no existing table.
+model AssetRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  deviceId       String?   @unique @map("device_id") @db.Uuid
+  cameraId       String?   @unique @map("camera_id") @db.Uuid
+  purchaseDate   DateTime? @map("purchase_date") @db.Date
+  installDate    DateTime? @map("install_date") @db.Date
+  warrantyMonths Int?      @map("warranty_months")
+  /// What the warranty counts from: purchase or install.
+  warrantyFrom   String    @default("purchase") @map("warranty_from") @db.VarChar(16)
+  /// Worked out from the months unless a person typed the date on the card (warrantyManual).
+  warrantyUntil  DateTime? @map("warranty_until") @db.Date
+  warrantyManual Boolean   @default(false) @map("warranty_manual")
+  /// Code from masterdata type vendor.
+  vendorCode     String?   @map("vendor_code") @db.VarChar(64)
+  installer      String?   @db.VarChar(200)
+  poNumber       String?   @map("po_number") @db.VarChar(64)
+  assetTag       String?   @map("asset_tag") @db.VarChar(64)
+  /// Seen and changed only with assets:price.
+  purchasePrice  Decimal?  @map("purchase_price") @db.Decimal(12, 2)
+  notes          String?   @db.Text
+  /// The warranty notice already raised for the current warranty end (days before it, 0 = ended); reset when the end moves.
+  warrantyNoticeDays Int?  @map("warranty_notice_days")
+  updatedBy      String?   @map("updated_by") @db.VarChar(128)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  camera Camera? @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([warrantyUntil])
+  @@index([vendorCode])
+  @@map("asset_records")
 }

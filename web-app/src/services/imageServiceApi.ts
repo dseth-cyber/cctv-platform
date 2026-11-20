@@ -369,6 +369,13 @@ export function createImageServiceApi(api: any) {
     sendEscalationWeekly: () => api.post(`${BASE}/escalation/weekly/send`).then((r: any) => r.data),
     /** Linking one's own Telegram (phase 5): status, a one-time code for "/link <code>", unlink. */
     getTelegramLink: () => api.get(`${BASE}/escalation/link`).then((r: any) => r.data),
+    // Purchase and warranty of recorders and cameras (phase 5.5)
+    getAssetOptions: () => api.get(`${BASE}/assets/options`, { silent403: true } as any).then((r: any) => r.data),
+    getAsset: (kind: 'device' | 'camera', id: string) => api.get(`${BASE}/assets/${kind}/${id}`, { silent403: true } as any).then((r: any) => r.data),
+    saveAsset: (kind: 'device' | 'camera', id: string, data: any) => api.put(`${BASE}/assets/${kind}/${id}`, data).then((r: any) => r.data),
+    deleteAsset: (kind: 'device' | 'camera', id: string) => api.delete(`${BASE}/assets/${kind}/${id}`).then((r: any) => r.data),
+    getAssetReport: () => api.get(`${BASE}/assets/report`).then((r: any) => r.data),
+    importAssets: (items: any[], dryRun: boolean) => api.post(`${BASE}/assets/import`, { items, dryRun }).then((r: any) => r.data),
     createTelegramLinkCode: () => api.post(`${BASE}/escalation/link/code`).then((r: any) => r.data),
     unlinkTelegram: () => api.delete(`${BASE}/escalation/link`).then((r: any) => r.data),
 

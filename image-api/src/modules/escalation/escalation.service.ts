@@ -95,7 +95,7 @@ const REASON_HEAD: Record<EscalationReason | 'first' | 'test', string> = {
 
 export async function reminderText(opts: {
   reason: EscalationReason | 'first' | 'test';
-  alert: { title: string; message: string; severity: string; createdAt: Date; acknowledgedBy: string | null };
+  alert: { title: string; message: string; severity: string; createdAt: Date; acknowledgedBy: string | null; alertType?: string; source?: string | null };
   stepNumber: number;
   stepCount: number;
   policyName: string;
@@ -112,6 +112,11 @@ export async function reminderText(opts: {
     escapeHtml(message),
     `ค้างมา ${ageThai(opts.alert.createdAt, now)}`,
   ];
+  // A fault on equipment still under warranty: say so, with whom to call (phase 5.5).
+  if (opts.alert.alertType) {
+    const note = await import('../assets/assets.service.js').then((m) => m.warrantyNoteFor(opts.alert.alertType!, opts.alert.source, now)).catch(() => null);
+    if (note) lines.push(escapeHtml(note));
+  }
   if (opts.alert.acknowledgedBy) {
     const due = opts.dueAt ? ` กำหนดเสร็จ ${opts.dueAt.toLocaleString('th-TH', { timeZone: backupTimeZone(), dateStyle: 'short', timeStyle: 'short' })}` : '';
     lines.push(`รับเรื่องโดย ${escapeHtml(opts.alert.acknowledgedBy)}${due}${opts.ackNote ? ` · ${escapeHtml(opts.ackNote)}` : ''}`);

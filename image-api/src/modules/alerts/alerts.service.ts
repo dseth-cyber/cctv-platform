@@ -50,13 +50,19 @@ export async function dispatchAlertNotifications(input: {
       where: { alertType: input.alertType, enabled: true },
     });
 
+    // A fault on equipment still under warranty: the first notice says so, with whom to call (phase 5.5).
+    const note = rules.length && input.severity !== 'info'
+      ? await import('../assets/assets.service.js').then((m) => m.warrantyNoteFor(input.alertType, input.source)).catch(() => null)
+      : null;
+    const message = note ? `${input.message}\n${note}` : input.message;
+
     for (const rule of rules) {
       const channels = (rule.notificationChannels as string[]) ?? [];
       if (channels.length === 0) continue;
 
       notifyChannels({
         title: input.title,
-        message: input.message,
+        message,
         severity: input.severity,
         channels,
         ruleId: rule.id,
