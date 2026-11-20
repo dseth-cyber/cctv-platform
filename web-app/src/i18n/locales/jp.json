@@ -4129,7 +4129,8 @@
       "field_installer": "設置業者",
       "field_poNumber": "注文書番号",
       "field_assetTag": "資産番号",
-      "field_purchasePrice": "価格"
+      "field_purchasePrice": "価格",
+      "tapToFill": "クリックして入力"
     },
     "datePicker": {
       "open": "カレンダーを開く",

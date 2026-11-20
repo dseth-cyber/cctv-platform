@@ -4129,7 +4129,8 @@
       "field_installer": "安装人",
       "field_poNumber": "采购单号",
       "field_assetTag": "资产编号",
-      "field_purchasePrice": "价格"
+      "field_purchasePrice": "价格",
+      "tapToFill": "点击填写"
     },
     "datePicker": {
       "open": "打开日历",

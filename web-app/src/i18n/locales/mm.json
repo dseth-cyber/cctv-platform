@@ -4124,7 +4124,8 @@
       "field_installer": "တပ်ဆင်သူ",
       "field_poNumber": "PO နံပါတ်",
       "field_assetTag": "ပိုင်ဆိုင်မှုကုဒ်",
-      "field_purchasePrice": "ဈေး"
+      "field_purchasePrice": "ဈေး",
+      "tapToFill": "နှိပ်၍ ဖြည့်ပါ"
     },
     "datePicker": {
       "open": "ပြက္ခဒိန် ဖွင့်",

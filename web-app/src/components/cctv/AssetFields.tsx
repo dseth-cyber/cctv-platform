@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { ChevronDown, ShieldCheck } from 'lucide-react';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { formWarrantyEnd, MONTH_CHOICES, type AssetForm } from '@/lib/warranty';
 import { formatDate } from '@/utils/dateUtils';
@@ -110,5 +111,25 @@ export function AssetFields({ value, onChange, options }: { value: AssetForm; on
         <textarea rows={2} maxLength={2000} className={`${input} !h-auto py-2`} value={value.notes} onChange={(e) => set({ notes: e.target.value })} data-asset="notes" />
       </div>
     </div>
+  );
+}
+
+/**
+ * The header that opens the purchase & warranty section in the recorder and camera forms. Coloured and with an icon
+ * so it reads as something to press (user: the plain header did not catch the eye).
+ */
+export function AssetSectionToggle({ open, filled, onToggle, size = 'sm' }: { open: boolean; filled: boolean; onToggle: () => void; size?: 'xs' | 'sm' }) {
+  const { t } = useTranslation();
+  return (
+    <button type="button" onClick={onToggle} aria-expanded={open} data-asset-toggle
+      className={`w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 font-semibold text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors ${size === 'xs' ? 'text-xs' : 'text-sm'}`}>
+      <span className="flex items-center gap-2">
+        <ShieldCheck size={16} />
+        {t('ui.assets.cardTitle')}
+        {filled && !open && <span className="font-normal text-emerald-300">· {t('ui.assets.filled')}</span>}
+        {!filled && !open && <span className="font-normal text-slate-400">· {t('ui.assets.tapToFill')}</span>}
+      </span>
+      <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+    </button>
   );
 }

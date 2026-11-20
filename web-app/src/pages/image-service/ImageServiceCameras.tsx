@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { AssetFields, useAssetOptions } from '@/components/cctv/AssetFields';
+import { AssetFields, AssetSectionToggle, useAssetOptions } from '@/components/cctv/AssetFields';
 import { assetToForm, emptyAssetForm, formToPayload, sameForm, type AssetForm } from '@/lib/warranty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -1754,10 +1754,7 @@ export default function ImageServiceCameras() {
           )}
 
           <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }} data-camera-asset>
-            <button type="button" onClick={() => setAssetOpen((o) => !o)} className={`w-full flex items-center justify-between text-sm font-semibold py-1 ${themeConfig.text.primary}`}>
-              <span>{t('ui.assets.cardTitle')}{!sameForm(assetStart, emptyAssetForm()) && !assetOpen ? ` · ${t('ui.assets.filled')}` : ''}</span>
-              <span className={themeConfig.text.secondary}>{assetOpen ? '▲' : '▼'}</span>
-            </button>
+            <AssetSectionToggle open={assetOpen} filled={!sameForm(assetStart, emptyAssetForm())} onToggle={() => setAssetOpen((o) => !o)} />
             {assetOpen && (
               <div className="mt-2 space-y-2 text-slate-200">
                 {assetInherited !== null && <p className="text-[11px] text-slate-400">{t('ui.assets.ownCardHint', { name: assetInherited })}</p>}

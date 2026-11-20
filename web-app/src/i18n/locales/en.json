@@ -4132,7 +4132,8 @@
       "field_installer": "installer",
       "field_poNumber": "PO number",
       "field_assetTag": "asset tag",
-      "field_purchasePrice": "price"
+      "field_purchasePrice": "price",
+      "tapToFill": "click to fill in"
     },
     "datePicker": {
       "open": "Open calendar",

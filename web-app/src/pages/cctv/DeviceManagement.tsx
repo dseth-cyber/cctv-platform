@@ -46,7 +46,7 @@ import { useMasterdataOptions } from '@/hooks/useMasterdataOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { canManageAll, hasPermission } from '@/App';
 import { downloadCsv, parseChannelList, parseCsv as readCsv, toCsv } from '@/lib/csv';
-import { AssetFields, useAssetOptions } from '@/components/cctv/AssetFields';
+import { AssetFields, AssetSectionToggle, useAssetOptions } from '@/components/cctv/AssetFields';
 import { AssetCard } from '@/components/cctv/AssetCard';
 import { assetToForm, emptyAssetForm, formToPayload, sameForm, type AssetForm } from '@/lib/warranty';
 import { cloneIpPlaceholder, isValidIPv4, uniqueCopyName } from '@/lib/deviceChannels';
@@ -1173,10 +1173,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
           </div>
 
           <div className="pt-2 border-t border-slate-800" data-device-asset>
-            <button type="button" onClick={() => setAssetOpen((o) => !o)} className="w-full flex items-center justify-between text-xs font-semibold text-slate-200 py-1">
-              <span>{t('ui.assets.cardTitle')}{!sameForm(assetStart, emptyAssetForm()) && !assetOpen ? ` · ${t('ui.assets.filled')}` : ''}</span>
-              <span className="text-slate-400">{assetOpen ? '▲' : '▼'}</span>
-            </button>
+            <AssetSectionToggle open={assetOpen} filled={!sameForm(assetStart, emptyAssetForm())} onToggle={() => setAssetOpen((o) => !o)} />
             {assetOpen && (
               <div className="mt-2 space-y-2">
                 <p className="text-[11px] text-slate-400">{t('ui.assets.deviceHint')}</p>

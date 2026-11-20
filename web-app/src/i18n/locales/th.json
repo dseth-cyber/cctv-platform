@@ -4135,7 +4135,8 @@
       "field_installer": "ผู้ติดตั้ง",
       "field_poNumber": "เลขที่ PO",
       "field_assetTag": "รหัสทรัพย์สิน",
-      "field_purchasePrice": "ราคาซื้อ"
+      "field_purchasePrice": "ราคาซื้อ",
+      "tapToFill": "กดเพื่อกรอก"
     },
     "datePicker": {
       "open": "เปิดปฏิทิน",
