@@ -51,3 +51,6 @@ camera-*.json
 
 # MediaMTX recordings and exported clips (video data, never commit)
 mediamtx/recordings/
+
+# installer logs
+install/logs/

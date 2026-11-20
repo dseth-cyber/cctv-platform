@@ -1,2 +1,29 @@
-# Shell scripts run inside Linux containers: a Windows checkout must not give them CRLF.
-*.sh text eol=lf
+# Scripts and configs run inside Linux containers: keep LF even when cloned on Windows (CRLF breaks #!/bin/sh).
+* text=auto
+*.sh      text eol=lf
+*.mjs     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.conf    text eol=lf
+*.sql     text eol=lf
+Dockerfile text eol=lf
+.env*example text eol=lf
+*.ps1     text
+
+# Left out of release packages (git archive / GitHub "Source code" zip): the first site's internal notes and history.
+docs/ops/**           export-ignore
+docs/audit/**         export-ignore
+docs/pilot/**         export-ignore
+HANDOFF.md            export-ignore
+AGENTS.md             export-ignore
+Roadmap.md            export-ignore
+PILOT_RELEASE_GUIDE.md export-ignore
+deploy-prod.sh        export-ignore
+activate.py           export-ignore
+"Disk จริง 8TB-NAS-USB Images.txt" export-ignore
+scripts/pilot-*       export-ignore
+scripts/measure-recorded.mjs export-ignore
+# Documents of the removed Image Service (not this system)
+USER_GUIDE.md         export-ignore
+ARCHITECTURE.md       export-ignore
+DATABASE_SCHEMA.md    export-ignore

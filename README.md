@@ -1,48 +1,377 @@
 # iSmart CCTV
 
-ระบบจัดการกล้องวงจรปิด: ดูสด (WebRTC), บันทึกต่อเนื่อง (fMP4), เล่นย้อนหลัง, ตัดคลิปหลักฐานพร้อม SHA-256 และ chain of custody, Legal Hold, incident และการแจ้งเตือน
+ระบบจัดการกล้องวงจรปิดผ่านเว็บ ดูกล้องทุกตัวพร้อมกันได้จากเบราว์เซอร์และมือถือ โดยไม่ต้องใช้โปรแกรมของยี่ห้อเครื่องบันทึก และไม่ต้องซื้อไลเซนส์เพิ่ม
 
-> โปรเจกต์นี้คือเครื่อง **Dev เท่านั้น** อ่าน [AGENTS.md](AGENTS.md) ก่อนทุกครั้ง. ระบบภาพโรงงาน (Image Service เดิม) ถูกถอดออกแล้ว 2026-11-03 — โค้ดเดิมดูได้ที่ git tag `legacy-image-service-final`. สถานะงานอยู่ใน [Roadmap.md](Roadmap.md) และ [HANDOFF.md](HANDOFF.md)
+- **ดูสด:** ดูหลายกล้องพร้อมกันเป็นตาราง (WebRTC ภาพแทบไม่หน่วง) ถ้า WebRTC ใช้ไม่ได้จะสลับเป็น HLS ให้เอง จัดชุดมุมมองได้ และเปิดเต็มจอได้
+- **ย้อนหลัง:** เล่นภาพย้อนหลังจากเครื่องบันทึก (DVR/NVR) หรือจากที่บันทึกบนเซิร์ฟเวอร์เอง
+- **คลิปหลักฐาน:** ตัดคลิปพร้อม SHA-256 และประวัติผู้เข้าถึง (chain of custody) และกันลบด้วย Legal Hold ได้
+- **แจ้งเตือน:** แจ้งเตือนผ่าน Telegram เมื่อกล้องดับ ฮาร์ดดิสก์เครื่องบันทึกมีปัญหา เครื่องหยุดบันทึก หรือนาฬิกาเพี้ยน
+  - ถ้าไม่มีคนรับเรื่อง จะแจ้งซ้ำ แล้วส่งต่อตามลำดับหัวหน้า
+  - กดรับทราบในแชทได้
+  - มีสรุปรายวันและรายสัปดาห์
+- **งานซ่อม:** Incident และใบงานซ่อม พร้อมรายงาน SLA
+- **ทะเบียนอุปกรณ์:** วันซื้อ ประกัน ผู้จำหน่าย และเตือนเมื่อประกันใกล้หมด
+- **ผู้ใช้และความปลอดภัย:** ผู้ใช้ บทบาท (role) และสิทธิ์รายกล้อง, audit log ทุกการดูกล้องที่ตั้งเป็น "อ่อนไหว"
+- **สำรองข้อมูล:** สำรองฐานข้อมูลอัตโนมัติ
+- **ภาษา:** หน้าเว็บมี 5 ภาษา (ไทย อังกฤษ จีน พม่า ญี่ปุ่น)
 
-## ส่วนประกอบ
+ทั้งระบบรันใน Docker บนเครื่องเดียว ติดตั้งได้ทั้ง **Linux** (แนะนำ) และ **Windows**
 
-| Service | หน้าที่ |
+---
+
+## สารบัญ
+
+1. [สิ่งที่ต้องมี](#1-สิ่งที่ต้องมี)
+2. [ติดตั้งบน Linux](#2-ติดตั้งบน-linux)
+3. [ติดตั้งบน Windows](#3-ติดตั้งบน-windows)
+4. [หลังติดตั้ง: ตั้งค่าครั้งแรก](#4-หลังติดตั้ง-ตั้งค่าครั้งแรก)
+5. [อัปเดตเวอร์ชัน](#5-อัปเดตเวอร์ชัน)
+6. [สำรองและกู้คืนข้อมูล](#6-สำรองและกู้คืนข้อมูล)
+7. [ค่าตั้งใน .env.production](#7-ค่าตั้งใน-envproduction)
+8. [แก้ปัญหาที่พบบ่อย](#8-แก้ปัญหาที่พบบ่อย)
+9. [ถอนการติดตั้ง](#9-ถอนการติดตั้ง)
+10. [ความปลอดภัย](#10-ความปลอดภัย)
+11. [ส่วนประกอบของระบบ](#11-ส่วนประกอบของระบบ-สำหรับผู้ดูแลและนักพัฒนา)
+
+---
+
+## 1. สิ่งที่ต้องมี
+
+### เครื่องเซิร์ฟเวอร์
+
+| | ขั้นต่ำ (≤ 32 กล้อง ดูสดอย่างเดียว) | แนะนำ (≤ 200 กล้อง หรือบันทึกบนเซิร์ฟเวอร์) |
+|---|---|---|
+| CPU | 4 คอร์ (x86-64) | 8 คอร์ขึ้นไป |
+| RAM | 8 GB | 16–32 GB |
+| ดิสก์ระบบ | SSD 60 GB | SSD 250 GB |
+| ดิสก์บันทึก | – (ถ้าบันทึกบนเครื่องบันทึกอย่างเดียว) | HDD แยก ขนาดตามจำนวนกล้อง × วันที่เก็บ (1080p ประมาณ 20–40 GB/กล้อง/วัน) |
+| ดิสก์สำรองข้อมูล | โฟลเดอร์ใดก็ได้ | ดิสก์อีกลูก (ถ้าดิสก์ระบบเสีย ข้อมูลสำรองยังอยู่) |
+| ระบบปฏิบัติการ | Ubuntu 22.04/24.04 หรือ Debian 12 / Windows 10/11 Pro, Windows Server 2022 | Ubuntu Server 24.04 LTS |
+
+- การ์ดจอไม่จำเป็น
+- ครั้งแรกต้องต่ออินเทอร์เน็ต เพื่อดาวน์โหลดและ build image (ประมาณ 3–5 GB) หลังจากนั้นระบบใช้งานใน LAN ได้โดยไม่ต้องมีเน็ต ยกเว้นการแจ้งเตือน Telegram
+
+### เครือข่าย
+
+- เซิร์ฟเวอร์ต้องมี **IP คงที่** ใน LAN ที่ผู้ใช้เข้าถึงได้ และต้องติดต่อเครื่องบันทึกและกล้องได้
+  - พอร์ตที่ต้องถึงเครื่องบันทึก: RTSP 554 และ HTTP 80 (ปรับได้รายเครื่อง)
+- พอร์ตที่ผู้ใช้ต้องเข้าถึงเซิร์ฟเวอร์ได้:
+
+| พอร์ต | ใช้ทำอะไร |
 |---|---|
-| `web-app` | React + Vite, เสิร์ฟผ่าน nginx (`/cctv/*` คือ UI, `/image-service/api/` คือ API, `/mediamtx/{webrtc,hls,playback}/` คือสื่อ) |
-| `image-api` | Fastify + Prisma (PostgreSQL): กล้อง, อุปกรณ์ DVR/NVR, site/zone, media node, ดัชนีไฟล์บันทึก, playback, export, incident, alert, ผู้ใช้/สิทธิ์, audit, backup |
-| `mediamtx` | ดึงสตรีม RTSP จากกล้อง, ส่ง WebRTC/HLS, บันทึก fMP4 ลง `./mediamtx/recordings`, playback server (`:9996`) |
-| `postgres`, `redis`, `minio`, `seaweedfs-*` | ฐานข้อมูล, cache, storage สำหรับ backup |
-| `prometheus`, `grafana`, `loki` | monitoring |
+| TCP 443 (และ 80 ซึ่งพาไป 443) | หน้าเว็บ |
+| UDP 8189 | ภาพสด WebRTC (ถ้าปิดไว้ ภาพจะช้าลงเพราะต้องใช้ HLS) |
+| UDP 123 (ไม่บังคับ) | ให้เครื่องบันทึกตั้งนาฬิกาจากเซิร์ฟเวอร์ |
 
-การบันทึก: `image-api` ลงทะเบียน path ของกล้องที่เปิดใช้กับ MediaMTX ทุก 60 วินาที; MediaMTX แจ้ง segment ที่บันทึกเสร็จผ่าน webhook → ดัชนี `camera_recordings` (มี reconcile ทุก 5 นาที). MediaMTX ไม่ลบไฟล์เอง (`recordDeleteAfter: 0s`) — การเก็บ/ลบทำโดย retention ของ `image-api` เท่านั้น (ย้ายไป quarantine, เคารพ Legal Hold)
+### เครื่องบันทึกที่รองรับ
 
-## เริ่มใช้งานบนเครื่อง Dev
+Hikvision / HiLook, Dahua / IMOU, Uniview, Hanwha (Samsung), Tiandy, XM / Xiongmai และอุปกรณ์อื่นที่ส่ง RTSP หรือ ONVIF ได้
+
+ฟีเจอร์บางอย่างทำได้เฉพาะเครื่อง Hikvision:
+- ตรวจสุขภาพเครื่อง (HDD, นาฬิกา)
+- อ่านรุ่นและ serial
+- เล่นย้อนหลังจากเครื่องบันทึก
+
+---
+
+## 2. ติดตั้งบน Linux
+
+### 2.1 เอาโปรแกรมมาไว้ที่เครื่อง
+
+**ทางที่ 1: ไฟล์แพ็กเกจ** (`cctv-platform-<เวอร์ชัน>.tar.gz`)
 
 ```bash
-cp .env.example .env          # แล้วแก้ secret ทุกตัวที่เป็น changeme
-docker compose -p cctv-platform up -d --build
-docker compose -p cctv-platform run --rm image-api-migrate   # migration (prisma/sql/*.sql แล้ว db push)
+tar -xzf cctv-platform-1.0.0.tar.gz
+cd cctv-platform-1.0.0
 ```
 
-เปิด `http://localhost:${WEB_HTTP_PORT}` (ค่า default 8080). ผู้ใช้เริ่มต้นจาก seed ใช้ได้เฉพาะ Dev และต้องเปลี่ยนรหัสผ่าน
+**ทางที่ 2: git** (ต้องได้สิทธิ์เข้า repository)
 
-ตัวแปรสำคัญ (ดู `.env.example` และ `docker-compose.yml`):
+```bash
+git clone <URL ของ repository> cctv-platform
+cd cctv-platform
+git checkout <เวอร์ชันล่าสุด เช่น v1.0.0>
+```
 
-| ตัวแปร | ความหมาย |
+ถ้ายังไม่ได้ checkout เวอร์ชัน ตัวติดตั้งจะเสนอให้ใช้เวอร์ชันล่าสุดให้เอง
+
+### 2.2 ติดตั้ง Docker (ถ้ายังไม่มี)
+
+ถ้าเครื่องยังไม่มี Docker ตัวติดตั้งจะถามว่าจะให้ติดตั้งให้เลยไหม (ใช้สคริปต์ทางการ get.docker.com) หรือติดตั้งเองตาม https://docs.docker.com/engine/install/ แล้วสั่ง:
+
+```bash
+sudo usermod -aG docker $USER     # แล้ว logout/login ใหม่ 1 ครั้ง
+```
+
+### 2.3 รันตัวติดตั้ง
+
+```bash
+bash install/install.sh
+```
+
+ตัวติดตั้งจะถามทีละข้อ ถ้าค่าในวงเล็บถูกแล้ว กด Enter ได้เลย:
+
+| คำถาม | ตัวอย่าง | หมายเหตุ |
+|---|---|---|
+| IP ของเซิร์ฟเวอร์ใน LAN | `192.168.1.10` | ผู้ใช้จะเปิดเว็บที่ `https://192.168.1.10` |
+| โฟลเดอร์เก็บไฟล์บันทึก | `/srv/cctv/recordings` | ควรอยู่บนดิสก์ใหญ่ที่แยกจากดิสก์ระบบ |
+| โฟลเดอร์สำรองฐานข้อมูล | `/srv/cctv-data/backup` | ควรอยู่บนดิสก์อีกลูก |
+| เขตเวลา | `Asia/Bangkok` | |
+| เก็บไฟล์บันทึกกี่วัน | `30` | |
+| ให้เครื่องบันทึกตั้งเวลาจากเซิร์ฟเวอร์ (NTP) ไหม | `y` แล้วใส่วง IP ของกล้อง เช่น `192.168.20.0/24` | |
+| รหัสผ่านใหม่ของ `admin` | ยาว 10 ตัวขึ้นไป | ถามตอนท้าย หลังระบบเริ่มทำงานแล้ว |
+
+สิ่งที่ตัวติดตั้งทำให้เอง:
+
+1. ตรวจเครื่อง: Docker, Docker Compose, พื้นที่ดิสก์
+2. ถ้ายังไม่มี `/etc/docker/daemon.json` จะเสนอสร้างให้ ให้ network ของ Docker ใช้วง 10.x เพื่อไม่ชนกับวงกล้อง 192.168.x
+3. สร้างไฟล์ตั้งค่า `.env.production` (สิทธิ์ 600) พร้อมรหัสลับใหม่ที่สุ่มทุกตัว
+4. สร้างโฟลเดอร์และตั้งเจ้าของให้ถูก
+5. สร้างใบรับรอง HTTPS แบบ self-signed ถ้ายังไม่มี
+6. ตรวจความพร้อมด้วย `scripts/prod-preflight.sh`
+7. build image ครั้งแรกใช้เวลาประมาณ 5–15 นาที
+8. สร้างฐานข้อมูลและข้อมูลตั้งต้น
+9. เปิดระบบ
+10. ตั้งรหัส admin และปิดบัญชีตัวอย่าง `operator`/`viewer`
+
+เสร็จแล้วจะแสดงที่อยู่ เช่น `https://192.168.1.10`
+
+> **เก็บไฟล์ `.env.production` สำรองไว้ในตู้เก็บรหัสผ่าน** (ห้ามส่งในแชทหรืออีเมล) เพราะมี `ENCRYPTION_KEY` อยู่ข้างใน ถ้าคีย์นี้หาย ระบบที่กู้กลับจาก backup จะอ่านรหัสผ่านเครื่องบันทึกไม่ได้
+
+ติดตั้งแบบไม่ถามคำถาม (สำหรับสคริปต์อัตโนมัติ):
+
+```bash
+CCTV_LAN_IP=192.168.1.10 CCTV_RECORDINGS_DIR=/srv/cctv/recordings CCTV_BACKUP_DIR=/srv/cctv-data/backup \
+CCTV_NTP=yes CCTV_NTP_ALLOW=192.168.20.0/24 CCTV_ADMIN_PASSWORD='<รหัสยาว>' bash install/install.sh --yes
+```
+
+ถ้าไม่ใส่ `CCTV_ADMIN_PASSWORD` ตัวติดตั้งจะสุ่มรหัสให้และแสดงครั้งเดียว
+
+### 2.4 Firewall (ถ้าเปิด ufw)
+
+```bash
+sudo ufw allow 22/tcp                                   # ทำก่อน ไม่เช่นนั้น SSH จะหลุด
+sudo ufw allow from 192.168.0.0/16 to any port 443 proto tcp
+sudo ufw allow from 192.168.0.0/16 to any port 80 proto tcp
+sudo ufw allow from 192.168.0.0/16 to any port 8189 proto udp
+sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้วงกล้อง (ถ้าใช้)
+```
+
+หมายเหตุ: ufw คุมพอร์ตที่ Docker เปิดไม่ได้ทั้งหมด ระบบนี้จึงผูกพอร์ตกับ IP ใน LAN เพียงตัวเดียว ไม่เปิดทุก interface
+
+---
+
+## 3. ติดตั้งบน Windows
+
+เหมาะกับไซต์เล็กหรือเครื่องทดลอง ถ้ามีกล้องจำนวนมากหรือบันทึก 24 ชั่วโมง แนะนำ Linux
+
+1. ติดตั้ง **Docker Desktop** จาก https://www.docker.com/products/docker-desktop/
+   - ระหว่างติดตั้งเลือก WSL 2 แล้วรีสตาร์ทเครื่อง
+   - เปิด Docker Desktop จนไอคอนรูปปลาวาฬบอกว่า running
+2. ตั้ง Docker Desktop: **Settings → General → Start Docker Desktop when you sign in** เพื่อให้ระบบกลับมาทำงานเองหลังรีสตาร์ท (Windows ต้อง sign in ค้างไว้ หรือตั้ง auto-logon)
+3. เอาโปรแกรมมาไว้ที่เครื่อง โดยแตกไฟล์ `cctv-platform-<เวอร์ชัน>.zip` ไว้ เช่นที่ `C:\cctv-platform`
+   - ถ้าใช้ git: `git clone -c core.autocrlf=false <URL>` ต้องใส่ `core.autocrlf=false` ไม่เช่นนั้นสคริปต์ที่รันใน container จะเสีย
+4. เปิด **PowerShell แบบ Run as administrator** เพื่อให้ตัวติดตั้งเพิ่มกฎ Firewall ให้ได้ แล้วสั่ง:
+
+   ```powershell
+   cd C:\cctv-platform
+   powershell -ExecutionPolicy Bypass -File install\install.ps1
+   ```
+
+5. ตอบคำถามแบบเดียวกับ Linux:
+   - โฟลเดอร์ใช้รูปแบบ `D:\cctv\recordings` ได้
+   - NTP แนะนำให้ตอบ "ไม่" เพราะ Windows Time service ใช้พอร์ต 123 อยู่แล้ว
+6. เสร็จแล้วเปิด `https://<IP ของเครื่อง>` จากเครื่องอื่นใน LAN
+
+ข้อจำกัดบน Windows:
+- ไฟล์บันทึกผ่านโฟลเดอร์ Windows จะช้ากว่า Linux
+- Windows Update อาจรีสตาร์ทเครื่องเอง ควรตั้งเวลาให้รีสตาร์ทนอกเวลางาน
+
+---
+
+## 4. หลังติดตั้ง: ตั้งค่าครั้งแรก
+
+เข้าเว็บด้วย `admin` และรหัสที่ตั้งไว้ แล้วตั้งค่าตามลำดับ:
+
+1. **สถานที่และโซน:** เพิ่มอาคารหรือพื้นที่ (เมนูสถานที่)
+2. **เครื่องบันทึก:** เมนูอุปกรณ์ → เพิ่มเครื่องบันทึก
+   - ใส่ IP ผู้ใช้ และรหัสผ่าน (ชุดเดียวกับที่ใช้ในโปรแกรมของยี่ห้อ) แล้วกด "ทดสอบและดึงข้อมูล"
+   - ติ๊ก "สร้างช่องกล้องทันที" และเลือกเฉพาะช่องที่มีกล้องจริง
+3. **ดูภาพสด:** ห้องภาพสด เลือกจำนวนช่องที่จะแสดง (Grid) แล้วบันทึกเป็นชุดมุมมอง
+4. **ผู้ใช้:** เพิ่มบัญชีจริง กำหนด role และกล้องที่แต่ละคนเห็นได้ (ขอบเขตกล้อง)
+5. **แจ้งเตือน Telegram:**
+   - สร้างบอทกับ @BotFather แล้วเพิ่มบอทเข้ากลุ่ม
+   - ใส่ Token และ Chat ID ที่หน้าตั้งค่า Telegram แล้วกดทดสอบ
+   - ตั้งลำดับการแจ้งต่อได้ที่ "ลำดับการแจ้งเตือน"
+6. **สำรองข้อมูล:** หน้าสำรองข้อมูล เลือกปลายทางเป็นโฟลเดอร์สำรองที่ตั้งไว้ตอนติดตั้ง ตั้งเวลา แล้วกด "สำรองทันที" 1 ครั้งเพื่อทดสอบ
+7. **ทะเบียนอุปกรณ์ (ไม่บังคับ):**
+   - ข้อมูลหลัก → ผู้จำหน่าย
+   - กรอกวันซื้อและประกันที่ฟอร์มเครื่องบันทึกหรือกล้อง หรือที่ รายงาน → ทรัพย์สินและการรับประกัน → นำเข้าจาก CSV
+8. **นาฬิกาเครื่องบันทึก (ถ้าเปิด NTP):** ตั้ง NTP server ของเครื่องบันทึกเป็น IP ของเซิร์ฟเวอร์ ทำที่ตัวเครื่องหรือใช้ปุ่มตั้ง NTP ในหน้าอุปกรณ์
+
+---
+
+## 5. อัปเดตเวอร์ชัน
+
+ทุกครั้งที่อัปเดต สคริปต์จะทำตามลำดับนี้:
+
+1. สำรองฐานข้อมูลก่อน
+2. build เวอร์ชันใหม่ ระหว่างนี้เวอร์ชันเดิมยังทำงานอยู่
+3. ปรับฐานข้อมูล ถ้าขั้นนี้ไม่ผ่าน สคริปต์จะหยุด และเวอร์ชันเดิมยังใช้งานได้
+4. เปิดเวอร์ชันใหม่ ระบบหยุดประมาณ 30 วินาที
+
+| | Linux | Windows |
+|---|---|---|
+| ติดตั้งจาก git | `bash install/update.sh` (เวอร์ชันล่าสุด) หรือ `bash install/update.sh v1.0.1` | `powershell -ExecutionPolicy Bypass -File install\update.ps1` |
+| ติดตั้งจากไฟล์แพ็กเกจ | แตกเวอร์ชันใหม่เป็นโฟลเดอร์ใหม่ คัดลอก `.env.production` (คงสิทธิ์ 600) และโฟลเดอร์ `ssl/` จากโฟลเดอร์เดิมมา แล้วรัน `bash install/update.sh` ในโฟลเดอร์ใหม่ | ทำแบบเดียวกัน แล้วรัน `install\update.ps1` ในโฟลเดอร์ใหม่ |
+
+ฐานข้อมูลและการตั้งค่าเก็บใน Docker volume จึงไม่หายเมื่อย้ายโฟลเดอร์ เก็บโฟลเดอร์เดิมไว้ก่อน เผื่อต้องย้อนกลับ
+
+**ย้อนกลับเวอร์ชัน:**
+1. แก้ `CCTV_VERSION` ใน `.env.production` เป็นเวอร์ชันเดิม (ถ้าใช้ git ให้ `git checkout v<เวอร์ชันเดิม>` ด้วย)
+2. สั่ง `docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d`
+3. ถ้าเวอร์ชันใหม่ไปแก้ฐานข้อมูลแล้วและเวอร์ชันเดิมใช้ไม่ได้ ให้กู้จากไฟล์สำรองที่สคริปต์ทำไว้ก่อนอัปเดต (ข้อ 6)
+
+---
+
+## 6. สำรองและกู้คืนข้อมูล
+
+**สิ่งที่ต้องสำรอง:**
+- ฐานข้อมูล: การตั้งค่าทั้งหมด กล้อง ผู้ใช้ ประวัติ ใช้หน้าสำรองข้อมูลในเว็บ หรือไฟล์ `.dump` ที่สคริปต์อัปเดตทำไว้
+- `.env.production`: เก็บในตู้รหัสผ่าน
+- `ssl/`: ใบรับรอง HTTPS
+- ไฟล์บันทึกและคลิปหลักฐาน: อยู่ในโฟลเดอร์บันทึก ถ้าต้องการเก็บยาว ให้สำรองด้วยเครื่องมือของดิสก์หรือ NAS
+
+**สำรองด้วยมือ (Linux):**
+
+```bash
+( umask 077; docker exec cctv-postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/cctv-data/backup/cctv-$(date +%F-%H%M).dump )
+```
+
+**กู้คืน** (แทนที่ข้อมูลปัจจุบันทั้งหมด ควรสำรองข้อมูลปัจจุบันก่อน):
+
+```bash
+DCP="docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml"
+$DCP stop image-api web-app
+docker exec -i cctv-postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < /srv/cctv-data/backup/<ไฟล์>.dump
+$DCP run --rm image-api-migrate
+$DCP up -d
+```
+
+ต้องใช้ `.env.production` ชุดเดิม เพราะต้องใช้ `ENCRYPTION_KEY` ตัวเดิม
+
+---
+
+## 7. ค่าตั้งใน .env.production
+
+ตัวติดตั้งกรอกค่าให้ครบแล้ว ส่วนนี้มีไว้เผื่อต้องแก้ทีหลัง หลังแก้ให้สั่ง `bash install/update.sh` หรือ `docker compose ... up -d`
+
+| ค่า | ความหมาย |
 |---|---|
-| `WEB_HTTP_PORT` / `WEB_HTTPS_PORT` | พอร์ตเว็บ (ผูกกับ 127.0.0.1) |
-| `WEB_LAN_ADDRESS` (+ `WEB_LAN_HTTP_PORT`, `WEB_LAN_HTTPS_PORT`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST`) | เปิดให้เข้าผ่าน IP วง LAN เพียงหนึ่ง address — ห้าม `0.0.0.0` และห้ามวงเดียวกับ Image Service production เดิม |
-| `CORS_ALLOWED_ORIGINS` | origin ของเบราว์เซอร์ที่อนุญาต (ต้องรวมทุก URL ที่ใช้เปิดเว็บ) |
-| `CCTV_ISOLATION_VERIFIED` | ตั้ง `true` หลังตรวจแล้วว่าเครื่องนี้แยกจาก production เดิม |
-| `MEDIA_WEBHOOK_SECRET` | secret ร่วมระหว่าง MediaMTX กับ image-api (webhook และ control API) |
-| `RECORDINGS_CLEANUP_ENABLED` | เปิด retention ของไฟล์บันทึก (default ปิด) |
-| `MAX_EXPORT_HOURS` | ความยาวสูงสุดของคลิปหลักฐานหนึ่งไฟล์ (default 24) |
+| `CCTV_VERSION` | เวอร์ชันที่รันอยู่ (สคริปต์อัปเดตตั้งให้) |
+| `WEB_LAN_ADDRESS`, `MEDIA_UDP_BIND`, `MEDIA_WEBRTC_HOST` | IP ของเซิร์ฟเวอร์ใน LAN ระบบเปิดพอร์ตเฉพาะ IP นี้ ไม่เปิดทุก interface |
+| `WEB_LAN_HTTP_PORT` / `WEB_LAN_HTTPS_PORT` | พอร์ตเว็บ (80/443) |
+| `PUBLIC_BASE_URL`, `CORS_ALLOWED_ORIGINS` | ที่อยู่เว็บที่ใช้ในลิงก์ของการแจ้งเตือน เช่น `https://192.168.1.10` หรือโดเมนของบริษัท |
+| `RECORDINGS_HOST_DIR` | โฟลเดอร์ไฟล์บันทึก |
+| `BACKUP_HOST_DIR` | โฟลเดอร์สำรองฐานข้อมูล |
+| `RECORDING_RETENTION_DAYS` | จำนวนวันที่เก็บไฟล์บันทึก |
+| `APP_TIME_ZONE` | เขตเวลา |
+| `NTP_BIND`, `NTP_ALLOW`, `NTP_HOST_PORT` | NTP สำหรับเครื่องบันทึก (`127.0.0.1` = ปิด) |
+| `CCTV_DOCKER_SUBNET` | วง IP ภายใน Docker (ค่าเริ่มต้น `10.250.0.0/24`) ต้องไม่ชนกับ LAN จริง |
+| `POSTGRES_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY`, `SERVICE_API_KEY`, `MEDIA_WEBHOOK_SECRET` | รหัสลับ สุ่มตอนติดตั้ง **ห้ามเปลี่ยน `ENCRYPTION_KEY`** หลังเพิ่มเครื่องบันทึกแล้ว |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | (ไม่บังคับ) ตั้งในหน้าเว็บได้ |
+| `TUNNEL_TOKEN` | (ไม่บังคับ) Cloudflare Tunnel สำหรับเข้าจากอินเทอร์เน็ต ต้องเปิดด้วย `--profile tunnel` และควรตั้ง Cloudflare Access หรือ WAF ด้วย |
+| `LEGACY_LAN_PREFIX` | วง IP ที่ห้ามเปิดระบบเด็ดขาด (เว้นว่าง = ไม่มี) |
 
-## พัฒนา
+รายการทั้งหมดพร้อมคำอธิบายอยู่ใน `.env.production.example`
+
+**ใช้ใบรับรองของบริษัทแทน self-signed:** วางไฟล์เป็น `ssl/server.crt` (รวม chain) และ `ssl/server.key` แล้วสั่ง `docker restart cctv-web-app`
+
+---
+
+## 8. แก้ปัญหาที่พบบ่อย
+
+| อาการ | สาเหตุและวิธีแก้ |
+|---|---|
+| เบราว์เซอร์เตือน "ไม่ปลอดภัย" | ใบรับรองเป็น self-signed กด "ดำเนินการต่อ" ครั้งเดียว หรือใส่ใบรับรองของบริษัท (ข้อ 7) |
+| ภาพสดขึ้นช้าหรือเป็นป้าย HLS | UDP 8189 ถูกกั้น ให้เปิดใน firewall และตรวจว่า `MEDIA_WEBRTC_HOST` เป็น IP ที่ผู้ใช้เข้าถึงได้ |
+| ภาพสดไม่ขึ้นเลย | ตรวจว่าเซิร์ฟเวอร์ติดต่อเครื่องบันทึกได้ (`ping`, พอร์ต 554), รหัสผ่านถูก และช่องนั้นมีกล้องจริง ดูสถานะที่หน้าอุปกรณ์ |
+| หลังติดตั้ง container ติดต่อกล้องวง 192.168.x ไม่ได้ | network ของ Docker ไปได้วง 192.168.x และทับวงกล้อง ให้ตั้ง `/etc/docker/daemon.json` เป็นวง 10.x (ตัวติดตั้งเสนอให้) แล้วรีสตาร์ท Docker |
+| เปิดเครื่องใหม่แล้วระบบไม่ขึ้น (Linux) | network ยังไม่พร้อมตอน Docker เริ่ม ให้ตอบ "ใช่" เรื่อง `ip_nonlocal_bind` ตอนติดตั้ง หรือสั่ง `docker compose ... up -d --force-recreate` |
+| `cannot assign requested address` (Windows) | Docker Desktop ผูก IP นั้นไม่ได้ ตรวจว่า IP ถูกและเป็นของเครื่องนี้ ถ้ายังไม่ได้ ให้แก้ `WEB_LAN_ADDRESS`/`MEDIA_UDP_BIND` เป็น `0.0.0.0` (เปิดทุก interface ต้องคุมด้วย Windows Firewall) |
+| พอร์ต 80/443 ถูกใช้แล้ว | มีโปรแกรมอื่นใช้อยู่ (เช่น IIS หรือ Skype) ให้ปิดโปรแกรมนั้น หรือเปลี่ยน `WEB_LAN_HTTP_PORT`/`WEB_LAN_HTTPS_PORT` |
+| ตัวติดตั้ง Windows บอก "line ends" | clone ด้วย autocrlf ให้ clone ใหม่ด้วย `-c core.autocrlf=false` หรือใช้ไฟล์ .zip |
+| preflight ขึ้น FAIL | อ่านบรรทัด FAIL ทุกบรรทัดบอกวิธีแก้ไว้แล้ว ตรวจซ้ำได้ด้วย `sh scripts/prod-preflight.sh .env.production` |
+| ลืมรหัส admin | ให้ผู้ใช้ที่มีสิทธิ์จัดการผู้ใช้รีเซ็ตให้ หรือดูวิธีในหัวข้อ "ลืมรหัส admin" ด้านล่าง |
+
+**ดู log:** `docker logs --tail 100 cctv-api`, `docker logs cctv-mediamtx`, `docker logs cctv-web-app`
+**ดูสถานะ:** `docker ps` ทุกตัวต้องเป็น `Up` และ `cctv-api` ต้องเป็น `(healthy)`
+
+### ลืมรหัส admin
+
+```bash
+docker exec -i -e ADMIN_NEW_PASSWORD='<รหัสใหม่ยาว 10+>' cctv-api node --input-type=module -e "
+import bcrypt from 'bcryptjs'; import { PrismaClient } from '@prisma/client';
+const p = new PrismaClient(); const h = await bcrypt.hash(process.env.ADMIN_NEW_PASSWORD, 10);
+await p.user.update({ where: { username: 'admin' }, data: { password: h } });
+console.log('done'); await p.\$disconnect();"
+```
+
+---
+
+## 9. ถอนการติดตั้ง
+
+```bash
+DCP="docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml"
+$DCP down                 # หยุดระบบ ข้อมูลยังอยู่
+$DCP down -v              # ⚠ ลบฐานข้อมูลทั้งหมดถาวร สำรองก่อนเสมอ
+```
+
+ไฟล์บันทึกและไฟล์สำรองอยู่ในโฟลเดอร์ที่ตั้งไว้ ไม่ถูกลบอัตโนมัติ ให้ลบเองถ้าไม่ต้องการแล้ว
+
+---
+
+## 10. ความปลอดภัย
+
+- ห้ามส่ง `.env.production` ห้ามส่งรหัสผ่านเครื่องบันทึก และห้ามส่ง token ในแชท อีเมล หรือ ticket
+- ระบบปฏิเสธการเริ่มทำงานถ้ารหัสลับสั้น ซ้ำกัน หรือเป็นค่าตัวอย่าง (log บอกชื่อค่าที่ผิด ไม่บอกตัวค่า)
+- บัญชีตัวอย่าง `operator` และ `viewer` ถูกปิดตอนติดตั้ง ให้สร้างบัญชีจริงของแต่ละคน
+- เข้าจากอินเทอร์เน็ต: ใช้ Cloudflare Tunnel พร้อม Access หรือ WAF ห้ามเปิดพอร์ตตรงที่เราเตอร์
+- พอร์ตฐานข้อมูลและ Redis ไม่เปิดออกนอกเครื่อง
+- การเข้าสู่ระบบผิดหลายครั้งจะล็อกบัญชีชั่วคราว ทุกการกระทำสำคัญมีใน audit log
+
+---
+
+## 11. ส่วนประกอบของระบบ (สำหรับผู้ดูแลและนักพัฒนา)
+
+| Service (container) | หน้าที่ |
+|---|---|
+| `web-app` (`cctv-web-app`) | React + Vite ผ่าน nginx: `/cctv/*` หน้าเว็บ, `/image-service/api/` API, `/mediamtx/*` ภาพสดและย้อนหลัง |
+| `image-api` (`cctv-api`) | Fastify + Prisma: กล้อง เครื่องบันทึก การบันทึก incident แจ้งเตือน ผู้ใช้ สิทธิ์ audit สำรองข้อมูล |
+| `mediamtx` | ดึง RTSP แล้วส่งต่อเป็น WebRTC/HLS บันทึก fMP4 และให้บริการเล่นย้อนหลัง |
+| `postgres`, `redis` | ฐานข้อมูลและ cache |
+| `ntp-server` | NTP สำหรับเครื่องบันทึก |
+| `cloudflared` | (ไม่บังคับ, `--profile tunnel`) เข้าจากอินเทอร์เน็ต |
+
+ไฟล์ที่เกี่ยวข้องกับการติดตั้ง:
+
+| ไฟล์ | หน้าที่ |
+|---|---|
+| `install/install.sh`, `install/install.ps1` | ติดตั้งครั้งแรก (Linux, Windows) |
+| `install/update.sh`, `install/update.ps1` | อัปเดต |
+| `scripts/prod-preflight.sh` | ตรวจความพร้อม อ่านอย่างเดียว ไม่พิมพ์ค่าลับ |
+| `scripts/make-release.sh` | สร้างไฟล์แพ็กเกจสำหรับแจก (`dist/`) โดยไม่รวมเอกสารภายในของไซต์แรก |
+| `.env.production.example` | รายการค่าตั้งทั้งหมดพร้อมคำอธิบาย |
+
+**พัฒนาต่อ:**
 
 ```bash
 cd image-api && npm ci && npx tsc --noEmit -p . && npx vitest run
-cd web-app && npm ci && npx tsc --noEmit -p . && npm run build
+cd web-app  && npm ci && npx tsc --noEmit -p . && npx vitest run && npm run build
 ```
 
-การแก้ schema: แก้ `image-api/prisma/schema.prisma`; ถ้าต้องย้ายหรือลบข้อมูล ให้เขียนไฟล์ SQL แบบ idempotent ใน `image-api/prisma/sql/` (รันก่อน `prisma db push` ตามลำดับชื่อไฟล์) และ `pg_dump` ก่อนรันกับฐานข้อมูลที่มีข้อมูลจริง. ห้ามตั้ง `ALLOW_DATA_LOSS=true`
+**แก้ schema:**
+- แก้ที่ `image-api/prisma/schema.prisma`
+- ถ้าต้องย้ายข้อมูล หรือเพิ่ม unique/required บนตารางที่มีข้อมูลอยู่แล้ว ให้เขียน SQL แบบ idempotent ไว้ใน `image-api/prisma/sql/` ไฟล์เหล่านี้รันก่อน `prisma db push`
+- ทดสอบ migrate กับสำเนาฐานข้อมูลจริงก่อนทุกครั้ง
+- ห้ามตั้ง `ALLOW_DATA_LOSS=true`

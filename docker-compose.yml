@@ -90,7 +90,8 @@ services:
     container_name: cctv-ntp
     restart: unless-stopped
     ports:
-      - "${NTP_BIND:-127.0.0.1}:123:123/udp"
+      # NTP_HOST_PORT: another port when 123 is taken on the host (Windows time service); recorders then need it set.
+      - "${NTP_BIND:-127.0.0.1}:${NTP_HOST_PORT:-123}:123/udp"
     environment:
       NTP_UPSTREAM: ${NTP_UPSTREAM:-th.pool.ntp.org,pool.ntp.org}
       NTP_ALLOW: ${NTP_ALLOW:-all}

@@ -14,6 +14,9 @@ warn() { printf '  WARN  %s\n' "$1"; WARNS=$((WARNS + 1)); }
 # Read KEY's value from the env file without running the file (it is data, not a script).
 val() { sed -n "s/^[[:space:]]*$1=//p" "$ENV_FILE" | tail -n 1 | sed 's/^"\(.*\)"$/\1/; s/^'"'"'\(.*\)'"'"'$/\1/'; }
 
+# Whether KEY is written in the file at all (an empty value is a choice, not a gap).
+has() { grep -q "^[[:space:]]*$1=" "$ENV_FILE"; }
+
 cd "$(dirname "$0")/.." || exit 1
 echo "CCTV production preflight ($(date '+%Y-%m-%d %H:%M'), $(hostname))"
 
@@ -46,22 +49,27 @@ echo "[4] safety flags"
 [ "$(val RUN_SEED)" = "true" ] && warn "RUN_SEED=true: only for the first migrate on an empty database; set it back to false after" || ok "RUN_SEED is not true"
 v=$(val DEPLOY_ENV); [ -z "$v" ] || [ "$v" = "production" ] && ok "DEPLOY_ENV is production (fixed in docker-compose.prod.yml)" || fail "DEPLOY_ENV=$v in $ENV_FILE; remove it (the prod override sets production)"
 
-echo "[5] addresses (never 0.0.0.0, never the legacy production LAN 192.168.60.x)"
+# A LAN this server must never be exposed on: the old Image Service at the first site (192.168.60.x). Other sites
+# set LEGACY_LAN_PREFIX= (empty) in the settings file, which install/install.sh does.
+LEGACY=192.168.60.; has LEGACY_LAN_PREFIX && LEGACY=$(val LEGACY_LAN_PREFIX)
+echo "[5] addresses (never 0.0.0.0${LEGACY:+, never the legacy LAN ${LEGACY}x})"
 for k in WEB_LAN_ADDRESS MEDIA_UDP_BIND MEDIA_WEBRTC_HOST NTP_BIND; do
   v=$(val "$k")
   case "$v" in
     "") ;;
     0.0.0.0|::|"*") fail "$k=$v exposes the service on every interface" ;;
-    192.168.60.*) fail "$k=$v is on the legacy production LAN" ;;
     127.*) warn "$k=$v is localhost only; LAN users will not reach it" ;;
-    *) if command -v ip >/dev/null 2>&1 && ! ip -o addr show 2>/dev/null | grep -q " $v/"; then fail "$k=$v is not an address of this server"; else ok "$k=$v"; fi ;;
+    *) if [ -n "$LEGACY" ] && case "$v" in "$LEGACY"*) true;; *) false;; esac; then fail "$k=$v is on the legacy LAN ${LEGACY}x"
+       elif command -v ip >/dev/null 2>&1 && ! ip -o addr show 2>/dev/null | grep -q " $v/"; then fail "$k=$v is not an address of this server"; else ok "$k=$v"; fi ;;
   esac
 done
 SUB=$(val CCTV_DOCKER_SUBNET); SUB=${SUB:-10.250.0.0/24}
-case "$SUB" in 192.168.*) fail "CCTV_DOCKER_SUBNET=$SUB is in 192.168.x, where the camera LANs and legacy production live";; *) ok "Docker network subnet $SUB";; esac
+case "$SUB" in 192.168.*) fail "CCTV_DOCKER_SUBNET=$SUB is in 192.168.x, where camera LANs usually are";; *) ok "Docker network subnet $SUB";; esac
 if command -v ip >/dev/null 2>&1 && ip route 2>/dev/null | grep -v docker | grep -v br- | grep -q "^${SUB%%/*}"; then fail "CCTV_DOCKER_SUBNET=$SUB is already a route on this server"; fi
 for k in PUBLIC_BASE_URL CORS_ALLOWED_ORIGINS; do
-  case "$(val "$k")" in *192.168.60.*) fail "$k points at the legacy production LAN";; *localhost*|*127.0.0.1*) warn "$k uses localhost; links in notifications will not open on other PCs";; *) ok "$k";; esac
+  v=$(val "$k")
+  if [ -n "$LEGACY" ] && case "$v" in *"$LEGACY"*) true;; *) false;; esac; then fail "$k points at the legacy LAN ${LEGACY}x"; continue; fi
+  case "$v" in *localhost*|*127.0.0.1*) warn "$k uses localhost; links in notifications will not open on other PCs";; *) ok "$k";; esac
 done
 
 echo "[6] disk and files"
@@ -115,7 +123,10 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   [ -z "$(git status --porcelain --untracked-files=no)" ] && ok "working tree clean" || fail "working tree has local changes; deploy only a tagged, unchanged checkout"
   HEAD_TAG=$(git describe --tags --exact-match 2>/dev/null)
   [ "$HEAD_TAG" = "v$TAG" ] || [ "$HEAD_TAG" = "$TAG" ] && ok "checkout is tag $HEAD_TAG" || fail "checkout is not tag v$TAG (git checkout v$TAG)"
-else warn "not a git checkout; cannot confirm the release"; fi
+elif [ -f VERSION ]; then
+  PKG=$(tr -d ' \r\n' < VERSION); PKG=${PKG#v}
+  [ "$PKG" = "$TAG" ] && ok "release package $PKG (VERSION file)" || fail "VERSION file says $PKG but CCTV_VERSION is $TAG"
+else warn "not a git checkout and no VERSION file; cannot confirm the release"; fi
 
 echo
 if [ "$FAILS" -gt 0 ]; then echo "$FAILS FAIL, $WARNS WARN: NOT ready. Fix the FAIL lines and run again."; exit 1; fi
