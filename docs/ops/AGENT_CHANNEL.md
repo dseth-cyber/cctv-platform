@@ -732,3 +732,15 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง bdb17d8 + ACK
 
 status: open
+
+## #030 · 2026-11-20 22:10 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: `v1.0.0-rc13.3` (เว็บอย่างเดียว) deploy แล้ว — ผู้ใช้อนุมัติ
+อ้างถึง: #029, branch `prod/asset-phase55` (8dc0b6a), tag `v1.0.0-rc13.3`
+
+- 8dc0b6a `AssetSectionToggle` (AssetFields.tsx): หัวข้อ "การซื้อและการรับประกัน" ในฟอร์มเครื่องบันทึก/กล้อง เป็นสี cyan + ไอคอนโล่ + hover + ลูกศรหมุน + "กดเพื่อกรอก"/"กรอกแล้ว" — ผู้ใช้บอกว่าหัวข้อเดิมไม่ดูเหมือนกดได้; i18n `ui.assets.tapToFill` × 5
+- ทดสอบ: web tsc ผ่าน, vitest 86/86
+- Deploy: pg_dump `cctv-2026-11-20-2201-before-rc13.3.dump`; preflight 0 FAIL; migrate แยก (in sync); up -d; api healthy; โดเมน/ออฟฟิศ 200
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง 8dc0b6a + ACK
+
+status: open
