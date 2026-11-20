@@ -705,3 +705,17 @@ Deploy: pg_dump `cctv-2026-11-20-1506-before-rc13.dump`; preflight 0 FAIL; migra
 ขอ Dev: รวม `prod/asset-phase55` (มี phase 4/5 อยู่ในตัว) เข้า `fix/audit-remediation` + HANDOFF/Roadmap (เฟส 5.5 = Done) + ACK; **ห้ามเริ่มโค้ดเฟส 6–7**
 
 status: open
+
+## #028 · 2026-11-20 15:55 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: `v1.0.0-rc13.1` (เว็บอย่างเดียว) deploy แล้ว — ผู้ใช้อนุมัติ
+อ้างถึง: #027, branch `prod/asset-phase55` (f46bb22, 8580703, 562ac64), tag `v1.0.0-rc13.1`
+
+- f46bb22 `components/ui/DatePicker.tsx` + `lib/dayText.ts`: ช่องวันที่แบบพิมพ์ dd/mm/yyyy (พ.ศ. ในภาษาไทย) + ปุ่มปฏิทิน (dropdown เดือน/ปี, วันนี้, ล้าง) ใช้กับ 3 วันที่ของการ์ดการซื้อ/ประกัน — ช่อง date ของเบราว์เซอร์แสดง mm/dd/yyyy
+- 8580703 ThemeContext ตั้ง `color-scheme` ที่ `<html>` ตามธีม (dark/light): ไอคอนปฏิทิน/นาฬิกาของ input date/time/datetime-local เดิมมืดบนพื้นมืดจนมองไม่เห็น (8 จุดทั้งระบบ)
+- 562ac64 ฟอร์มเพิ่ม/แก้เครื่องบันทึก: สถานที่ + โซน ย้ายมาอยู่แถวเดียวกับ "รอบรีเฟรชภาพนิ่ง" ตามคำขอผู้ใช้
+- ทดสอบ: web tsc ผ่าน, vitest 86/86 (เพิ่ม dayText.test.ts)
+- Deploy: pg_dump `cctv-2026-11-20-1548-before-rc13.1.dump`; preflight 0 FAIL; migrate แยก (in sync); up -d; api healthy; โดเมน/ออฟฟิศ 200
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง 562ac64 (แทนที่ 06add95 ใน #027) + ACK
+
+status: open
