@@ -953,6 +953,16 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.snapshotRefresh.hint')}</p>
             </div>
+            {/* Site and zone sit next to the refresh choice, filling its row (user request 2026-11-20). */}
+            <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+              <LocationFields
+                siteId={formData.siteId}
+                zoneId={formData.zoneId}
+                labelClass="block text-xs font-medium text-slate-300 mb-1"
+                onChange={(next) => setFormData({ ...formData, ...next })}
+              />
+              <p className="text-[11px] text-slate-500">{t('ui.location.deviceHint')}</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -1102,15 +1112,6 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <LocationFields
-              siteId={formData.siteId}
-              zoneId={formData.zoneId}
-              labelClass="block text-xs font-medium text-slate-300 mb-1"
-              onChange={(next) => setFormData({ ...formData, ...next })}
-            />
-            <p className="text-[11px] text-slate-500">{t('ui.location.deviceHint')}</p>
-          </div>
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.location.description')}</label>
             <input
