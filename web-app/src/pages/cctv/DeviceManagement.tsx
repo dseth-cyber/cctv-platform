@@ -873,7 +873,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder={t('ui.deviceManagement.eGMainGateDvrWarehouse')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -882,7 +882,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               <select
                 value={formData.deviceType}
                 onChange={(e) => setFormData({ ...formData, deviceType: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
                 {/* A type switched off in master data stays selectable for the device already using it. */}
                 {!deviceTypeOptions.some((o) => o.value === formData.deviceType) && (
@@ -901,7 +901,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               <select
                 value={formData.brand}
                 onChange={(e) => handleTemplateSelect(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
                 {brandOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 {formData.brand && !brandOptions.some((o) => o.value === formData.brand) && <option value={formData.brand}>{formData.brand}</option>}
@@ -915,7 +915,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder={t('ui.deviceManagement.eGDs7216hqhiK')}
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -929,7 +929,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder={t('ui.deviceManagement.shortCodePlaceholder')}
                 title={t('ui.deviceManagement.shortCodeHint')}
                 onChange={(e) => setFormData({ ...formData, shortCode: cleanShortCode(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.deviceManagement.shortCodeHint')}</p>
             </div>
@@ -940,7 +940,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 data-device-alert-level
                 value={formData.alertLevel}
                 onChange={(e) => setFormData({ ...formData, alertLevel: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
                 <option value="">{t('ui.deviceManagement.alertLevelDefault', { level: alertLevelOptions.find((o) => o.isDefault)?.label ?? '' })}</option>
                 {alertLevelOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -950,7 +950,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">{t('ui.snapshotRefresh.label')}</label>
               <RefreshSecondsSelect level="device" dataAttr="data-device-refresh" value={formData.snapshotRefreshSeconds} onChange={(v) => setFormData({ ...formData, snapshotRefreshSeconds: v })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
               <p className="mt-1 text-[11px] text-slate-500">{t('ui.snapshotRefresh.hint')}</p>
             </div>
             {/* Site and zone sit next to the refresh choice, filling its row (user request 2026-11-20). */}
@@ -974,7 +974,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                   setFormData({ ...formData, totalChannels: parseInt(e.target.value, 10) });
                   setEnabledChannels(null);
                 }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               >
                 {channelCountOptions.map((o) => <option key={o.value} value={Number(o.value)}>{o.label}</option>)}
                 {!channelCountOptions.some((o) => Number(o.value) === formData.totalChannels) && <option value={formData.totalChannels}>{formData.totalChannels}</option>}
@@ -1017,7 +1017,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 type="number"
                 value={formData.rtspPort}
                 onChange={(e) => setFormData({ ...formData, rtspPort: parseInt(e.target.value, 10) || 554 })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -1027,7 +1027,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 type="number"
                 value={formData.httpPort}
                 onChange={(e) => setFormData({ ...formData, httpPort: parseInt(e.target.value, 10) || 80 })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
               />
             </div>
           </div>
@@ -1118,7 +1118,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
             />
           </div>
 
@@ -1147,7 +1147,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder="admin"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -1160,7 +1160,7 @@ IP Camera Office,192.168.1.104,Generic,ip_camera,,,1,,admin,YourPassword,554,80,
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg h-10 px-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
               />
               {passwordMissing && (
                 <p className="mt-1 text-[11px] text-amber-400">{t('ui.deviceManagement.clonePasswordNeeded')}</p>

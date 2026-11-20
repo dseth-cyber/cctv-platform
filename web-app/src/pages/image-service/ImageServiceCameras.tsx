@@ -1500,7 +1500,7 @@ export default function ImageServiceCameras() {
                 {t('imageService.cameras.cameraName')} <span className="text-red-400">*</span>
               </label>
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${isNameDuplicate ? 'border-red-500 focus:ring-red-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${isNameDuplicate ? 'border-red-500 focus:ring-red-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} required />
               {isNameDuplicate && (
                 <p className="text-xs text-red-500 mt-1">
                   {t('imageService.cameras.validation.nameDuplicateError')}
@@ -1513,7 +1513,7 @@ export default function ImageServiceCameras() {
               </label>
               <input value={form.ipAddress} onChange={e => setForm(p => ({ ...p, ipAddress: e.target.value }))}
                 placeholder={t('imageService.cameras.ipExample')}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${ipDupCamera ? 'border-yellow-500 focus:ring-yellow-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${ipDupCamera ? 'border-yellow-500 focus:ring-yellow-500/50' : themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-[10px] mt-0.5 ${themeConfig.text.secondary}`}>
                 {t('imageService.cameras.ipExample')}
               </p>
@@ -1529,14 +1529,14 @@ export default function ImageServiceCameras() {
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.username')}</label>
                   <input value={form.username} autoComplete="off"
                     onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, username: e.target.value })); }}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                    className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.password')}</label>
                   <input type="password" value={form.password} autoComplete="new-password"
                     placeholder={modal.item ? t('imageService.cameras.conn.passwordKeep') : ''}
                     onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, password: e.target.value })); }}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                    className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <div className="col-span-2">
                   <Button type="button" variant="secondary" onClick={() => { void runDetect(); }} disabled={detect.state === 'running'}>
@@ -1573,8 +1573,10 @@ export default function ImageServiceCameras() {
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.cameraModel')}</label>
               <input value={form.cameraModel} maxLength={64} onChange={e => setForm(p => ({ ...p, cameraModel: e.target.value }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
+            {/* About type, brand and model: right under them, across the form (it used to push site/zone out of line). */}
+            <p className={`col-span-2 lg:col-span-4 -mt-1.5 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.cameraInfoHint')}</p>
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.alertLevel')}</label>
               <div data-camera-alert-level>
@@ -1590,17 +1592,16 @@ export default function ImageServiceCameras() {
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('ui.snapshotRefresh.label')}</label>
               <RefreshSecondsSelect level="camera" dataAttr="data-camera-refresh" value={form.snapshotRefreshSeconds} onChange={(v) => setForm(p => ({ ...p, snapshotRefreshSeconds: v }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.shortCode')}</label>
               <input data-camera-short-code value={form.shortCode} maxLength={20} onChange={e => setForm(p => ({ ...p, shortCode: cleanShortCode(e.target.value) }))}
                 placeholder={modal.item?.device?.shortCode ? t('imageService.cameras.shortCodeFromDevice', { code: modal.item.device.shortCode }) : ''}
                 title={t('imageService.cameras.shortCodeHint')}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
               <p className={`mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.shortCodeHint')}</p>
             </div>
-            <p className={`col-span-2 -mt-1 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.cameraInfoHint')}</p>
             <div className="col-span-2 space-y-2">
               {modal.item?.deviceId && (
                 <label className="flex items-start gap-2 cursor-pointer select-none">
@@ -1664,13 +1665,13 @@ export default function ImageServiceCameras() {
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.port')}</label>
                   <input type="number" min={1} max={65535} value={form.rtspPort}
                     onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, rtspPort: e.target.value })); }}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                    className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>{t('imageService.cameras.conn.channel')}</label>
                   <input type="number" min={1} max={256} value={form.channel}
                     onChange={e => { setDetect({ state: 'idle' }); setForm(p => ({ ...p, channel: e.target.value })); }}
-                    className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                    className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
                 </div>
                 <p className={`col-span-2 -mt-2 text-xs ${themeConfig.text.secondary}`}>{t('imageService.cameras.conn.portHint')}</p>
                 {form.ipAddress && brandTemplate && (
@@ -1694,7 +1695,7 @@ export default function ImageServiceCameras() {
               </label>
               <input value={form.rtspUrl} onChange={e => setForm(p => ({ ...p, rtspUrl: e.target.value }))}
                 placeholder="rtsp://user:password@192.168.1.64:554/Streaming/Channels/101"
-                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                className={`w-full h-10 px-3 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>
                 {modal.item && isRedactedRtsp(form.rtspUrl) ? t('ui.imageServiceCameras.rtspUrlRedactedHint') : t('ui.imageServiceCameras.rtspUrlHint')}
               </p>
@@ -1705,7 +1706,7 @@ export default function ImageServiceCameras() {
               </label>
               <input value={form.rtspUrlSub} onChange={e => setForm(p => ({ ...p, rtspUrlSub: e.target.value }))}
                 placeholder="rtsp://user:password@192.168.1.64:554/Streaming/Channels/102"
-                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                className={`w-full h-10 px-3 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
             </div>
                 <button type="button" className="col-span-2 text-left text-xs text-cyan-400 hover:underline"
                   onClick={() => setForm(p => ({ ...p, connMode: 'simple' }))}>
@@ -1720,7 +1721,7 @@ export default function ImageServiceCameras() {
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 rows={2}
                 placeholder={t('imageService.cameras.descriptionPlaceholder')}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary} focus:outline-none focus:ring-1 focus:ring-cyan-500/50`} />
             </div>
             <div className="col-span-2">
               <label className={`block text-sm font-medium mb-1.5 ${themeConfig.text.primary}`}>
@@ -1728,7 +1729,7 @@ export default function ImageServiceCameras() {
               </label>
               <input value={form.streamPath} onChange={e => setForm(p => ({ ...p, streamPath: e.target.value }))}
                 placeholder="cam/gate1"
-                className={`w-full px-4 py-2.5 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                className={`w-full h-10 px-3 rounded-md font-mono text-sm ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-xs mt-1 ${themeConfig.text.secondary}`}>{t('ui.imageServiceCameras.streamPathHint')}</p>
             </div>
             <div>
@@ -1738,7 +1739,7 @@ export default function ImageServiceCameras() {
               <input type="number" step="0.01" min="0" max="100" value={form.slaTargetPercent}
                 placeholder={t('imageService.cameras.slaTargetPlaceholder')}
                 onChange={e => setForm(p => ({ ...p, slaTargetPercent: e.target.value }))}
-                className={`w-full px-4 py-2.5 rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
+                className={`w-full h-10 px-3 text-sm rounded-md ${themeConfig.inputBg} border ${themeConfig.inputBorder} ${themeConfig.text.primary}`} />
               <p className={`text-[11px] mt-1 ${themeConfig.text.secondary}`}>{t('imageService.cameras.slaTargetHint')}</p>
             </div>
             <div className="col-span-2">

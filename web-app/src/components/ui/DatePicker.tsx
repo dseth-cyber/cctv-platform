@@ -84,14 +84,14 @@ export function DatePicker({ value, onChange, className, name }: DatePickerProps
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitText() } }}
           placeholder={th ? 'วว/ดด/ปปปป (พ.ศ.)' : 'dd/mm/yyyy'}
           inputMode="numeric"
-          className="flex-1 min-w-0 bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent h-[38px] px-3 text-sm text-white placeholder:text-slate-500 focus:outline-none"
           data-date={name}
           title={bad ? t('ui.datePicker.invalid') : undefined}
         />
         {value && (
           <button type="button" onClick={() => { onChange(''); setText('') }} className="p-1 text-slate-500 hover:text-white" title={t('ui.datePicker.clear')}><X size={13} /></button>
         )}
-        <button type="button" onClick={() => setOpen((o) => !o)} className="px-2.5 py-2 text-cyan-400 hover:text-cyan-300 border-l border-slate-700" title={t('ui.datePicker.open')} data-date-open={name}>
+        <button type="button" onClick={() => setOpen((o) => !o)} className="px-2.5 h-[38px] text-cyan-400 hover:text-cyan-300 border-l border-slate-700" title={t('ui.datePicker.open')} data-date-open={name}>
           <CalendarDays size={16} />
         </button>
       </div>

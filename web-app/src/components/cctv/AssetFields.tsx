@@ -11,7 +11,7 @@ export function useAssetOptions(enabled = true) {
   return useQuery<AssetOptions>({ queryKey: ['asset-options'], queryFn: imageServiceApi.getAssetOptions, staleTime: 60_000, enabled });
 }
 
-const input = 'w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500';
+const input = 'w-full bg-slate-950 border border-slate-700 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:border-cyan-500';
 const label = 'block text-xs font-medium text-slate-300 mb-1';
 
 /**
@@ -107,7 +107,7 @@ export function AssetFields({ value, onChange, options }: { value: AssetForm; on
       )}
       <div className="sm:col-span-2">
         <label className={label}>{k('notes')}</label>
-        <textarea rows={2} maxLength={2000} className={input} value={value.notes} onChange={(e) => set({ notes: e.target.value })} data-asset="notes" />
+        <textarea rows={2} maxLength={2000} className={`${input} !h-auto py-2`} value={value.notes} onChange={(e) => set({ notes: e.target.value })} data-asset="notes" />
       </div>
     </div>
   );

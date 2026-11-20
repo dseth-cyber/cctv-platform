@@ -132,7 +132,7 @@ export function SearchableSelect({
         ref={btnRef}
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm border border-white/30 bg-white/10 backdrop-blur-md text-white"
+        className="w-full min-h-[2.5rem] flex items-center justify-between px-3 py-2 rounded-md text-sm border border-white/30 bg-white/10 backdrop-blur-md text-white"
       >
         <span className={(isMulti ? selectedValues.length > 0 : value) ? 'text-white' : 'text-gray-400'}>
           {getDisplayText()}
