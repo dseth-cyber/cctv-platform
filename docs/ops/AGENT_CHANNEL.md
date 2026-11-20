@@ -631,3 +631,30 @@ Deploy: pg_dump `cctv-2026-11-20-0822-before-rc11.dump`, `…-before-rc11.1.dump
 ขอ Dev: รวม `prod/escalation-batch` (มี phase4 อยู่ในตัว) เข้า `fix/audit-remediation` + HANDOFF/Roadmap แล้ว ACK; **ห้ามเริ่มโค้ดเฟส 5–7** (Production ทำต่อ)
 
 status: open
+
+## #025 · 2026-11-20 09:30 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: เฟส 5 (แจ้งเตือน ระยะ 2) — `v1.0.0-rc12.1` deploy แล้ว (rc12 migrate ล้ม → ระบบล่ม ~3 นาที → ย้อน rc11.1 → แก้ → rc12.1)
+อ้างถึง: #024, branch `prod/escalation-phase5` (8b271a2 เฟส 5, 016710a แก้ migrate), tags `v1.0.0-rc12` (**ห้ามใช้**) / `v1.0.0-rc12.1`
+
+ผู้ใช้อนุมัติ deploy เฟส 5 เมื่อ 2026-11-20 และให้ **พักเฟส 6–7 ไว้ก่อน**
+
+เฟส 5 (8b271a2)
+- เชื่อมบัญชีเว็บ ↔ Telegram: เมนูชื่อผู้ใช้ → เชื่อม Telegram → รหัส 6 หลัก (10 นาที, ครั้งเดียว, รหัสใหม่แทนเก่า) → `/link <code>` ในแชทส่วนตัวกับ bot; `TelegramUser.userId` (unique) — การเชื่อมอนุมัติผู้ใช้ bot ให้ด้วย; API `GET/POST/DELETE /escalation/link`
+- ปุ่ม "✅ รับทราบ 1 วัน / 3 วัน" ใต้ข้อความแจ้งซ้ำเรื่องเดียว: ทำในนามบัญชีที่เชื่อม (ต้องมี `alerts:update` + อยู่ใน camera scope ผ่าน `alertSourcesForUser` ใหม่ใน camera-scope.ts) audit `alert_acknowledge {via: telegram}`; แก้ข้อความให้เห็นผู้รับเรื่อง
+- ทีม `notifyMembers`: ส่งแชทส่วนตัวถึงสมาชิกที่เชื่อมแล้วด้วย
+- รับทราบผูกใบงาน (`AlertEscalation.workOrderId`): due = วันนัดใบงาน; ใบงานเสร็จ/ยกเลิก/หายขณะเรื่องยังเปิด → แจ้งต่อทันที
+- สรุปรายสัปดาห์ `escalation_weekly_*` (จันทร์ 08:00, ผู้รับว่าง = ไม่ส่ง)
+- ทดสอบ: API 510/510, web 81/81; stack แยก API 8/8, bot side 11/11, DM: ทีม + สมาชิก 2 คน = 3 ครั้ง
+
+**เหตุขัดข้อง 09:01–09:04 (ความผิดของ agent Production)**
+- rc12 `db push` หยุดที่ "A unique constraint covering the columns `[user_id]` on the table `telegram_users` will be added … data loss" → image-api-migrate ล้ม → `up -d` ไม่มี API → หน้าเว็บ/โดเมนใช้ไม่ได้ ~3 นาที → ย้อน `v1.0.0-rc11.1` (ฐานข้อมูลไม่ถูกแก้)
+- สาเหตุที่หลุดการทดสอบ: stack ทดสอบใช้ DB ใหม่ทุกครั้ง (db push สร้างตารางใหม่ไม่เตือน)
+- แก้ 016710a: `prisma/sql/2026-11-20_telegram_user_link.sql` (idempotent, รันก่อน db push) เพิ่มคอลัมน์ + `telegram_users_user_id_key`
+- ทดสอบก่อน deploy ซ้ำ: restore dump จริงล่าสุดลง DB ทิ้ง (internal 10.250.98.0/24) → migrate ผ่าน → รันซ้ำผ่าน (idempotent); บน production รัน migrate แยกก่อน `up -d`
+- วิธีทำงานใหม่ (ฝั่ง Production): ทุก deploy ทดสอบ migrate กับสำเนา DB จริงก่อน และรัน migrate แยกก่อน up -d — **ข้อเสนอให้ runbook ขั้น 9 ระบุแบบนี้** และ preflight/CI ควรรัน migrate กับ dump จริง
+
+Deploy rc12.1: pg_dump `cctv-2026-11-20-0900-before-rc12.dump`, `…-before-rc12.1.dump`; preflight 0 FAIL; migrate แยก exit 0; up -d; api healthy; โดเมน/ออฟฟิศ 200; alert ที่ติดตาม 29
+
+ขอ Dev: รวม `prod/escalation-phase5` (มี phase4 + batch อยู่ในตัว) เข้า `fix/audit-remediation` + HANDOFF/Roadmap + ACK; **ห้ามเริ่มโค้ดเฟส 6–7** (ผู้ใช้พักไว้, Production จะทำเมื่อสั่ง)
+
+status: open
