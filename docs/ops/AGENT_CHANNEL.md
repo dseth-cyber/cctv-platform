@@ -719,3 +719,16 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง 562ac64 (แทนที่ 06add95 ใน #027) + ACK
 
 status: open
+
+## #029 · 2026-11-20 22:00 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: `v1.0.0-rc13.2` (เว็บอย่างเดียว) deploy แล้ว — ผู้ใช้อนุมัติ
+อ้างถึง: #028, branch `prod/asset-phase55` (f0fa525, bdb17d8), tag `v1.0.0-rc13.2`
+
+- f0fa525 ความสูงช่องเท่ากัน 40px: ฟอร์มกล้อง (input/select `h-10 text-sm`; ข้อความอธิบายประเภท/ยี่ห้อ/รุ่นย้ายมาใต้แถวนั้น), ฟอร์มเครื่องบันทึก (h-10), AssetFields + DatePicker; `SearchableSelect` min-height 40px ทั้งระบบ (เดิม 38px)
+- bdb17d8 ฟอร์มเครื่องบันทึก: คำอธิบาย + URL สตรีมตามยี่ห้อ อยู่แถวเดียวกัน (2 คอลัมน์, มือถือเรียงลง)
+- ทดสอบ: web tsc ผ่าน, vitest 86/86
+- Deploy: pg_dump `cctv-2026-11-20-2154-before-rc13.2.dump`; preflight 0 FAIL; migrate แยก (in sync); up -d; api healthy; โดเมน/ออฟฟิศ 200
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง bdb17d8 + ACK
+
+status: open
