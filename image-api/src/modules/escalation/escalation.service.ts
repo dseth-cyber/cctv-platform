@@ -190,8 +190,14 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
       }
       continue;
     }
-    if (!state.policyId || !state.nextNotifyAt || state.nextNotifyAt > now) continue;
-    const policy = await prisma.escalationPolicy.findUnique({ where: { id: state.policyId }, include: { steps: true } });
+    if (!state.nextNotifyAt || state.nextNotifyAt > now) continue;
+    // A row made by an acknowledgement before this round saw the alert has no chain yet: find it now.
+    if (!state.policyId) {
+      const found = await policyFor(place);
+      if (!found) continue;
+      state = await prisma.alertEscalation.update({ where: { alertId: alert.id }, data: { policyId: found.id } });
+    }
+    const policy = await prisma.escalationPolicy.findUnique({ where: { id: state.policyId! }, include: { steps: true } });
     if (!policy || !policy.enabled) continue;
     const steps = stepsOf(policy as PolicyWithSteps);
     const details = (alert.details ?? {}) as Record<string, unknown>;

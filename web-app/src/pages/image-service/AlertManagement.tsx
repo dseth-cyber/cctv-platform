@@ -83,11 +83,15 @@ export default function AlertManagement() {
     setPage(1)
   }
 
-  const handleAcknowledge = async (id: string) => {
+  // Acknowledging asks until when the person expects it fixed (escalation: reminders pause until then).
+  const [ackTarget, setAckTarget] = useState<any | null>(null)
+  const handleAcknowledge = (id: string) => setAckTarget(items.find((a: any) => a.id === id) ?? viewing ?? { id })
+  const submitAcknowledge = async (id: string, dueAt: string, note: string) => {
     try {
-      await imageServiceApi.acknowledgeAlert(id)
+      await imageServiceApi.acknowledgeAlert(id, { dueAt: dueAt ? new Date(dueAt).toISOString() : null, note: note.trim() || null })
       toast.success(t('imageService.alerts.acknowledged'))
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      setAckTarget(null)
     } catch (e: any) { if (!e?._handled) toast.error(t('common.error')) }
   }
 
@@ -440,6 +444,12 @@ export default function AlertManagement() {
                 [t('imageService.alerts.createdAt'), formatDateTime(viewing.createdAt, i18n.language)],
                 [t('imageService.alerts.acknowledgedAt'), viewing.acknowledgedAt ? formatDateTime(viewing.acknowledgedAt, i18n.language) : '—'],
                 [t('imageService.alerts.resolvedAt'), viewing.resolvedAt ? formatDateTime(viewing.resolvedAt, i18n.language) : '—'],
+                ...(viewing.escalation && !viewing.resolvedAt ? [
+                  [t('ui.escalation.ackDue'), viewing.escalation.dueAt ? formatDateTime(viewing.escalation.dueAt, i18n.language) : '—'],
+                  [t('ui.escalation.nextReminder'), viewing.escalation.nextNotifyAt ? formatDateTime(viewing.escalation.nextNotifyAt, i18n.language) : '—'],
+                  [t('ui.escalation.stepNow'), t('ui.escalation.stepN', { n: (viewing.escalation.stepIndex ?? 0) + 1 })],
+                  [t('ui.escalation.ackNote'), viewing.escalation.ackNote || '—'],
+                ] : []),
               ].map(([k, v], i) => (
                 <div key={i} className={`px-3 py-2 rounded-lg ${themeConfig.card}`}>
                   <span className={themeConfig.text.secondary}>{k}</span>
@@ -448,8 +458,10 @@ export default function AlertManagement() {
               ))}
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-              {!viewing.acknowledgedAt && (
-                <Button onClick={() => { handleAcknowledge(viewing.id); setViewing(null) }}>{t('imageService.alerts.acknowledge')}</Button>
+              {!viewing.resolvedAt && (
+                <Button onClick={() => { setAckTarget(viewing); setViewing(null) }}>
+                  {viewing.acknowledgedAt ? t('ui.escalation.updateDue') : t('imageService.alerts.acknowledge')}
+                </Button>
               )}
               {!viewing.resolvedAt && (
                 <Button onClick={() => { handleResolve(viewing.id); setViewing(null) }} className="!bg-green-600 hover:!bg-green-700 text-white">
@@ -461,6 +473,8 @@ export default function AlertManagement() {
           </div>
         )}
       </Modal>
+
+      {ackTarget && <AcknowledgeModal alert={ackTarget} onClose={() => setAckTarget(null)} onSubmit={submitAcknowledge} />}
 
       {confirmAction && (
         <Modal isOpen onClose={closeConfirm} title={confirmAction.kind === 'clear' ? t('imageService.alerts.clearAllTitle') : t('imageService.alerts.deleteForGood')}>
@@ -517,5 +531,47 @@ export default function AlertManagement() {
         </Modal>
       )}
     </div>
+  )
+}
+
+
+/** "รับทราบ": who takes it and until when. Reminders and hand-offs pause until the due time (at most the limit in settings). */
+function AcknowledgeModal({ alert, onClose, onSubmit }: { alert: any; onClose: () => void; onSubmit: (id: string, dueAt: string, note: string) => void }) {
+  const { t } = useTranslation()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const initial = alert?.escalation?.dueAt ? new Date(alert.escalation.dueAt) : new Date(Date.now() + 86_400_000)
+  const [dueAt, setDueAt] = useState(local(initial))
+  const [note, setNote] = useState(alert?.escalation?.ackNote ?? '')
+  const quick = [4, 24, 72, 168]
+  return (
+    <Modal isOpen onClose={onClose} title={t('ui.escalation.ackTitle')} size="md">
+      <div className="space-y-4">
+        {alert?.title && <p className="text-sm font-medium text-white">{alert.title}</p>}
+        <div>
+          <label className="block text-sm font-medium text-white mb-1">{t('ui.escalation.ackDue')}</label>
+          <input type="datetime-local" value={dueAt} min={local(new Date())} onChange={(e) => setDueAt(e.target.value)}
+            className="w-full px-3 py-2 rounded-md text-sm border border-white/30 bg-white/10 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50" />
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {quick.map((h) => (
+              <button key={h} type="button" onClick={() => setDueAt(local(new Date(Date.now() + h * 3_600_000)))}
+                className="px-2 py-1 rounded text-xs border border-white/20 text-slate-200 hover:bg-white/10">
+                {h < 24 ? t('ui.escalation.hours', { n: h }) : t('ui.escalation.days', { n: h / 24 })}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">{t('ui.escalation.ackDueHint')}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-white mb-1">{t('ui.escalation.ackNote')}</label>
+          <textarea rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('ui.escalation.ackNotePlaceholder')}
+            className="w-full px-3 py-2 rounded-md text-sm border border-white/30 bg-white/10 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button onClick={() => onSubmit(alert.id, dueAt, note)}>{t('imageService.alerts.acknowledge')}</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }

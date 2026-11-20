@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { imageServiceApi } from '@/services/imageServiceApi';
 import { Save, Send, Eye, EyeOff, MessageCircle, CheckCircle, XCircle, ShieldCheck, UserPlus, Trash2, Check, X, Clock, Sparkles } from 'lucide-react';
+import { TelegramStatusCard } from '@/components/cctv/TelegramStatusCard';
 import { Button } from '@/components/ui';
 
 const SETTINGS_KEY = 'image-service-telegram-settings';
@@ -44,6 +45,12 @@ export default function TelegramBotSettings() {
       return data;
     },
     staleTime: 1000 * 60,
+  });
+
+  const { data: telegramStatus } = useQuery({
+    queryKey: ['telegram-status'],
+    queryFn: () => imageServiceApi.getTelegramStatus(),
+    refetchInterval: 60_000,
   });
 
   const saveMutation = useMutation({
@@ -176,6 +183,9 @@ export default function TelegramBotSettings() {
           {t('imageService.telegramBot.subtitle')}
         </p>
       </div>
+
+      {/* The last delivery: a group that stopped accepting messages shows here instead of failing quietly. */}
+      <div className="mb-6"><TelegramStatusCard last={telegramStatus?.last} /></div>
 
       <div className={`${themeConfig.card} rounded-lg p-6 mb-5`}>
         <div className="flex items-center gap-3 mb-4">

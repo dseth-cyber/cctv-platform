@@ -268,8 +268,9 @@ export function createImageServiceApi(api: any) {
     getAlert: (id: string) =>
       api.get(`${BASE}/alerts/${id}`).then((r: any) => r.data),
 
-    acknowledgeAlert: (id: string) =>
-      api.patch(`${BASE}/alerts/${id}/acknowledge`).then((r: any) => r.data),
+    /** dueAt/note (optional): until when the person expects it fixed; reminders pause until then. */
+    acknowledgeAlert: (id: string, body?: { dueAt?: string | null; note?: string | null }) =>
+      api.patch(`${BASE}/alerts/${id}/acknowledge`, body ?? {}).then((r: any) => r.data),
 
     resolveAlert: (id: string) =>
       api.patch(`${BASE}/alerts/${id}/resolve`).then((r: any) => r.data),
@@ -342,6 +343,29 @@ export function createImageServiceApi(api: any) {
     // Telegram Settings
     getTelegramSettings: () =>
       api.get(`${BASE}/settings/telegram`).then((r: any) => r.data),
+
+    /** The last delivery to Telegram (ok or the reason it failed). */
+    getTelegramStatus: () =>
+      api.get(`${BASE}/settings/telegram/status`).then((r: any) => r.data),
+
+    // Escalation (phase 4): teams, chains, rules — managed by an admin on the Escalation page
+    getEscalationSettings: () => api.get(`${BASE}/escalation/settings`).then((r: any) => r.data),
+    getEscalationTeams: () => api.get(`${BASE}/escalation/teams`).then((r: any) => r.data),
+    createEscalationTeam: (data: any) => api.post(`${BASE}/escalation/teams`, data).then((r: any) => r.data),
+    updateEscalationTeam: (id: string, data: any) => api.put(`${BASE}/escalation/teams/${id}`, data).then((r: any) => r.data),
+    deleteEscalationTeam: (id: string) => api.delete(`${BASE}/escalation/teams/${id}`).then((r: any) => r.data),
+    getEscalationPolicies: () => api.get(`${BASE}/escalation/policies`).then((r: any) => r.data),
+    createEscalationPolicy: (data: any) => api.post(`${BASE}/escalation/policies`, data).then((r: any) => r.data),
+    updateEscalationPolicy: (id: string, data: any) => api.put(`${BASE}/escalation/policies/${id}`, data).then((r: any) => r.data),
+    deleteEscalationPolicy: (id: string) => api.delete(`${BASE}/escalation/policies/${id}`).then((r: any) => r.data),
+    testEscalationPolicy: (id: string) => api.post(`${BASE}/escalation/policies/${id}/test`).then((r: any) => r.data),
+    getEscalationRules: () => api.get(`${BASE}/escalation/rules`).then((r: any) => r.data),
+    createEscalationRule: (data: any) => api.post(`${BASE}/escalation/rules`, data).then((r: any) => r.data),
+    updateEscalationRule: (id: string, data: any) => api.put(`${BASE}/escalation/rules/${id}`, data).then((r: any) => r.data),
+    deleteEscalationRule: (id: string) => api.delete(`${BASE}/escalation/rules/${id}`).then((r: any) => r.data),
+    previewEscalation: (params: { alertType: string; cameraId?: string; siteId?: string; zoneId?: string }) =>
+      api.get(`${BASE}/escalation/preview`, { params }).then((r: any) => r.data),
+    sendEscalationSummary: () => api.post(`${BASE}/escalation/summary/send`).then((r: any) => r.data),
 
     updateTelegramSettings: (data: Record<string, string>) =>
       api.patch(`${BASE}/settings/telegram`, data).then((r: any) => r.data),

@@ -264,6 +264,15 @@ const PERMISSION_MODULES = [
     ]
   },
   {
+    key: 'escalation',
+    labelTh: 'ลำดับการแจ้งเตือน',
+    labelEn: 'Escalation',
+    permissions: [
+      { key: 'escalation:read', labelTh: 'ดูหน่วยงานและลำดับการแจ้ง', labelEn: 'View Teams & Escalation' },
+      { key: 'escalation:manage', labelTh: 'จัดการหน่วยงาน ลำดับ และกฎการแจ้ง', labelEn: 'Manage Teams, Chains & Rules' }
+    ]
+  },
+  {
     key: 'telegram-bot',
     labelTh: 'Telegram Bot',
     labelEn: 'Telegram Bot',

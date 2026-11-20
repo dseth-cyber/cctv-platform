@@ -22,6 +22,7 @@ const AlertManagement = lazy(() => import('@/pages/image-service/AlertManagement
 const UserManagement = lazy(() => import('@/pages/image-service/UserManagement'))
 const HealthStatus = lazy(() => import('@/pages/image-service/HealthStatus'))
 const TelegramBotSettings = lazy(() => import('@/pages/image-service/TelegramBotSettings'))
+const EscalationSettings = lazy(() => import('@/pages/image-service/EscalationSettings'))
 const ApiKeysManagement = lazy(() => import('@/pages/image-service/ApiKeysManagement'))
 const MasterdataManagement = lazy(() => import('@/pages/image-service/MasterdataManagement'))
 const SystemConfigPage = lazy(() => import('@/pages/image-service/SystemConfigPage'))
@@ -44,7 +45,7 @@ const CctvReleaseCenter = lazy(() => import('@/pages/cctv/CctvReleaseCenter'))
 import { translateAlertTitle, translateAlertMessage, getLocalizedValue, type IncidentLabelMaps } from '@/utils/textUtils'
 import {
   Camera, LayoutDashboard, Search, Activity, HardDrive, FileText, Shield, Settings, Map, CalendarClock,
-  FolderTree, Globe, Palette, User, ChevronDown, ChevronLeft, ChevronRight, LogOut, Lock, Bell, Users, HeartPulse, Key, MessageCircle, BookText, Sliders, AlertTriangle, History, Info, Server, Layers, Image, BarChart3, RefreshCw, Play, ClipboardList, LayoutTemplate, BookOpen,
+  FolderTree, Globe, Palette, User, ChevronDown, ChevronLeft, ChevronRight, LogOut, Lock, Bell, Users, HeartPulse, Key, MessageCircle, GitBranch, BookText, Sliders, AlertTriangle, History, Info, Server, Layers, Image, BarChart3, RefreshCw, Play, ClipboardList, LayoutTemplate, BookOpen,
   Menu, X, GripVertical, ArrowDownUp, RotateCcw, Hourglass, FileSpreadsheet, Eye, EyeOff, Package,
   Building2, Radio, MapPin, Film, FileCheck, Wrench } from 'lucide-react'
 
@@ -116,6 +117,7 @@ const navItems = [
 const settingsSubItems = [
   { path: '/cctv/settings', labelKey: 'nav.settings', icon: Settings, permission: 'settings:read' },
   { path: '/cctv/telegram-bot', labelKey: 'nav.telegramBot', icon: MessageCircle, permission: 'telegram-bot:read' },
+  { path: '/cctv/escalation', labelKey: 'nav.escalation', icon: GitBranch, permission: 'escalation:read' },
   { path: '/cctv/system-config', labelKey: 'nav.systemConfig', icon: Sliders, permission: 'system-config:read' },
   { path: '/cctv/required-fields', labelKey: 'nav.requiredFields', icon: ClipboardList, permission: 'system-config:read' },
   { path: '/cctv/users', labelKey: 'nav.users', icon: Users, permission: 'users:read' },
@@ -1163,6 +1165,9 @@ export default function App() {
             <Route path="/cctv/api-keys" element={<Navigate to="/cctv/settings" replace />} />
             <Route path="/cctv/telegram-bot" element={
               hasPermission(user, 'telegram-bot:read') ? <TelegramBotSettings /> : <UnauthorizedPage />
+            } />
+            <Route path="/cctv/escalation" element={
+              hasPermission(user, 'escalation:read') ? <EscalationSettings /> : <UnauthorizedPage />
             } />
             <Route path="/cctv/masterdata" element={
               MASTERDATA_PAGE_PERMISSIONS.some(p => hasPermission(user, p)) ? <MasterdataManagement /> : <UnauthorizedPage />
