@@ -121,6 +121,33 @@ export async function reminderText(opts: {
   return lines.join('\n') + appLink();
 }
 
+const REASON_ICON: Record<EscalationReason, string> = { repeat: '🔁', escalate: '⏫', due_passed: '⏰' };
+
+/** One alert on one line, for a reminder round that has several alerts for the same group. */
+export async function reminderLine(opts: {
+  reason: EscalationReason;
+  alert: { title: string; message: string; severity: string; createdAt: Date; acknowledgedBy: string | null };
+  stepNumber: number;
+  stepCount: number;
+  now?: Date;
+}): Promise<string> {
+  const now = opts.now ?? new Date();
+  const { title } = await translateCameraAlertToThai(opts.alert.title, opts.alert.message);
+  const owner = opts.alert.acknowledgedBy ? `รับโดย ${escapeHtml(opts.alert.acknowledgedBy)}` : 'ยังไม่มีผู้รับ ⚠';
+  return `${REASON_ICON[opts.reason]}${severityIcon(opts.alert.severity)} ${escapeHtml(title)} · ${ageThai(opts.alert.createdAt, now)} · ขั้น ${opts.stepNumber}/${opts.stepCount} · ${owner}`;
+}
+
+/**
+ * Several reminders due in the same round for the same group become one message: when escalation was switched on,
+ * every alert already open started its wait together, and 27 separate reminders at once would bury the group.
+ */
+export function batchMessage(lines: string[], max = 20): string {
+  const head = `🔔 <b>เรื่องที่ยังค้าง ${lines.length} เรื่อง</b> (แจ้งซ้ำ/ส่งต่อรอบนี้)`;
+  const body = lines.slice(0, max);
+  if (lines.length > max) body.push(`…และอีก ${lines.length - max} เรื่อง`);
+  return [head, ...body, '🔁 แจ้งซ้ำ · ⏫ ส่งต่อขั้นถัดไป · ⏰ เลยกำหนดเสร็จ', 'กด "รับทราบ" ในหน้าแจ้งเตือนเพื่อหยุดการแจ้งซ้ำ'].join('\n') + appLink();
+}
+
 async function teamsById(): Promise<Map<string, { telegramChatId: string | null; enabled: boolean; name: string }>> {
   const teams = await getPrisma().notifyTeam.findMany({ select: { id: true, name: true, telegramChatId: true, enabled: true } });
   return new Map(teams.map((t) => [t.id, t]));
@@ -161,6 +188,10 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
 
   let started = 0;
   let notified = 0;
+  // Reminders of this round, per Telegram chat: sent after the loop, one message per chat (see batchMessage).
+  const outbox = new Map<string, { full: string; line: string }[]>();
+  const { chatId: defaultChat } = await telegramDefaults();
+  const teamMap = await teamsById();
   for (const alert of open) {
     if (ESCALATE_TYPES_EXCLUDED.has(alert.alertType)) continue;
     let state = states.get(alert.id);
@@ -208,7 +239,12 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
         reason: d.reason, alert, stepNumber: d.stepIndex + 1, stepCount: steps.length, policyName: policy.name,
         dueAt: state.dueAt, ackNote: state.ackNote, label: place.label, now,
       });
-      await sendToTargets(steps[d.stepIndex].targets, text);
+      const line = await reminderLine({ reason: d.reason, alert, stepNumber: d.stepIndex + 1, stepCount: steps.length, now });
+      for (const chat of chatsFor(steps[d.stepIndex].targets, defaultChat, teamMap)) {
+        const list = outbox.get(chat) ?? [];
+        list.push({ full: text, line });
+        outbox.set(chat, list);
+      }
       notified++;
     }
     await prisma.alertEscalation.update({
@@ -221,6 +257,10 @@ export async function escalationTick(now = new Date()): Promise<{ started: numbe
         ...(d.clearDue ? { dueAt: null } : {}),
       },
     });
+  }
+
+  for (const [chat, items] of outbox) {
+    await sendTelegramText(chat, items.length === 1 ? items[0].full : batchMessage(items.map((i) => i.line)));
   }
 
   const gone = [...states.keys()].filter((id) => !openIds.has(id));
