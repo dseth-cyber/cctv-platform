@@ -1649,7 +1649,7 @@
       "phase27Tasks": [
         "✅ Installed cloudflared in Docker container",
         "✅ Created Tunnel connected to Cloudflare (BKK + SIN)",
-        "✅ Configured images.lc.co.th → Tunnel → nginx",
+        "✅ Configured images.example.com → Tunnel → nginx",
         "✅ Cloudflare Auto SSL + WAF + DDoS Protection",
         "✅ No inbound ports on Firewall — outbound HTTPS only",
         "✅ DNS-01 Challenge + Certbot — issued real Let's Encrypt SSL certificate for direct LAN access (HTTPS)"

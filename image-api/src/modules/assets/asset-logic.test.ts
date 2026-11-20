@@ -84,10 +84,10 @@ describe('age and inheritance', () => {
 
 describe('warrantyNoteText', () => {
   it('says who to call while covered', () => {
-    const t = warrantyNoteText({ until: '2027-01-15', day: '2026-11-20', vendor: { name: 'โลหะกิจ', contactName: 'ทดสอบ ระบบ', phone: '0999999999' } });
+    const t = warrantyNoteText({ until: '2027-01-15', day: '2026-11-20', vendor: { name: 'ร้านตัวอย่าง', contactName: 'ทดสอบ ระบบ', phone: '0999999999' } });
     expect(t).toContain('ยังอยู่ในประกันถึง');
     expect(t).toContain('อีก 56 วัน');
-    expect(t).toContain('ติดต่อ โลหะกิจ (ทดสอบ ระบบ) โทร 0999999999');
+    expect(t).toContain('ติดต่อ ร้านตัวอย่าง (ทดสอบ ระบบ) โทร 0999999999');
   });
   it('says when it ended, and nothing without a warranty', () => {
     expect(warrantyNoteText({ until: '2026-01-01', day: '2026-11-20' })).toContain('ประกันหมดแล้วเมื่อ');

@@ -39,7 +39,7 @@ export const config = {
 
   serviceApiKey: process.env.SERVICE_API_KEY ?? '',
 
-  // Comma-separated list of allowed CORS origins (e.g. "https://images.lc.co.th"). Empty
+  // Comma-separated list of allowed CORS origins (e.g. "https://cctv.example.com"). Empty
   // means no cross-origin browser requests are allowed — the web app talks to this API
   // same-origin through nginx's proxy (see web-app/nginx.conf) regardless, so this only
   // matters for direct cross-origin callers.
@@ -76,7 +76,7 @@ export const config = {
     maxExportHours: parseFloat(process.env.MAX_EXPORT_HOURS ?? '24'),
     diskWarningThresholdPct: parseInt(process.env.DISK_WARNING_THRESHOLD_PCT ?? '85', 10),
     diskCriticalThresholdPct: parseInt(process.env.DISK_CRITICAL_THRESHOLD_PCT ?? '92', 10),
-    turnServerUrl: process.env.TURN_SERVER_URL ?? 'turn.cctv-local.lc.co.th:3478',
+    turnServerUrl: process.env.TURN_SERVER_URL ?? 'turn.example.com:3478',
     turnSecret: process.env.TURN_SECRET ?? 'cctv-secure-turn-key-prod-default',
     seedSyntheticRecordings: process.env.SEED_SYNTHETIC_RECORDINGS === 'true',
   },

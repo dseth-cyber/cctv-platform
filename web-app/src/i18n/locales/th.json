@@ -1652,7 +1652,7 @@
       "phase27Tasks": [
         "✅ ติดตั้ง cloudflared ใน Docker container",
         "✅ สร้าง Tunnel เชื่อมต่อ Cloudflare (BKK + SIN)",
-        "✅ ตั้งค่า Subdomain images.lc.co.th → Tunnel → nginx",
+        "✅ ตั้งค่า Subdomain images.example.com → Tunnel → nginx",
         "✅ Cloudflare Auto SSL + WAF + DDoS Protection",
         "✅ ไม่ต้องเปิด Port บน Firewall — outbound HTTPS เท่านั้น",
         "✅ DNS-01 Challenge + Certbot — ออกใบรับรอง Let's Encrypt จริงเพื่อรองรับการเข้าผ่าน LAN ตรง (HTTPS)"

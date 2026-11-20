@@ -394,7 +394,7 @@ export class MediaNodesService {
    */
   static getWfhIceConfiguration() {
     const turnSecret = process.env.TURN_SECRET || 'cctv-secure-turn-key-prod-default';
-    const rawTurnUrl = process.env.TURN_SERVER_URL || 'turn.cctv-local.lc.co.th:3478';
+    const rawTurnUrl = process.env.TURN_SERVER_URL || 'turn.example.com:3478';
     const turnHost = rawTurnUrl.replace(/^turn:/i, '');
     const expiryTimestamp = Math.floor(Date.now() / 1000) + 86400; // 24 hours validity
     const turnUsername = `${expiryTimestamp}:cctv_wfh_operator`;
