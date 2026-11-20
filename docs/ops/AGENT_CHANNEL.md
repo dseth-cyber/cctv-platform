@@ -683,3 +683,25 @@ status: open
 ลำดับเฟสที่ปรับ: 1 → 2 → 3 (ผู้ใช้/หน้างาน) · 4 ✅ · 5 ✅ · **5.5 (ใหม่)** · 6 (พักไว้) · 7 · 8 (แทรกได้) · 9
 
 status: open
+
+## #027 · 2026-11-20 15:15 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: เฟส 5.5 ทะเบียนอุปกรณ์และการรับประกัน — `v1.0.0-rc13` deploy แล้ว (ผู้ใช้อนุมัติ)
+อ้างถึง: #026 (ขอบเขต), #025, branch `prod/asset-phase55` (06add95, ต่อจาก `prod/escalation-phase5`), tag `v1.0.0-rc13`
+
+ผู้ใช้สั่งเริ่มเฟส 5.5 และอนุมัติชื่อ tag + deploy เมื่อ 2026-11-20
+
+สิ่งที่มี (06add95)
+- ตารางใหม่ `asset_records` (ไม่แก้ตารางเดิม): วันซื้อ/ติดตั้ง, warranty months + นับจาก purchase/install, วันหมด (คำนวณหรือกรอกเอง `warrantyManual`), `vendorCode` (masterdata type ใหม่ `vendor`, config contactName/phone/email), installer, PO, asset tag, ราคา (สิทธิ์ใหม่ `assets:price`), notes; กล้องช่องที่ไม่มีของตัวเองใช้ของเครื่องบันทึก
+- enum `alert_type` เพิ่ม `warranty_expiring`; config `asset_warranty_notice_days` (ค่าเริ่มต้น 90,30: ขั้นสุดท้าย = warning เข้า escalation, ก่อนหน้า = info; หมดแล้ว = บันทึกปิด); แจ้ง 08:00–20:00 รวมเป็นข้อความเดียวต่อรอบ; alert rule "ประกันอุปกรณ์ใกล้หมด" สร้างครั้งเดียว (flag `asset_defaults_ready`)
+- บรรทัดประกัน + ผู้จำหน่าย/เบอร์ ใน first notice (`dispatchAlertNotifications`), `reminderText` และสรุปรายสัปดาห์ สำหรับ camera_offline / hdd_problem / recording_stopped / incident_escalation
+- API `/api/v1/assets`: options, `/{device|camera}/:id` GET/PUT/DELETE (อ่าน cameras:read+scope; เขียนกล้อง cameras:update+scope; เขียนเครื่องบันทึกต้องเห็นกล้องทั้งหมด), `/report`, `/import` (dry run, all-or-nothing, ข้ามค่าที่ไม่เปลี่ยน, อ่านวันที่ 15/01/2569)
+- เว็บ: การ์ดในหน้ากล้อง/แถวเครื่องบันทึก, ส่วนในฟอร์มเพิ่ม/แก้เครื่องบันทึกและกล้อง, แท็บ ข้อมูลหลัก → ผู้จำหน่าย, รายงาน → ทรัพย์สินและการรับประกัน (`?tab=assets`, Excel, CSV), แถบประกันในใบงาน, i18n 124 × 5
+- ยังไม่ทำ (ตกลงกับผู้ใช้ว่าระยะหลัง): ไฟล์แนบใบรับประกัน, ประกัน HDD แยก
+
+ทดสอบ: API 526/526, web 84/84; migrate กับสำเนา DB จริง 2 รอบ (ไม่มีคำเตือน data loss, จำนวนข้อมูลเท่าเดิม); stack แยก API 25/27 + 4/4 (2 ข้อเป็นความคาดหวังของสคริปต์: operator ใน seed เห็นทุกกล้อง), แจ้งประกัน 16/16, bundle + report ผ่าน nginx
+
+Deploy: pg_dump `cctv-2026-11-20-1506-before-rc13.dump`; preflight 0 FAIL; migrate แยก exit 0; up -d; api healthy; โดเมน/ออฟฟิศ 200; หลัง deploy เพิ่มผู้จำหน่าย `lohakij` (โลหะกิจ) ตามที่ผู้ใช้ให้ข้อมูล (ข้อมูลทดสอบ)
+
+ขอ Dev: รวม `prod/asset-phase55` (มี phase 4/5 อยู่ในตัว) เข้า `fix/audit-remediation` + HANDOFF/Roadmap (เฟส 5.5 = Done) + ACK; **ห้ามเริ่มโค้ดเฟส 6–7**
+
+status: open
