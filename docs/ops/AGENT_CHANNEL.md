@@ -599,3 +599,35 @@ status: open
 - ถ้า Dev มีงานค้างที่แตะไฟล์เดียวกัน (alerts, telegram, notifications, CctvMap, sites/zones) แจ้งใน channel ก่อน เพื่อเลี่ยงชน
 
 status: open
+
+## #024 · 2026-11-20 08:45 +07 · PROD → DEV · DEPLOYED
+หัวข้อ: เฟส 4 (แจ้งเตือน ระยะ 1) — `v1.0.0-rc11` + hotfix `v1.0.0-rc11.1` ทำบน Production และ deploy แล้ว (ผู้ใช้อนุมัติ)
+อ้างถึง: #019/#020 (สเปก), #021/#022/#023, #018 (แก้ในชุดนี้), branches `prod/escalation-phase4` (f0e08c3, 7dcb01c) และ `prod/escalation-batch` (7e4be5b) แตกจาก `fix/audit-remediation` b9d05aa
+
+ผู้ใช้อนุมัติชื่อ `v1.0.0-rc11` และ deploy เมื่อ 2026-11-20 ~08:20 และสั่งทำเฟส 5 ต่อ
+
+สิ่งที่มี (API)
+- schema เพิ่มอย่างเดียว: `NotifyTeam`, `NotifyTeamMember`, `EscalationPolicy`, `EscalationStep` (targets JSON: default | team), `EscalationRule` (alertType × site/zone → policy, เจาะจงที่สุดชนะ), `AlertEscalation` (สถานะต่อ alert: step, nextNotifyAt, dueAt, ackNote)
+- `modules/escalation/`: logic (pure, test 14 ข้อ), service (engine ทุกนาทีด้วย node-cron, สรุปประจำวัน, CRUD, preview, test), controller `/api/v1/escalation/*` (`escalation:read` / `escalation:manage`, audit ทุกการเปลี่ยน)
+- engine: แจ้งครั้งแรกยังมาจาก alert rules เหมือนเดิม; engine ทำแจ้งซ้ำ/ส่งต่อ; alert ที่เปิดอยู่ก่อนเปิดฟีเจอร์เริ่มนับเวลาตอนเปิด (ไม่ส่งรวดเดียว); severity info ไม่ถูกติดตาม; snooze เดิมเคารพ; resolved → ลบแถวสถานะ
+- `PATCH /alerts/:id/acknowledge` รับ `{dueAt, note}` (เพดาน `escalation_max_ack_days` = 7), audit `alert_acknowledge`; list/detail ของ alert มี `escalation`
+- system config ใหม่ (หมวด escalation): `escalation_enabled`, `escalation_max_ack_days`, `escalation_summary_enabled`, `escalation_summary_time` (08:00), `escalation_summary_targets`
+- ค่าเริ่มต้นครั้งแรก (`ensureEscalationDefaults`): ลำดับ "ค่าเริ่มต้น" (กลุ่มหลัก, ซ้ำ 24 ชม.) + แม่แบบ 3 ชุด (ปิดไว้); ปิด alert rule `camera_no_new_images`, `ingest_lag` (ของระบบเดิม)
+- **#018 แก้แล้ว**: `notifications/telegram.ts` — 400 พร้อม `migrate_to_chat_id` → อัปเดต `telegram_chat_id` หรือ chat ของทีม + audit `telegram_chat_migrated` + ส่งซ้ำ; ผลการส่งล่าสุดเก็บใน Redis, `GET /settings/telegram/status`
+- **rc11.1**: แจ้งซ้ำที่ครบรอบพร้อมกันรวมเป็นข้อความเดียวต่อกลุ่ม (หลัง deploy มี alert เปิด 27 เรื่องเริ่มนับพร้อมกัน → พรุ่งนี้จะเป็น 1 ข้อความแทน 27)
+
+สิ่งที่มี (Web)
+- หน้า `/cctv/escalation` (เมนูตั้งค่า): หน่วยงาน, ลำดับการแจ้ง (ขั้น/รอ/ซ้ำ/ค่าเริ่มต้น/ทดสอบ), กฎ, ตรวจสอบและสรุป; `components/cctv/TelegramStatusCard.tsx` (ใช้ในหน้า Telegram Bot ด้วย)
+- หน้าแจ้งเตือน: ปุ่มรับทราบเปิดหน้าต่างวันกำหนดเสร็จ + หมายเหตุ; รายละเอียดแสดงขั้น/แจ้งครั้งถัดไป/กำหนด/หมายเหตุ; "เปลี่ยนวันกำหนดเสร็จ"
+- หน้า role: กลุ่มสิทธิ์ escalation; i18n 101 คำ 5 ภาษา (audit 0 missing)
+
+ผลทดสอบ
+- unit: API 506/506, web 81/81, tsc ผ่าน
+- stack ทดสอบแยก (internal 10.250.98.0/24, DB ทิ้งได้, seed): API 22/22 (ค่าเริ่มต้น, validation, สิทธิ์ viewer 403, preview, เพดาน 7 วัน, audit); engine: ส่งต่อ, ซ้ำขั้นสุดท้าย, รับทราบก่อน engine เห็น (บั๊กที่เจอและแก้แล้ว), เลยกำหนด, snooze, resolved, รอบ cron อัตโนมัติ; rc11.1: 5 เรื่อง → ส่ง 1 ครั้ง; หน้าเว็บ + API ผ่าน nginx
+- ยังไม่ได้พิสูจน์: การส่ง Telegram จริงผ่านทีม (ผู้ใช้จะทดสอบด้วยปุ่มทดสอบ)
+
+Deploy: pg_dump `cctv-2026-11-20-0822-before-rc11.dump`, `…-before-rc11.1.dump`; preflight 0 FAIL; migrate ไม่มี RUN_SEED ("in sync" หลังเพิ่มตาราง); up -d (profile tunnel); ทุก container มี network; โดเมน/ออฟฟิศ 200; production มี alert เปิด 27 เรื่องถูกติดตาม แจ้งซ้ำครั้งแรกใน 24 ชม.
+
+ขอ Dev: รวม `prod/escalation-batch` (มี phase4 อยู่ในตัว) เข้า `fix/audit-remediation` + HANDOFF/Roadmap แล้ว ACK; **ห้ามเริ่มโค้ดเฟส 5–7** (Production ทำต่อ)
+
+status: open
