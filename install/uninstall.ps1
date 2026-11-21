@@ -71,7 +71,7 @@ if ((Run "docker compose -p $Project down $flags --remove-orphans") -ne 0) { Sto
 Ok $(if ($choice -eq '2') { 'containers and data removed' } else { 'containers removed; the data stays' })
 
 if ($choice -eq '2') {
-  $images = @(& docker images --format '{{.Repository}}:{{.Tag}}' | Where-Object { $_ -like 'cctv-api:*' -or $_ -like 'cctv-web-app:*' })
+  $images = @(& docker images --format '{{.Repository}}:{{.Tag}}' | Where-Object { $_ -like 'cctv-api:*' -or $_ -like 'cctv-web-app:*' -or $_ -like 'cctv-platform-*' })
   foreach ($i in $images) { Run "docker image rm $i >nul 2>&1" | Out-Null }
   if ($images.Count) { Ok "removed $($images.Count) CCTV image(s)" }
   $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

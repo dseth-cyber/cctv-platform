@@ -30,7 +30,7 @@ if [ "$CH" = 2 ]; then
     [ "$X" = DELETE ] || { echo "  Cancelled"; exit 0; }
   fi
   docker compose -p "$PROJECT" down -v --remove-orphans && ok "containers and data removed"
-  for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^cctv-(api|web-app):' || true); do docker image rm "$i" >/dev/null 2>&1 || true; done
+  for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cctv-(api|web-app):|cctv-platform-)' || true); do docker image rm "$i" >/dev/null 2>&1 || true; done
   [ -f "$ENV_FILE" ] && mv "$ENV_FILE" "$ENV_FILE.removed-$(date +%Y%m%d-%H%M)" && ok "settings file set aside"
   echo "  Kept: recordings ($REC) and backups. Delete them yourself if not needed."
 else
