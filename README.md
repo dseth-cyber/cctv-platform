@@ -88,7 +88,7 @@ cd cctv-platform-1.0.0
 **ทางที่ 2: git** (ต้องได้สิทธิ์เข้า repository) ใส่ `--branch <เวอร์ชัน>` เพื่อดึงเวอร์ชันที่ปล่อยแล้วมาเลย
 
 ```bash
-git clone --branch v1.0.0-rc14.3 <URL ของ repository> cctv-platform
+git clone --branch v1.0.0-rc14.4 <URL ของ repository> cctv-platform
 cd cctv-platform
 ```
 
@@ -169,8 +169,8 @@ sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้�
    - เปิด Docker Desktop จนไอคอนรูปปลาวาฬบอกว่า running
 2. ตั้ง Docker Desktop: **Settings → General → Start Docker Desktop when you sign in** เพื่อให้ระบบกลับมาทำงานเองหลังรีสตาร์ท (Windows ต้อง sign in ค้างไว้ หรือตั้ง auto-logon)
 3. เอาโปรแกรมมาไว้ที่เครื่อง (เลือกทางใดทางหนึ่ง):
-   - **ดาวน์โหลด zip (ง่ายสุด):** เปิดหน้า repository บน GitHub → **Releases** (หรือ Tags) → เลือกเวอร์ชันล่าสุด → **Source code (zip)** แล้วแตกไฟล์ไว้ เช่นที่ `D:\cctv-platform-1.0.0-rc14.3` ห้ามเปลี่ยนชื่อโฟลเดอร์ เพราะตัวติดตั้งอ่านเวอร์ชันจากชื่อโฟลเดอร์
-   - **git:** `git clone --branch v1.0.0-rc14.3 <URL ของ repository>`
+   - **ดาวน์โหลด zip (ง่ายสุด):** เปิดหน้า repository บน GitHub → **Releases** (หรือ Tags) → เลือกเวอร์ชันล่าสุด → **Source code (zip)** แล้วแตกไฟล์ไว้ เช่นที่ `D:\cctv-platform-1.0.0-rc14.4` ห้ามเปลี่ยนชื่อโฟลเดอร์ เพราะตัวติดตั้งอ่านเวอร์ชันจากชื่อโฟลเดอร์
+   - **git:** `git clone --branch v1.0.0-rc14.4 <URL ของ repository>`
 4. เปิดโฟลเดอร์นั้น แล้ว **ดับเบิลคลิก `install-windows.bat`**
    - Windows จะถามสิทธิ์ผู้ดูแลระบบ ให้กด Yes (ใช้เพื่อเพิ่มกฎ Firewall)
    - ถ้าเครื่องยังไม่มี Docker Desktop ตัวติดตั้งจะเสนอติดตั้งให้ (ผ่าน winget) ติดตั้งเสร็จให้รีสตาร์ท เปิด Docker Desktop 1 ครั้ง แล้วดับเบิลคลิก `install-windows.bat` อีกครั้ง
@@ -296,7 +296,9 @@ $DCP up -d
 | หลังติดตั้ง container ติดต่อกล้องวง 192.168.x ไม่ได้ | network ของ Docker ไปได้วง 192.168.x และทับวงกล้อง ให้ตั้ง `/etc/docker/daemon.json` เป็นวง 10.x (ตัวติดตั้งเสนอให้) แล้วรีสตาร์ท Docker |
 | เปิดเครื่องใหม่แล้วระบบไม่ขึ้น (Linux) | network ยังไม่พร้อมตอน Docker เริ่ม ให้ตอบ "ใช่" เรื่อง `ip_nonlocal_bind` ตอนติดตั้ง หรือสั่ง `docker compose ... up -d --force-recreate` |
 | `cannot assign requested address` (Windows) | Docker Desktop ผูก IP นั้นไม่ได้ ตรวจว่า IP ถูกและเป็นของเครื่องนี้ ถ้ายังไม่ได้ ให้แก้ `WEB_LAN_ADDRESS`/`MEDIA_UDP_BIND` เป็น `0.0.0.0` (เปิดทุก interface ต้องคุมด้วย Windows Firewall) |
-| พอร์ต 80/443 ถูกใช้แล้ว | มีโปรแกรมอื่นใช้อยู่ (เช่น IIS หรือ Skype) ให้ปิดโปรแกรมนั้น หรือเปลี่ยน `WEB_LAN_HTTP_PORT`/`WEB_LAN_HTTPS_PORT` |
+| พอร์ต 80/443 ถูกใช้แล้ว | ตัวติดตั้งบอกชื่อโปรแกรมที่ใช้อยู่ ให้ปิดโปรแกรมนั้น (เช่น IIS หรือโปรเจกต์ Docker อื่น) หรือเปลี่ยน `WEB_LAN_HTTP_PORT`/`WEB_LAN_HTTPS_PORT` พอร์ตภายในเครื่อง (8080/8443) ตัวติดตั้งเลื่อนไปพอร์ตว่างให้เอง |
+| ตัวติดตั้งบอกว่าฐานข้อมูลมาจากการติดตั้งครั้งก่อน | มีข้อมูลเก่าค้างใน Docker ถ้าไม่ใช้แล้ว ใช้ตัวถอนการติดตั้งแบบล้างทั้งหมด หรือ `docker compose -p cctv-platform down -v` แล้วติดตั้งใหม่ |
+| API ไม่ขึ้น log บอก `JWT_SECRET is still a placeholder` | มีตัวแปร Windows/Linux ชื่อเดียวกันของโปรเจกต์อื่น ตัวติดตั้งและตัวอัปเดตตั้งแต่ 1.0.0-rc14.4 จัดการให้เอง ถ้าสั่ง `docker compose` เอง ให้ล้างตัวแปรนั้นก่อน (`set JWT_SECRET=`) |
 | ตัวติดตั้ง Windows บอก "line ends" | ไฟล์ถูกแปลงเป็นแบบ Windows (CRLF) ให้ใช้ไฟล์ zip จาก GitHub หรือ clone ใหม่ด้วย `git clone -c core.autocrlf=false --branch <เวอร์ชัน> <URL>` |
 | พิมพ์ `bash install/install.sh` บน Windows แล้วขึ้น Catastrophic failure | `bash` บน Windows คือ WSL ไม่ใช่ตัวติดตั้งนี้ ให้ใช้ `install-windows.bat` |
 | `install\install.ps1 does not exist` | clone มาเป็น branch หลักที่ยังไม่มีตัวติดตั้ง ให้สั่ง `git checkout <เวอร์ชันล่าสุด>` หรือ clone ด้วย `--branch <เวอร์ชัน>` |
@@ -320,15 +322,19 @@ console.log('done'); await p.\$disconnect();"
 
 ## 9. ถอนการติดตั้ง
 
-```bash
-DCP="docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml"
-$DCP down                 # หยุดระบบ ข้อมูลยังอยู่
-$DCP down -v              # ⚠ ลบฐานข้อมูลทั้งหมดถาวร สำรองก่อนเสมอ
-```
+| | Windows | Linux |
+|---|---|---|
+| ถอนการติดตั้ง | ดับเบิลคลิก `uninstall-windows.bat` | `bash install/uninstall.sh` |
 
-ไฟล์บันทึกและไฟล์สำรองอยู่ในโฟลเดอร์ที่ตั้งไว้ ไม่ถูกลบอัตโนมัติ ให้ลบเองถ้าไม่ต้องการแล้ว
+ตัวถอนการติดตั้งให้เลือก:
 
----
+1. **ถอนโปรแกรม เก็บข้อมูลไว้:** ลบ container แต่ฐานข้อมูลยังอยู่ ติดตั้งกลับมาแล้วข้อมูลเดิมกลับมาครบ
+2. **ล้างทั้งหมด:** ต้องพิมพ์ `DELETE` ยืนยันก่อน
+   - สำรองฐานข้อมูลลงโฟลเดอร์สำรองให้ก่อน พร้อมสำเนา `.env.production` คู่กัน ต้องเก็บไฟล์ทั้งสองไว้ด้วยกัน ถึงจะกู้ข้อมูลกลับได้
+   - แล้วลบฐานข้อมูล, image ของ CCTV และกฎ Firewall (Windows)
+   - หลังจากนั้นติดตั้งใหม่แบบสะอาดได้ทันที
+
+ตัวถอนการติดตั้ง**ไม่ลบ**โฟลเดอร์ไฟล์บันทึก โฟลเดอร์สำรองข้อมูล และไม่แตะโปรเจกต์อื่นใน Docker ห้ามใช้ `docker system prune` หรือ `docker volume prune` แทน เพราะจะลบข้อมูลของโปรเจกต์อื่นในเครื่องด้วย
 
 ## 10. ความปลอดภัย
 
@@ -358,6 +364,7 @@ $DCP down -v              # ⚠ ลบฐานข้อมูลทั้งห
 |---|---|
 | `install/install.sh`, `install/install.ps1`, `install-windows.bat` | ติดตั้งครั้งแรก (Linux, Windows; .bat = ดับเบิลคลิก) |
 | `install/update.sh`, `install/update.ps1`, `update-windows.bat` | อัปเดต |
+| `install/uninstall.sh`, `install/uninstall.ps1`, `uninstall-windows.bat` | ถอนการติดตั้ง (เก็บข้อมูล หรือล้างทั้งหมดหลังสำรอง) |
 | `scripts/prod-preflight.sh` | ตรวจความพร้อม อ่านอย่างเดียว ไม่พิมพ์ค่าลับ |
 | `scripts/make-release.sh` | สร้างไฟล์แพ็กเกจสำหรับแจก (`dist/`) โดยไม่รวมเอกสารภายในของไซต์แรก |
 | `.env.production.example` | รายการค่าตั้งทั้งหมดพร้อมคำอธิบาย |
