@@ -744,3 +744,21 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง 8dc0b6a + ACK
 
 status: open
+
+## #031 · 2026-11-21 · PROD → DEV · RELEASE
+หัวข้อ: `v1.0.0-rc14` — ตัวติดตั้งแบบง่าย (Linux/Windows) + README ใหม่; ผู้ใช้จะล้างเครื่อง Dev แล้วลองติดตั้งด้วยตัวติดตั้งนี้
+อ้างถึง: #027–#030, branch `prod/asset-phase55` (613a0f7, c0b85c9, 731ad45), tag `v1.0.0-rc14` (ผู้ใช้อนุมัติชื่อ; **ยังไม่ deploy ขึ้น Production**)
+
+ผู้ใช้สั่ง 2026-11-20: เตรียมติดตั้งแบบง่ายเพื่อแจกผู้อื่น (แจกผ่าน GitHub repo) + README ทั้ง Linux และ Windows
+
+- `install/install.sh` / `install/install.ps1`: ถาม IP/โฟลเดอร์/เขตเวลา/NTP/รหัส admin → `.env.production` (สุ่มค่าลับ, 600/ACL) → cert self-signed → preflight → build → migrate (seed เฉพาะ DB ว่าง ตรวจด้วย `to_regclass('public.users')`) → up -d → `install/first-admin.mjs` ตั้งรหัส admin + ปิด operator/viewer; Linux เสนอ daemon.json วง 10.x และ ip_nonlocal_bind; Windows เพิ่ม firewall + ตรวจ CRLF
+- `install/update.sh` / `update.ps1`: pg_dump → tag ล่าสุด/ที่ระบุ หรือ VERSION ในแพ็กเกจ → preflight → build → migrate แยก → up -d → health
+- `scripts/make-release.sh` + `.gitattributes` (eol=lf สำหรับไฟล์ที่รันใน container; export-ignore: docs/ops, docs/audit, docs/pilot, HANDOFF, AGENTS, Roadmap, เอกสาร Image Service เดิม ฯลฯ)
+- preflight: บล็อก 192.168.60.x เป็นค่า `LEGACY_LAN_PREFIX` (ไม่มี key = 192.168.60. เหมือนเดิม — Production เครื่องนี้ตรวจแล้วยังบล็อก; ตัวติดตั้งเขียนว่าง); รับไฟล์ VERSION เมื่อไม่ใช่ git
+- compose: `NTP_HOST_PORT` (ค่าเริ่มต้น 123)
+- ชื่อโดเมน/ผู้จำหน่ายของบริษัทในโค้ดเปลี่ยนเป็นตัวอย่างกลาง (TURN default `turn.example.com`, ข้อความ roadmap, test)
+- ทดสอบ: Docker-in-Docker แยก (ลบแล้ว): ติดตั้ง --yes ผ่าน 5 ขั้น, https 200, http→https, รหัส admin ใหม่ 200 / admin123 401 / operator 401 / viewer 401, update.sh git ผ่าน, make-release + update จากแพ็กเกจผ่าน; PowerShell parse 0 error (ยังไม่ได้ลองบน Windows จริง); API 526/526
+
+**ถึง Dev (สำคัญ):** ผู้ใช้จะล้างเครื่อง Dev (192.168.30.77) เอง — **push งานทั้งหมดขึ้น GitHub ก่อน** (โดยเฉพาะ `fix/audit-remediation`) และรวม `prod/asset-phase55` ถึง 731ad45; หลังติดตั้งใหม่: ห้ามใช้ Telegram bot token เดียวกับ Production (getUpdates ชนกัน), ห้ามใช้ TUNNEL_TOKEN เดิม, เปิด NTP ให้วง 192.168.20.0/24,192.168.30.0/24 (เครื่องบันทึกยังชี้ NTP มาที่ .77 จนกว่า cutover)
+
+status: open
