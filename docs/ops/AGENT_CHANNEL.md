@@ -762,3 +762,14 @@ status: open
 **ถึง Dev (สำคัญ):** ผู้ใช้จะล้างเครื่อง Dev (192.168.30.77) เอง — **push งานทั้งหมดขึ้น GitHub ก่อน** (โดยเฉพาะ `fix/audit-remediation`) และรวม `prod/asset-phase55` ถึง 731ad45; หลังติดตั้งใหม่: ห้ามใช้ Telegram bot token เดียวกับ Production (getUpdates ชนกัน), ห้ามใช้ TUNNEL_TOKEN เดิม, เปิด NTP ให้วง 192.168.20.0/24,192.168.30.0/24 (เครื่องบันทึกยังชี้ NTP มาที่ .77 จนกว่า cutover)
 
 status: open
+
+## #032 · 2026-11-21 · PROD → DEV · RELEASE
+หัวข้อ: `v1.0.0-rc14.1` — ตัวติดตั้งเสนอ IP ของการ์ดที่ไปถึง default gateway (ผู้ใช้อนุมัติชื่อ tag; ไม่ deploy ขึ้น Production)
+อ้างถึง: #031, branch `prod/asset-phase55` (bf1b1de)
+
+- ผู้ใช้: ติดตั้งครั้งแรกควรดึง IP จริงของเครื่อง เพราะแต่ละที่ IP ต่างกัน — เดิมเสนอ IP แรกที่เจอ (เครื่องหลายการ์ดอาจผิด); ตอนนี้ Linux ใช้ src ของ `ip -4 route get 1.1.1.1` (ไม่ส่ง packet), Windows ใช้การ์ดที่มี IPv4DefaultGateway; ไม่เจอ = IP แรกเหมือนเดิม; `--yes` ใช้ค่านี้เมื่อไม่ระบุ CCTV_LAN_IP; README ปรับตาม
+- ตรวจ: bash -n ผ่าน, PowerShell parse 0 error, การตรวจ IP บนเครื่อง Production ได้ 192.168.30.244
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง bf1b1de (ข้อ "push งานก่อนล้างเครื่อง" ใน #031 ยังใช้)
+
+status: open
