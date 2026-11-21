@@ -126,7 +126,10 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
 elif [ -f VERSION ]; then
   PKG=$(tr -d ' \r\n' < VERSION); PKG=${PKG#v}
   [ "$PKG" = "$TAG" ] && ok "release package $PKG (VERSION file)" || fail "VERSION file says $PKG but CCTV_VERSION is $TAG"
-else warn "not a git checkout and no VERSION file; cannot confirm the release"; fi
+else
+  DIRV=$(basename "$(pwd)"); DIRV=${DIRV#cctv-platform-}; DIRV=${DIRV#v}
+  [ "$DIRV" = "$TAG" ] && ok "release package $TAG (folder name)" || warn "not a git checkout and no VERSION file; cannot confirm the release"
+fi
 
 echo
 if [ "$FAILS" -gt 0 ]; then echo "$FAILS FAIL, $WARNS WARN: NOT ready. Fix the FAIL lines and run again."; exit 1; fi

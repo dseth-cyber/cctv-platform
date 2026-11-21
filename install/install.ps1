@@ -42,7 +42,14 @@ function Set-V($k, $v) {
 # 1 the machine
 Step '1/5 Checking this machine'
 if (-not (Test-Path docker-compose.yml)) { Stop-Install 'Run this from the CCTV Platform folder (docker-compose.yml not found).' }
-if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Stop-Install 'Docker Desktop is not installed: https://www.docker.com/products/docker-desktop/ (choose WSL 2), start it, then run this again.' }
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+  Warn 'Docker Desktop is not installed.'
+  if ((Get-Command winget -ErrorAction SilentlyContinue) -and (YesNo 'Install Docker Desktop now (winget, about 600 MB)?' $true)) {
+    & winget install -e --id Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
+    Stop-Install 'Docker Desktop installed. Restart Windows, open Docker Desktop once (accept its terms, wait for "Engine running"), then double-click install-windows.bat again.'
+  }
+  Stop-Install 'Install Docker Desktop (https://www.docker.com/products/docker-desktop/, choose WSL 2), start it, then run this again.'
+}
 & docker info *> $null; if ($LASTEXITCODE -ne 0) { Stop-Install 'Docker Desktop is not running. Start it (whale icon in the tray says "running"), then run this again.' }
 & docker compose version *> $null; if ($LASTEXITCODE -ne 0) { Stop-Install 'docker compose is missing; update Docker Desktop.' }
 $os = (& docker info --format '{{.OSType}}'); if ($os -ne 'linux') { Stop-Install 'Docker Desktop is in Windows-containers mode. Right-click the tray icon > "Switch to Linux containers".' }
@@ -102,6 +109,8 @@ foreach ($d in (Get-V RECORDINGS_HOST_DIR), (Get-V BACKUP_HOST_DIR)) { New-Item 
 $ver = ''
 if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path .git)) { $ver = (& git describe --tags --exact-match 2>$null) }
 if (-not $ver -and (Test-Path VERSION)) { $ver = (Get-Content VERSION -Raw).Trim() }
+# The "Source code (zip)" of a GitHub release unpacks to cctv-platform-<version>.
+if (-not $ver -and ((Split-Path -Leaf $Root) -match '^cctv-platform-v?(\d[\w.\-]*)$')) { $ver = $Matches[1] }
 if (-not $ver) { Warn 'not a release (no git tag, no VERSION file); using "local"'; $ver = 'local' }
 $ver = $ver -replace '^v', ''; Set-V CCTV_VERSION $ver; Ok "release $ver"
 

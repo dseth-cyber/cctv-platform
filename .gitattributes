@@ -27,3 +27,4 @@ scripts/measure-recorded.mjs export-ignore
 USER_GUIDE.md         export-ignore
 ARCHITECTURE.md       export-ignore
 DATABASE_SCHEMA.md    export-ignore
+*.bat     text eol=crlf

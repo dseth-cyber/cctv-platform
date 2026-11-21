@@ -38,6 +38,7 @@ if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path .git)) {
   & git checkout -q $Tag; if ($LASTEXITCODE -ne 0) { Stop-Update "Cannot check out $Tag (local changes? see git status)" }
   $new = $Tag -replace '^v', ''
 } elseif (Test-Path VERSION) { $new = (Get-Content VERSION -Raw).Trim() -replace '^v', '' }
+elseif ((Split-Path -Leaf $Root) -match '^cctv-platform-v?(\d[\w.\-]*)$') { $new = $Matches[1] }
 else { Stop-Update 'Not a git checkout and no VERSION file' }
 Set-V CCTV_VERSION $new; Ok "$old -> $new"
 

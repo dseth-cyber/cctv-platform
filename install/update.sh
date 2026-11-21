@@ -37,6 +37,7 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   chmod 644 mediamtx/mediamtx.yml 2>/dev/null || true
   NEW=${NEW#v}
 elif [ -f VERSION ]; then NEW=$(tr -d ' \r\n' < VERSION); NEW=${NEW#v}
+elif case "$(basename "$(pwd)")" in cctv-platform-[0-9]*|cctv-platform-v[0-9]*) true;; *) false;; esac; then NEW=$(basename "$(pwd)"); NEW=${NEW#cctv-platform-}; NEW=${NEW#v}
 else die "Not a git checkout and no VERSION file"; fi
 setv CCTV_VERSION "$NEW"
 ok "$OLD → $NEW"

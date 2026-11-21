@@ -165,7 +165,11 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
     if [ -n "$LATEST" ] && yesno "Switch to the latest release $LATEST?" y; then git checkout -q "$LATEST"; VER=$LATEST
     else die "git checkout <release tag>, then run again"; fi
   fi
-elif [ -f VERSION ]; then VER=$(tr -d ' \r\n' < VERSION); fi
+elif [ -f VERSION ]; then VER=$(tr -d ' \r\n' < VERSION)
+else
+  # The "Source code" archive of a GitHub release unpacks to cctv-platform-<version>.
+  case "$(basename "$ROOT")" in cctv-platform-[0-9]*|cctv-platform-v[0-9]*) VER=${ROOT##*/cctv-platform-} ;; esac
+fi
 VER=${VER#v}; [ -n "$VER" ] || VER=local
 setv CCTV_VERSION "$VER"; ok "release $VER"
 

@@ -85,15 +85,14 @@ tar -xzf cctv-platform-1.0.0.tar.gz
 cd cctv-platform-1.0.0
 ```
 
-**ทางที่ 2: git** (ต้องได้สิทธิ์เข้า repository)
+**ทางที่ 2: git** (ต้องได้สิทธิ์เข้า repository) ใส่ `--branch <เวอร์ชัน>` เพื่อดึงเวอร์ชันที่ปล่อยแล้วมาเลย
 
 ```bash
-git clone <URL ของ repository> cctv-platform
+git clone --branch v1.0.0-rc14.2 <URL ของ repository> cctv-platform
 cd cctv-platform
-git checkout <เวอร์ชันล่าสุด เช่น v1.0.0>
 ```
 
-ถ้ายังไม่ได้ checkout เวอร์ชัน ตัวติดตั้งจะเสนอให้ใช้เวอร์ชันล่าสุดให้เอง
+ถ้า clone มาโดยไม่ระบุเวอร์ชัน ตัวติดตั้งจะเสนอให้สลับไปเวอร์ชันล่าสุดให้เอง
 
 ### 2.2 ติดตั้ง Docker (ถ้ายังไม่มี)
 
@@ -169,15 +168,13 @@ sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้�
    - ระหว่างติดตั้งเลือก WSL 2 แล้วรีสตาร์ทเครื่อง
    - เปิด Docker Desktop จนไอคอนรูปปลาวาฬบอกว่า running
 2. ตั้ง Docker Desktop: **Settings → General → Start Docker Desktop when you sign in** เพื่อให้ระบบกลับมาทำงานเองหลังรีสตาร์ท (Windows ต้อง sign in ค้างไว้ หรือตั้ง auto-logon)
-3. เอาโปรแกรมมาไว้ที่เครื่อง โดยแตกไฟล์ `cctv-platform-<เวอร์ชัน>.zip` ไว้ เช่นที่ `C:\cctv-platform`
-   - ถ้าใช้ git: `git clone -c core.autocrlf=false <URL>` ต้องใส่ `core.autocrlf=false` ไม่เช่นนั้นสคริปต์ที่รันใน container จะเสีย
-4. เปิด **PowerShell แบบ Run as administrator** เพื่อให้ตัวติดตั้งเพิ่มกฎ Firewall ให้ได้ แล้วสั่ง:
-
-   ```powershell
-   cd C:\cctv-platform
-   powershell -ExecutionPolicy Bypass -File install\install.ps1
-   ```
-
+3. เอาโปรแกรมมาไว้ที่เครื่อง (เลือกทางใดทางหนึ่ง):
+   - **ดาวน์โหลด zip (ง่ายสุด):** เปิดหน้า repository บน GitHub → **Releases** (หรือ Tags) → เลือกเวอร์ชันล่าสุด → **Source code (zip)** แล้วแตกไฟล์ไว้ เช่นที่ `D:\cctv-platform-1.0.0-rc14.2` ห้ามเปลี่ยนชื่อโฟลเดอร์ เพราะตัวติดตั้งอ่านเวอร์ชันจากชื่อโฟลเดอร์
+   - **git:** `git clone --branch v1.0.0-rc14.2 <URL ของ repository>`
+4. เปิดโฟลเดอร์นั้น แล้ว **ดับเบิลคลิก `install-windows.bat`**
+   - Windows จะถามสิทธิ์ผู้ดูแลระบบ ให้กด Yes (ใช้เพื่อเพิ่มกฎ Firewall)
+   - ถ้าเครื่องยังไม่มี Docker Desktop ตัวติดตั้งจะเสนอติดตั้งให้ (ผ่าน winget) ติดตั้งเสร็จให้รีสตาร์ท เปิด Docker Desktop 1 ครั้ง แล้วดับเบิลคลิก `install-windows.bat` อีกครั้ง
+   - ถ้าดับเบิลคลิกไม่ได้ ให้เปิด PowerShell (Admin) ในโฟลเดอร์นั้น แล้วสั่ง `powershell -ExecutionPolicy Bypass -File install\install.ps1`
 5. ตอบคำถามแบบเดียวกับ Linux:
    - โฟลเดอร์ใช้รูปแบบ `D:\cctv\recordings` ได้
    - NTP แนะนำให้ตอบ "ไม่" เพราะ Windows Time service ใช้พอร์ต 123 อยู่แล้ว
@@ -222,8 +219,8 @@ sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้�
 
 | | Linux | Windows |
 |---|---|---|
-| ติดตั้งจาก git | `bash install/update.sh` (เวอร์ชันล่าสุด) หรือ `bash install/update.sh v1.0.1` | `powershell -ExecutionPolicy Bypass -File install\update.ps1` |
-| ติดตั้งจากไฟล์แพ็กเกจ | แตกเวอร์ชันใหม่เป็นโฟลเดอร์ใหม่ คัดลอก `.env.production` (คงสิทธิ์ 600) และโฟลเดอร์ `ssl/` จากโฟลเดอร์เดิมมา แล้วรัน `bash install/update.sh` ในโฟลเดอร์ใหม่ | ทำแบบเดียวกัน แล้วรัน `install\update.ps1` ในโฟลเดอร์ใหม่ |
+| ติดตั้งจาก git | `bash install/update.sh` (เวอร์ชันล่าสุด) หรือ `bash install/update.sh v1.0.1` | ดับเบิลคลิก `update-windows.bat` |
+| ติดตั้งจาก zip หรือแพ็กเกจ | แตกเวอร์ชันใหม่เป็นโฟลเดอร์ใหม่ (ชื่อตามเดิม เช่น `cctv-platform-1.0.1`) คัดลอก `.env.production` (คงสิทธิ์ 600) และโฟลเดอร์ `ssl/` จากโฟลเดอร์เดิมมา แล้วรัน `bash install/update.sh` ในโฟลเดอร์ใหม่ | ทำแบบเดียวกัน แล้วดับเบิลคลิก `update-windows.bat` ในโฟลเดอร์ใหม่ |
 
 ฐานข้อมูลและการตั้งค่าเก็บใน Docker volume จึงไม่หายเมื่อย้ายโฟลเดอร์ เก็บโฟลเดอร์เดิมไว้ก่อน เผื่อต้องย้อนกลับ
 
@@ -300,7 +297,9 @@ $DCP up -d
 | เปิดเครื่องใหม่แล้วระบบไม่ขึ้น (Linux) | network ยังไม่พร้อมตอน Docker เริ่ม ให้ตอบ "ใช่" เรื่อง `ip_nonlocal_bind` ตอนติดตั้ง หรือสั่ง `docker compose ... up -d --force-recreate` |
 | `cannot assign requested address` (Windows) | Docker Desktop ผูก IP นั้นไม่ได้ ตรวจว่า IP ถูกและเป็นของเครื่องนี้ ถ้ายังไม่ได้ ให้แก้ `WEB_LAN_ADDRESS`/`MEDIA_UDP_BIND` เป็น `0.0.0.0` (เปิดทุก interface ต้องคุมด้วย Windows Firewall) |
 | พอร์ต 80/443 ถูกใช้แล้ว | มีโปรแกรมอื่นใช้อยู่ (เช่น IIS หรือ Skype) ให้ปิดโปรแกรมนั้น หรือเปลี่ยน `WEB_LAN_HTTP_PORT`/`WEB_LAN_HTTPS_PORT` |
-| ตัวติดตั้ง Windows บอก "line ends" | clone ด้วย autocrlf ให้ clone ใหม่ด้วย `-c core.autocrlf=false` หรือใช้ไฟล์ .zip |
+| ตัวติดตั้ง Windows บอก "line ends" | ไฟล์ถูกแปลงเป็นแบบ Windows (CRLF) ให้ใช้ไฟล์ zip จาก GitHub หรือ clone ใหม่ด้วย `git clone -c core.autocrlf=false --branch <เวอร์ชัน> <URL>` |
+| พิมพ์ `bash install/install.sh` บน Windows แล้วขึ้น Catastrophic failure | `bash` บน Windows คือ WSL ไม่ใช่ตัวติดตั้งนี้ ให้ใช้ `install-windows.bat` |
+| `install\install.ps1 does not exist` | clone มาเป็น branch หลักที่ยังไม่มีตัวติดตั้ง ให้สั่ง `git checkout <เวอร์ชันล่าสุด>` หรือ clone ด้วย `--branch <เวอร์ชัน>` |
 | preflight ขึ้น FAIL | อ่านบรรทัด FAIL ทุกบรรทัดบอกวิธีแก้ไว้แล้ว ตรวจซ้ำได้ด้วย `sh scripts/prod-preflight.sh .env.production` |
 | ลืมรหัส admin | ให้ผู้ใช้ที่มีสิทธิ์จัดการผู้ใช้รีเซ็ตให้ หรือดูวิธีในหัวข้อ "ลืมรหัส admin" ด้านล่าง |
 
@@ -357,8 +356,8 @@ $DCP down -v              # ⚠ ลบฐานข้อมูลทั้งห
 
 | ไฟล์ | หน้าที่ |
 |---|---|
-| `install/install.sh`, `install/install.ps1` | ติดตั้งครั้งแรก (Linux, Windows) |
-| `install/update.sh`, `install/update.ps1` | อัปเดต |
+| `install/install.sh`, `install/install.ps1`, `install-windows.bat` | ติดตั้งครั้งแรก (Linux, Windows; .bat = ดับเบิลคลิก) |
+| `install/update.sh`, `install/update.ps1`, `update-windows.bat` | อัปเดต |
 | `scripts/prod-preflight.sh` | ตรวจความพร้อม อ่านอย่างเดียว ไม่พิมพ์ค่าลับ |
 | `scripts/make-release.sh` | สร้างไฟล์แพ็กเกจสำหรับแจก (`dist/`) โดยไม่รวมเอกสารภายในของไซต์แรก |
 | `.env.production.example` | รายการค่าตั้งทั้งหมดพร้อมคำอธิบาย |
