@@ -1,3 +1,6 @@
+<img width="1908" height="743" alt="image" src="https://github.com/user-attachments/assets/994fe5e5-5c35-4ff5-8665-86c1e59d405d" />
+<img width="1904" height="909" alt="image" src="https://github.com/user-attachments/assets/5f989ae0-cd40-419e-98ce-1481e5a01f4a" />
+
 # iSmart CCTV
 
 ระบบจัดการกล้องวงจรปิดผ่านเว็บ ดูกล้องทุกตัวพร้อมกันได้จากเบราว์เซอร์และมือถือ โดยไม่ต้องใช้โปรแกรมของยี่ห้อเครื่องบันทึก และไม่ต้องซื้อไลเซนส์เพิ่ม
