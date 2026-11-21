@@ -162,6 +162,27 @@ Ok 'database ready'
 
 # 5 start
 Step '5/5 Starting'
+# Ports another program already holds stop the web app at the very end (seen 2026-11-21: 8080 taken by another
+# project). Checked first, unless our own web app is the one holding them (installer run again).
+if (-not (& docker ps -q --filter 'name=^cctv-web-app$' --filter status=running)) {
+  $listening = { param($p) [bool](Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue) }
+  $holder = { param($p) $c = Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue | Select-Object -First 1; if ($c) { (Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue).ProcessName } }
+  # Local-only ports (this PC itself): move to a free one.
+  foreach ($d in @(@('WEB_HTTP_PORT', 8080, 18080), @('WEB_HTTPS_PORT', 8443, 18443))) {
+    $p = [int](Get-V $d[0]); if (-not $p) { $p = $d[1] }
+    if (& $listening $p) {
+      $n = $d[2]; while (& $listening $n) { $n++ }
+      Set-V $d[0] $n; Warn "port $p is used by $(& $holder $p); $($d[0]) set to $n (only for opening the site on this PC)"
+    }
+  }
+  # The ports people use: say who holds them.
+  foreach ($k in 'WEB_LAN_HTTP_PORT', 'WEB_LAN_HTTPS_PORT') {
+    $p = [int](Get-V $k)
+    if ($p -and (& $listening $p)) { Stop-Install "Port $p is already used by '$(& $holder $p)' (another web server or Docker project). Stop it, or set $k to another port in $EnvFile and run again (people then open https://<IP>:<port>)." }
+  }
+  if (Get-NetUDPEndpoint -LocalPort 8189 -ErrorAction SilentlyContinue) { Stop-Install "UDP port 8189 (live video) is already used by another program or Docker project. Stop it and run again." }
+  Ok 'ports free'
+}
 $rc = Run "$DcpLine up -d >> ""$log"" 2>&1"
 if ($rc -ne 0) { Stop-Install "Starting failed; see $log. If it says 'cannot assign requested address', see README > Windows > troubleshooting." }
 $s = ''
@@ -169,7 +190,10 @@ for ($i = 0; $i -lt 45; $i++) { $s = (& docker inspect -f '{{if .State.Health}}{
 if ($s -ne 'healthy') { Stop-Install 'The API did not become healthy; see: docker logs cctv-api' }
 Ok 'API healthy'
 
-if ($empty -eq 't') {
+# A new database, or one where admin still has the sample password (installer run again after a stop): ask now.
+$needAdmin = ($empty -eq 't')
+if (-not $needAdmin) { & cmd /c "docker exec -i -e ADMIN_CHECK_ONLY=1 cctv-api node --input-type=module - < install\first-admin.mjs >nul 2>&1"; $needAdmin = ($LASTEXITCODE -eq 10) }
+if ($needAdmin) {
   while ($true) {
     $p1 = Read-Host '  New password for admin (10+ characters, not a common word)' -AsSecureString
     $p2 = Read-Host '  Again' -AsSecureString

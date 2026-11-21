@@ -5,6 +5,11 @@
 // Prints only what it did, never a password. Exit 0 = done (or already done), 1 = failed.
 const API = 'http://127.0.0.1:3001/api/v1';
 const NEW = process.env.ADMIN_NEW_PASSWORD ?? '';
+// ADMIN_CHECK_ONLY=1: exit 10 while admin still has the sample password (the installer then asks for one), else 0.
+if (process.env.ADMIN_CHECK_ONLY === '1') {
+  const r = await fetch(API + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'admin123' }) });
+  process.exit(r.status === 200 ? 10 : 0);
+}
 if (NEW.length < 10) { console.error('ADMIN_NEW_PASSWORD must be at least 10 characters'); process.exit(1); }
 
 async function call(method, path, body, token) {

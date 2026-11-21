@@ -214,6 +214,21 @@ ok "database ready"
 
 # ── 5 start ───────────────────────────────────────────────────────────────────
 step "5/5 Starting"
+# Ports another program already holds stop the web app at the very end: checked first, unless our own web app is
+# the one holding them (installer run again).
+if [ -z "$(docker ps -q --filter 'name=^cctv-web-app$' --filter status=running)" ] && command -v ss >/dev/null; then
+  busy() { ss -Htln "sport = :$1" 2>/dev/null | grep -q .; }
+  for d in WEB_HTTP_PORT:8080:18080 WEB_HTTPS_PORT:8443:18443; do
+    k=${d%%:*}; rest=${d#*:}; def=${rest%%:*}; alt=${rest#*:}
+    p=$(getv "$k"); p=${p:-$def}
+    if busy "$p"; then n=$alt; while busy "$n"; do n=$((n + 1)); done; setv "$k" "$n"; warn "port $p is in use; $k set to $n (only for opening the site on this server)"; fi
+  done
+  for k in WEB_LAN_HTTP_PORT WEB_LAN_HTTPS_PORT; do
+    p=$(getv "$k"); [ -n "$p" ] && busy "$p" && die "Port $p is already used by another program (see: sudo ss -ltnp 'sport = :$p'). Stop it, or set $k to another port in $ENV_FILE and run again."
+  done
+  ss -Huln "sport = :8189" 2>/dev/null | grep -q . && die "UDP port 8189 (live video) is already in use. Stop that program and run again."
+  ok "ports free"
+fi
 "${DCP[@]}" up -d >>"$LOG" 2>&1 || die "Starting failed; see the end of $LOG"
 for i in $(seq 1 45); do
   s=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' cctv-api 2>/dev/null || true)
@@ -221,7 +236,10 @@ for i in $(seq 1 45); do
 done
 [ "$s" = healthy ] && ok "API healthy" || die "The API did not become healthy; see: docker logs cctv-api"
 
-if [ "$EMPTY" = t ]; then
+# A new database, or one where admin still has the sample password (installer run again after a stop): set it now.
+NEED_ADMIN=0; [ "$EMPTY" = t ] && NEED_ADMIN=1
+if [ "$NEED_ADMIN" = 0 ]; then docker exec -i -e ADMIN_CHECK_ONLY=1 cctv-api node --input-type=module - < install/first-admin.mjs >/dev/null 2>&1 || [ $? -ne 10 ] || NEED_ADMIN=1; fi
+if [ "$NEED_ADMIN" = 1 ]; then
   PW=${CCTV_ADMIN_PASSWORD:-}
   if [ -z "$PW" ] && [ "$YES" = 0 ]; then
     while :; do
