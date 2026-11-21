@@ -139,6 +139,9 @@ Run "$DcpLine up -d postgres redis >> ""$log"" 2>&1" | Out-Null
 for ($i = 0; $i -lt 60; $i++) { if ((Run 'docker exec cctv-postgres pg_isready -q >nul 2>&1') -eq 0) { break }; Start-Sleep 2 }
 # The SQL goes in on stdin: no quotes inside the arguments.
 $empty = "$('select to_regclass(''public.users'') is null' | & docker exec -i cctv-postgres sh -c 'psql -U $POSTGRES_USER -d $POSTGRES_DB -tA')".Trim()
+if ($LASTEXITCODE -ne 0 -or ($empty -ne 't' -and $empty -ne 'f')) {
+  Stop-Install "The database volume is from an earlier installation with other credentials (Docker volume cctv-platform_postgres-data). Keep it: put that installation's .env.production in this folder and run again. Not needed any more: docker $($Dcp -join ' ') down -v  (deletes that data), then run this again."
+}
 if ($empty -eq 't') {
   Write-Host '  new database: creating tables and starter data'
   $env:RUN_SEED = 'true'; $rc = Run "$DcpLine run --rm image-api-migrate >> ""$log"" 2>&1"; Remove-Item Env:RUN_SEED

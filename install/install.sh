@@ -198,7 +198,8 @@ echo "  building the images (5–15 minutes the first time; log: $LOG)"
 ok "images built"
 "${DCP[@]}" up -d postgres redis >/dev/null 2>&1
 for i in $(seq 1 60); do docker exec cctv-postgres pg_isready -q >/dev/null 2>&1 && break; sleep 2; done
-EMPTY=$(docker exec cctv-postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass('"'"'public.users'"'"') is null"' 2>/dev/null | tr -d ' \r\n')
+EMPTY=$(docker exec cctv-postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass('"'"'public.users'"'"') is null"' 2>/dev/null | tr -d ' \r\n' || true)
+case "$EMPTY" in t|f) ;; *) die "The database volume is from an earlier installation with other credentials (Docker volume cctv-platform_postgres-data). Keep it: put that installation's .env.production here and run again. Not needed any more: ${DCP[*]} down -v  (deletes that data), then run again." ;; esac
 if [ "$EMPTY" = t ]; then
   echo "  new database: creating tables and starter data (roles, lists, admin account)"
   RUN_SEED=true "${DCP[@]}" run --rm image-api-migrate >>"$LOG" 2>&1 || die "Database setup failed; see the end of $LOG"
