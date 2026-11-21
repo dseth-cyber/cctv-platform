@@ -230,6 +230,32 @@ sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้�
 
 เหมาะกับไซต์เล็กหรือเครื่องทดลอง ถ้ามีกล้องจำนวนมากหรือบันทึก 24 ชั่วโมง แนะนำ Linux
 
+> **สรุปสั้น:** ดาวน์โหลด zip จาก [Releases](https://github.com/dseth-cyber/cctv-platform/releases) → แตกไฟล์ → ดับเบิลคลิก `install-windows.bat` → ตอบคำถาม (กด Enter เกือบทุกข้อ, NTP ตอบ `N`) → รอ build แล้วตั้งรหัส admin
+
+### 3.1 เครื่องที่เคยติดตั้งมาก่อน (เริ่มใหม่ให้สะอาด)
+
+ถ้าเครื่องนี้เคยมี iSmart CCTV (หรือระบบ CCTV เวอร์ชันทดสอบ) มาก่อน ให้ล้างของเดิมก่อน ไม่อย่างนั้นตัวติดตั้งจะเจอฐานข้อมูลเก่าแล้วหยุด
+
+- **มี `uninstall-windows.bat` อยู่ในโฟลเดอร์เดิม:** ดับเบิลคลิกแล้วเลือก **2 (ล้างทั้งหมด)** ระบบจะสำรองฐานข้อมูลให้ก่อนลบ
+- **ไม่มี (ติดตั้งจากเวอร์ชันเก่า หรือลบ container ด้วยมือไปแล้ว):** เปิด cmd แล้วสั่ง
+  ```
+  docker compose -p cctv-platform down -v
+  ```
+  คำสั่งนี้ลบเฉพาะ container และข้อมูลของ `cctv-platform` ไม่แตะโปรเจกต์อื่นใน Docker (ถ้าข้อมูลเดิมยังต้องใช้ ให้สำรองก่อน)
+
+### 3.2 ติดตั้ง
+
+**ทางลัด (ใช้ได้ทุกครั้ง):**
+1. ดาวน์โหลดไฟล์ `cctv-platform-<เวอร์ชัน>.zip` จาก [Releases](https://github.com/dseth-cyber/cctv-platform/releases) → คลิกขวา **Extract All** → ได้โฟลเดอร์ `cctv-platform-<เวอร์ชัน>`
+2. ดับเบิลคลิก **`install-windows.bat`** → กด **Yes** (ถ้า Windows ขึ้น "Windows protected your PC" ให้กด More info → Run anyway)
+3. ตอบคำถาม:
+   - IP, โฟลเดอร์, เขตเวลา: กด Enter ได้หมด
+   - NTP: ตอบ `N`
+4. รอ build (5–20 นาที ห้ามปิดหน้าต่าง) แล้วตั้งรหัส admin ตอนท้าย (ตอนพิมพ์จะไม่เห็นตัวอักษร)
+5. เปิด `https://<IP ของเครื่อง>` จากเครื่องอื่นใน LAN
+
+**รายละเอียดแต่ละขั้น:**
+
 1. ติดตั้ง **Docker Desktop** จาก https://www.docker.com/products/docker-desktop/
    - ระหว่างติดตั้งเลือก WSL 2 แล้วรีสตาร์ทเครื่อง
    - เปิด Docker Desktop จนไอคอนรูปปลาวาฬบอกว่า running
