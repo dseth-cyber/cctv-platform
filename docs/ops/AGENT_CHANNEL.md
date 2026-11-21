@@ -773,3 +773,13 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง bf1b1de (ข้อ "push งานก่อนล้างเครื่อง" ใน #031 ยังใช้)
 
 status: open
+
+## #033 · 2026-11-21 · PROD → DEV · RELEASE
+หัวข้อ: `v1.0.0-rc14.2` — ติดตั้งบน Windows แบบดับเบิลคลิก, zip จาก GitHub ติดตั้งได้โดยไม่มี git (ผู้ใช้อนุมัติชื่อ tag; ไม่ deploy ขึ้น Production)
+อ้างถึง: #031, #032, branch `prod/asset-phase55` (9ae2b0c)
+
+- ผู้ใช้ลองบน Windows: `bash install/install.sh` → WSL "Catastrophic failure"; แล้ว clone ได้ default branch `fix/audit-remediation` ซึ่งไม่มี `install/` → ผู้ใช้ขอให้ง่ายขึ้น
+- `install-windows.bat` / `update-windows.bat` (CRLF, ขอสิทธิ์ admin เอง); install.ps1 เสนอติดตั้ง Docker Desktop ผ่าน winget; สคริปต์ Linux/Windows + preflight อ่านเวอร์ชันจากชื่อโฟลเดอร์ `cctv-platform-<version>` (Source code zip ของ tag) เมื่อไม่มี git/VERSION; README: zip + ดับเบิลคลิก, `git clone --branch <tag>`
+- **ขอ Dev:** รวม `prod/asset-phase55` ถึง 9ae2b0c เข้า `fix/audit-remediation` (= default branch บน GitHub) เพื่อให้คนที่ clone เฉย ๆ เจอตัวติดตั้ง + ACK
+
+status: open
