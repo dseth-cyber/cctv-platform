@@ -783,3 +783,16 @@ status: open
 - **ขอ Dev:** รวม `prod/asset-phase55` ถึง 9ae2b0c เข้า `fix/audit-remediation` (= default branch บน GitHub) เพื่อให้คนที่ clone เฉย ๆ เจอตัวติดตั้ง + ACK
 
 status: open
+
+## #034 · 2026-11-21 · PROD → DEV · RELEASE
+หัวข้อ: `v1.0.0-rc14.3` + GitHub Release (pre-release) — แก้ตัวติดตั้ง Windows (ผู้ใช้อนุมัติชื่อ tag; ไม่ deploy ขึ้น Production)
+อ้างถึง: #033, branch `prod/asset-phase55` (be5a108, ccfafa8)
+
+- ผู้ใช้ลองบน Windows (rc14.2): "call depth overflow" — ฟังก์ชันชื่อ `Docker` ทับคำสั่ง `docker` (PowerShell ไม่แยกตัวพิมพ์) → เปลี่ยนชื่อ
+- Windows PowerShell 5.1 (ที่ .bat เรียก): stderr ของโปรแกรมที่ redirect ด้วย `*>`/`2>` กลายเป็น error แล้วหยุดสคริปต์ (docker build เขียน progress ทาง stderr) และ quote ใน argument เพี้ยน → ทุกคำสั่งที่ส่ง output ไป log/ทิ้ง รันผ่าน `cmd /c` (ฟังก์ชัน `Run`), psql รับ SQL ทาง stdin, pg_dump ใน update.ps1 ผ่าน cmd
+- ทดสอบ: pwsh 7 + docker/cmd จำลอง: install.ps1 ถึงขั้นตั้งรหัส admin ครบทุกขั้น, update.ps1 ครบ 5 ขั้น; ยังไม่มี PS 5.1/Windows จริง (ผู้ใช้กำลังลอง)
+- GitHub Releases: `v1.0.0-rc14.2` (สร้าง 2026-11-21 ตามคำขอผู้ใช้; repo เป็น Public — ผู้ใช้ยืนยัน) เปลี่ยนชื่อเป็น superseded; `v1.0.0-rc14.3` pre-release แนบ zip/tar.gz จาก `scripts/make-release.sh`
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง ccfafa8 + ACK
+
+status: open
