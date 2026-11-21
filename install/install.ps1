@@ -66,7 +66,11 @@ if (-not $fresh) {
     Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.)' -and $_.InterfaceAlias -notmatch 'vEthernet|WSL|Docker|Loopback' } |
     Select-Object -ExpandProperty IPAddress
   Write-Host "  Addresses of this PC: $($ips -join ' ')"
-  $lan = Ask 'LAN address people will open the system with' ($ips | Select-Object -First 1)
+  # The address of the network card with the default gateway is the LAN people use; else the first address.
+  $gwIp = Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } |
+    ForEach-Object { $_.IPv4Address.IPAddress } | Where-Object { $ips -contains $_ } | Select-Object -First 1
+  $defIp = if ($gwIp) { $gwIp } else { $ips | Select-Object -First 1 }
+  $lan = Ask 'LAN address people will open the system with' $defIp
   if ($lan -notmatch '^\d+\.\d+\.\d+\.\d+$') { Stop-Install "'$lan' is not an IPv4 address" }
   $drive = if (Test-Path 'D:\') { 'D:' } else { 'C:' }
   $rec = Ask 'Folder for recordings (a big disk)' "$drive\cctv\recordings"

@@ -105,7 +105,10 @@ if [ -f "$ENV_FILE" ] && [ "$RECONFIGURE" = 0 ]; then
   ok "$ENV_FILE exists: keeping it (use --reconfigure to answer the questions again; secrets are always kept)"
 else
   IPS=$(ip -o -4 addr show scope global 2>/dev/null | awk '{split($4,a,"/"); print a[1]}' | grep -v '^172\.\(1[7-9]\|2[0-9]\|3[01]\)\.' | grep -v '^10\.\(199\|200\|250\)\.' || true)
-  DEF_IP=$(printf '%s\n' "$IPS" | head -n1)
+  # The address on the way to the default gateway is the LAN people use; `ip route get` only looks the route up,
+  # it sends nothing. With no gateway (isolated LAN), the first address.
+  GW_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") { print $(i + 1); exit }}')
+  if [ -n "$GW_IP" ] && printf '%s\n' "$IPS" | grep -qx "$GW_IP"; then DEF_IP=$GW_IP; else DEF_IP=$(printf '%s\n' "$IPS" | head -n1); fi
   echo "  Addresses of this machine: $(printf '%s ' $IPS)"
   ask LAN_IP "LAN address people will open the system with" "${CCTV_LAN_IP:-$DEF_IP}"
   [[ "$LAN_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "'$LAN_IP' is not an IPv4 address"

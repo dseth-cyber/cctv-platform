@@ -113,7 +113,7 @@ bash install/install.sh
 
 | คำถาม | ตัวอย่าง | หมายเหตุ |
 |---|---|---|
-| IP ของเซิร์ฟเวอร์ใน LAN | `192.168.1.10` | ผู้ใช้จะเปิดเว็บที่ `https://192.168.1.10` |
+| IP ของเซิร์ฟเวอร์ใน LAN | ตัวติดตั้งดึง IP ของเครื่องมาเสนอให้เอง (IP ของการ์ดที่ไปถึง gateway) กด Enter ได้เลย | ผู้ใช้จะเปิดเว็บที่ `https://<IP นี้>` ถ้าเครื่องมีหลายการ์ด ระบบจะแสดง IP ทั้งหมดให้เลือก |
 | โฟลเดอร์เก็บไฟล์บันทึก | `/srv/cctv/recordings` | ควรอยู่บนดิสก์ใหญ่ที่แยกจากดิสก์ระบบ |
 | โฟลเดอร์สำรองฐานข้อมูล | `/srv/cctv-data/backup` | ควรอยู่บนดิสก์อีกลูก |
 | เขตเวลา | `Asia/Bangkok` | |
@@ -141,11 +141,11 @@ bash install/install.sh
 ติดตั้งแบบไม่ถามคำถาม (สำหรับสคริปต์อัตโนมัติ):
 
 ```bash
-CCTV_LAN_IP=192.168.1.10 CCTV_RECORDINGS_DIR=/srv/cctv/recordings CCTV_BACKUP_DIR=/srv/cctv-data/backup \
+CCTV_RECORDINGS_DIR=/srv/cctv/recordings CCTV_BACKUP_DIR=/srv/cctv-data/backup \
 CCTV_NTP=yes CCTV_NTP_ALLOW=192.168.20.0/24 CCTV_ADMIN_PASSWORD='<รหัสยาว>' bash install/install.sh --yes
 ```
 
-ถ้าไม่ใส่ `CCTV_ADMIN_PASSWORD` ตัวติดตั้งจะสุ่มรหัสให้และแสดงครั้งเดียว
+ถ้าไม่ใส่ `CCTV_LAN_IP` จะใช้ IP ที่ตรวจพบ และถ้าไม่ใส่ `CCTV_ADMIN_PASSWORD` ตัวติดตั้งจะสุ่มรหัสให้และแสดงครั้งเดียว
 
 ### 2.4 Firewall (ถ้าเปิด ufw)
 
