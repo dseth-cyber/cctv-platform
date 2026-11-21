@@ -45,6 +45,14 @@ function Set-V($k, $v) {
   Write-EnvLines $lines
 }
 
+# Docker Compose takes a variable from this Windows session before the settings file. A JWT_SECRET (or any other
+# name in the file) set for another project on this PC would win and the API refuses to start (seen 2026-11-21).
+# So every name in the settings file is cleared for this run only; nothing changes outside this window.
+function Clear-SettingsFromSession {
+  if (-not (Test-Path (Join-Path $Root $EnvFile))) { return }
+  foreach ($l in (Read-EnvLines)) { if ($l -match '^([A-Z_][A-Z0-9_]*)=') { Remove-Item "Env:$($Matches[1])" -ErrorAction SilentlyContinue } }
+}
+
 # 1 the machine
 Step '1/5 Checking this machine'
 if (-not (Test-Path docker-compose.yml)) { Stop-Install 'Run this from the CCTV Platform folder (docker-compose.yml not found).' }
@@ -128,6 +136,7 @@ if (-not ((Test-Path ssl\server.crt) -and (Test-Path ssl\server.key))) {
 
 # 4 check, build, database
 Step '4/5 Check, build and database'
+Clear-SettingsFromSession
 & docker @Dcp config -q; if ($LASTEXITCODE -ne 0) { Stop-Install "The settings do not work with the compose files; run: docker $($Dcp -join ' ') config" }
 Ok 'compose settings valid'
 New-Item -ItemType Directory -Force -Path install\logs | Out-Null

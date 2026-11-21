@@ -21,6 +21,11 @@ setv() { local tmp; tmp=$(mktemp); K="$1" V="$2" awk 'BEGIN{k=ENVIRON["K"];v=ENV
 docker info >/dev/null 2>&1 || die "Docker is not running or this user cannot use it"
 OLD=$(getv CCTV_VERSION)
 
+# Compose takes a variable from the shell before the settings file; a JWT_SECRET exported for another project would
+# win. Every name in the settings file is unset for this run only.
+clear_settings_from_shell() { local k; for k in $(sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' "$ENV_FILE"); do unset "$k"; done; }
+clear_settings_from_shell
+
 step "1/5 Database backup"
 BAK=$(getv BACKUP_HOST_DIR); BAK=${BAK:-.}
 F="$BAK/cctv-$(date +%F-%H%M)-before-update.dump"

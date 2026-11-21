@@ -188,8 +188,12 @@ if [ "$(cat /proc/sys/net/ipv4/ip_nonlocal_bind 2>/dev/null)" != 1 ]; then
   fi
 fi
 
+# Compose takes a variable from the shell before the settings file; a JWT_SECRET exported for another project would
+# win. Every name in the settings file is unset for this run only.
+clear_settings_from_shell() { local k; for k in $(sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' "$ENV_FILE"); do unset "$k"; done; }
 # ── 4 check, build, database ──────────────────────────────────────────────────
 step "4/5 Check, build and database"
+clear_settings_from_shell
 sh scripts/prod-preflight.sh "$ENV_FILE" | sed 's/^/  /' || die "The preflight check found problems (FAIL lines above). Fix them and run again."
 mkdir -p install/logs
 LOG=install/logs/build-$(date +%Y%m%d-%H%M).log

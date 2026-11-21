@@ -26,6 +26,14 @@ function Set-V($k, $v) {
   [IO.File]::WriteAllText((Join-Path $Root $EnvFile), (($lines -join "`n").TrimEnd("`n") + "`n"), (New-Object Text.UTF8Encoding $false))
 }
 
+# Docker Compose takes a variable from this Windows session before the settings file. A JWT_SECRET (or any other
+# name in the file) set for another project on this PC would win and the API refuses to start (seen 2026-11-21).
+# So every name in the settings file is cleared for this run only; nothing changes outside this window.
+function Clear-SettingsFromSession {
+  if (-not (Test-Path (Join-Path $Root $EnvFile))) { return }
+  foreach ($l in (Read-EnvLines)) { if ($l -match '^([A-Z_][A-Z0-9_]*)=') { Remove-Item "Env:$($Matches[1])" -ErrorAction SilentlyContinue } }
+}
+
 if (-not (Test-Path $EnvFile)) { Stop-Update "$EnvFile not found. First installation: install\install.ps1" }
 if ((Run 'docker info >nul 2>&1') -ne 0) { Stop-Update 'Docker Desktop is not running' }
 $old = Get-V CCTV_VERSION
@@ -48,6 +56,7 @@ elseif ((Split-Path -Leaf $Root) -match '^cctv-platform-v?(\d[\w.\-]*)$') { $new
 else { Stop-Update 'Not a git checkout and no VERSION file' }
 Set-V CCTV_VERSION $new; Ok "$old -> $new"
 
+Clear-SettingsFromSession
 Write-Host "`n== 3/5 Build =="
 New-Item -ItemType Directory -Force -Path install\logs | Out-Null
 $log = "install\logs\update-$(Get-Date -Format yyyyMMdd-HHmm).log"
