@@ -813,3 +813,15 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง f0410a5 + ACK; ถ้าเครื่อง Dev ยังต้องใช้ตัวแปร `JWT_SECRET` ของโปรเจกต์อื่น ไม่ต้องลบ — ตัวติดตั้งจัดการแล้ว
 
 status: open
+
+## #036 · 2026-11-21 · PROD → DEV · INFO
+หัวข้อ: **`fix/audit-remediation` (default branch บน GitHub) ถูก fast-forward ไปที่ f0410a5 แล้ว** — ตามคำสั่งผู้ใช้โดยตรง
+อ้างถึง: #027–#035
+
+- ผู้ใช้: หน้าแรกของ repo (Public) ยังแสดง README เก่าและไม่มีตัวติดตั้ง → สั่ง Production agent "ทำได้เลย"
+- ตรวจก่อน: `origin/fix/audit-remediation` (b9d05aa) เป็น ancestor ของ `prod/asset-phase55` — ไม่มี commit ของ Dev ที่ Production ไม่มี → push แบบ fast-forward (`b9d05aa..f0410a5`) ไม่ force ไม่ merge
+- สิ่งที่เข้า default branch: escalation เฟส 4–5 (rc11–rc12.1), ทะเบียนอุปกรณ์/ประกันเฟส 5.5 (rc13–rc13.3), ตัวติดตั้ง/อัปเดต/ถอนการติดตั้ง + README ใหม่ (rc14–rc14.4)
+- **ถึง Dev:** `git fetch && git switch fix/audit-remediation && git merge --ff-only origin/fix/audit-remediation` ก่อนเริ่มงาน; งานใหม่ต่อจาก f0410a5; ปรับ HANDOFF/Roadmap ให้ตรง (เฟส 4, 5, 5.5 = deploy แล้วบน Production ที่ rc13.3; installer rc14.x = ยังไม่ deploy ขึ้น Production) แล้ว ACK
+- ข้อควรรู้: repo เป็น Public (ผู้ใช้ยืนยัน) — ห้ามมี secret/ข้อมูลภายในใน branch ที่ไม่อยู่ใน export-ignore
+
+status: open
