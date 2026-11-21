@@ -11,6 +11,12 @@ Set-Location (Split-Path -Parent $PSScriptRoot)
 $Root = (Get-Location).Path
 $EnvFile = '.env.production'
 $Dcp = @('compose', '--env-file', $EnvFile, '-f', 'docker-compose.yml', '-f', 'docker-compose.prod.yml')
+# Windows PowerShell 5.1 (what install-windows.bat starts) turns anything a program writes to stderr into an error
+# once it is redirected, and stops the script under 'Stop' (docker build writes its progress there); it also mangles
+# quotes inside arguments. So programs whose output goes to a log or nowhere run through cmd.exe, which redirects
+# plainly; the exit code is what counts.
+function Run([string]$line) { & cmd /c $line | Out-Host; return $LASTEXITCODE }
+$DcpLine = 'docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml'
 function Ok($t) { Write-Host "  ok    $t" -ForegroundColor Green }
 function Stop-Update($t) { Write-Host "`nSTOP  $t" -ForegroundColor Red; exit 1 }
 function Read-EnvLines { [IO.File]::ReadAllText((Join-Path $Root $EnvFile)) -split "`r?`n" }
@@ -21,14 +27,14 @@ function Set-V($k, $v) {
 }
 
 if (-not (Test-Path $EnvFile)) { Stop-Update "$EnvFile not found. First installation: install\install.ps1" }
-& docker info *> $null; if ($LASTEXITCODE -ne 0) { Stop-Update 'Docker Desktop is not running' }
+if ((Run 'docker info >nul 2>&1') -ne 0) { Stop-Update 'Docker Desktop is not running' }
 $old = Get-V CCTV_VERSION
 
 Write-Host "`n== 1/5 Database backup =="
 $bak = Get-V BACKUP_HOST_DIR; if (-not $bak) { $bak = '.' }
 $file = Join-Path $bak "cctv-$(Get-Date -Format yyyy-MM-dd-HHmm)-before-update.dump"
-& cmd /c "docker exec cctv-postgres sh -c ""pg_dump -U \""`$POSTGRES_USER\"" -d \""`$POSTGRES_DB\"" -Fc"" > ""$file"""
-if ($LASTEXITCODE -ne 0 -or (Get-Item $file).Length -eq 0) { Stop-Update 'Backup failed; nothing was changed' }
+$rc = Run ('docker exec cctv-postgres sh -c "pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -Fc" > "' + $file + '"')
+if ($rc -ne 0 -or -not (Test-Path $file) -or (Get-Item $file).Length -eq 0) { Stop-Update 'Backup failed; nothing was changed' }
 Ok $file
 
 Write-Host "`n== 2/5 Release =="
@@ -46,16 +52,16 @@ Write-Host "`n== 3/5 Build =="
 New-Item -ItemType Directory -Force -Path install\logs | Out-Null
 $log = "install\logs\update-$(Get-Date -Format yyyyMMdd-HHmm).log"
 & docker @Dcp config -q; if ($LASTEXITCODE -ne 0) { Stop-Update 'compose settings invalid (old version still running)' }
-& docker @Dcp build image-api web-app *> $log; if ($LASTEXITCODE -ne 0) { Stop-Update "Build failed (old version still running); see $log" }
+if ((Run "$DcpLine build image-api web-app > ""$log"" 2>&1") -ne 0) { Stop-Update "Build failed (old version still running); see $log" }
 Ok 'images built'
 
 Write-Host "`n== 4/5 Database changes =="
 Remove-Item Env:RUN_SEED -ErrorAction SilentlyContinue
-& docker @Dcp run --rm image-api-migrate *>> $log; if ($LASTEXITCODE -ne 0) { Stop-Update "Database changes failed; the old version is still running. See $log; backup: $file" }
+if ((Run "$DcpLine run --rm image-api-migrate >> ""$log"" 2>&1") -ne 0) { Stop-Update "Database changes failed; the old version is still running. See $log; backup: $file" }
 Ok 'database up to date'
 
 Write-Host "`n== 5/5 Start =="
-& docker @Dcp up -d *>> $log; if ($LASTEXITCODE -ne 0) { Stop-Update "Start failed; see $log" }
+if ((Run "$DcpLine up -d >> ""$log"" 2>&1") -ne 0) { Stop-Update "Start failed; see $log" }
 $s = ''; for ($i = 0; $i -lt 45; $i++) { $s = (& docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' cctv-api); if ($s -eq 'healthy') { break }; Start-Sleep 4 }
 if ($s -ne 'healthy') { Stop-Update "API not healthy (docker logs cctv-api). Roll back: CCTV_VERSION=$old in $EnvFile, then docker $($Dcp -join ' ') up -d" }
 Ok "CCTV Platform $new is running (backup: $file)"

@@ -26,7 +26,13 @@ function Stop-Install($t) { Write-Host "`nSTOP  $t" -ForegroundColor Red; exit 1
 function Ask($q, $d) { $a = Read-Host "  $q [$d]"; if ([string]::IsNullOrWhiteSpace($a)) { $d } else { $a.Trim() } }
 function YesNo($q, $d) { $a = Read-Host "  $q [$(if ($d) {'Y/n'} else {'y/N'})]"; if ([string]::IsNullOrWhiteSpace($a)) { $d } else { $a -match '^[YyTt]' } }
 function Secret { $b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $_.ToString('x2') }) }
-function Docker { & docker @args; if ($LASTEXITCODE -ne 0) { throw "docker $($args -join ' ') failed ($LASTEXITCODE)" } }
+# Windows PowerShell 5.1 (what install-windows.bat starts) turns anything a program writes to stderr into an error
+# once it is redirected, and stops the script under 'Stop' (docker build writes its progress there); it also mangles
+# quotes inside arguments. So programs whose output goes to a log or nowhere run through cmd.exe, which redirects
+# plainly; the exit code is what counts.
+function Run([string]$line) { & cmd /c $line | Out-Host; return $LASTEXITCODE }
+$DcpLine = 'docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml'
+function Invoke-DockerChecked { & docker @args; if ($LASTEXITCODE -ne 0) { throw "docker $($args -join ' ') failed ($LASTEXITCODE)" } }
 
 # The settings file is read as KEY=VALUE lines; written back without a BOM and with LF line ends.
 function Read-EnvLines { [IO.File]::ReadAllText((Join-Path $Root $EnvFile)) -split "`r?`n" }
@@ -50,8 +56,8 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
   }
   Stop-Install 'Install Docker Desktop (https://www.docker.com/products/docker-desktop/, choose WSL 2), start it, then run this again.'
 }
-& docker info *> $null; if ($LASTEXITCODE -ne 0) { Stop-Install 'Docker Desktop is not running. Start it (whale icon in the tray says "running"), then run this again.' }
-& docker compose version *> $null; if ($LASTEXITCODE -ne 0) { Stop-Install 'docker compose is missing; update Docker Desktop.' }
+if ((Run 'docker info >nul 2>&1') -ne 0) { Stop-Install 'Docker Desktop is not running. Start it (whale icon in the tray says "running"), then run this again.' }
+if ((Run 'docker compose version >nul 2>&1') -ne 0) { Stop-Install 'docker compose is missing; update Docker Desktop.' }
 $os = (& docker info --format '{{.OSType}}'); if ($os -ne 'linux') { Stop-Install 'Docker Desktop is in Windows-containers mode. Right-click the tray icon > "Switch to Linux containers".' }
 Ok "Docker $(& docker version --format '{{.Server.Version}}')"
 # A clone with Windows line ends breaks the scripts that run inside the containers.
@@ -93,7 +99,7 @@ Step '3/5 Settings file, folders and certificate'
 if ($fresh) {
   if (-not (Test-Path $EnvFile)) { Copy-Item .env.production.example $EnvFile }
   # Only this Windows account (and SYSTEM/Administrators) may read the secrets.
-  & icacls $EnvFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" /grant:r 'SYSTEM:(F)' /grant:r 'Administrators:(F)' *> $null
+  Run "icacls $EnvFile /inheritance:r /grant:r ""$($env:USERNAME):(R,W)"" /grant:r SYSTEM:(F) /grant:r Administrators:(F) >nul 2>&1" | Out-Null
   foreach ($k in 'POSTGRES_PASSWORD', 'JWT_SECRET', 'ENCRYPTION_KEY', 'SERVICE_API_KEY', 'MEDIA_WEBHOOK_SECRET') { if (-not (Get-V $k)) { Set-V $k (Secret) } }
   Set-V CCTV_ISOLATION_VERIFIED 'true'; Set-V LEGACY_LAN_PREFIX ''
   foreach ($k in 'WEB_LAN_ADDRESS', 'MEDIA_UDP_BIND', 'MEDIA_WEBRTC_HOST') { Set-V $k $lan }
@@ -107,7 +113,7 @@ if ($fresh) {
 foreach ($d in (Get-V RECORDINGS_HOST_DIR), (Get-V BACKUP_HOST_DIR)) { New-Item -ItemType Directory -Force -Path $d | Out-Null; Ok "folder $d" }
 
 $ver = ''
-if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path .git)) { $ver = (& git describe --tags --exact-match 2>$null) }
+if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path .git)) { $ver = (& cmd /c 'git describe --tags --exact-match 2>nul') }
 if (-not $ver -and (Test-Path VERSION)) { $ver = (Get-Content VERSION -Raw).Trim() }
 # The "Source code (zip)" of a GitHub release unpacks to cctv-platform-<version>.
 if (-not $ver -and ((Split-Path -Leaf $Root) -match '^cctv-platform-v?(\d[\w.\-]*)$')) { $ver = $Matches[1] }
@@ -116,7 +122,7 @@ $ver = $ver -replace '^v', ''; Set-V CCTV_VERSION $ver; Ok "release $ver"
 
 if (-not ((Test-Path ssl\server.crt) -and (Test-Path ssl\server.key))) {
   $ip = Get-V WEB_LAN_ADDRESS
-  Docker run --rm -v "${Root}\ssl:/ssl" alpine:3.20 sh -c "apk add -q --no-cache openssl >/dev/null && openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /ssl/server.key -out /ssl/server.crt -subj /CN=$ip -addext subjectAltName=IP:$ip,DNS:localhost 2>/dev/null"
+  Invoke-DockerChecked run --rm -v "${Root}\ssl:/ssl" alpine:3.20 sh -c "apk add -q --no-cache openssl >/dev/null && openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /ssl/server.key -out /ssl/server.crt -subj /CN=$ip -addext subjectAltName=IP:$ip,DNS:localhost 2>/dev/null"
   Ok "self-signed certificate for $ip (browsers warn once; put the company certificate in ssl\ later)"
 } else { Ok 'TLS certificate present' }
 
@@ -127,24 +133,25 @@ Ok 'compose settings valid'
 New-Item -ItemType Directory -Force -Path install\logs | Out-Null
 $log = "install\logs\build-$(Get-Date -Format yyyyMMdd-HHmm).log"
 Write-Host "  building the images (5-20 minutes the first time; log: $log)"
-& docker @Dcp build image-api web-app *> $log; if ($LASTEXITCODE -ne 0) { Stop-Install "Build failed; see the end of $log" }
+if ((Run "$DcpLine build image-api web-app > ""$log"" 2>&1") -ne 0) { Stop-Install "Build failed; see the end of $log" }
 Ok 'images built'
-& docker @Dcp up -d postgres redis *>> $log
-for ($i = 0; $i -lt 60; $i++) { & docker exec cctv-postgres pg_isready -q *> $null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep 2 }
-$empty = (& docker exec cctv-postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass(''public.users'') is null"').Trim()
+Run "$DcpLine up -d postgres redis >> ""$log"" 2>&1" | Out-Null
+for ($i = 0; $i -lt 60; $i++) { if ((Run 'docker exec cctv-postgres pg_isready -q >nul 2>&1') -eq 0) { break }; Start-Sleep 2 }
+# The SQL goes in on stdin: no quotes inside the arguments.
+$empty = "$('select to_regclass(''public.users'') is null' | & docker exec -i cctv-postgres sh -c 'psql -U $POSTGRES_USER -d $POSTGRES_DB -tA')".Trim()
 if ($empty -eq 't') {
   Write-Host '  new database: creating tables and starter data'
-  $env:RUN_SEED = 'true'; & docker @Dcp run --rm image-api-migrate *>> $log; $rc = $LASTEXITCODE; Remove-Item Env:RUN_SEED
+  $env:RUN_SEED = 'true'; $rc = Run "$DcpLine run --rm image-api-migrate >> ""$log"" 2>&1"; Remove-Item Env:RUN_SEED
 } else {
-  Remove-Item Env:RUN_SEED -ErrorAction SilentlyContinue; & docker @Dcp run --rm image-api-migrate *>> $log; $rc = $LASTEXITCODE
+  Remove-Item Env:RUN_SEED -ErrorAction SilentlyContinue; $rc = Run "$DcpLine run --rm image-api-migrate >> ""$log"" 2>&1"
 }
 if ($rc -ne 0) { Stop-Install "Database setup failed; see the end of $log" }
 Ok 'database ready'
 
 # 5 start
 Step '5/5 Starting'
-& docker @Dcp up -d *>> $log
-if ($LASTEXITCODE -ne 0) { Stop-Install "Starting failed; see $log. If it says 'cannot assign requested address', see README > Windows > troubleshooting." }
+$rc = Run "$DcpLine up -d >> ""$log"" 2>&1"
+if ($rc -ne 0) { Stop-Install "Starting failed; see $log. If it says 'cannot assign requested address', see README > Windows > troubleshooting." }
 $s = ''
 for ($i = 0; $i -lt 45; $i++) { $s = (& docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' cctv-api); if ($s -eq 'healthy') { break }; Start-Sleep 4 }
 if ($s -ne 'healthy') { Stop-Install 'The API did not become healthy; see: docker logs cctv-api' }
