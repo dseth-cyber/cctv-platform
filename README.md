@@ -88,7 +88,7 @@ cd cctv-platform-1.0.0
 **ทางที่ 2: git** (ต้องได้สิทธิ์เข้า repository) ใส่ `--branch <เวอร์ชัน>` เพื่อดึงเวอร์ชันที่ปล่อยแล้วมาเลย
 
 ```bash
-git clone --branch v1.0.0-rc14.2 <URL ของ repository> cctv-platform
+git clone --branch v1.0.0-rc14.3 <URL ของ repository> cctv-platform
 cd cctv-platform
 ```
 
@@ -169,8 +169,8 @@ sudo ufw allow from 192.168.20.0/24 to any port 123 proto udp   # NTP ให้�
    - เปิด Docker Desktop จนไอคอนรูปปลาวาฬบอกว่า running
 2. ตั้ง Docker Desktop: **Settings → General → Start Docker Desktop when you sign in** เพื่อให้ระบบกลับมาทำงานเองหลังรีสตาร์ท (Windows ต้อง sign in ค้างไว้ หรือตั้ง auto-logon)
 3. เอาโปรแกรมมาไว้ที่เครื่อง (เลือกทางใดทางหนึ่ง):
-   - **ดาวน์โหลด zip (ง่ายสุด):** เปิดหน้า repository บน GitHub → **Releases** (หรือ Tags) → เลือกเวอร์ชันล่าสุด → **Source code (zip)** แล้วแตกไฟล์ไว้ เช่นที่ `D:\cctv-platform-1.0.0-rc14.2` ห้ามเปลี่ยนชื่อโฟลเดอร์ เพราะตัวติดตั้งอ่านเวอร์ชันจากชื่อโฟลเดอร์
-   - **git:** `git clone --branch v1.0.0-rc14.2 <URL ของ repository>`
+   - **ดาวน์โหลด zip (ง่ายสุด):** เปิดหน้า repository บน GitHub → **Releases** (หรือ Tags) → เลือกเวอร์ชันล่าสุด → **Source code (zip)** แล้วแตกไฟล์ไว้ เช่นที่ `D:\cctv-platform-1.0.0-rc14.3` ห้ามเปลี่ยนชื่อโฟลเดอร์ เพราะตัวติดตั้งอ่านเวอร์ชันจากชื่อโฟลเดอร์
+   - **git:** `git clone --branch v1.0.0-rc14.3 <URL ของ repository>`
 4. เปิดโฟลเดอร์นั้น แล้ว **ดับเบิลคลิก `install-windows.bat`**
    - Windows จะถามสิทธิ์ผู้ดูแลระบบ ให้กด Yes (ใช้เพื่อเพิ่มกฎ Firewall)
    - ถ้าเครื่องยังไม่มี Docker Desktop ตัวติดตั้งจะเสนอติดตั้งให้ (ผ่าน winget) ติดตั้งเสร็จให้รีสตาร์ท เปิด Docker Desktop 1 ครั้ง แล้วดับเบิลคลิก `install-windows.bat` อีกครั้ง
