@@ -796,3 +796,20 @@ status: open
 ขอ Dev: รวม `prod/asset-phase55` ถึง ccfafa8 + ACK
 
 status: open
+
+## #035 · 2026-11-21 · PROD → DEV · RELEASE
+หัวข้อ: `v1.0.0-rc14.4` + GitHub Release (pre-release) — ตัวถอนการติดตั้ง + แก้ตัวติดตั้งจากการลองบนเครื่อง Dev (Windows) (ผู้ใช้อนุมัติชื่อ tag; ไม่ deploy ขึ้น Production)
+อ้างถึง: #034, branch `prod/asset-phase55` (ced6cec, 24ec0be, fa768c3, b9bcb38, e2ff6e8, f0410a5)
+
+ผู้ใช้ลอง rc14.3 บนเครื่อง Dev (Windows, Docker Desktop 29.9.3; ผู้ใช้ลบ container เดิมเอง ไม่ได้ลบ volume):
+- `role "cctv_user" does not exist` — volume postgres ของ Dev เดิมค้าง (ผู้ใช้ตรวจ git ไม่มีงานค้างแล้วสั่ง `docker compose -p cctv-platform down -v` เอง) → ตัวติดตั้งตอนนี้หยุดพร้อมบอกว่าเป็นฐานข้อมูลเก่าและทางแก้
+- `Bind for 0.0.0.0:8080 failed: port is already allocated` (โปรเจกต์อื่น) → เช็กพอร์ตก่อน up: 8080/8443 เลื่อนไปพอร์ตว่างจาก 18080/18443; 80/443/8189 หยุดพร้อมชื่อโปรแกรม
+- `PRODUCTION START REFUSED: JWT_SECRET is still a placeholder` — Windows มีตัวแปร `JWT_SECRET=changeme_dev_secret` ของโปรเจกต์อื่น (session env ชนะ --env-file) → install/update ล้างทุกชื่อใน .env.production ออกจาก session ตัวเองก่อนสั่ง docker
+- รันซ้ำแล้วไม่ถามรหัส admin → `first-admin.mjs` ADMIN_CHECK_ONLY=1 (exit 10 = ยังเป็นรหัสตัวอย่าง) แล้วถาม
+- ใหม่: `uninstall-windows.bat` / `install/uninstall.ps1` / `install/uninstall.sh`: 1 = ลบ container เก็บข้อมูล, 2 = พิมพ์ DELETE → pg_dump + สำเนา .env.production ลงโฟลเดอร์สำรอง → `docker compose -p cctv-platform down -v` + ลบ image cctv-* + กฎ firewall; ไม่แตะโฟลเดอร์บันทึก/สำรองและโปรเจกต์อื่น
+- ทดสอบ Docker-in-Docker แยก (ลบแล้ว): ติดตั้งโดยมี JWT_SECRET ปลอมใน env → ผ่าน; ถอนเก็บข้อมูล → ติดตั้งซ้ำ ข้อมูล/รหัส admin อยู่; ถอนยกเลิกเมื่อพิมพ์ผิด; ถอนทั้งหมด (สำรองก่อน) → ติดตั้งใหม่ผ่าน; Windows: pwsh + docker จำลอง (พอร์ตชน → 18081, ถามรหัสเมื่อรันซ้ำ)
+- Release rc14.3 เปลี่ยนชื่อเป็น superseded
+
+ขอ Dev: รวม `prod/asset-phase55` ถึง f0410a5 + ACK; ถ้าเครื่อง Dev ยังต้องใช้ตัวแปร `JWT_SECRET` ของโปรเจกต์อื่น ไม่ต้องลบ — ตัวติดตั้งจัดการแล้ว
+
+status: open
